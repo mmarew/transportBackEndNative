@@ -793,7 +793,7 @@ exports.createDeliveryConfirmation = async ({
             createdBy,
             roleId,
           );
-          return {
+  return {
             message:
               "Driver's pending delivery confirmation confirmed by the shipper",
             isExisting: true,
@@ -1126,6 +1126,13 @@ const verifyOtpCode = async (executor, current, otpCode, now) => {
 //   PENDING  → DISPUTED  (dispute recorded with who/when)
 //   CONFIRMED → anything blocked; signed fields immutable unless admin (amendment → new hash)
 //   DISPUTED → CONFIRMED admin-only re-settle (new hash; previous hash preserved)
+//
+// Driver late evidence: when the record is already CONFIRMED (e.g. the shipper
+// self-confirmed first via SHIPPER_DIRECT), the journey's driver may still
+// submit — idempotent success; only photos/notes are appended (attributed to the
+// driver) and the hash is recomputed with the previous hash preserved. Fields
+// the shipper signed (quantity, condition, signature, statement, GPS) are never
+// overwritten by the driver.
 exports.updateDeliveryConfirmation = async (
   deliveryConfirmationUniqueId,
   updates,
@@ -1134,7 +1141,8 @@ exports.updateDeliveryConfirmation = async (
 ) => {
   const executor = transactionStorage.getStore() || pool;
   const isAdmin = ADMIN_ROLE_IDS.has(Number(roleId));
-  const now = currentDate();  const {
+  const now = currentDate();
+  let {
     status,
     deliveredQuantity,
     quantityUnit,
@@ -1171,6 +1179,48 @@ exports.updateDeliveryConfirmation = async (
   }
 
   const currentStatus = current.deliveryConfirmationStatus;
+
+  // ── Driver late evidence (record already CONFIRMED) ───────────────────────
+  // If the shipper confirmed first (e.g. SHIPPER_DIRECT), the driver's later
+  // POD submission must not fail: the journey's driver gets an idempotent
+  // success — photos/notes are appended, while every field the shipper signed
+  // is ignored (never overwritten).
+  let isDriverLateEvidence = false;
+  if (currentStatus === "CONFIRMED" && !isAdmin) {
+    const [driverRows] = await executor.query(
+      `SELECT dr.userUniqueId
+       FROM Journey j
+       JOIN JourneyDecisions jd ON jd.journeyDecisionUniqueId = j.journeyDecisionUniqueId
+       JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+       WHERE j.journeyUniqueId = ? AND j.journeyDeletedAt IS NULL
+       LIMIT 1`,
+      [current.journeyUniqueId],
+    );
+    if (driverRows[0]?.userUniqueId === updatedBy) {
+      isDriverLateEvidence = true;
+      status = undefined;
+      deliveredQuantity = undefined;
+      quantityUnit = undefined;
+      condition = undefined;
+      shipperSignature = undefined;
+      statement = undefined;
+      latitude = undefined;
+      longitude = undefined;
+      const hasAppendableEvidence =
+        (Array.isArray(photoUrls) && photoUrls.length > 0) || notes !== undefined;
+      if (!hasAppendableEvidence) {
+        return {
+          message: "Delivery already confirmed",
+          data: {
+            deliveryConfirmationUniqueId,
+            deliveryConfirmationStatus: currentStatus,
+            alreadyConfirmed: true,
+          },
+        };
+      }
+    }
+  }
+
   const isSettling = status === "CONFIRMED" && currentStatus !== "CONFIRMED";
   const signedFieldsChanged =
     deliveredQuantity !== undefined ||
@@ -1218,7 +1268,7 @@ exports.updateDeliveryConfirmation = async (
     }
   }
 
-  if (currentStatus === "CONFIRMED" && signedFieldsChanged && !isAdmin) {
+  if (currentStatus === "CONFIRMED" && signedFieldsChanged && !isAdmin && !isDriverLateEvidence) {
     throw new AppError(
       "Signed delivery evidence cannot be changed after confirmation",
       AppError.FORBIDDEN,
@@ -1339,7 +1389,7 @@ exports.updateDeliveryConfirmation = async (
   // Immutable SHA-256 snapshot: written once at settle; admin amendments to a
   // CONFIRMED record recompute it and move the previous hash into the audit column.
   const isAmendment =
-    currentStatus === "CONFIRMED" && isAdmin && signedFieldsChanged;
+    currentStatus === "CONFIRMED" && (isAdmin || isDriverLateEvidence) && signedFieldsChanged;
   if (isSettling || isAmendment) {
     const confirmedAt =
       status === "CONFIRMED" && currentStatus !== "CONFIRMED"
@@ -1403,6 +1453,19 @@ exports.updateDeliveryConfirmation = async (
         [uuidv4(), deliveryConfirmationUniqueId, photoUrl, updatedBy],
       );
     }
+  }
+
+  if (isDriverLateEvidence) {
+    return {
+      message: "Delivery already confirmed; driver evidence attached",
+      data: {
+        deliveryConfirmationUniqueId,
+        deliveryConfirmationStatus: currentStatus,
+        alreadyConfirmed: true,
+        deliveryConfirmationPhotos: photoUrls || [],
+        deliveryConfirmationNotes: notes ?? current.deliveryConfirmationNotes,
+      },
+    };
   }
 
   return {
