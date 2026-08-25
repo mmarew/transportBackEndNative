@@ -308,5 +308,10 @@ const messageTypes = {
     details:
       "When the shipper confirms proof of delivery; the driver's POD gate clears.",
   },
+  pod_confirmed_by_driver: {
+    message: "Delivery confirmed by shipper on driver device.",
+    details:
+      "When the driver submits the shipper's signature from the delivery device; the shipper is notified that POD is complete.",
+  },
 };
 module.exports = messageTypes;

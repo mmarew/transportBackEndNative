@@ -53,13 +53,16 @@ exports.createDeliveryConfirmation = Joi.object({
   .oxor("receiverUserUniqueId", "receiverPhoneNumber")
   .and("receiverPhoneNumber", "receiverFullName");
 
-// Tier A: OTP binding the on-road receiver signature. Multipart sends text
-// fields as strings, so the 6-digit pattern matches a string value.
-const otpCodeSchema = Joi.string()
-  .pattern(/^\d{6}$/)
-  .messages({ "string.pattern.base": "Invalid OTP code (must be 6 digits)" })
+// Tier A: OTP binding the on-road receiver signature. Clients may send the
+// 6-digit code as a number or a string; coerce to string before validation.
+const otpCodeSchema = Joi.alternatives()
+  .try(
+    Joi.string().pattern(/^\d{6}$/),
+    Joi.number().integer().min(100000).max(999999).cast("string"),
+  )
   .optional()
-  .allow("");
+  .allow("")
+  .messages({ "alternatives.types": "Invalid OTP code (must be 6 digits)" });
 
 // Signatures are PNG base64 (data URIs) — can be large; TEXT columns hold them.
 const signatureSchema = Joi.string().max(2000000).optional().allow("", null);

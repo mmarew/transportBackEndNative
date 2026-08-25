@@ -826,6 +826,8 @@ exports.getDeliveryConfirmations = async ({
   status = "",
   page = 1,
   limit = 10,
+  userUniqueId,
+  roleId,
 }) => {
   const offset = (page - 1) * limit;
 
@@ -847,6 +849,54 @@ exports.getDeliveryConfirmations = async ({
   if (status) {
     whereClause += " AND dc.deliveryConfirmationStatus = ?";
     params.push(status);
+  }
+
+  // ── Role-based visibility scoping ────────────────────────────────────────
+  // Driver → only their own deliveries; Shipper → only theirs;
+  // Admin / SuperAdmin → unfiltered; CompanyAdmin → their company's deliveries.
+  const roleIdNum = Number(roleId);
+  const adminRoleIds = [
+    Number(usersRoles.adminRoleId),
+    Number(usersRoles.supperAdminRoleId),
+  ];
+  if (userUniqueId && !adminRoleIds.includes(roleIdNum)) {
+    if (roleIdNum === Number(usersRoles.driverRoleId)) {
+      whereClause += ` AND EXISTS (
+        SELECT 1 FROM Journey j
+        JOIN JourneyDecisions jd ON jd.journeyDecisionUniqueId = j.journeyDecisionUniqueId
+        JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+        WHERE j.journeyUniqueId = dc.journeyUniqueId
+          AND j.journeyDeletedAt IS NULL
+          AND dr.userUniqueId = ?
+      )`;
+      params.push(userUniqueId);
+    } else if (roleIdNum === Number(usersRoles.shipperRoleId)) {
+      whereClause += ` AND EXISTS (
+        SELECT 1 FROM Journey j
+        JOIN JourneyDecisions jd ON jd.journeyDecisionUniqueId = j.journeyDecisionUniqueId
+        JOIN ShipperRequest sr ON sr.shipperRequestId = jd.shipperRequestId
+        WHERE j.journeyUniqueId = dc.journeyUniqueId
+          AND j.journeyDeletedAt IS NULL
+          AND sr.userUniqueId = ?
+      )`;
+      params.push(userUniqueId);
+    } else if (
+      roleIdNum === Number(usersRoles.companyAdminRoleId) ||
+      roleIdNum === Number(usersRoles.dispatcherRoleId)
+    ) {
+      whereClause += ` AND EXISTS (
+        SELECT 1 FROM Journey j
+        JOIN JourneyDecisions jd ON jd.journeyDecisionUniqueId = j.journeyDecisionUniqueId
+        JOIN ShipperRequest sr ON sr.shipperRequestId = jd.shipperRequestId
+        JOIN CompanyMembership cm ON cm.userUniqueId = ? AND cm.isActive = 1 AND cm.membershipDeletedAt IS NULL
+        WHERE j.journeyUniqueId = dc.journeyUniqueId
+          AND j.journeyDeletedAt IS NULL
+          AND sr.targetCompanyUniqueId = cm.companyUniqueId
+      )`;
+      params.push(userUniqueId);
+    } else {
+      whereClause += " AND 1 = 0";
+    }
   }
 
   const joinClause = `
@@ -1455,6 +1505,14 @@ exports.updateDeliveryConfirmation = async (
     }
   }
 
+  // Best-effort push so the shipper's POD view updates without polling.
+  if (isSettling) {
+    await exports.notifyShipperOfPodConfirmed(
+      current.journeyUniqueId,
+      deliveryConfirmationUniqueId,
+    );
+  }
+
   if (isDriverLateEvidence) {
     return {
       message: "Delivery already confirmed; driver evidence attached",
@@ -1823,6 +1881,75 @@ exports.notifyDriverOfPodConfirmed = async (
     });
   } catch (error) {
     logger.warn("POD driver notification failed", {
+      journeyUniqueId,
+      error: error.message,
+    });
+    return { message: "Notification skipped" };
+  }
+};
+
+// Notify the shipper that the driver confirmed delivery (settled the POD with
+// the shipper's signature). Best-effort — never fails the settle request.
+exports.notifyShipperOfPodConfirmed = async (
+  journeyUniqueId,
+  deliveryConfirmationUniqueId,
+) => {
+  const executor = transactionStorage.getStore() || pool;
+  try {
+    const [rows] = await executor.query(
+      `SELECT sr.userUniqueId AS shipperUserUniqueId,
+              sr.shipperRequestId,
+              u.phoneNumber AS shipperPhoneNumber
+       FROM Journey j
+       JOIN JourneyDecisions jd ON jd.journeyDecisionUniqueId = j.journeyDecisionUniqueId
+       JOIN ShipperRequest sr ON sr.shipperRequestId = jd.shipperRequestId
+       LEFT JOIN Users u ON u.userUniqueId = sr.userUniqueId
+       WHERE j.journeyUniqueId = ? AND j.journeyDeletedAt IS NULL
+       LIMIT 1`,
+      [journeyUniqueId],
+    );
+    const shipperUserUniqueId = rows[0]?.shipperUserUniqueId;
+    if (!shipperUserUniqueId) {
+      logger.warn("POD shipper notification skipped: no shipper for journey", {
+        journeyUniqueId,
+      });
+      return { message: "No shipper found for journey; skipping notification" };
+    }
+
+    // Real-time WebSocket push → the shipper app shows POD completion.
+    const phoneNumber = rows[0]?.shipperPhoneNumber;
+    if (phoneNumber) {
+      const wsResult = await sendSocketIONotificationToShipper({
+        phoneNumber,
+        message: {
+          messageTypes: messageTypes.pod_confirmed_by_driver,
+          message: "Delivery confirmed by shipper on driver device.",
+          data: {
+            journeyUniqueId,
+            deliveryConfirmationUniqueId,
+            shipperRequestId: rows[0]?.shipperRequestId,
+          },
+        },
+      });
+      if (wsResult?.status !== "success") {
+        logger.warn("POD WS push skipped for shipper", {
+          journeyUniqueId,
+          reason: wsResult?.data || wsResult?.message,
+        });
+      }
+    }
+
+    return await sendFCMNotificationToUser({
+      userUniqueId: shipperUserUniqueId,
+      roleId: usersRoles.shipperRoleId,
+      notification: {
+        title: "Delivery confirmed",
+        body: "The driver has submitted your signed proof of delivery. POD is complete.",
+      },
+      data: { journeyUniqueId },
+    });
+  } catch (error) {
+    logger.warn("POD shipper notification failed", {
       journeyUniqueId,
       error: error.message,
     });

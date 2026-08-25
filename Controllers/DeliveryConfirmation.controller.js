@@ -99,7 +99,8 @@ exports.createDeliveryConfirmation = async (req, res, next) => {
   }
 };
 
-// Get delivery confirmations by filters (id, journey, receiver, status) with pagination
+// Get delivery confirmations by filters (id, journey, receiver, status) with pagination.
+// Role-scoped: drivers/shipper see only their own; admins see all.
 exports.getDeliveryConfirmations = async (req, res, next) => {
   try {
     const {
@@ -117,6 +118,8 @@ exports.getDeliveryConfirmations = async (req, res, next) => {
       status,
       page: parseInt(page),
       limit: parseInt(limit),
+      userUniqueId: req.user.userUniqueId,
+      roleId: req.user.roleId,
     });
     ServerResponder(res, result);
   } catch (error) {

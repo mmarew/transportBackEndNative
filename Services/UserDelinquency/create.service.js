@@ -26,7 +26,7 @@ const createUserDelinquency = async data => {
    * 6) Execute insert; then call checkAndApplyAutomaticBan to enforce point-based bans.
    * 7) If deliveryConfirmationUniqueId is provided:
    *    - If DC exists and is PENDING → dispute it (status → DISPUTED).
-   *    - If DC exists and is CONFIRMED → throw 403 (cannot dispute settled DC).
+   *    - If DC exists and is CONFIRMED → dispute it (status → DISPUTED).
    *    - If DC exists and is already DISPUTED → idempotent, no change.
    *    - If DC does NOT exist (driver never submitted POD) → create a new DISPUTED
    *      DC with source 'DELINQUENCY_DISPUTE'. Requires journeyDecisionUniqueId
@@ -279,12 +279,6 @@ const createUserDelinquency = async data => {
       } else {
         // DC exists — dispute it if not already DISPUTED
         const dc = dcRows[0];
-        if (dc.deliveryConfirmationStatus === "CONFIRMED") {
-          throw new AppError(
-            "Cannot dispute a confirmed delivery confirmation",
-            AppError.FORBIDDEN,
-          );
-        }
         if (dc.deliveryConfirmationStatus !== "DISPUTED") {
           const now = currentDate();
           await executor.query(

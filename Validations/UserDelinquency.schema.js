@@ -9,7 +9,7 @@ exports.createUserDelinquency = Joi.object({
   journeyDecisionUniqueId: uuidSchema.optional(),
   isDelinquencySeenByAdmin: Joi.boolean().optional(),
   // When provided, the linked delivery confirmation is auto-disputed (status → DISPUTED).
-  // Cannot dispute a CONFIRMED delivery — must be PENDING or already DISPUTED.
+  // Works for any status: PENDING → DISPUTED, CONFIRMED → DISPUTED, or idempotent if already DISPUTED.
   deliveryConfirmationUniqueId: uuidSchema.optional(),
 }).unknown(true);
 

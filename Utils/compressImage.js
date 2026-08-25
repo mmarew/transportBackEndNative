@@ -109,6 +109,7 @@ const compressBase64 = async (dataUrl, opts = {}) => {
 
     const outputBuffer = await sharp(inputBuffer)
       .rotate()
+      .flatten({ background: "#ffffff" })
       .resize({
         width: maxWidth,
         height: maxHeight,
