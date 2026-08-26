@@ -2,6 +2,7 @@ const mysql = require("mysql2/promise");
 const logger = require("../Utils/logger");
 const Config = require("../Utils/Config");
 const { TIME } = require("../Utils/Constants");
+const { EAT_TIMEZONE_STRING } = require("../Utils/Timezone");
 
 /**
  * Database Connection Pool Configuration
@@ -51,6 +52,7 @@ const config = {
   password: PASSWORD,
   database: DATABASE,
   waitForConnections: true,
+  timezone: EAT_TIMEZONE_STRING, // EAT (UTC+3) — matches backend CurrentDate.js
   port: PORT,
   connectionLimit: connectionLimit,
   queueLimit: 0, // Unlimited queue, but connections will wait

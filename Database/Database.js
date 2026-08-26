@@ -557,6 +557,17 @@ CREATE TABLE IF NOT EXISTS Journey (
     journeyStartingLng DECIMAL(11, 8) NULL,  -- Longitude where the journey started
     journeyCompletingLat DECIMAL(10, 8) NULL,  -- Latitude where the journey was completed
     journeyCompletingLng DECIMAL(11, 8) NULL,  -- Longitude where the journey was completed
+    -- Loading stage GPS + timestamps (goToLoadingPlace → loading → loaded)
+    journeyGoingToLoadingLat DECIMAL(10, 8) NULL,  -- GPS when driver confirmed heading to loading place
+    journeyGoingToLoadingLng DECIMAL(11, 8) NULL,
+    journeyLoadingStartedLat DECIMAL(10, 8) NULL,  -- GPS when driver started loading
+    journeyLoadingStartedLng DECIMAL(11, 8) NULL,
+    loadingStartedAt DATETIME NULL,  -- When driver started loading
+    journeyLoadingCompletedLat DECIMAL(10, 8) NULL,  -- GPS when driver completed loading
+    journeyLoadingCompletedLng DECIMAL(11, 8) NULL,
+    loadingCompletedAt DATETIME NULL,  -- When driver completed loading
+    -- Proof of loading (JSON array of photo URLs)
+    journeyProofOfLoading TEXT NULL,
     journeyCreatedBy VARCHAR(36) NOT NULL,  -- Who created the journey
     journeyUpdatedBy VARCHAR(36) NULL,  -- Who updated the journey
     journeyDeletedBy VARCHAR(36) NULL,  -- Who deleted the journey

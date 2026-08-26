@@ -39,10 +39,10 @@ exports.overrideBody = Joi.object({
 
 exports.manualCheckin = Joi.object({
   queueOrganizationUniqueId: uuidSchema.required(),
-  vehicleDriverUniqueId: uuidSchema.required(),
-  queueNumber: Joi.number().integer().min(1).optional(),
+  vehicleDriverUniqueId: uuidSchema.optional(),
+  driverPhoneNumber: Joi.string().min(8).max(20).optional(),
   shipperPhoneNumber: Joi.string().min(8).max(20).optional().allow("", null),
-});
+}).oxor("vehicleDriverUniqueId", "driverPhoneNumber");
 
 exports.checkout = Joi.object({
   queueOrganizationUniqueId: uuidSchema.optional(),

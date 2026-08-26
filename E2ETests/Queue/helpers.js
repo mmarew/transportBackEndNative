@@ -289,10 +289,10 @@ const getQueueStatus = async (queueOrganizationUniqueId, token = superAdminToken
 };
 
 const manualCheckin = async (queueOrganizationUniqueId, driverKey, token = superAdminToken()) => {
-  const d = queueState.drivers[driverKey];
+  const phone = usersData[driverKey]?.phoneNumber || usersData.queueDriver1?.phoneNumber;
   const res = await axios.post(
     backendURL + "/api/queue/manualCheckin",
-    { queueOrganizationUniqueId, vehicleDriverUniqueId: d.vehicleDriverUniqueId },
+    { queueOrganizationUniqueId, driverPhoneNumber: phone },
     authConfig(token),
   );
   return res.data?.data || res.data;
@@ -313,10 +313,10 @@ const manualCheckin = async (queueOrganizationUniqueId, driverKey, token = super
  * @returns {Promise<Object>} Manual checkin response data.
  */
 const manualCheckinWithShipper = async (queueOrganizationUniqueId, driverKey, shipperPhoneNumber, token = superAdminToken()) => {
-  const d = queueState.drivers[driverKey];
+  const phone = usersData[driverKey]?.phoneNumber || usersData.queueDriver1?.phoneNumber;
   const res = await axios.post(
     backendURL + "/api/queue/manualCheckin",
-    { queueOrganizationUniqueId, vehicleDriverUniqueId: d.vehicleDriverUniqueId, shipperPhoneNumber },
+    { queueOrganizationUniqueId, driverPhoneNumber: phone, shipperPhoneNumber },
     authConfig(token),
   );
   return res.data?.data || res.data;

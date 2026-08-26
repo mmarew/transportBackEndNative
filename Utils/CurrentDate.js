@@ -1,18 +1,25 @@
-// Get current date/time in East African Time (Addis Ababa, UTC+3)
-// Returns a Date object in EAT timezone
+/**
+ * CURRENT DATE — East African Time (UTC+3)
+ *
+ * All timestamps in the system use EAT as the standard timezone.
+ * Single source of truth: Utils/Timezone.js → EAT_OFFSET_HOURS
+ *
+ * MySQL pool timezone is set to '+03:00' to match.
+ * Frontend parses timestamps as EAT.
+ */
+
+const { EAT_OFFSET_HOURS } = require("./Timezone");
+
+// Get current date/time in East African Time (UTC+3)
+// Returns MySQL DATETIME format: 'YYYY-MM-DD HH:mm:ss'
 const currentDate = () => {
   const now = new Date();
-
-  // More reliable: manually add UTC+3 offset
-  // EAT is always UTC+3 (no DST in Ethiopia)
-  const eatOffset = 3 * 60; // 3 hours in minutes
-  const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
-  const eatTime = new Date(utcTime + eatOffset * 60000);
-
+  // Convert to EAT: UTC + 3 hours
+  const eatTime = new Date(now.getTime() + EAT_OFFSET_HOURS * 60 * 60 * 1000);
   return formatDateTime(eatTime);
 };
 
-// Format Date object to MySQL DATETIME format: 'YYYY-MM-DD HH:mm:ss'
+// Format Date object to MySQL DATETIME format: 'YYYY-MM-DD HH:mm:ss' (UTC-based)
 const formatDateTime = (date) => {
   const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, "0");
@@ -25,30 +32,27 @@ const formatDateTime = (date) => {
 };
 
 const addHours = (dateStr, h) => {
-  const date = new Date(dateStr.replace(" ", "T") + "Z"); // Convert to ISO-like for parsing
+  const date = new Date(dateStr.replace(" ", "T") + "Z"); // Parse as UTC
   date.setUTCHours(date.getUTCHours() + h);
   return formatDateTime(date);
 };
 
 /**
- * Current time in East African Time (UTC+3) minus `minutes`, as a MySQL
- * DATETIME string. Same wall-clock domain as `currentDate()`, so it can be
- * compared directly against stored DATETIME columns (e.g. `offeredAt < ?`)
- * regardless of the machine/DB session timezone. Using a raw `Date` here would
- * be serialized by mysql2 in the process timezone and skew the comparison.
+ * Current EAT time minus `minutes`, as a MySQL DATETIME string.
+ * Same timezone domain as currentDate(), so it can be compared directly
+ * against stored DATETIME columns.
  */
 const minutesAgo = (minutes) => {
   const now = new Date();
-  // EAT is always UTC+3 (no DST in Ethiopia)
-  const eatOffset = 3 * 60; // 3 hours in minutes
-  const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
-  const eatTime = new Date(utcTime + eatOffset * 60000 - minutes * 60000);
+  const eatTime = new Date(now.getTime() + EAT_OFFSET_HOURS * 60 * 60 * 1000 - minutes * 60 * 1000);
   return formatDateTime(eatTime);
 };
+
 const toDateOnly = (dateStr) => {
   if (!dateStr) return null;
   if (dateStr instanceof Date) return dateStr.toISOString().slice(0, 10);
   if (typeof dateStr === "string") return dateStr.trim().slice(0, 10);
   return null;
 };
+
 module.exports = { currentDate, formatDateTime, toDateOnly, addHours, minutesAgo };

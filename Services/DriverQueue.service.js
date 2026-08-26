@@ -197,6 +197,34 @@ const getVehicleDriverType = async (executor, vehicleDriverUniqueId) => {
   return rows[0];
 };
 
+/**
+ * Resolve an active VehicleDriver row by the driver's phone number.
+ * Joins Users → VehicleDriver → Vehicle to return the same shape as
+ * getVehicleDriverType: { driverUserUniqueId, vehicleUniqueId,
+ *   vehicleTypeUniqueId, phoneNumber, fullName }.
+ *
+ * Throws NOT_FOUND if no active vehicle-driver assignment exists for the phone.
+ */
+const getVehicleDriverByPhone = async (executor, phoneNumber) => {
+  const [rows] = await executor.query(
+    `SELECT vd.vehicleDriverUniqueId, vd.driverUserUniqueId, vd.vehicleUniqueId,
+            v.vehicleTypeUniqueId, u.phoneNumber, u.fullName
+     FROM Users u
+     JOIN VehicleDriver vd ON vd.driverUserUniqueId = u.userUniqueId
+     JOIN Vehicle v        ON v.vehicleUniqueId      = vd.vehicleUniqueId
+     WHERE u.phoneNumber = ? AND vd.assignmentStatus = 'active'
+       AND vd.vehicleDriverDeletedAt IS NULL`,
+    [phoneNumber],
+  );
+  if (rows.length === 0) {
+    throw new AppError(
+      "No active vehicle-driver assignment found for this phone number",
+      AppError.NOT_FOUND,
+    );
+  }
+  return rows[0];
+};
+
 const nextQueueNumber = async (
   executor,
   queueOrganizationUniqueId,
@@ -911,7 +939,7 @@ exports.manualCheckin = async (data) => {
   const {
     queueOrganizationUniqueId,
     vehicleDriverUniqueId,
-    queueNumber,
+    driverPhoneNumber,
     user,
   } = data;
   const executor = db();
@@ -924,10 +952,19 @@ exports.manualCheckin = async (data) => {
   }
 
   await queueOrgReady(executor, queueOrganizationUniqueId);
-  const vehicleDriver = await getVehicleDriverType(
-    executor,
-    vehicleDriverUniqueId,
-  );
+
+  // Resolve the driver: by UUID if provided, otherwise by phone number.
+  let vehicleDriver;
+  if (vehicleDriverUniqueId) {
+    vehicleDriver = await getVehicleDriverType(executor, vehicleDriverUniqueId);
+  } else if (driverPhoneNumber) {
+    vehicleDriver = await getVehicleDriverByPhone(executor, driverPhoneNumber);
+  } else {
+    throw new AppError(
+      "Provide vehicleDriverUniqueId or driverPhoneNumber",
+      AppError.BAD_REQUEST,
+    );
+  }
   const queueDate = today();
 
   // FENCE: a driver holding an ACTIVE journey (accepted/started, not yet
@@ -972,14 +1009,12 @@ exports.manualCheckin = async (data) => {
   let assignedNumber;
   if (atOrg) {
     // Re-check-in: revive the previous entry for the same org + day.
-    assignedNumber =
-      queueNumber ||
-      (await nextQueueNumber(
+    assignedNumber = await nextQueueNumber(
         executor,
         queueOrganizationUniqueId,
         queueDate,
         vehicleDriver.vehicleTypeUniqueId,
-      ));
+      );
     queueUniqueId = atOrg.queueUniqueId;
     await logQueueHistory(executor, {
       queueUniqueId: atOrg.queueUniqueId,
@@ -1011,14 +1046,12 @@ exports.manualCheckin = async (data) => {
       conditions: { queueId: atOrg.queueId },
     });
   } else {
-    assignedNumber =
-      queueNumber ||
-      (await nextQueueNumber(
+    assignedNumber = await nextQueueNumber(
         executor,
         queueOrganizationUniqueId,
         queueDate,
         vehicleDriver.vehicleTypeUniqueId,
-      ));
+      );
 
     queueUniqueId = uuidv4();
     try {
