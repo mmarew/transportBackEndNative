@@ -63,7 +63,7 @@ const executeInTransaction = async (callback, options = {}) => {
   }
 
   const connection = await pool.getConnection();
-  const startTime = currentDate();
+  const startMs = Date.now();
   let transactionId = null;
   let timer;
 
@@ -105,7 +105,7 @@ const executeInTransaction = async (callback, options = {}) => {
     await connection.commit();
 
     clearTimeout(timer);
-    const duration = currentDate() - startTime;
+    const duration = Date.now() - startMs;
     if (logging) {
       logger.info("Transaction committed", {
         transactionId,
@@ -118,7 +118,7 @@ const executeInTransaction = async (callback, options = {}) => {
     // Rollback on any error
     try {
       await connection.rollback();
-      const duration = currentDate() - startTime;
+      const duration = Date.now() - startMs;
       // 4xx AppErrors are expected business rejections (e.g. validation,
       // auth) — warn level. Real 5xx / unexpected errors stay at error.
       const isClientError =
