@@ -381,13 +381,12 @@ const runShipperLoadingStagesTests = async () => {
     journeyLatColumn: "journeyGoingToLoadingLat",
   });
 
-  // ── 4.2 → 6 startLoading (with optional proof) ────────────────────────
+  // ── 4.2 → 6 startLoading (GPS only, no proof) ────────────────────────
   await transition(
     driverToken,
     "/api/driver/startLoading",
     9.032,
     38.742,
-    [makeTestFile("proof_photo_1.png")],
   );
   await assertShipperViews({
     stage: 6,

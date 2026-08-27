@@ -231,8 +231,8 @@ const runLoadingStagesTests = async () => {
   log("journey row: status", row?.journeyStatusId, "| goingToLoading lat/lng:", row?.journeyGoingToLoadingLat, row?.journeyGoingToLoadingLng);
   log("route points after 5:", await routePointCount(jd));
 
-  log("\n=== 4.2 startLoading → 6 (with optional proof) ===");
-  await transition(token, "/api/driver/startLoading", 9.032, 38.742, [makeTestFile("proof_photo_1.png"), makeTestFile("signed_doc_1.png")]);
+  log("\n=== 4.2 startLoading → 6 ===");
+  await transition(token, "/api/driver/startLoading", 9.032, 38.742);
   row = await journeyRow(jd);
   log("journey row: status", row?.journeyStatusId, "| loadingStarted lat/lng:", row?.journeyLoadingStartedLat, row?.journeyLoadingStartedLng, "| at:", row?.loadingStartedAt);
   log("proof:", row?.journeyProofOfLoading);
