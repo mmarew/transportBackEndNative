@@ -911,7 +911,6 @@ const transitionLoadingStage = (stage) => async (body) => {
           journeyUniqueId,
           journeyDecisionUniqueId,
           journeyStatusId: config.targetStatus,
-          journeyStartedAt: currentDate(),
           ...stageUpdate,
           journeyCreatedBy: userUniqueId,
           journeyCreatedAt: currentDate(),
