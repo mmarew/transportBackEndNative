@@ -6,6 +6,7 @@
 // Standalone: node E2ETests/Queue/verifyLoadingStages.js  (backend must run on :3000)
 
 const axios = require("axios");
+const FormData = require("form-data");
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../../Middleware/Database.config");
 
@@ -21,6 +22,17 @@ const VEHICLE_DRIVER_UNIQUE_ID = "07c4105c-d889-442e-8a01-062765892796";
 const log = (...args) => console.log(new Date().toISOString().slice(11, 19), ...args);
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 const api = axios.create({ baseURL: BASE, timeout: 20000 });
+
+// Minimal 1x1 PNG for file upload tests
+const TEST_IMAGE_BUFFER = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+  "base64",
+);
+const makeTestFile = (name) => ({
+  filename: name,
+  data: TEST_IMAGE_BUFFER,
+  contentType: "image/png",
+});
 
 const loginUser = async (phone, role) => {
   await api.post("/api/user/loginUser", { phoneNumber: phone, roleId: role }).catch(() => {});
@@ -62,21 +74,44 @@ const acceptOrder = async token => {
   return acc.data;
 };
 
-const transition = async (token, path, lat, lng, proofOfLoading) => {
+const transition = async (token, apiPath, lat, lng, proofFiles) => {
   const ids = await verify(token);
+  const headers = { Authorization: `Bearer ${token}` };
+
+  if (proofFiles && proofFiles.length > 0) {
+    // Send as multipart/form-data with actual file uploads
+    const form = new FormData();
+    form.append("journeyDecisionUniqueId", ids.journeyDecisionUniqueId);
+    form.append("latitude", String(lat));
+    form.append("longitude", String(lng));
+    for (const file of proofFiles) {
+      form.append("proofOfLoading", file.data, {
+        filename: file.filename,
+        contentType: file.contentType,
+      });
+    }
+    headers["Content-Type"] = "multipart/form-data";
+    const res = await api.put(apiPath, form.getBuffer(), {
+      headers: { ...headers, ...form.getHeaders() },
+    }).catch(e => {
+      log(`${apiPath} error:`, JSON.stringify(e?.response?.data)?.slice(0, 600));
+      throw e;
+    });
+    log(`${apiPath} → status`, res.data?.status, "| message:", res.data?.message);
+    return res.data;
+  }
+
+  // No files — send as plain JSON
   const body = {
     journeyDecisionUniqueId: ids.journeyDecisionUniqueId,
     latitude: lat,
     longitude: lng,
-    ...(proofOfLoading ? { proofOfLoading } : {}),
   };
-  const res = await api.put(path, body, {
-    headers: { Authorization: `Bearer ${token}` },
-  }).catch(e => {
-    log(`${path} error:`, JSON.stringify(e?.response?.data)?.slice(0, 600));
+  const res = await api.put(apiPath, body, { headers }).catch(e => {
+    log(`${apiPath} error:`, JSON.stringify(e?.response?.data)?.slice(0, 600));
     throw e;
   });
-  log(`${path} → status`, res.data?.status, "| message:", res.data?.message);
+  log(`${apiPath} → status`, res.data?.status, "| message:", res.data?.message);
   return res.data;
 };
 
@@ -197,17 +232,32 @@ const runLoadingStagesTests = async () => {
   log("route points after 5:", await routePointCount(jd));
 
   log("\n=== 4.2 startLoading → 6 (with optional proof) ===");
-  await transition(token, "/api/driver/startLoading", 9.032, 38.742, ["/uploads/proof_photo_1.png", "/uploads/signed_doc_1.pdf"]);
+  await transition(token, "/api/driver/startLoading", 9.032, 38.742, [makeTestFile("proof_photo_1.png"), makeTestFile("signed_doc_1.png")]);
   row = await journeyRow(jd);
   log("journey row: status", row?.journeyStatusId, "| loadingStarted lat/lng:", row?.journeyLoadingStartedLat, row?.journeyLoadingStartedLng, "| at:", row?.loadingStartedAt);
   log("proof:", row?.journeyProofOfLoading);
   log("route points after 6:", await routePointCount(jd));
 
   log("\n=== 4.3 loadCompleted → 7 (proof appended) ===");
-  await transition(token, "/api/driver/loadCompleted", 9.033, 38.743, ["/uploads/signed_doc_2.pdf"]);
+  await transition(token, "/api/driver/loadCompleted", 9.033, 38.743, [makeTestFile("signed_doc_2.png")]);
   row = await journeyRow(jd);
   log("journey row: status", row?.journeyStatusId, "| loadingCompleted lat/lng:", row?.journeyLoadingCompletedLat, row?.journeyLoadingCompletedLng, "| at:", row?.loadingCompletedAt);
   log("proof (merged):", row?.journeyProofOfLoading);
+  // Verify proof paths are server-relative (/uploads/...), NOT local device paths
+  const proof = JSON.parse(row?.journeyProofOfLoading || "[]");
+  if (proof.length > 0) {
+    for (const p of proof) {
+      if (p.startsWith("file://")) {
+        log("  ❌ FAIL: proof contains local device path:", p);
+        throw new Error("proofOfLoading must be server path (/uploads/...), got: " + p);
+      }
+      if (!p.startsWith("/uploads/")) {
+        log("  ❌ FAIL: proof path not /uploads/...:", p);
+        throw new Error("proofOfLoading path must start with /uploads/, got: " + p);
+      }
+    }
+    log("  ✅ all proof paths are /uploads/... (server-side)");
+  }
   log("route points after 7:", await routePointCount(jd));
 
   const final = await verify(token);

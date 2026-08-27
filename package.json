@@ -73,8 +73,7 @@
     "node-forge": "1.4.0",
     "picomatch": "4.0.4",
     "@tootallnate/once": "^2.0.0",
-    "dicer": "0.3.1",
-    "form-data": "2.5.6"
+    "dicer": "0.3.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",

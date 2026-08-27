@@ -43,6 +43,7 @@ const {
   updateDriverRequest: updateDriverRequestSchema,
   requestIdParams: requestIdParamsSchema,
 } = require("../Validations/DriverRequest.schema");
+const upload = require("../Config/MulterConfig");
 const { DRIVER_REQUEST_ENDPOINTS } = require("./EndPoints/driverRequest.endpoints");
 
 const router = express.Router();
@@ -640,6 +641,7 @@ router.put(
   DRIVER_REQUEST_ENDPOINTS.START_LOADING,
   verifyTokenOfAxios,
   verifyDriversIdentity,
+  upload.array('proofOfLoading', 10), // eslint-disable-line no-magic-numbers
   validator(startLoadingSchema),
   startLoading,
 );
@@ -647,6 +649,7 @@ router.put(
   DRIVER_REQUEST_ENDPOINTS.LOAD_COMPLETED,
   verifyTokenOfAxios,
   verifyDriversIdentity,
+  upload.array('proofOfLoading', 10), // eslint-disable-line no-magic-numbers
   validator(loadCompletedSchema),
   loadCompleted,
 );

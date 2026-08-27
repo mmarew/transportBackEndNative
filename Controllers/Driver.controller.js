@@ -1,3 +1,4 @@
+const { v4: uuidv4 } = require("uuid");
 const services = require("../Services/DriverRequest");
 const { journeyStatusMap } = require("../Utils/ListOfSeedData");
 
@@ -5,6 +6,41 @@ const ServerResponder = require("../Utils/ServerResponder");
 const AppError = require("../Utils/AppError");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const { HTTP_STATUS } = require("../Utils/Constants");
+const { uploadToFTP } = require("../Utils/FTPHandler");
+const { compressBuffer } = require("../Utils/compressImage");
+
+
+
+// Compress and upload a single proof-of-loading photo, returning its stored path.
+const saveLoadingPhoto = async (file) => {
+  if (!file?.buffer) {
+    return null;
+  }
+  const compressed = await compressBuffer(file.buffer);
+  const uniqueFilename = `loading_${uuidv4()}.jpg`;
+  return uploadToFTP(compressed, uniqueFilename);
+};
+
+// Collect uploaded proof-of-loading files from multer and return stored paths.
+const saveLoadingPhotos = async (req) => {
+  const allFiles = [];
+  if (req.file) {
+    allFiles.push(req.file);
+  }
+  for (const group of Object.values(req.files || {})) {
+    for (const file of group || []) {
+      allFiles.push(file);
+    }
+  }
+  const photoUrls = [];
+  for (const file of allFiles) {
+    const url = await saveLoadingPhoto(file);
+    if (url) {
+      photoUrls.push(url);
+    }
+  }
+  return photoUrls;
+};
 
 const createRequest = async (req, res, next) => {
   try {
@@ -204,6 +240,11 @@ const startLoading = async (req, res, next) => {
   try {
     const { userUniqueId } = req?.user || {};
     req.body.userUniqueId = userUniqueId;
+    // Convert multer-uploaded files to server paths
+    const uploadedPaths = await saveLoadingPhotos(req);
+    if (uploadedPaths.length > 0) {
+      req.body.proofOfLoading = uploadedPaths;
+    }
     // Service validates previous status (goToLoadingPlace) internally
     const result = await services.startLoading(req.body);
     ServerResponder(res, result);
@@ -215,6 +256,11 @@ const loadCompleted = async (req, res, next) => {
   try {
     const { userUniqueId } = req?.user || {};
     req.body.userUniqueId = userUniqueId;
+    // Convert multer-uploaded files to server paths
+    const uploadedPaths = await saveLoadingPhotos(req);
+    if (uploadedPaths.length > 0) {
+      req.body.proofOfLoading = uploadedPaths;
+    }
     // Service validates previous status (loading) internally
     const result = await services.loadCompleted(req.body);
     ServerResponder(res, result);

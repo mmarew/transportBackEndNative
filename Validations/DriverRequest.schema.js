@@ -221,16 +221,23 @@ const loadingStageSchema = Joi.object({
     }),
 }).unknown(true); // Allow additional fields
 
-// loadCompleted is the only stage that accepts proof-of-loading attachments
-// (photos, signed docs) - still optional, merged into Journey.journeyProofOfLoading.
+// Both startLoading and loadCompleted accept optional proof-of-loading attachments.
+// proofOfLoading arrives as FormData file uploads (multer) or legacy string arrays.
+// Saved paths are merged into Journey.journeyProofOfLoading by the service layer.
+const proofOfLoadingField = Joi.array().items(Joi.string()).optional().messages({
+  "array.base": "proofOfLoading must be an array of file paths or URLs",
+});
+
+const startLoadingSchema = loadingStageSchema.keys({
+  proofOfLoading: proofOfLoadingField,
+});
+
 const loadCompletedSchema = loadingStageSchema.keys({
-  proofOfLoading: Joi.array().items(Joi.string()).optional().messages({
-    "array.base": "proof Of Loading must be an array of file URLs",
-  }),
+  proofOfLoading: proofOfLoadingField,
 });
 
 exports.goToLoadingPlace = loadingStageSchema;
-exports.startLoading = loadingStageSchema;
+exports.startLoading = startLoadingSchema;
 exports.loadCompleted = loadCompletedSchema;
 // Create and accept new request - driver finds a shipper request and accepts it directly
 exports.createAndAcceptNewRequest = Joi.object({

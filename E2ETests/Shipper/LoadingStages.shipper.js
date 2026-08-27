@@ -18,6 +18,7 @@
 // Standalone: node E2ETests/Shipper/LoadingStages.shipper.js (backend on :3000)
 
 const axios = require("axios");
+const FormData = require("form-data");
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../../Middleware/Database.config");
 
@@ -35,6 +36,17 @@ const log = (...args) =>
   console.log(new Date().toISOString().slice(11, 19), ...args);
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const api = axios.create({ baseURL: BASE, timeout: 20000 });
+
+// Minimal 1x1 PNG for file upload tests
+const TEST_IMAGE_BUFFER = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+  "base64",
+);
+const makeTestFile = (name) => ({
+  filename: name,
+  data: TEST_IMAGE_BUFFER,
+  contentType: "image/png",
+});
 
 let passed = 0;
 let failed = 0;
@@ -142,18 +154,37 @@ const resetToAccepted = async () => {
   return journeyDecision;
 };
 
-const transition = async (token, endpoint, lat, lng, extra = {}) => {
+const transition = async (token, endpoint, lat, lng, proofFiles) => {
   const ids = await verifyDriver(token);
+  const headers = { Authorization: `Bearer ${token}` };
+
+  if (proofFiles && proofFiles.length > 0) {
+    // Send as multipart/form-data with actual file uploads
+    const form = new FormData();
+    form.append("journeyDecisionUniqueId", ids.journeyDecisionUniqueId);
+    form.append("latitude", String(lat));
+    form.append("longitude", String(lng));
+    for (const file of proofFiles) {
+      form.append("proofOfLoading", file.data, {
+        filename: file.filename,
+        contentType: file.contentType,
+      });
+    }
+    const res = await api.put(endpoint, form.getBuffer(), {
+      headers: { ...headers, ...form.getHeaders() },
+    });
+    return res.data;
+  }
+
+  // No files — send as plain JSON
   const res = await api.put(
     endpoint,
     {
       journeyDecisionUniqueId: ids.journeyDecisionUniqueId,
-      userUniqueId: DRIVER_USER_UNIQUE_ID,
       latitude: lat,
       longitude: lng,
-      ...extra,
     },
-    { headers: { Authorization: `Bearer ${token}` } },
+    { headers },
   );
   return res.data;
 };
@@ -356,7 +387,7 @@ const runShipperLoadingStagesTests = async () => {
     "/api/driver/startLoading",
     9.032,
     38.742,
-    { proofOfLoading: ["/uploads/proof_photo_1.png"] },
+    [makeTestFile("proof_photo_1.png")],
   );
   await assertShipperViews({
     stage: 6,
@@ -372,7 +403,7 @@ const runShipperLoadingStagesTests = async () => {
     "/api/driver/loadCompleted",
     9.033,
     38.743,
-    { proofOfLoading: ["/uploads/proof_photo_2.png"] },
+    [makeTestFile("proof_photo_2.png")],
   );
   await assertShipperViews({
     stage: 7,
@@ -391,6 +422,15 @@ const runShipperLoadingStagesTests = async () => {
     Array.isArray(proof) && proof.length === 2,
     JSON.stringify(proof),
   );
+
+  // Verify proof paths are server-relative (/uploads/...), NOT local device paths
+  for (const p of proof) {
+    check(
+      "journey: proof path is server-side (/uploads/...)",
+      p.startsWith("/uploads/") && !p.startsWith("file://"),
+      `path=${p}`,
+    );
+  }
 
   // ── 5 → 8 startJourney (separate departure) ───────────────────────────
   const startIds = await verifyDriver(driverToken);
