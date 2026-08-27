@@ -641,7 +641,6 @@ router.put(
   DRIVER_REQUEST_ENDPOINTS.START_LOADING,
   verifyTokenOfAxios,
   verifyDriversIdentity,
-  upload.none(),
   validator(startLoadingSchema),
   startLoading,
 );
