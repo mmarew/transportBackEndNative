@@ -641,7 +641,6 @@ router.put(
   DRIVER_REQUEST_ENDPOINTS.START_LOADING,
   verifyTokenOfAxios,
   verifyDriversIdentity,
-  upload.array('proofOfLoading', 10), // eslint-disable-line no-magic-numbers
   validator(startLoadingSchema),
   startLoading,
 );

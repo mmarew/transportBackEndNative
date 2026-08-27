@@ -240,11 +240,6 @@ const startLoading = async (req, res, next) => {
   try {
     const { userUniqueId } = req?.user || {};
     req.body.userUniqueId = userUniqueId;
-    // Convert multer-uploaded files to server paths
-    const uploadedPaths = await saveLoadingPhotos(req);
-    if (uploadedPaths.length > 0) {
-      req.body.proofOfLoading = uploadedPaths;
-    }
     // Service validates previous status (goToLoadingPlace) internally
     const result = await services.startLoading(req.body);
     ServerResponder(res, result);

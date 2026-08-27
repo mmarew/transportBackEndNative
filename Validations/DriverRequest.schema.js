@@ -221,16 +221,13 @@ const loadingStageSchema = Joi.object({
     }),
 }).unknown(true); // Allow additional fields
 
-// Both startLoading and loadCompleted accept optional proof-of-loading attachments.
-// proofOfLoading arrives as FormData file uploads (multer) or legacy string arrays.
-// Saved paths are merged into Journey.journeyProofOfLoading by the service layer.
+// Only loadCompleted (final stage) accepts proof-of-loading attachments.
+// startLoading is a GPS-only transition — no files.
 const proofOfLoadingField = Joi.array().items(Joi.string()).optional().messages({
   "array.base": "proofOfLoading must be an array of file paths or URLs",
 });
 
-const startLoadingSchema = loadingStageSchema.keys({
-  proofOfLoading: proofOfLoadingField,
-});
+const startLoadingSchema = loadingStageSchema;
 
 const loadCompletedSchema = loadingStageSchema.keys({
   proofOfLoading: proofOfLoadingField,
