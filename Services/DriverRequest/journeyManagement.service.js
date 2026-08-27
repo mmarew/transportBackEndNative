@@ -114,9 +114,10 @@ const startJourney = async (body) => {
             journeyUniqueId,
             journeyDecisionUniqueId: body.journeyDecisionUniqueId,
             journeyStatusId: body.journeyStatusId,
-            startTime: currentDate(),
             journeyStartingLat,
             journeyStartingLng,
+            journeyStartedAt: currentDate(),
+            journeyStartedByUser: userUniqueId,
             journeyCreatedBy: userUniqueId,
             journeyCreatedAt: currentDate(),
           },
@@ -142,11 +143,14 @@ const startJourney = async (body) => {
         // journeyStartingLat/Lng as the blue-line start point.
         await conn.query(
           `UPDATE Journey SET journeyStartingLat = ?, journeyStartingLng = ?,
+             journeyStartedAt = ?, journeyStartedByUser = ?,
              journeyUpdatedBy = ?, journeyUpdatedAt = ?
            WHERE journeyUniqueId = ?`,
           [
             journeyStartingLat,
             journeyStartingLng,
+            currentDate(),
+            userUniqueId,
             userUniqueId,
             currentDate(),
             finalJourneyUniqueId,
@@ -311,7 +315,7 @@ const completeJourney = async (body) => {
         ShipperRequest.targetCompanyUniqueId,
         ShipperRequest.queueOrganizationUniqueId,
         Journey.journeyUniqueId,
-        Journey.startTime, Journey.endTime,
+        Journey.journeyStartedAt, Journey.journeyCompletedAt,
         Users.fullName,
         Users.phoneNumber FROM JourneyDecisions
       JOIN DriverRequest ON JourneyDecisions.driverRequestId = DriverRequest.driverRequestId
@@ -373,11 +377,20 @@ const completeJourney = async (body) => {
       // journeyStartingLat/Lng captured in startJourney).
       await conn.query(
         `UPDATE Journey
-            SET journeyCompletingLat = ?,
-                journeyCompletingLng = ?,
-                journeyUpdatedAt      = ?
+            SET journeyCompletingLat   = ?,
+                journeyCompletingLng   = ?,
+                journeyCompletedAt     = ?,
+                journeyCompletedByUser = ?,
+                journeyUpdatedAt       = ?
           WHERE journeyUniqueId = ?`,
-        [body.journeyCompletingLat ?? null, body.journeyCompletingLng ?? null, currentDate(), journeyUniqueId],
+        [
+          body.journeyCompletingLat ?? null,
+          body.journeyCompletingLng ?? null,
+          currentDate(),
+          userUniqueId,
+          currentDate(),
+          journeyUniqueId,
+        ],
       );
 
       const paymentAmount =
@@ -750,7 +763,7 @@ const LOADING_STAGE_CONFIG = {
     targetStatus: journeyStatusMap.goToLoadingPlace,
     latColumn: "journeyGoingToLoadingLat",
     lngColumn: "journeyGoingToLoadingLng",
-    timeColumn: null,
+    timeColumn: "journeyGoingToLoadingAt",
     messageType: messageTypes.driver_going_to_loading_place,
     companyAction: "going_to_loading_place",
     successMessage: "Driver confirmed going to loading place",
@@ -898,7 +911,7 @@ const transitionLoadingStage = (stage) => async (body) => {
           journeyUniqueId,
           journeyDecisionUniqueId,
           journeyStatusId: config.targetStatus,
-          startTime: currentDate(),
+          journeyStartedAt: currentDate(),
           ...stageUpdate,
           journeyCreatedBy: userUniqueId,
           journeyCreatedAt: currentDate(),

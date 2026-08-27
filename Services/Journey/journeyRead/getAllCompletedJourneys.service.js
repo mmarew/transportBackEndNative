@@ -38,8 +38,8 @@ const getAllCompletedJourneys = async ({
         Journey.journeyId,
         Journey.journeyUniqueId,
         Journey.journeyDecisionUniqueId,
-        Journey.startTime,
-        Journey.endTime,
+        Journey.journeyStartedAt,
+        Journey.journeyCompletedAt,
         Journey.fare,
         Journey.journeyStatusId,
         Journey.journeyStartingLat,
@@ -99,7 +99,7 @@ const getAllCompletedJourneys = async ({
       INNER JOIN DriverRequest ON JourneyDecisions.driverRequestId = DriverRequest.driverRequestId
       INNER JOIN Users as driverUser ON DriverRequest.userUniqueId = driverUser.userUniqueId
       WHERE Journey.journeyStatusId = ?
-      ORDER BY Journey.endTime DESC
+      ORDER BY Journey.journeyCompletedAt DESC
       LIMIT ? OFFSET ?`;
     const [completedJourneys] = await executor.query(dataSql, [journeyStatusMap.journeyCompleted, safeLimit, offset]);
 
@@ -119,8 +119,8 @@ const getAllCompletedJourneys = async ({
         journeyId: row.journeyId,
         journeyUniqueId: row.journeyUniqueId,
         journeyDecisionUniqueId: row.journeyDecisionUniqueId,
-        startTime: row.startTime,
-        endTime: row.endTime,
+        journeyStartedAt: row.journeyStartedAt,
+        journeyCompletedAt: row.journeyCompletedAt,
         fare: row.fare,
         journeyStatusId: row.journeyStatusId,
         journeyStartingLat: row.journeyStartingLat,

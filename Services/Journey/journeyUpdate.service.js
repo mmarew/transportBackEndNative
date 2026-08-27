@@ -4,16 +4,16 @@ const AppError = require("../../Utils/AppError");
 const { query } = require("./journeyHelper");
 
 /**
- * Update a journey's endTime, fare, and/or journeyStatusId
+ * Update a journey's journeyCompletedAt, fare, and/or journeyStatusId
  * @param {Object} params
  * @param {string} params.journeyUniqueId - Required
- * @param {string} [params.endTime] - Optional, if not provided this field won't be updated
+ * @param {string} [params.journeyCompletedAt] - Optional, if not provided this field won't be updated
  * @param {number} [params.fare] - Optional
  * @param {number} [params.journeyStatusId] - Optional
  * @returns {Promise<Object>} Success object with updated data
  * @throws {AppError} If no fields to update or update fails
  */
-const updateJourney = async ({ journeyUniqueId, endTime, fare, journeyStatusId }) => {
+const updateJourney = async ({ journeyUniqueId, journeyCompletedAt, fare, journeyStatusId }) => {
   if (!journeyUniqueId) {
     throw new AppError("journeyUniqueId is required", AppError.BAD_REQUEST);
   }
@@ -22,9 +22,9 @@ const updateJourney = async ({ journeyUniqueId, endTime, fare, journeyStatusId }
   const updates = [];
   const values = [];
 
-  if (endTime !== undefined) {
-    updates.push("endTime = ?");
-    values.push(endTime);
+  if (journeyCompletedAt !== undefined) {
+    updates.push("journeyCompletedAt = ?");
+    values.push(journeyCompletedAt);
   }
   if (fare !== undefined) {
     updates.push("fare = ?");
@@ -52,7 +52,7 @@ const updateJourney = async ({ journeyUniqueId, endTime, fare, journeyStatusId }
 
   return {
     message: "Journey updated successfully",
-    data: { journeyUniqueId, endTime, fare, journeyStatusId }
+    data: { journeyUniqueId, journeyCompletedAt, fare, journeyStatusId }
   };
 };
 

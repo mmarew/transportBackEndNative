@@ -15,8 +15,8 @@ const { currentDate} = require("../../Utils/CurrentDate");
 const createJourney = async (data, connection = null) => {
   const {
     journeyDecisionUniqueId,
-    startTime,
-    endTime,
+    journeyStartedAt,
+    journeyCompletedAt,
     fare,
     journeyStatusId,
     journeyCreatedBy,
@@ -40,15 +40,15 @@ const createJourney = async (data, connection = null) => {
 
   const journeyUniqueId = uuidv4();
   const sql = `
-    INSERT INTO Journey (journeyUniqueId, journeyDecisionUniqueId, startTime, endTime, fare, journeyStatusId, journeyStartingLat, journeyStartingLng, journeyCompletingLat, journeyCompletingLng, journeyCreatedBy, journeyCreatedAt) 
+    INSERT INTO Journey (journeyUniqueId, journeyDecisionUniqueId, journeyStartedAt, journeyCompletedAt, fare, journeyStatusId, journeyStartingLat, journeyStartingLng, journeyCompletingLat, journeyCompletingLng, journeyCreatedBy, journeyCreatedAt) 
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   const values = [
     journeyUniqueId,
     journeyDecisionUniqueId,
-    startTime,
-    endTime,
+    journeyStartedAt,
+    journeyCompletedAt,
     fare,
     journeyStatusId,
     journeyStartingLat ?? null,
@@ -67,8 +67,8 @@ const createJourney = async (data, connection = null) => {
       {
         journeyUniqueId,
         journeyDecisionUniqueId,
-        startTime,
-        endTime,
+        journeyStartedAt,
+        journeyCompletedAt,
         fare,
         journeyStatusId,
         journeyStartingLat: journeyStartingLat ?? null,

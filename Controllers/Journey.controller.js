@@ -53,10 +53,10 @@ exports.getJourneyByJourneyUniqueId = async (req, res, next) => {
 // Update a specific journey by ID
 exports.updateJourney = async (req, res, next) => {
   const { journeyUniqueId } = req.params;
-  const { endTime, fare, journeyStatusId } = req.body;
+  const { journeyCompletedAt, fare, journeyStatusId } = req.body;
   await handleServiceResponse(
     executeInTransaction(async () => {
-      return await journeyService.updateJourney({journeyUniqueId, endTime, fare, journeyStatusId});
+      return await journeyService.updateJourney({journeyUniqueId, journeyCompletedAt, fare, journeyStatusId});
     }),
     res,
     next,

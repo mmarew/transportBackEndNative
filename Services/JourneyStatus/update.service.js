@@ -334,7 +334,7 @@ const updateJourneyStatus = async body => {
       const updateValues = {
         journeyStatusId,
         ...(journeyStatusId === journeyStatusMap.journeyCompleted && {
-          endTime: currentDate()
+          journeyCompletedAt: currentDate()
         })
       };
       logger.info("Updating Journey table", {

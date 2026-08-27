@@ -93,10 +93,10 @@ const getCompletedJourneyCountsByDate = async (filters = {}) => {
 
     const { fullName, phone, email, search } = userFilters;
 
-    // Build query conditions - only use endTime for completed journeys
+    // Build query conditions - only use journeyCompletedAt for completed journeys
     const queryWhereParts = [
       "Journey.journeyStatusId = ?",
-      "Journey.endTime IS NOT NULL", // Only count journeys that have endTime set
+      "Journey.journeyCompletedAt IS NOT NULL", // Only count journeys that have journeyCompletedAt set
     ];
     const queryParams = [journeyStatusMap.journeyCompleted];
 
@@ -108,14 +108,11 @@ const getCompletedJourneyCountsByDate = async (filters = {}) => {
       queryParams.push(ownerUserUniqueId, ownerUserUniqueId);
     }
 
-    // Date range filter - use endTime only
+    // Date range filter - use journeyCompletedAt only
     if (fromDateStr && toDateStr) {
-      // queryWhereParts.push(`Journey.endTime BETWEEN ? AND ?`);
-      // queryParams.push(`${fromDate} 00:00:00`, `${toDate} 23:59:59`);
-
       if (fromDateOnly && toDateOnlyVal) {
         queryWhereParts.push(
-          `DATE(Journey.endTime) >= DATE(?) AND DATE(Journey.endTime) <= DATE(?)`,
+          `DATE(Journey.journeyCompletedAt) >= DATE(?) AND DATE(Journey.journeyCompletedAt) <= DATE(?)`,
         );
         queryParams.push(fromDateOnly, toDateOnlyVal);
       }
@@ -170,10 +167,10 @@ const getCompletedJourneyCountsByDate = async (filters = {}) => {
         ? ` WHERE ${queryWhereParts.join(" AND ")}`
         : "";
 
-    // Use DATE_FORMAT with endTime only
+    // Use DATE_FORMAT with journeyCompletedAt only
     const countSql = `
       SELECT 
-        DATE_FORMAT(Journey.endTime, '%Y-%m-%d') as journeyDate,
+        DATE_FORMAT(Journey.journeyCompletedAt, '%Y-%m-%d') as journeyDate,
         COUNT(*) as totalCount
       FROM Journey
       INNER JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
@@ -182,7 +179,7 @@ const getCompletedJourneyCountsByDate = async (filters = {}) => {
       INNER JOIN Users as shipperUser ON ShipperRequest.userUniqueId = shipperUser.userUniqueId
       INNER JOIN Users as driverUser ON DriverRequest.userUniqueId = driverUser.userUniqueId
       ${whereClause}
-      GROUP BY DATE_FORMAT(Journey.endTime, '%Y-%m-%d')
+      GROUP BY DATE_FORMAT(Journey.journeyCompletedAt, '%Y-%m-%d')
       ORDER BY journeyDate
     `;
 

@@ -102,13 +102,13 @@ const getJourneys = async (filters = {}) => {
 
     // Date range filters
     if (fromDate && toDate) {
-      queryWhereParts.push(`DATE(Journey.startTime) >= DATE(?) AND DATE(Journey.endTime) <= DATE(?)`);
+      queryWhereParts.push(`DATE(Journey.journeyStartedAt) >= DATE(?) AND DATE(Journey.journeyCompletedAt) <= DATE(?)`);
       queryParams.push(fromDate, toDate);
     } else if (fromDate) {
-      queryWhereParts.push(`DATE(Journey.startTime) >= DATE(?)`);
+      queryWhereParts.push(`DATE(Journey.journeyStartedAt) >= DATE(?)`);
       queryParams.push(fromDate);
     } else if (toDate) {
-      queryWhereParts.push(`DATE(Journey.endTime) <= DATE(?)`);
+      queryWhereParts.push(`DATE(Journey.journeyCompletedAt) <= DATE(?)`);
       queryParams.push(toDate);
     }
 
@@ -148,8 +148,8 @@ const getJourneys = async (filters = {}) => {
         Journey.journeyId,
         Journey.journeyUniqueId,
         Journey.journeyDecisionUniqueId,
-        Journey.startTime,
-        Journey.endTime,
+        Journey.journeyStartedAt,
+        Journey.journeyCompletedAt,
         Journey.fare,
         Journey.journeyStatusId,
         
@@ -309,8 +309,8 @@ const getJourneys = async (filters = {}) => {
         journeyId: item.journeyId,
         journeyUniqueId: item.journeyUniqueId,
         journeyDecisionUniqueId: item.journeyDecisionUniqueId,
-        startTime: item.startTime,
-        endTime: item.endTime,
+        journeyStartedAt: item.journeyStartedAt,
+        journeyCompletedAt: item.journeyCompletedAt,
         fare: item.fare,
         journeyStatusId: item.journeyStatusId,
         journeyStatusName: item.journeyStatusName

@@ -67,13 +67,13 @@ const getJourneysWithPodStatus = async ({
 
   // Date range filters
   if (fromDate && toDate) {
-    whereParts.push(`DATE(j.startTime) >= DATE(?) AND DATE(j.endTime) <= DATE(?)`);
+    whereParts.push(`DATE(j.journeyStartedAt) >= DATE(?) AND DATE(j.journeyCompletedAt) <= DATE(?)`);
     params.push(fromDate, toDate);
   } else if (fromDate) {
-    whereParts.push(`DATE(j.startTime) >= DATE(?)`);
+    whereParts.push(`DATE(j.journeyStartedAt) >= DATE(?)`);
     params.push(fromDate);
   } else if (toDate) {
-    whereParts.push(`DATE(j.endTime) <= DATE(?)`);
+    whereParts.push(`DATE(j.journeyCompletedAt) <= DATE(?)`);
     params.push(toDate);
   }
 
@@ -118,8 +118,8 @@ const getJourneysWithPodStatus = async ({
   const selectSql = `
     SELECT
       j.journeyUniqueId,
-      j.startTime,
-      j.endTime,
+      j.journeyStartedAt,
+      j.journeyCompletedAt,
       j.fare,
       j.journeyStatusId,
       js.journeyStatusName,
@@ -183,8 +183,8 @@ const getJourneysWithPodStatus = async ({
       journeyUniqueId: item.journeyUniqueId,
       journeyStatusId: item.journeyStatusId,
       journeyStatusName: item.journeyStatusName,
-      startTime: item.startTime,
-      endTime: item.endTime,
+      journeyStartedAt: item.journeyStartedAt,
+      journeyCompletedAt: item.journeyCompletedAt,
       fare: item.fare
     },
     shipper: {

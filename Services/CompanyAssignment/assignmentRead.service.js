@@ -214,8 +214,8 @@ exports.getAssignments = async (filters = {}) => {
     jd.decisionBy,
     jd.journeyStatusId         AS jdJourneyStatusId,
     -- Journey
-    j.startTime AS journeyStartedAt,
-    j.endTime AS journeyCompletedAt
+    j.journeyStartedAt,
+    j.journeyCompletedAt
   `;
 
   const baseSql = `

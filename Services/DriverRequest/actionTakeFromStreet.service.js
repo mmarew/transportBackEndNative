@@ -204,8 +204,8 @@ const takeFromStreet = async (body, user) => {
           journeyDecision.data[0].journeyDecisionUniqueId;
         const journeyData = {
           journeyDecisionUniqueId,
-          startTime: currentDate(),
-          endTime: currentDate(),
+          journeyStartedAt: currentDate(),
+          journeyCompletedAt: currentDate(),
           fare: 0,
           journeyStatusId,
           journeyCreatedBy: userUniqueId,

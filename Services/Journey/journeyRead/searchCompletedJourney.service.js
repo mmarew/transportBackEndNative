@@ -66,7 +66,7 @@ const searchCompletedJourneyByUserData = async (phoneOrEmail, roleId, page = 1, 
     const dataSql = `
       SELECT
         Journey.journeyId, Journey.journeyUniqueId, Journey.journeyDecisionUniqueId,
-        Journey.startTime, Journey.endTime, Journey.fare, Journey.journeyStatusId,
+        Journey.journeyStartedAt, Journey.journeyCompletedAt, Journey.fare, Journey.journeyStatusId,
         Journey.journeyStartingLat, Journey.journeyStartingLng,
         Journey.journeyCompletingLat, Journey.journeyCompletingLng,
         Journey.journeyCreatedBy, Journey.journeyUpdatedAt,
@@ -82,7 +82,7 @@ const searchCompletedJourneyByUserData = async (phoneOrEmail, roleId, page = 1, 
       JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
       WHERE ${userField} IN (${placeholders}) 
         AND Journey.journeyStatusId = ?
-      ORDER BY Journey.endTime DESC
+      ORDER BY Journey.journeyCompletedAt DESC
       LIMIT ? OFFSET ?
     `;
     const dataValues = [...userIds, journeyStatusMap.journeyCompleted, safeLimit, offset];
@@ -104,8 +104,8 @@ const searchCompletedJourneyByUserData = async (phoneOrEmail, roleId, page = 1, 
       const journey = {
         journeyUniqueId: item.journeyUniqueId,
         journeyDecisionUniqueId: item.journeyDecisionUniqueId,
-        startTime: item.startTime,
-        endTime: item.endTime,
+        journeyStartedAt: item.journeyStartedAt,
+        journeyCompletedAt: item.journeyCompletedAt,
         fare: item.fare,
         journeyStatusId: item.journeyStatusId,
         journeyStartingLat: item.journeyStartingLat,

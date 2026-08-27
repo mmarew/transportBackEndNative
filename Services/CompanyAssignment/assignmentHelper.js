@@ -733,8 +733,8 @@ async function getFullAssignmentData(assignmentUniqueId) {
         jd.decisionTime,
         jd.decisionBy,
         jd.journeyStatusId         AS jdJourneyStatusId,
-        j.startTime AS journeyStartedAt,
-        j.endTime AS journeyCompletedAt
+        j.journeyStartedAt,
+        j.journeyCompletedAt
       FROM CompanyBidVehicleAssignment cba
       LEFT JOIN Users u           ON cba.driverUserUniqueId     = u.userUniqueId
       LEFT JOIN Vehicle v         ON cba.vehicleUniqueId        = v.vehicleUniqueId
@@ -989,8 +989,8 @@ async function getAssignmentsData(assignmentUniqueIds) {
         jd.decisionTime,
         jd.decisionBy,
         jd.journeyStatusId         AS jdJourneyStatusId,
-        j.startTime AS journeyStartedAt,
-        j.endTime AS journeyCompletedAt
+        j.journeyStartedAt,
+        j.journeyCompletedAt
       FROM CompanyBidVehicleAssignment cba
       LEFT JOIN Users u           ON cba.driverUserUniqueId     = u.userUniqueId
       LEFT JOIN Vehicle v         ON cba.vehicleUniqueId        = v.vehicleUniqueId

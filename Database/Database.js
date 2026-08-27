@@ -549,37 +549,54 @@ CREATE TABLE IF NOT EXISTS Journey (
     journeyId INT AUTO_INCREMENT PRIMARY KEY,
     journeyUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the journey
     journeyDecisionUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- Foreign key to JourneyDecisions
-    startTime TIMESTAMP NOT NULL default CURRENT_TIMESTAMP,  -- Journey start time
-    endTime TIMESTAMP NULL,  -- Journey end time
+
     fare DECIMAL(10, 2) DEFAULT 0,  -- Fare for the journey
-    journeyStatusId INT NOT NULL,  -- Foreign key to JourneyStatus
-    journeyStartingLat DECIMAL(10, 8) NULL,  -- Latitude where the journey started
-    journeyStartingLng DECIMAL(11, 8) NULL,  -- Longitude where the journey started
-    journeyCompletingLat DECIMAL(10, 8) NULL,  -- Latitude where the journey was completed
-    journeyCompletingLng DECIMAL(11, 8) NULL,  -- Longitude where the journey was completed
-    -- Loading stage GPS + timestamps (goToLoadingPlace → loading → loaded)
-    journeyGoingToLoadingLat DECIMAL(10, 8) NULL,  -- GPS when driver confirmed heading to loading place
+    journeyStatusId INT NOT NULL,   -- Foreign key to JourneyStatus
+
+    -- Stage 5: goToLoadingPlace — driver confirmed heading to loading place
+    journeyGoingToLoadingLat DECIMAL(10, 8) NULL,
     journeyGoingToLoadingLng DECIMAL(11, 8) NULL,
-    journeyLoadingStartedLat DECIMAL(10, 8) NULL,  -- GPS when driver started loading
+    journeyGoingToLoadingAt  DATETIME NULL,
+
+    -- Stage 6: loading — driver arrived, loading in progress
+    journeyLoadingStartedLat DECIMAL(10, 8) NULL,
     journeyLoadingStartedLng DECIMAL(11, 8) NULL,
-    loadingStartedAt DATETIME NULL,  -- When driver started loading
-    journeyLoadingCompletedLat DECIMAL(10, 8) NULL,  -- GPS when driver completed loading
+    loadingStartedAt         DATETIME NULL,
+
+    -- Stage 7: loaded — loading completed, ready to depart
+    journeyLoadingCompletedLat DECIMAL(10, 8) NULL,
     journeyLoadingCompletedLng DECIMAL(11, 8) NULL,
-    loadingCompletedAt DATETIME NULL,  -- When driver completed loading
-    -- Proof of loading (JSON array of photo URLs)
+    loadingCompletedAt         DATETIME NULL,
+
+    -- Stage 8: journeyStarted — driver left loading place
+    journeyStartingLat  DECIMAL(10, 8) NULL,
+    journeyStartingLng  DECIMAL(11, 8) NULL,
+    journeyStartedAt    DATETIME NULL,
+    journeyStartedByUser VARCHAR(36) NULL,  -- Who triggered startJourney
+
+    -- Stage 9: journeyCompleted — driver arrived at destination
+    journeyCompletingLat  DECIMAL(10, 8) NULL,
+    journeyCompletingLng  DECIMAL(11, 8) NULL,
+    journeyCompletedAt    DATETIME NULL,
+    journeyCompletedByUser VARCHAR(36) NULL,  -- Who triggered completeJourney
+
+    -- Proof of loading (JSON array of photo URLs, collected at stage 7)
     journeyProofOfLoading TEXT NULL,
-    journeyCreatedBy VARCHAR(36) NOT NULL,  -- Who created the journey
-    journeyUpdatedBy VARCHAR(36) NULL,  -- Who updated the journey
-    journeyDeletedBy VARCHAR(36) NULL,  -- Who deleted the journey
-    journeyCreatedAt DATETIME NOT NULL,  -- When the journey was created
-    journeyUpdatedAt DATETIME NULL,  -- When the journey was updated
-    journeyDeletedAt DATETIME NULL,  -- When the journey was deleted
+
+    journeyCreatedBy  VARCHAR(36) NOT NULL,
+    journeyUpdatedBy  VARCHAR(36) NULL,
+    journeyDeletedBy  VARCHAR(36) NULL,
+    journeyCreatedAt  DATETIME NOT NULL,
+    journeyUpdatedAt  DATETIME NULL,
+    journeyDeletedAt  DATETIME NULL,
+
     FOREIGN KEY (journeyDecisionUniqueId) REFERENCES JourneyDecisions(journeyDecisionUniqueId),
-    FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId),
-    FOREIGN KEY (journeyCreatedBy) REFERENCES Users(userUniqueId),
-    FOREIGN KEY (journeyUpdatedBy) REFERENCES Users(userUniqueId),
-    FOREIGN KEY (journeyDeletedBy) REFERENCES Users(userUniqueId)
+    FOREIGN KEY (journeyStatusId)         REFERENCES JourneyStatus(journeyStatusId),
+    FOREIGN KEY (journeyCreatedBy)        REFERENCES Users(userUniqueId),
+    FOREIGN KEY (journeyUpdatedBy)        REFERENCES Users(userUniqueId),
+    FOREIGN KEY (journeyDeletedBy)        REFERENCES Users(userUniqueId)
 ) ;
+
 -- Create the JourneyRoutePoints table to register each points
 
 CREATE TABLE IF NOT EXISTS JourneyRoutePoints (
