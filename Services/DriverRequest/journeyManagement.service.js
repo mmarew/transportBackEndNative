@@ -868,7 +868,7 @@ const transitionLoadingStage = (stage) => async (body) => {
         : [];
       const proof = mergeProofOfLoading(existingProof, proofOfLoading);
 
-      const journeyUniqueId = combinedData.journeyUniqueId || uuidv4();
+      let journeyUniqueId = combinedData.journeyUniqueId || uuidv4();
       const stageUpdate = {
         journeyStatusId: config.targetStatus,
         [config.latColumn]: latitude,
@@ -889,19 +889,40 @@ const transitionLoadingStage = (stage) => async (body) => {
       } else {
         // Nearby-match journeys create the Journey row only at startJourney;
         // the loading stages are the first tracked moment, so create it here.
-        await insertData({
-          tableName: "Journey",
-          colAndVal: {
-            journeyUniqueId,
-            journeyDecisionUniqueId,
-            journeyStatusId: config.targetStatus,
-            startTime: currentDate(),
-            ...stageUpdate,
-            journeyCreatedBy: userUniqueId,
-            journeyCreatedAt: currentDate(),
-          },
-          connection: conn,
-        });
+        //
+        // Race-condition guard: two concurrent calls (e.g. double-tap / network
+        // retry) can both read journeyUniqueId = NULL before either commits,
+        // then both attempt to INSERT. Use INSERT IGNORE so the second
+        // concurrent insert is silently skipped instead of throwing ER_DUP_ENTRY.
+        const insertColAndVal = {
+          journeyUniqueId,
+          journeyDecisionUniqueId,
+          journeyStatusId: config.targetStatus,
+          startTime: currentDate(),
+          ...stageUpdate,
+          journeyCreatedBy: userUniqueId,
+          journeyCreatedAt: currentDate(),
+        };
+        const insertColumns = Object.keys(insertColAndVal).join(", ");
+        const insertPlaceholders = Object.keys(insertColAndVal).map(() => "?").join(", ");
+        const insertValues = Object.values(insertColAndVal);
+        await conn.query(
+          `INSERT IGNORE INTO Journey (${insertColumns}) VALUES (${insertPlaceholders})`,
+          insertValues,
+        );
+        // Re-fetch the authoritative journeyUniqueId in case our INSERT was
+        // ignored (i.e. a concurrent transaction already committed the row).
+        const [existingJourneyRows] = await conn.query(
+          `SELECT journeyUniqueId FROM Journey WHERE journeyDecisionUniqueId = ? LIMIT 1`,
+          [journeyDecisionUniqueId],
+        );
+        if (existingJourneyRows?.length) {
+          // Overwrite the locally-generated UUID with the real persisted one.
+          // This ensures updateJourneyStatus and the route-point write reference
+          // the correct row even when our INSERT was the losing concurrent call.
+          // eslint-disable-next-line no-param-reassign
+          journeyUniqueId = existingJourneyRows[0].journeyUniqueId;
+        }
       }
 
       await updateJourneyStatus({

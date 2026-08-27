@@ -62,95 +62,115 @@ const executeInTransaction = async (callback, options = {}) => {
     return await callback(existingConnection);
   }
 
-  const connection = await pool.getConnection();
-  const startMs = Date.now();
-  let transactionId = null;
-  let timer;
+  // Deadlock retry: MySQL error 1213 = ER_LOCK_DEADLOCK
+  const MAX_RETRIES = 1;
 
-  try {
-    // Generate transaction ID for logging
-    transactionId = `txn_${currentDate()}_${Math.random()
-      .toString(36)
-      .substr(2, 9)}`;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const connection = await pool.getConnection();
+    const startMs = Date.now();
+    let transactionId = null;
+    let timer;
 
-    if (logging) {
-      logger.debug("Transaction started", { transactionId });
-    }
-
-    // Align session lock wait timeout (seconds) with JS timeout
-    if (timeout) {
-      const lockWait = Math.max(1, Math.floor(timeout / 1000));
-      await connection.query(`SET SESSION innodb_lock_wait_timeout = ?`, [
-        lockWait,
-      ]);
-    }
-
-    // Begin transaction
-    await connection.beginTransaction();
-
-    // JS-level timeout: reject if callback takes too long to avoid held locks
-    const timeoutPromise = new Promise((resolve, reject) => {
-      timer = setTimeout(() => {
-        reject(new Error("Transaction timed out (JS-level)"));
-      }, timeout);
-    });
-
-    // Run the callback inside the AsyncLocalStorage context
-    const result = await transactionStorage.run(connection, async () => {
-      // Execute the callback and enforce timeout
-      return await Promise.race([callback(connection), timeoutPromise]);
-    });
-
-    // Commit transaction
-    await connection.commit();
-
-    clearTimeout(timer);
-    const duration = Date.now() - startMs;
-    if (logging) {
-      logger.info("Transaction committed", {
-        transactionId,
-        duration: `${duration}ms`,
-      });
-    }
-
-    return result;
-  } catch (error) {
-    // Rollback on any error
     try {
-      await connection.rollback();
-      const duration = Date.now() - startMs;
-      // 4xx AppErrors are expected business rejections (e.g. validation,
-      // auth) — warn level. Real 5xx / unexpected errors stay at error.
-      const isClientError =
-        error?.statusCode >= 400 && error?.statusCode < 500;
+      // Generate transaction ID for logging
+      transactionId = `txn_${currentDate()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
+
       if (logging) {
-        logger[isClientError ? "warn" : "error"]("Transaction rolled back", {
+        logger.debug("Transaction started", { transactionId });
+      }
+
+      // Align session lock wait timeout (seconds) with JS timeout
+      if (timeout) {
+        const lockWait = Math.max(1, Math.floor(timeout / 1000));
+        await connection.query(`SET SESSION innodb_lock_wait_timeout = ?`, [
+          lockWait,
+        ]);
+      }
+
+      // Begin transaction
+      await connection.beginTransaction();
+
+      // JS-level timeout: reject if callback takes too long to avoid held locks
+      const timeoutPromise = new Promise((resolve, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error("Transaction timed out (JS-level)"));
+        }, timeout);
+      });
+
+      // Run the callback inside the AsyncLocalStorage context
+      const result = await transactionStorage.run(connection, async () => {
+        // Execute the callback and enforce timeout
+        return await Promise.race([callback(connection), timeoutPromise]);
+      });
+
+      // Commit transaction
+      await connection.commit();
+
+      clearTimeout(timer);
+      const duration = Date.now() - startMs;
+      if (logging) {
+        logger.info("Transaction committed", {
           transactionId,
           duration: `${duration}ms`,
-          error: error.message,
-          stack: error.stack,
         });
       }
-    } catch (rollbackError) {
-      logger.error("Failed to rollback transaction", {
-        transactionId,
-        rollbackError: rollbackError.message,
-        originalError: error.message,
-      });
-    }
 
-    // Re-throw the original error
-    throw error;
-  } finally {
-    clearTimeout(timer);
-    // Always release the connection back to the pool
-    try {
-      connection.release();
-    } catch (e) {
-      logger.warn("Failed to release connection", {
-        transactionId,
-        error: e.message,
-      });
+      return result;
+    } catch (error) {
+      // Rollback on any error
+      try {
+        await connection.rollback();
+        const duration = Date.now() - startMs;
+
+        // Deadlock: retry once (MySQL already rolled back this transaction)
+        if (error.code === "ER_LOCK_DEADLOCK" && attempt < MAX_RETRIES) {
+          clearTimeout(timer);
+          connection.release();
+          if (logging) {
+            logger.warn("Deadlock detected — retrying transaction", {
+              transactionId,
+              attempt: attempt + 1,
+              duration: `${duration}ms`,
+            });
+          }
+          continue;
+        }
+
+        // 4xx AppErrors are expected business rejections (e.g. validation,
+        // auth) — warn level. Real 5xx / unexpected errors stay at error.
+        const isClientError =
+          error?.statusCode >= 400 && error?.statusCode < 500;
+        if (logging) {
+          logger[isClientError ? "warn" : "error"]("Transaction rolled back", {
+            transactionId,
+            duration: `${duration}ms`,
+            error: error.message,
+            stack: error.stack,
+          });
+        }
+      } catch (rollbackError) {
+        logger.error("Failed to rollback transaction", {
+          transactionId,
+          rollbackError: rollbackError.message,
+          originalError: error.message,
+        });
+      }
+
+      // Re-throw the original error
+      throw error;
+    } finally {
+      clearTimeout(timer);
+      // Always release the connection back to the pool
+      try {
+        connection.release();
+      } catch (e) {
+        logger.warn("Failed to release connection", {
+          transactionId,
+          error: e.message,
+        });
+      }
     }
   }
 };
