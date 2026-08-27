@@ -27,9 +27,14 @@ const saveLoadingPhotos = async (req) => {
   if (req.file) {
     allFiles.push(req.file);
   }
-  for (const group of Object.values(req.files || {})) {
-    for (const file of group || []) {
-      allFiles.push(file);
+  // upload.array() returns req.files as a flat array;
+  // upload.fields() returns req.files as a map of arrays.
+  const files = req.files;
+  if (Array.isArray(files)) {
+    allFiles.push(...files);
+  } else if (files && typeof files === "object") {
+    for (const group of Object.values(files)) {
+      if (Array.isArray(group)) allFiles.push(...group);
     }
   }
   const photoUrls = [];
