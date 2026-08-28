@@ -60,7 +60,7 @@ const promoteToAcceptedByShipperAndCreateJourney = async ({
   const journey = await createJourney(
     {
       journeyDecisionUniqueId,
-      journeyStartedAt: currentDate(),
+      journeyStartedAt: null,
       journeyCompletedAt: null,
       fare: shippingCostByDriver ?? 0,
       journeyStatusId: journeyStatusMap.acceptedByShipper,

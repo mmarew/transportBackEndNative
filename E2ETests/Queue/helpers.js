@@ -216,6 +216,23 @@ const getQueueOrganizations = async (filters = {}, token = superAdminToken()) =>
 
 // ── Driver queue API ───────────────────────────────────────────────────────────
 
+// The driver checkin endpoint (POST /api/queue/driver/checkin) intentionally
+// returns the canonical "position" shape used by the driver app:
+//   { queue: {...}, shipper, organization }
+// where the actual entry fields (queueNumber, queueUniqueId, status, ...) live
+// under `queue`. Older tests read them at the top level. Flatten `queue` onto
+// the result so BOTH shapes work, while still preserving `queue` for tests
+// that read `result.queue.queueUniqueId`.
+const normalizePosition = (data) => {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return data;
+  }
+  if (data.queue && typeof data.queue === "object") {
+    return { ...data, ...data.queue };
+  }
+  return data;
+};
+
 const checkin = async (driverKey, queueOrganizationUniqueId) => {
   const d = queueState.drivers[driverKey];
   const res = await axios.post(
@@ -228,7 +245,7 @@ const checkin = async (driverKey, queueOrganizationUniqueId) => {
     },
     authConfig(driverToken(driverKey)),
   );
-  return res.data?.data || res.data;
+  return normalizePosition(res.data?.data || res.data);
 };
 
 /**
@@ -257,7 +274,7 @@ const checkinWithShipper = async (driverKey, queueOrganizationUniqueId, shipperP
     },
     authConfig(driverToken(driverKey)),
   );
-  return res.data?.data || res.data;
+  return normalizePosition(res.data?.data || res.data);
 };
 
 const checkout = async (driverKey, queueOrganizationUniqueId) => {

@@ -2,6 +2,7 @@ const mysql = require("mysql2/promise");
 const logger = require("../Utils/logger");
 const Config = require("../Utils/Config");
 const { TIME } = require("../Utils/Constants");
+const { EAT_TIMEZONE_STRING } = require("../Utils/Timezone");
 
 /**
  * Database Connection Pool Configuration
@@ -55,6 +56,11 @@ const config = {
   connectionLimit: connectionLimit,
   queueLimit: 0, // Unlimited queue, but connections will wait
   connectTimeout: 20000, // 20 seconds - timeout for establishing connection (shared hosting needs more time)
+  // Store & interpret DATETIME columns as East African Time (UTC+3).
+  // MySQL stores EAT wall-time (no tz suffix); this option tells mysql2 that
+  // DATETIME values are EAT so it converts them to the correct UTC instant
+  // when emitting JS Date objects (serialized as ISO ...Z in API responses).
+  timezone: EAT_TIMEZONE_STRING, // '+03:00'
   // Note: acquireTimeout and timeout are not valid mysql2 pool options
   // Query timeouts should be handled at the query level or via connection options
   multipleStatements: false, // Safer by default
