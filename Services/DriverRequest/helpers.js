@@ -326,6 +326,30 @@ const fetchJourneyNotificationData = async (
       shipperRequest.batchId = batchId;
     }
 
+    // Fetch shipper profile photo (mirrors the driver profile photo logic below
+    // and the frontend's /api/user/attachedDocuments?documentTypeId=4 lookup).
+    let shipperProfilePhoto = null;
+    try {
+      const shipperDocuments =
+        await getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
+          shipperRequest.userUniqueId,
+          listOfDocumentsTypeAndId.profilePhoto,
+        );
+      const shipperProfilePhotoData = shipperDocuments?.data;
+      const lastPhotoIndex = shipperProfilePhotoData?.length - 1;
+      shipperProfilePhoto =
+        shipperProfilePhotoData?.[lastPhotoIndex]?.attachedDocumentName;
+      if (shipperProfilePhoto) {
+        shipperRequest.profileImage = shipperProfilePhoto;
+      }
+    } catch (error) {
+      const logger = require("../../Utils/logger");
+      logger.error("Error fetching shipper profile photo", {
+        error: error.message,
+        stack: error.stack,
+      });
+    }
+
     // Fetch driver request data with user info
     let driverRequestData = null;
     if (!driverRequest || driverRequest?.length === 0) {

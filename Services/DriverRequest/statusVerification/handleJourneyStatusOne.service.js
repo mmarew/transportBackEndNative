@@ -40,6 +40,33 @@ const {
   
 } = require("../helpers");
 
+// Extend a shipper object with their profile photo (mirrors the driver profile
+// photo logic below and the frontend's /api/user/attachedDocuments?documentTypeId=4).
+const attachShipperProfilePhoto = async (shipper) => {
+  if (!shipper?.userUniqueId) {
+    return shipper;
+  }
+  try {
+    const shipperDocuments =
+      await getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
+        shipper.userUniqueId,
+        listOfDocumentsTypeAndId.profilePhoto,
+      );
+    const photoData = shipperDocuments?.data;
+    const lastPhotoIndex = photoData?.length - 1;
+    const shipperProfilePhoto =
+      photoData?.[lastPhotoIndex]?.attachedDocumentName || null;
+    if (shipperProfilePhoto) {
+      shipper.profileImage = shipperProfilePhoto;
+    }
+  } catch (error) {
+    logger.warn("Error fetching shipper profile photo in handleJourneyStatusOne", {
+      error: error.message,
+    });
+  }
+  return shipper;
+};
+
 const handleJourneyStatusOne = async (driverRequest, vehicle, vehicleTypeUniqueId) => {
     const {
       originLatitude,
@@ -131,6 +158,7 @@ const handleJourneyStatusOne = async (driverRequest, vehicle, vehicleTypeUniqueI
             }
           });
           const shipper = shipperRows?.[0] ?? null;
+          await attachShipperProfilePhoto(shipper);
 
           // Fetch the JourneyDecision created at assignment time
           const [drRow] = await pool.query(`SELECT driverRequestId FROM DriverRequest WHERE driverRequestUniqueId = ? LIMIT 1`, [companyAssignment.driverRequestUniqueId]);
@@ -184,13 +212,15 @@ const handleJourneyStatusOne = async (driverRequest, vehicle, vehicleTypeUniqueI
     await executeStatusUpdates(journeyDecisionPayload, driverRequestUniqueId, nonRejectedShipper.shipperRequestId);
 
     // 7. Prepare response
+    const matchedShipper = {
+      ...nonRejectedShipper,
+      journeyStatusId: journeyStatusMap?.requested
+    };
+    await attachShipperProfilePhoto(matchedShipper);
     const response = createResponse({
       ...driverRequest,
       journeyStatusId: journeyStatusMap?.requested
-    }, vehicle, {
-      ...nonRejectedShipper,
-      journeyStatusId: journeyStatusMap?.requested
-    }, journeyDecisionPayload, journeyStatusMap?.requested);
+    }, vehicle, matchedShipper, journeyDecisionPayload, journeyStatusMap?.requested);
 
     // 8. Send notification if shipper has phone number (non-blocking)
     logger.debug("@handleJourneyStatusOne: check phone", {

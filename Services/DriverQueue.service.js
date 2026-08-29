@@ -18,7 +18,8 @@ const {
 const { sendFCMNotificationToUser } = require("./Firebase.service");
 const { sendSms } = require("../Utils/smsSender");
 const messageTypes = require("../Utils/MessageTypes");
-const { journeyStatusMap, usersRoles } = require("../Utils/ListOfSeedData");
+const { journeyStatusMap, usersRoles, listOfDocumentsTypeAndId } = require("../Utils/ListOfSeedData");
+const { getAttachedDocumentsByUserUniqueIdAndDocumentTypeId } = require("../CRUD/Read/ReadData");
 const { createUser } = require("./User.service");
 const logger = require("../Utils/logger");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
@@ -752,6 +753,23 @@ exports.myPosition = async (queueOrganizationUniqueId, user) => {
       [targetedId],
     );
     shipper = shipperRows[0] || null;
+    if (shipper) {
+      try {
+        const shipperDocuments =
+          await getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
+            shipper.userUniqueId,
+            listOfDocumentsTypeAndId.profilePhoto,
+          );
+        const photoData = shipperDocuments?.data;
+        const lastIndex = photoData?.length - 1;
+        shipper.profileImage =
+          photoData?.[lastIndex]?.attachedDocumentName || null;
+      } catch (error) {
+        logger.error("Error fetching queue shipper profile photo", {
+          error: error.message,
+        });
+      }
+    }
   }
 
   const [shipperHistory] = await executor.query(
