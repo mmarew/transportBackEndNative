@@ -232,6 +232,85 @@ const DELIVERY_CONFIRMATION_PHOTO_ATTACHED_BY_COLUMN = {
   ddl: "VARCHAR(36) NULL",
 };
 
+// Make the per-journey DeliveryConfirmations uniqueness LIVE-ONLY.
+//
+// The original `UNIQUE KEY uqDeliveryConfirmationJourney (journeyUniqueId)`
+// binds the key on every row INCLUDING soft-deleted ones. After a confirmation
+// is soft-deleted the journey can never get a fresh one — every re-create hits
+// ER_DUP_ENTRY against the dead row, and the create service's idempotent
+// recovery finds no live row to hand back, so it must throw 409. A delivered
+// journey legitimately needs a fresh confirmation once the previous one was
+// removed, so the key becomes a generated column that is NULL when the row is
+// deleted (MySQL allows many NULLs in a UNIQUE index) and equals the journey id
+// while the row is live (at most one live confirmation per journey, enforced by
+// the DB — live duplicates are still resolved to the existing row in the
+// create service, which keeps the old idempotent behavior).
+const ensureDeliveryConfirmationLiveJourneyKey = async (connection) => {
+  const dbName = dbConfig.database;
+
+  const [colRows] = await connection.query(
+    `SELECT COUNT(*) AS cnt FROM information_schema.columns
+     WHERE table_schema = ? AND table_name = 'DeliveryConfirmations' AND column_name = 'liveJourneyKey'`,
+    [dbName],
+  );
+  if (colRows[0].cnt === 0) {
+    await connection.query(
+      `ALTER TABLE DeliveryConfirmations
+       ADD COLUMN liveJourneyKey VARCHAR(36)
+         GENERATED ALWAYS AS (IF(deliveryConfirmationDeletedAt IS NULL, journeyUniqueId, NULL)) STORED,
+       ADD UNIQUE KEY uq_deliveryConfirmation_live_journey (liveJourneyKey)`,
+    );
+    logger.info(
+      "Migration: added DeliveryConfirmations.liveJourneyKey (live-only unique) column",
+    );
+  }
+
+  const [idxRows] = await connection.query(
+    `SELECT COUNT(*) AS cnt FROM information_schema.statistics
+     WHERE table_schema = ? AND table_name = 'DeliveryConfirmations' AND index_name = 'uq_deliveryConfirmation_live_journey'`,
+    [dbName],
+  );
+  if (idxRows[0].cnt === 0) {
+    await connection.query(
+      `ALTER TABLE DeliveryConfirmations
+       ADD UNIQUE KEY uq_deliveryConfirmation_live_journey (liveJourneyKey)`,
+    );
+    logger.info(
+      "Migration: added DeliveryConfirmations.uq_deliveryConfirmation_live_journey index",
+    );
+  }
+
+  // information_schema.statistics can report stale index metadata within the
+  // same connection right after an ALTER, so read the index list via SHOW INDEX
+  // (engine-backed, always fresh) for the checks below.
+  const [showIdx] = await connection.query(
+    `SHOW INDEX FROM DeliveryConfirmations`,
+  );
+  const liveIndexNames = new Set(showIdx.map((r) => String(r.Key_name).toLowerCase()));
+
+  // The legacy unique index backs the journeyUniqueId FK, so it cannot be
+  // dropped until a plain index covers that column — otherwise MySQL rejects it
+  // with ER_DROP_INDEX_FK ("needed in a foreign key constraint").
+  if (!liveIndexNames.has("idx_deliveryconfirmation_journey")) {
+    await connection.query(
+      `ALTER TABLE DeliveryConfirmations
+       ADD INDEX idx_deliveryConfirmation_journey (journeyUniqueId)`,
+    );
+    logger.info(
+      "Migration: added DeliveryConfirmations.idx_deliveryConfirmation_journey index",
+    );
+  }
+
+  if (liveIndexNames.has("uqdeliveryconfirmationjourney")) {
+    await connection.query(
+      `ALTER TABLE DeliveryConfirmations DROP INDEX uqDeliveryConfirmationJourney`,
+    );
+    logger.info(
+      "Migration: dropped legacy DeliveryConfirmations.uqDeliveryConfirmationJourney index",
+    );
+  }
+};
+
 const ensureDeliveryConfirmationPhotoAttachedBy = async (connection) => {
   const dbName = dbConfig.database;
 
@@ -251,6 +330,208 @@ const ensureDeliveryConfirmationPhotoAttachedBy = async (connection) => {
       `ALTER TABLE DeliveryConfirmationPhotos ADD COLUMN \`${col.name}\` ${col.ddl}`,
     );
     logger.info(`Migration: added DeliveryConfirmationPhotos.${col.name} column`);
+  }
+};
+
+// Reconcile CompanyBidRequest's batch-linkage column to the canonical name.
+//
+// The live schema (Database.js) and all code use `shipperRequestBatchUniqueId`,
+// but databases created before that rename still hold the older column
+// `shipperRequestBatchId`. Since CREATE TABLE IF NOT EXISTS is a no-op for the
+// existing table, any query joining CompanyBidRequest on the canonical name
+// fails with `Unknown column 'shipperRequestBatchUniqueId'`. This idempotent
+// migration renames the legacy column (preserving existing data) or adds the
+// canonical column if it is entirely absent — same pattern as the other
+// ensure* helpers.
+const ensureCompanyBidRequestBatchColumn = async (connection) => {
+  const dbName = dbConfig.database;
+
+  const [existingRows] = await connection.query(
+    `SELECT column_name FROM information_schema.columns
+     WHERE table_schema = ? AND table_name = 'CompanyBidRequest'`,
+    [dbName],
+  );
+  const existing = new Set(
+    existingRows.map((r) =>
+      String(r.column_name ?? r.COLUMN_NAME ?? "").toLowerCase(),
+    ),
+  );
+
+  const hasCanonical = existing.has("shipperrequestbatchuniqueid");
+  const hasLegacy = existing.has("shipperrequestbatchid");
+
+  if (!hasCanonical && hasLegacy) {
+    await connection.query(
+      `ALTER TABLE CompanyBidRequest
+       CHANGE COLUMN \`shipperRequestBatchId\` \`shipperRequestBatchUniqueId\` VARCHAR(36) NOT NULL`,
+    );
+    logger.info(
+      "Migration: renamed CompanyBidRequest.shipperRequestBatchId -> shipperRequestBatchUniqueId",
+    );
+  } else if (!hasCanonical && !hasLegacy) {
+    await connection.query(
+      `ALTER TABLE CompanyBidRequest
+       ADD COLUMN \`shipperRequestBatchUniqueId\` VARCHAR(36) NOT NULL`,
+    );
+    logger.info(
+      "Migration: added CompanyBidRequest.shipperRequestBatchUniqueId column",
+    );
+  }
+};
+
+// Drop any legacy `shipperRequestBatchId` column left over on tables that now
+// carry the canonical `shipperRequestBatchUniqueId`. The old column was NOT NULL
+// with no default, so any INSERT that omitted it (e.g. company lazy ShipperRequest
+// creation during bid acceptance) failed with "Field 'shipperRequestBatchId'
+// doesn't have a default value". Idempotent — only drops when both conditions
+// hold (legacy present AND canonical present).
+const ensureNoLegacyShipperRequestBatchId = async (connection) => {
+  const dbName = dbConfig.database;
+
+  const [rows] = await connection.query(
+    `SELECT TABLE_NAME FROM information_schema.COLUMNS
+     WHERE table_schema = ? AND table_name = 'ShipperRequest'
+       AND column_name = 'shipperRequestBatchId'`,
+    [dbName],
+  );
+  if (rows.length === 0) return;
+
+  const [canonicalRows] = await connection.query(
+    `SELECT COUNT(*) AS cnt FROM information_schema.COLUMNS
+     WHERE table_schema = ? AND table_name = 'ShipperRequest'
+       AND column_name = 'shipperRequestBatchUniqueId'`,
+    [dbName],
+  );
+  if (canonicalRows[0].cnt === 0) return;
+
+  await connection.query(
+    `ALTER TABLE ShipperRequest DROP COLUMN \`shipperRequestBatchId\``,
+  );
+  logger.info(
+    "Migration: dropped legacy ShipperRequest.shipperRequestBatchId column",
+  );
+};
+
+// Reconcile ENUM columns (derived from Database.js) so the live DB's allowed
+// value set is never narrower than the schema's. When an old DB lacks a value
+// the code now writes (e.g. decisionBy='company', bidStatus='completed') MySQL
+// rejects it with "Data truncated for column 'x'". Idempotent ALTER only when a
+// schema value is missing from the live enum.
+const SCHEMA_ENUM_COLUMNS = {
+  "JourneyDecisions.decisionBy": {
+    values: ["shipper", "driver", "admin", "queue", "company"],
+    modifier: "NOT NULL",
+  },
+  "CompanyBidRequest.bidStatus": {
+    values: [
+      "submitted",
+      "accepted_by_shipper",
+      "rejected_by_shipper",
+      "cancelled_by_company",
+      "expired",
+      "completed",
+    ],
+    modifier: "NOT NULL DEFAULT 'submitted'",
+  },
+};
+
+const parseLiveEnum = (columnType) => {
+  const matches = String(columnType || "").match(/'([^']*)'/g);
+  return matches ? matches.map((m) => m.slice(1, -1)) : [];
+};
+
+const ensureSchemaEnums = async (connection) => {
+  const dbName = dbConfig.database;
+
+  for (const [key, columnSpec] of Object.entries(SCHEMA_ENUM_COLUMNS)) {
+    const { values, modifier = "" } = columnSpec;
+    const [tableName, columnName] = key.split(".");
+    const [rows] = await connection.query(
+      `SELECT COLUMN_TYPE FROM information_schema.columns
+       WHERE table_schema = ? AND table_name = ? AND column_name = ?`,
+      [dbName, tableName, columnName],
+    );
+    if (rows.length === 0) continue;
+
+    const liveValues = parseLiveEnum(rows[0].COLUMN_TYPE);
+    const missing = values.filter((v) => !liveValues.includes(v));
+    if (missing.length === 0) continue;
+
+    // Keep the schema's canonical ordering and append any extras already live.
+    const merged = [...values, ...liveValues.filter((v) => !values.includes(v))];
+    const enumList = merged.map((v) => `'${v}'`).join(",");
+    await connection.query(
+      `ALTER TABLE \`${tableName}\` MODIFY COLUMN \`${columnName}\` ENUM(${enumList}) ${modifier}`.trim(),
+    );
+    logger.info(
+      `Migration: widened ${tableName}.${columnName} enum (added: ${missing.join(", ")})`,
+    );
+  }
+};
+
+// Reconcile any columns that live in Database.js (the schema source of truth)
+// but are missing from an existing table in the live DB.
+//
+// Because CREATE TABLE IF NOT EXISTS is a no-op for tables that already exist,
+// columns added to the schema later are never picked up automatically. This
+// holds the exact DDL (derived from Database.js) for those columns and, after
+// checking information_schema, ALTERs in the missing ones. Idempotent — same
+// pattern as the other ensure* helpers. Extend the map whenever the schema
+// grows a column that an older DB won't have.
+const SCHEMA_GAP_COLUMNS = {
+  ShipperRequest: [
+    { name: "isPodRequired", ddl: "BOOLEAN NOT NULL DEFAULT TRUE" },
+  ],
+  ShipperRequestBatch: [
+    { name: "isPodRequired", ddl: "BOOLEAN NOT NULL DEFAULT TRUE" },
+  ],
+  Journey: [
+    { name: "journeyGoingToLoadingLat", ddl: "DECIMAL(10, 8) NULL" },
+    { name: "journeyGoingToLoadingLng", ddl: "DECIMAL(11, 8) NULL" },
+    { name: "journeyGoingToLoadingAt", ddl: "DATETIME NULL" },
+    { name: "journeyLoadingStartedLat", ddl: "DECIMAL(10, 8) NULL" },
+    { name: "journeyLoadingStartedLng", ddl: "DECIMAL(11, 8) NULL" },
+    { name: "loadingStartedAt", ddl: "DATETIME NULL" },
+    { name: "journeyLoadingCompletedLat", ddl: "DECIMAL(10, 8) NULL" },
+    { name: "journeyLoadingCompletedLng", ddl: "DECIMAL(11, 8) NULL" },
+    { name: "loadingCompletedAt", ddl: "DATETIME NULL" },
+    { name: "journeyStartedAt", ddl: "DATETIME NULL" },
+    { name: "journeyStartedByUser", ddl: "VARCHAR(36) NULL" },
+    { name: "journeyCompletedAt", ddl: "DATETIME NULL" },
+    { name: "journeyCompletedByUser", ddl: "VARCHAR(36) NULL" },
+    { name: "journeyProofOfLoading", ddl: "TEXT NULL" },
+  ],
+};
+
+const ensureSchemaColumnCompleteness = async (connection) => {
+  const dbName = dbConfig.database;
+
+  for (const [tableName, columns] of Object.entries(SCHEMA_GAP_COLUMNS)) {
+    const [tableRows] = await connection.query(
+      `SELECT COUNT(*) AS cnt FROM information_schema.tables
+       WHERE table_schema = ? AND table_name = ?`,
+      [dbName, tableName],
+    );
+    if (tableRows[0].cnt === 0) continue; // table not created yet — skip
+
+    const [existingRows] = await connection.query(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_schema = ? AND table_name = ?`,
+      [dbName, tableName],
+    );
+    const existing = new Set(
+      existingRows.map((r) =>
+        String(r.column_name ?? r.COLUMN_NAME ?? "").toLowerCase(),
+      ),
+    );
+
+    for (const col of columns) {
+      if (existing.has(col.name.toLowerCase())) continue;
+      await connection.query(
+        `ALTER TABLE \`${tableName}\` ADD COLUMN \`${col.name}\` ${col.ddl}`,
+      );
+      logger.info(`Migration: added ${tableName}.${col.name} column`);
+    }
   }
 };
 
@@ -293,6 +574,29 @@ const createTable = async () => {
     // ensureDeliveryConfirmationPhotoAttachedBy. Must run while this connection
     // still has the DB selected.
     await ensureDeliveryConfirmationPhotoAttachedBy(adminConnection);
+
+    // Idempotently make the per-journey DeliveryConfirmations uniqueness
+    // live-only (generated column) so a soft-deleted confirmation no longer
+    // blocks re-creating one for the same journey — see
+    // ensureDeliveryConfirmationLiveJourneyKey.
+    await ensureDeliveryConfirmationLiveJourneyKey(adminConnection);
+
+    // Idempotently reconcile CompanyBidRequest's batch-linkage column to the
+    // canonical shipperRequestBatchUniqueId (rename/add) — must run while this
+    // connection still has the DB selected.
+    await ensureCompanyBidRequestBatchColumn(adminConnection);
+
+    // Idempotently add any Database.js schema columns missing from existing
+    // tables (isPodRequired on ShipperRequest/Batch, Journey stage-columns).
+    await ensureSchemaColumnCompleteness(adminConnection);
+
+    // Idempotently drop the legacy ShipperRequest.shipperRequestBatchId column
+    // left over from before the shipperRequestBatchUniqueId rename.
+    await ensureNoLegacyShipperRequestBatchId(adminConnection);
+
+    // Idempotently widen any ENUM columns whose schema value-set grew (e.g.
+    // decisionBy gained 'queue'/'company', bidStatus gained 'completed').
+    await ensureSchemaEnums(adminConnection);
   } finally {
     await adminConnection.end();
   }
@@ -527,5 +831,9 @@ module.exports = {
   ensureDriverActiveRequestGuard,
   ensureDeliveryConfirmationColumns,
   ensureDeliveryConfirmationPhotoAttachedBy,
+  ensureCompanyBidRequestBatchColumn,
+  ensureSchemaColumnCompleteness,
+  ensureNoLegacyShipperRequestBatchId,
+  ensureSchemaEnums,
   DELIVERY_CONFIRMATION_COLUMNS,
 };

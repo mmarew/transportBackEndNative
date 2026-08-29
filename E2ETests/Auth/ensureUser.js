@@ -10,6 +10,7 @@ const {
   apiCreateUserByAdmin,
   apiVerifyUserByOTP,
   apiLoginUser,
+  isUserMissingError,
 } = require("./authApi");
 const { testGetAccountData } = require("./Account");
 const { usersData } = require("../constants");
@@ -56,7 +57,32 @@ const ensureCreate = async (userType) => {
   }
 };
 
-const ensureVerifyAndLogin = async (userType) => {
+// Provisioning ordering: try the OTP LOGIN (verifyUserByOTP issues the token)
+// FIRST — the idempotent fast path for re-runs. If it fails because the user
+// does not exist or was deleted, (re)register the user, verify again (login),
+// then re-login. Never skip silently. LOGIN_USER only dispatches the OTP and
+// issues no token, so it runs as a side-effect after a successful verify.
+const ensureLoginWithRegisterFallback = async (userType, skipCreate) => {
+  try {
+    await apiVerifyUserByOTP(userType);
+    provisioning.verified++;
+    provisioning.loggedIn++;
+    await apiLoginUser(userType); // OTP dispatch side-effect (no token)
+    return;
+  } catch (error) {
+    if (!isUserMissingError(error)) throw error;
+    console.warn(
+      `⚠️  ${userType} login says user not found — registering then re-logging in`,
+    );
+  }
+
+  if (skipCreate) {
+    throw new Error(
+      `Login failed for "${userType}" and it cannot be (re)created (seed-only role)`,
+    );
+  }
+
+  await ensureCreate(userType);
   await apiVerifyUserByOTP(userType);
   provisioning.verified++;
   await apiLoginUser(userType);
@@ -104,10 +130,7 @@ const ensureUser = async ({ userType, options = {} }) => {
 
   console.log(`\n✅ ========== PROVISIONING USER (${userType}) ==========`);
 
-  if (!skipCreate) {
-    await ensureCreate(userType);
-  }
-  await ensureVerifyAndLogin(userType);
+  await ensureLoginWithRegisterFallback(userType, Boolean(skipCreate));
   if (fetchAccount) {
     await ensureAccountData(userType);
   }

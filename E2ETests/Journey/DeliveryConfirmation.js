@@ -213,11 +213,24 @@ const testDeliveryConfirmationWorkflow = async ({ user = usersData.driver } = {}
   await testUpdateDeliveryConfirmation({ user, id: confirmationId });
   await testGetDeliveryConfirmations({ user, filters: { deliveryConfirmationUniqueId: confirmationId } });
 
-  // Soft delete + verify the row is filtered out (id filter must 404 after delete)
-  await testDeleteDeliveryConfirmation({ user, id: confirmationId });
+  // Soft delete + verify the row is filtered out (filter GET returns an empty
+  // list for soft-deleted rows; a strict id GET may 404 — both mean "gone").
+  // Deleting a CONFIRMED confirmation requires an admin, so switch actors.
+  const admin = usersData.admin;
+  await testDeleteDeliveryConfirmation({ user: admin, id: confirmationId });
   try {
-    await testGetDeliveryConfirmations({ user, filters: { deliveryConfirmationUniqueId: confirmationId }, silent: true });
-    console.warn("⚠️  Confirmation still fetchable after soft delete");
+    const afterDelete = await testGetDeliveryConfirmations({
+      user: admin,
+      filters: { deliveryConfirmationUniqueId: confirmationId },
+      silent: true,
+    });
+    const data = afterDelete?.data;
+    const count = Array.isArray(data) ? data.length : data ? 1 : 0;
+    if (count === 0) {
+      console.log("✅ Confirmation gone after soft delete (filtered out)");
+    } else {
+      console.warn("⚠️  Confirmation still fetchable after soft delete");
+    }
   } catch (error) {
     const status = error?.response?.status;
     if (status === 404) {

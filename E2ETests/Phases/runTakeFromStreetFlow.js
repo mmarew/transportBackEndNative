@@ -52,7 +52,7 @@ const runTakeFromStreetFlow = async () => {
 
   // Clean up so the next flow starts from a free driver state.
   const driverStatus = await getDriverJourneyStatus({ userType: "driver" });
-  if (driverStatus?.status === 5) {
+  if ([5, 6, 7, 8].includes(driverStatus?.status)) {
     await completeJourney({ userType: "driver" });
     await getDriverJourneyStatus({ userType: "driver" });
   }

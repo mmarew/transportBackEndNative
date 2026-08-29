@@ -9,9 +9,7 @@ const { sendFCMNotificationToUser } = require("../Firebase.service");
 const { fetchJourneyNotificationData } = require("./helpers");
 const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
 const AppError = require("../../Utils/AppError");
-const {
-  promoteToAcceptedByShipperAndCreateJourney,
-} = require("../Journey");
+const { promoteToAcceptedByShipperAndCreateJourney } = require("../Journey");
 const {
   releaseConflictingOffers,
 } = require("./actionReleaseConflictingOffers.service");
@@ -37,16 +35,28 @@ const acceptShipperRequest = async (body) => {
       throw new AppError("User authentication required", AppError.UNAUTHORIZED);
     }
     if (!journeyDecisionUniqueId) {
-      throw new AppError("Journey decision unique id is required", AppError.BAD_REQUEST);
+      throw new AppError(
+        "Journey decision unique id is required",
+        AppError.BAD_REQUEST,
+      );
     }
     if (!driverRequestUniqueId) {
-      throw new AppError("Driver request unique id is required", AppError.BAD_REQUEST);
+      throw new AppError(
+        "Driver request unique id is required",
+        AppError.BAD_REQUEST,
+      );
     }
     if (!shipperRequestUniqueId) {
-      throw new AppError("Shipper request unique id is required", AppError.BAD_REQUEST);
+      throw new AppError(
+        "Shipper request unique id is required",
+        AppError.BAD_REQUEST,
+      );
     }
     if (shippingCostByDriver !== undefined && shippingCostByDriver <= 0) {
-      throw new AppError("Shipping cost by driver must be greater than 0", AppError.BAD_REQUEST);
+      throw new AppError(
+        "Shipping cost by driver must be greater than 0",
+        AppError.BAD_REQUEST,
+      );
     }
     // check if the driver request is already exists
     // Include Users join to get userUniqueId for validation
@@ -85,7 +95,10 @@ const acceptShipperRequest = async (body) => {
     // the Journey immediately. The 2→3→4→5 flow stays for nearby-matching only.
     const isQueueOrder = Boolean(requestData.queueOrganizationUniqueId);
     if (!isQueueOrder && !shippingCostByDriver) {
-      throw new AppError("Shipping cost by driver is required", AppError.BAD_REQUEST);
+      throw new AppError(
+        "Shipping cost by driver is required",
+        AppError.BAD_REQUEST,
+      );
     }
     const targetStatusId = isQueueOrder
       ? journeyStatusMap.acceptedByShipper
@@ -93,7 +106,10 @@ const acceptShipperRequest = async (body) => {
 
     // Validate that the userUniqueId from token matches the driver who owns this request
     if (requestData.userUniqueId !== userUniqueId) {
-      throw new AppError("Driver user does not match driver request", AppError.FORBIDDEN);
+      throw new AppError(
+        "Driver user does not match driver request",
+        AppError.FORBIDDEN,
+      );
     }
 
     // if the request is found, check if the request is valid to accept
@@ -103,7 +119,10 @@ const acceptShipperRequest = async (body) => {
       requestData.shipperRequestUniqueId !== shipperRequestUniqueId ||
       requestData.driverRequestUniqueId !== driverRequestUniqueId
     ) {
-      throw new AppError("Request found is not valid to accept", AppError.BAD_REQUEST);
+      throw new AppError(
+        "Request found is not valid to accept",
+        AppError.BAD_REQUEST,
+      );
     }
 
     // Block company_target requests — they must go through the company assignment flow
@@ -202,8 +221,7 @@ const acceptShipperRequest = async (body) => {
       shipperRequest,
       journeyDecision: journeyDecisionData,
       driverInfo,
-      journeyData:
-        createdJourney?.data?.[0] || journeyData,
+      journeyData: createdJourney?.data?.[0] || journeyData,
       messageType: isQueueOrder
         ? messageTypes.queue_order_assigned
         : messageTypes.driver_accepted_shipper_request,

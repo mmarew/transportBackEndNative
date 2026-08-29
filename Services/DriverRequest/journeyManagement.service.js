@@ -43,7 +43,10 @@ const startJourney = async (body) => {
       const journeyStartingLng = body?.journeyStartingLng;
 
       if (!userUniqueId) {
-        throw new AppError("User authentication required", AppError.UNAUTHORIZED);
+        throw new AppError(
+          "User authentication required",
+          AppError.UNAUTHORIZED,
+        );
       }
       if (journeyStartingLat == null || journeyStartingLng == null) {
         throw new AppError(
@@ -80,10 +83,16 @@ const startJourney = async (body) => {
       const combinedData = journeyDecisionDriverData[0];
 
       if (combinedData.journeyStatusId === journeyStatusMap.journeyStarted) {
-        throw new AppError("This journey has already been started", AppError.BAD_REQUEST);
+        throw new AppError(
+          "This journey has already been started",
+          AppError.BAD_REQUEST,
+        );
       }
       if (combinedData.journeyStatusId === journeyStatusMap.journeyCompleted) {
-        throw new AppError("This journey has already been completed", AppError.BAD_REQUEST);
+        throw new AppError(
+          "This journey has already been completed",
+          AppError.BAD_REQUEST,
+        );
       }
       // The journey can be started from acceptedByShipper (4) or from any of the
       // loading stages (5 goToLoadingPlace / 6 loading / 7 loaded).
@@ -94,10 +103,16 @@ const startJourney = async (body) => {
         journeyStatusMap.loaded,
       ];
       if (!startableStatuses.includes(combinedData.journeyStatusId)) {
-        throw new AppError("This journey is not accepted by shipper", AppError.BAD_REQUEST);
+        throw new AppError(
+          "This journey is not accepted by shipper",
+          AppError.BAD_REQUEST,
+        );
       }
       if (combinedData.userUniqueId !== userUniqueId) {
-        throw new AppError("Driver user does not match journey decision", AppError.FORBIDDEN);
+        throw new AppError(
+          "Driver user does not match journey decision",
+          AppError.FORBIDDEN,
+        );
       }
 
       const checkJourneySql = `SELECT * FROM Journey WHERE journeyDecisionUniqueId = ? LIMIT 1`;
@@ -298,7 +313,10 @@ const completeJourney = async (body) => {
         throw new AppError("Missing required unique IDs", AppError.BAD_REQUEST);
       }
 
-      if (body?.journeyCompletingLat == null || body?.journeyCompletingLng == null) {
+      if (
+        body?.journeyCompletingLat == null ||
+        body?.journeyCompletingLng == null
+      ) {
         throw new AppError(
           "journeyCompletingLat and journeyCompletingLng are required",
           AppError.BAD_REQUEST,
@@ -337,20 +355,29 @@ const completeJourney = async (body) => {
       ]);
 
       if (!journeyDecisionDriverData?.length) {
-        throw new AppError("Journey data not found or UUIDs mismatch", AppError.NOT_FOUND);
+        throw new AppError(
+          "Journey data not found or UUIDs mismatch",
+          AppError.NOT_FOUND,
+        );
       }
 
       const combinedData = journeyDecisionDriverData[0];
 
       if (combinedData.journeyStatusId === journeyStatusMap.journeyCompleted) {
-        throw new AppError("This journey has already been completed", AppError.BAD_REQUEST);
+        throw new AppError(
+          "This journey has already been completed",
+          AppError.BAD_REQUEST,
+        );
       }
 
       const isAdmin =
         body.roleId === usersRoles?.adminRoleId ||
         body.roleId === usersRoles?.supperAdminRoleId;
       if (!isAdmin && combinedData?.userUniqueId !== userUniqueId) {
-        throw new AppError("Driver user does not match journey decision", AppError.FORBIDDEN);
+        throw new AppError(
+          "Driver user does not match journey decision",
+          AppError.FORBIDDEN,
+        );
       }
 
       const subscriptionInfo = await getUserSubscriptionsWithFilters({
@@ -523,7 +550,9 @@ const completeJourney = async (body) => {
     // Best-effort + idempotent — only touches entries still 'loaded' and
     // holding this order; non-queue journeys are untouched.
     if (combinedData?.queueOrganizationUniqueId) {
-      const { closeEntryOnJourneyCompletion } = require("../DriverQueue.service");
+      const {
+        closeEntryOnJourneyCompletion,
+      } = require("../DriverQueue.service");
       try {
         await closeEntryOnJourneyCompletion({
           shipperRequestUniqueId: body.shipperRequestUniqueId,
@@ -602,7 +631,10 @@ const sendUpdatedLocation = async (body) => {
 
     // Validate required fields
     if (!journeyDecisionUniqueId) {
-      throw new AppError("journeyDecisionUniqueId is required", AppError.BAD_REQUEST);
+      throw new AppError(
+        "journeyDecisionUniqueId is required",
+        AppError.BAD_REQUEST,
+      );
     }
 
     if (latitude === undefined || latitude === null) {
@@ -619,7 +651,10 @@ const sendUpdatedLocation = async (body) => {
 
     // Validate coordinate ranges
     if (latitude < DOMAIN.LATITUDE_MIN || latitude > DOMAIN.LATITUDE_MAX) {
-      throw new AppError("Invalid latitude. Must be between -90 and 90", AppError.BAD_REQUEST);
+      throw new AppError(
+        "Invalid latitude. Must be between -90 and 90",
+        AppError.BAD_REQUEST,
+      );
     }
 
     if (longitude < DOMAIN.LONGITUDE_MIN || longitude > DOMAIN.LONGITUDE_MAX) {
@@ -700,7 +735,10 @@ const sendUpdatedLocation = async (body) => {
       shipperPhoneNumber = notificationData.shipperRequest?.phoneNumber || null;
 
       if (!shipperPhoneNumber) {
-        throw new AppError("Shipper phone number not found", AppError.NOT_FOUND);
+        throw new AppError(
+          "Shipper phone number not found",
+          AppError.NOT_FOUND,
+        );
       }
     }
 
@@ -792,16 +830,8 @@ const LOADING_STAGE_CONFIG = {
 };
 
 const mergeProofOfLoading = (existing, incoming) => {
-  const base = Array.isArray(existing)
-    ? existing
-    : existing
-      ? [existing]
-      : [];
-  const add = Array.isArray(incoming)
-    ? incoming
-    : incoming
-      ? [incoming]
-      : [];
+  const base = Array.isArray(existing) ? existing : existing ? [existing] : [];
+  const add = Array.isArray(incoming) ? incoming : incoming ? [incoming] : [];
   const merged = [...base, ...add];
   return merged.length ? JSON.stringify(merged) : null;
 };
@@ -830,7 +860,12 @@ const transitionLoadingStage = (stage) => async (body) => {
           AppError.BAD_REQUEST,
         );
       }
-      if (latitude === null || latitude === undefined || longitude === null || longitude === undefined) {
+      if (
+        latitude === null ||
+        latitude === undefined ||
+        longitude === null ||
+        longitude === undefined
+      ) {
         throw new AppError(
           "latitude and longitude are required",
           AppError.BAD_REQUEST,
@@ -867,7 +902,10 @@ const transitionLoadingStage = (stage) => async (body) => {
       const combinedData = journeyDecisionDriverData[0];
 
       if (combinedData.userUniqueId !== userUniqueId) {
-        throw new AppError("Driver user does not match journey decision", AppError.FORBIDDEN);
+        throw new AppError(
+          "Driver user does not match journey decision",
+          AppError.FORBIDDEN,
+        );
       }
       if (combinedData.journeyStatusId !== config.expectedStatus) {
         throw new AppError(
@@ -916,7 +954,9 @@ const transitionLoadingStage = (stage) => async (body) => {
           journeyCreatedAt: currentDate(),
         };
         const insertColumns = Object.keys(insertColAndVal).join(", ");
-        const insertPlaceholders = Object.keys(insertColAndVal).map(() => "?").join(", ");
+        const insertPlaceholders = Object.keys(insertColAndVal)
+          .map(() => "?")
+          .join(", ");
         const insertValues = Object.values(insertColAndVal);
         await conn.query(
           `INSERT IGNORE INTO Journey (${insertColumns}) VALUES (${insertPlaceholders})`,

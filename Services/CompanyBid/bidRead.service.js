@@ -277,7 +277,8 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
 
   const grouped = batches.map((batch) => {
     const batchOffers = offersByBatchId.get(batch.batchUniqueId) || [];
-    const acceptedOffer = batchOffers.find(o => o.bidStatus === 'accepted_by_shipper') || null;
+    const acceptedOffer =
+      batchOffers.find((o) => o.bidStatus === "accepted_by_shipper") || null;
     return {
       ...batch,
       acceptedOffer,
@@ -476,14 +477,20 @@ const getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
 
   if (filters?.target === "summary") {
     if (!resolvedCompanyUniqueId) {
-      throw new AppError("companyUniqueId is required for summary mode", AppError.BAD_REQUEST);
+      throw new AppError(
+        "companyUniqueId is required for summary mode",
+        AppError.BAD_REQUEST,
+      );
     }
     return getBidsSummary(resolvedCompanyUniqueId);
   }
   // if filters.target is available, get available requests, get biddable requests only when target is company and
   if (filters?.target === "available") {
     if (!resolvedCompanyUniqueId) {
-      throw new AppError("companyUniqueId is required for available mode", AppError.BAD_REQUEST);
+      throw new AppError(
+        "companyUniqueId is required for available mode",
+        AppError.BAD_REQUEST,
+      );
     }
     return getAvailableRequests(resolvedCompanyUniqueId, filters);
   }

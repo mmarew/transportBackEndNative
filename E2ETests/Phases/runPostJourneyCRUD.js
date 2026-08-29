@@ -37,13 +37,67 @@ const {
   testGetAllActiveRequest,
   testMarkJourneyCancellationAsSeen,
 } = require("../Shipper/ShipperRequest");
-const { usersData } = require("../constants");
+const { usersData, journeyStatusMap } = require("../constants");
 const { getAnyJourneyDecision } = require("../Utils");
+const {
+  getDriverJourneyStatus,
+  completeJourney,
+} = require("../Driver/DriverJourneyStatus");
+const { pool } = require("../../Middleware/Database.config");
+
+// The delivery-confirmation rules require the driver's journey to be genuinely
+// COMPLETED (status 9) before a POD can be settled. Ordering rule: if a
+// completed journey is required, complete it FIRST, then run the
+// delivery-confirmation tests — never test against a journey stuck in transit.
+const ensureCompletedJourney = async () => {
+  const journeyUniqueId =
+    usersData.driver.lastJourneyUniqueId ||
+    usersData.driver.journeyStatus?.uniqueIds?.journeyUniqueId;
+  if (!journeyUniqueId) {
+    throw new Error("No driver journey available to complete");
+  }
+
+  const [[journey]] = await pool.query(
+    `SELECT journeyStatusId FROM Journey
+      WHERE journeyUniqueId = ? AND journeyDeletedAt IS NULL`,
+    [journeyUniqueId],
+  );
+  if (journey && Number(journey.journeyStatusId) === journeyStatusMap.journeyCompleted) {
+    console.log(
+      `✅ Delivery-confirmation journey already completed (${journeyUniqueId.slice(0, 8)}…)`,
+    );
+    return journeyUniqueId;
+  }
+
+  // Journey not yet completed (e.g. stuck at journeyStarted = 8): complete the
+  // driver's current journey now so the downstream POD tests have their
+  // precondition met.
+  const completed = await completeJourney({ userType: "driver" });
+  if (!completed) throw new Error("completeJourney returned no result");
+
+  const refreshed = await getDriverJourneyStatus({ userType: "driver" });
+  const status = Number(
+    refreshed?.status ?? refreshed?.journey?.journeyStatusId,
+  );
+  if (status !== journeyStatusMap.journeyCompleted) {
+    throw new Error(
+      `Journey not completed after completeJourney — status ${status}, expected ${journeyStatusMap.journeyCompleted}`,
+    );
+  }
+  console.log(
+    `✅ Driver journey completed for delivery-confirmation tests (status ${status})`,
+  );
+  return journeyUniqueId;
+};
 
 const runPostJourneyCRUD = async () => {
   console.log("\n=======================================================");
   console.log("   📊 POST-JOURNEY CRUD TESTS");
   console.log("=======================================================\n");
+
+  // Ordering: a completed journey is a hard prerequisite for delivery
+  // confirmation + POD settlement, so complete it BEFORE those tests.
+  await ensureCompletedJourney();
 
   // Delivery confirmation FIRST — the just-completed journey must still be
   // alive (not soft-deleted) when we confirm the delivery against it.

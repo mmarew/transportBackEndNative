@@ -1,16 +1,8 @@
 "use strict";
 
-
 const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
-const {
-  db} = require("../CompanyHelper.service");
-
-
-
-
-
-
+const { db } = require("../CompanyHelper.service");
 
 const deleteBid = async (companyBidRequestUniqueId, deletedBy) => {
   const [res] = await db().query(
@@ -29,5 +21,5 @@ const deleteBid = async (companyBidRequestUniqueId, deletedBy) => {
 // Called when a company dispatcher opens/acknowledges the cancelled bid.
 // Mirrors DriverRequest.isCancellationByShipperSeenByDriver pattern.
 module.exports = {
-  deleteBid
+  deleteBid,
 };

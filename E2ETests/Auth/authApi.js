@@ -81,12 +81,13 @@ const apiVerifyUserByOTP = async (userType) => {
 const apiLoginUser = async (userType) => {
   const user = createPayloadFor(userType);
   try {
-    await axios.post(backendURL + AUTH_ENDPOINTS.LOGIN_USER, {
+    const res = await axios.post(backendURL + AUTH_ENDPOINTS.LOGIN_USER, {
       email: user.email,
       phoneNumber: user.phoneNumber,
       OTP: user.OTP,
       roleId: user.roleId,
     });
+    return res.data;
   } catch (error) {
     console.error(
       `❌ Failed to login ${userType}:`,
@@ -96,9 +97,31 @@ const apiLoginUser = async (userType) => {
   }
 };
 
+// Is this a "user does not exist / was deleted" login failure? Those are the
+// cases where the correct recovery is to (re)register the user and try login
+// again. Any other failure (bad OTP, network, etc.) is NOT auto-recoverable.
+// These auth endpoints return 404 only when the user is missing; 401/403 need a
+// message match (e.g. "Account has been deleted").
+const isUserMissingError = (error) => {
+  const status = error?.response?.status;
+  if (status === 404) return true;
+  if (status === 401 || status === 403) {
+    const msg =
+      error?.response?.data?.error?.details ||
+      error?.response?.data?.error?.message ||
+      error?.response?.data?.error ||
+      error?.response?.data?.message ||
+      "";
+    const text = typeof msg === "string" ? msg : JSON.stringify(msg || "");
+    return /deleted|not found|does not exist|no user|not registered/i.test(text);
+  }
+  return false;
+};
+
 module.exports = {
   apiCreateUser,
   apiCreateUserByAdmin,
   apiVerifyUserByOTP,
   apiLoginUser,
+  isUserMissingError,
 };

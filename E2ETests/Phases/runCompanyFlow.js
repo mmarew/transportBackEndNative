@@ -52,7 +52,10 @@ const runCompanyFlow = async () => {
     await startJourney({ userType: "driver" });
     driverStatus = await getDriverJourneyStatus({ userType: "driver" });
   }
-  if (driverStatus?.status === 5) {
+  // Journey is "in transit" once it leaves acceptedByShipper (4). Complete it
+  // (status 5-8 → 9) so delivery-confirmation tests run against a completed
+  // journey instead of one stuck at journeyStarted (8).
+  if ([5, 6, 7, 8].includes(driverStatus?.status)) {
     const jdId =
       usersData.driver.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
     if (jdId) usersData.driver.lastJourneyDecisionUniqueId = jdId;

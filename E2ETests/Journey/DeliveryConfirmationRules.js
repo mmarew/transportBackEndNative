@@ -14,11 +14,26 @@
 //  11. Unknown confirmation → 404
 
 const axios = require("axios");
+const fs = require("fs");
+const path = require("path");
 const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
 const { pool } = require("../../Middleware/Database.config");
 
 const BASE_URL = "/api/deliveryConfirmations";
+const PHOTO_PATH = path.join(__dirname, "..", "dummy.png");
+const photoBlob = () => {
+  if (!fs.existsSync(PHOTO_PATH)) return null;
+  return new Blob([fs.readFileSync(PHOTO_PATH)], { type: "image/png" });
+};
+
+// The create API requires at least one proof photo, so every create form must
+// include it (multipart "photo" field) — otherwise the backend rejects the
+// create with 400 before any POD rule can be exercised.
+const appendPhoto = (form) => {
+  const photo = photoBlob();
+  if (photo) form.append("photo", photo, "receiver_photo.png");
+};
 
 // Resolve the completed journey from the active run
 const resolveJourney = () => {
@@ -49,6 +64,7 @@ const testSettleWithoutSignature = async () => {
   form.append("condition", "GOOD");
   form.append("latitude", "9.01");
   form.append("longitude", "38.76");
+  appendPhoto(form);
 
   let dcId;
   try {
@@ -116,6 +132,7 @@ const testDuplicateCreate = async () => {
     form.append("condition", "GOOD");
     form.append("latitude", "9.01");
     form.append("longitude", "38.76");
+    appendPhoto(form);
     return form;
   };
 
@@ -183,6 +200,7 @@ const testDriverCantSelfConfirm = async () => {
     form.append("condition", "GOOD");
     form.append("latitude", "9.01");
     form.append("longitude", "38.76");
+    appendPhoto(form);
     const res = await axios.post(backendURL + BASE_URL, form, authConfig(token));
     dcId = res.data?.data?.deliveryConfirmationUniqueId;
   } catch (e) {
@@ -250,6 +268,7 @@ const testNonAdminCantDeleteConfirmed = async () => {
     form.append("condition", "GOOD");
     form.append("latitude", "9.01");
     form.append("longitude", "38.76");
+    appendPhoto(form);
     const createRes = await axios.post(backendURL + BASE_URL, form, authConfig(token));
     dcId = createRes.data?.data?.deliveryConfirmationUniqueId;
   } catch (e) {
@@ -312,7 +331,7 @@ const testGetUnknownConfirmation = async () => {
 
   try {
     await axios.get(
-      backendURL + `${BASE_URL}?deliveryConfirmationUniqueId=00000000-0000-0000-0000-000000000000`,
+      backendURL + `${BASE_URL}?deliveryConfirmationUniqueId=00000000-0000-4000-8000-000000000000`,
       authConfig(token),
     );
     // Getting empty list is OK for filter-based GET

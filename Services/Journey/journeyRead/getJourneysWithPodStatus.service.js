@@ -113,7 +113,8 @@ const getJourneysWithPodStatus = async ({
     whereParts.push(`1 = 0`);
   }
 
-  const whereClause = `WHERE ${whereParts.join(" AND ")}`;
+  const whereClause =
+    whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
 
   const selectSql = `
     SELECT

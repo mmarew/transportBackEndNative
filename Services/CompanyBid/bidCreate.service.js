@@ -4,12 +4,9 @@ const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
 const { PAGINATION } = require("../../Utils/Constants");
-const {
-  db} = require("../CompanyHelper.service");
+const { db } = require("../CompanyHelper.service");
 const { getData } = require("../../CRUD/Read/ReadData");
 const logger = require("../../Utils/logger");
-
-
 
 const messageTypes = require("../../Utils/MessageTypes");
 const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
@@ -55,7 +52,8 @@ const submitBid = async (data) => {
     proposedTotalCost,
     proposedShippingDate,
     proposedDeliveryDate,
-    bidNotes} = data;
+    bidNotes,
+  } = data;
 
   // Company must be approved (registration-level check)
   const [companyRow] = await getData({
@@ -105,7 +103,8 @@ const submitBid = async (data) => {
     totalVehicles,
     requestMode,
     targetCompanyUniqueId,
-    shipperUserUniqueId} = batchRows[0];
+    shipperUserUniqueId,
+  } = batchRows[0];
 
   // --- SOURCE OF TRUTH: We prioritize the batch's required vehicle type ---
   const finalVehicleTypeUniqueId =
@@ -117,7 +116,10 @@ const submitBid = async (data) => {
     targetCompanyUniqueId !== null &&
     targetCompanyUniqueId !== companyUniqueId
   ) {
-    throw new AppError("This batch is targeted at a different company", AppError.FORBIDDEN);
+    throw new AppError(
+      "This batch is targeted at a different company",
+      AppError.FORBIDDEN,
+    );
   }
 
   // 2b. Reject new bids if a bid has already been accepted for this batch.
@@ -150,7 +152,10 @@ const submitBid = async (data) => {
     );
     const actualRequestCount = Number(countRows?.[0]?.batchCount ?? 0);
     if (actualRequestCount === 0) {
-      throw new AppError("This batch contains no individual requests", AppError.BAD_REQUEST);
+      throw new AppError(
+        "This batch contains no individual requests",
+        AppError.BAD_REQUEST,
+      );
     }
   }
 
@@ -177,7 +182,6 @@ const submitBid = async (data) => {
       AppError.CONFLICT,
     );
   }
-
 
   // Note: Capacity validation removed per user request.
   // Companies can now bid even if requested vehicles exceed their current free fleet,
@@ -326,12 +330,11 @@ const submitBid = async (data) => {
           messageTypes: messageTypes.company_bid_submitted,
           message: "Bid submitted by company",
           notification: shipperNotif,
-          data:
-            shipperNotifPayload || {
-              companyBidRequestUniqueId,
-              shipperRequestBatchUniqueId,
-              companyName: company.companyName,
-            },
+          data: shipperNotifPayload || {
+            companyBidRequestUniqueId,
+            shipperRequestBatchUniqueId,
+            companyName: company.companyName,
+          },
         },
       }).catch((e) =>
         logger.error("WebSocket notification to shipper failed in submitBid", {
@@ -342,7 +345,10 @@ const submitBid = async (data) => {
     }
   }
 
-  return { message: "Bid submitted successfully", data: { companyBidRequestUniqueId } };
+  return {
+    message: "Bid submitted successfully",
+    data: { companyBidRequestUniqueId },
+  };
 };
 
 /**
@@ -364,5 +370,5 @@ const submitBid = async (data) => {
  * @returns {Promise<Object>} A paginated object with `data` (list) and `pagination` (total).
  */
 module.exports = {
-  submitBid
+  submitBid,
 };

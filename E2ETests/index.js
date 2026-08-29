@@ -111,11 +111,13 @@ const {
   testJourneyPodStatusWorkflow,
 } = require("./Journey/JourneyPodStatus");
 
+// Never swallow a failed step silently — it MUST be counted as a failure so
+// the tally (and exit code) reflect reality.
 const safe = (label, fn) => async () => {
   try {
     await fn();
   } catch (e) {
-    console.error(`⚠️  ${label} failed, continuing: ${e.message}`);
+    report.fail(label, e);
   }
 };
 

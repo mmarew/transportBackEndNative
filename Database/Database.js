@@ -2210,7 +2210,16 @@ CREATE TABLE IF NOT EXISTS DeliveryConfirmations (
     deliveryConfirmationUpdatedAt DATETIME NULL,
     deliveryConfirmationDeletedAt DATETIME NULL,
 
-    UNIQUE KEY uqDeliveryConfirmationJourney (journeyUniqueId),
+    -- Per-journey uniqueness must be LIVE-ONLY: a soft-deleted confirmation
+    -- (deletedAt set) yields NULL here so the journey can receive a fresh one,
+    -- while a live confirmation (deletedAt NULL) stays unique per journey.
+    liveJourneyKey VARCHAR(36)
+        GENERATED ALWAYS AS (IF(deliveryConfirmationDeletedAt IS NULL, journeyUniqueId, NULL)) STORED,
+
+    UNIQUE KEY uq_deliveryConfirmation_live_journey (liveJourneyKey),
+    -- Plain (non-unique) index backing the journeyUniqueId FK so the live-only
+    -- key above is not tied to the foreign key and can be freely managed.
+    INDEX idx_deliveryConfirmation_journey (journeyUniqueId),
     INDEX idx_deliveryConfirmation_receiver (receiverUserUniqueId),
     INDEX idx_deliveryConfirmation_status (deliveryConfirmationStatus),
     FOREIGN KEY (journeyUniqueId) REFERENCES Journey(journeyUniqueId),

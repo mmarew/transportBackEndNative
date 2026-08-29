@@ -66,12 +66,12 @@ const updateBidStatus = async (
   });
   if (!bidRow) throw new AppError("Bid not found", AppError.NOT_FOUND);
   const bid = bidRow;
-  logger.debug("updateBidStatus ~ bid:", bid)
+  logger.debug("updateBidStatus ~ bid:", bid);
   if (bid.companyBidRequestDeletedAt) {
     throw new AppError("Bid has been deleted", AppError.BAD_REQUEST);
-  } 
-    
-  //update bidStatus to accepted_by_shipper if it was submitted, to 
+  }
+
+  //update bidStatus to accepted_by_shipper if it was submitted, to
 
   const [res] = await db().query(
     `UPDATE CompanyBidRequest
@@ -89,9 +89,9 @@ const updateBidStatus = async (
       currentDate(),
       companyBidRequestUniqueId,
     ],
-  );  
- 
-  logger.debug("updateBidStatus ~ res.affectedRows:", res.affectedRows)
+  );
+
+  logger.debug("updateBidStatus ~ res.affectedRows:", res.affectedRows);
   if (res.affectedRows === 0) {
     throw new AppError("Bid update failed", AppError.INTERNAL_SERVER_ERROR);
   }
@@ -119,7 +119,7 @@ const updateBidStatus = async (
        FOR UPDATE`,
       [bid.shipperRequestBatchUniqueId],
     );
-     logger.debug("updateBidStatus ~ existingPRs:", existingPRs)
+    logger.debug("updateBidStatus ~ existingPRs:", existingPRs);
 
     if (existingPRs.length === 0) {
       // ── COMPANY-TARGET PATH: Bulk-create all N ShipperRequest rows now ──
@@ -129,7 +129,10 @@ const updateBidStatus = async (
         [bid.shipperRequestBatchUniqueId],
       );
       if (!batch) {
-        throw new AppError("Batch not found during acceptance", AppError.CONFLICT);
+        throw new AppError(
+          "Batch not found during acceptance",
+          AppError.CONFLICT,
+        );
       }
 
       const { v4: uuidv4 } = require("uuid");
@@ -229,8 +232,8 @@ const updateBidStatus = async (
         // while ${freeRequests.length} slot(s) are still open.
         throw new AppError(
           `Partial conflict: ${alreadyClaimed} of ${bid.numberOfVehiclesOffered} vehicle slots already have drivers assigned. ` +
-          `Only ${freeRequests.length} slot(s) are still open. ` +
-          `The company bid cannot be accepted while the batch is partially committed.`,
+            `Only ${freeRequests.length} slot(s) are still open. ` +
+            `The company bid cannot be accepted while the batch is partially committed.`,
           AppError.CONFLICT,
         );
       }
@@ -249,7 +252,11 @@ const updateBidStatus = async (
         `UPDATE ShipperRequestBatch
          SET journeyStatusId = ?, batchUpdatedAt = ?
          WHERE batchUniqueId = ?`,
-        [journeyStatusMap.acceptedByShipper, currentDate(), bid.shipperRequestBatchUniqueId],
+        [
+          journeyStatusMap.acceptedByShipper,
+          currentDate(),
+          bid.shipperRequestBatchUniqueId,
+        ],
       );
     }
 
@@ -444,11 +451,12 @@ const updateBidStatus = async (
           messageTypes: socketMsgType,
           message: `Bid ${bidStatus.replace(/_/g, " ")}`,
           notification: notif,
-          data: companyBidPayload || fullBid || {
-            bidStatus,
-            companyBidRequestUniqueId,
-            shipperRequestBatchUniqueId: bid.shipperRequestBatchUniqueId,
-          },
+          data: companyBidPayload ||
+            fullBid || {
+              bidStatus,
+              companyBidRequestUniqueId,
+              shipperRequestBatchUniqueId: bid.shipperRequestBatchUniqueId,
+            },
         },
       }).catch((e) =>
         logger.error("WebSocket notification failed for company bid status", {

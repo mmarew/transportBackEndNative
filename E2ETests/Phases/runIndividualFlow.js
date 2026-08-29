@@ -79,6 +79,10 @@ const rejectLeftoversUntilFresh = async (freshShipperRequestUniqueId) => {
   return driverStatus;
 };
 
+// Journey is "in transit" once it leaves acceptedByShipper (4): status 5-8 are
+// the loading stages and journeyStarted (8). completeJourney moves it to 9.
+const JOURNEY_IN_PROGRESS = [5, 6, 7, 8];
+
 const runIndividualFlow = async () => {
   console.log("\n=======================================================");
   console.log("   🚀 STARTING INDIVIDUAL TARGET FLOW");
@@ -110,7 +114,7 @@ const runIndividualFlow = async () => {
     await startJourney({ userType: "driver" });
     driverStatus = await getDriverJourneyStatus({ userType: "driver" });
   }
-  if (driverStatus?.status === 5) {
+  if (JOURNEY_IN_PROGRESS.includes(driverStatus?.status)) {
     const jdId =
       usersData.driver.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
     if (jdId) usersData.driver.lastJourneyDecisionUniqueId = jdId;
@@ -123,6 +127,8 @@ const runIndividualFlow = async () => {
       usersData.driver.journeyStatus?.uniqueIds?.shipperRequestUniqueId;
     if (srId) usersData.driver.lastShipperRequestUniqueId = srId;
 
+    // Complete the journey so later delivery-confirmation tests see a genuinely
+    // completed (status 9) journey instead of one stuck in transit (status 8).
     await completeJourney({ userType: "driver" });
     driverStatus = await getDriverJourneyStatus({ userType: "driver" });
   }
