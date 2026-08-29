@@ -14,6 +14,8 @@ const {
   testGetProfileHistory,
 } = require("./UserDocuments");
 
+const { testGracePeriodWorkflow } = require("./GracePeriod");
+
 module.exports = {
   testDocumentTypesWorkflow,
   testGetDocumentTypes,
@@ -28,4 +30,5 @@ module.exports = {
   testGetVehicleAttachedDocuments,
   testGetVehicleDocumentHistory,
   testGetProfileHistory,
+  testGracePeriodWorkflow,
 };

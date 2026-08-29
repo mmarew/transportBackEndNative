@@ -391,8 +391,9 @@ const acceptRejectAttachedDocuments = async body => {
             }
           });
         }
-        if (ownerType === "user") {
-          try {
+        // ── Notify owner about accept/reject decision ──────────────────────
+        try {
+          if (ownerType === "user") {
             if (Number(roleId) === usersRoles.adminRoleId) {
               message.messageType = messageTypes?.accept_reject_driver_document;
               sendSocketIONotificationToAdmin({
@@ -413,13 +414,41 @@ const acceptRejectAttachedDocuments = async body => {
                 phoneNumber
               });
             }
-          } catch (notifError) {
-            logger.error("Post-commit: socket notification failed", {
-              error: notifError.message,
-              ownerUniqueId,
-              roleId
-            });
+          } else if (ownerType === "vehicle") {
+            // Vehicle doc: notify all active drivers assigned to this vehicle
+            const [assignedDrivers] = await pool.query(
+              `SELECT u.phoneNumber FROM VehicleDriver vd
+               JOIN Users u ON vd.driverUserUniqueId = u.userUniqueId
+               WHERE vd.vehicleUniqueId = ?
+                 AND vd.assignmentStatus = 'active'
+                 AND vd.vehicleDriverDeletedAt IS NULL`,
+              [ownerUniqueId]
+            );
+            for (const driver of assignedDrivers) {
+              const cleanedPhone = driver.phoneNumber?.replace(/\D/g, "");
+              if (cleanedPhone && /^[0-9]{9,15}$/.test(cleanedPhone)) {
+                message.messageType = "acceptOrRejectDriverDocument";
+                sendSocketIONotificationToDriver({
+                  message,
+                  phoneNumber: cleanedPhone,
+                });
+              }
+            }
+            // Also notify admin
+            message.messageType = messageTypes?.accept_reject_driver_document;
+            sendSocketIONotificationToAdmin({ message });
+          } else if (ownerType === "company") {
+            // Company doc: notify admin
+            message.messageType = messageTypes?.accept_reject_driver_document;
+            sendSocketIONotificationToAdmin({ message });
           }
+        } catch (notifError) {
+          logger.error("Post-commit: socket notification failed", {
+            error: notifError.message,
+            ownerUniqueId,
+            ownerType,
+            roleId
+          });
         }
       });
     });

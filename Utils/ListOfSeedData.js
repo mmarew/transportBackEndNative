@@ -133,6 +133,7 @@ const USER_STATUS = {
   INACTIVE_DOCUMENTS_PENDING: 5,
   INACTIVE_USER_IS_BANNED_BY_ADMIN: 6,
   INACTIVE_DRIVER_DOESN_T_HAVE_A_SUBSCRIPTION: 7,
+  GRACE_PERIOD_EXPIRED: 9,
   ACCOUNT_DELETED: 8,
 };
 const statusList = [
@@ -203,6 +204,15 @@ const statusList = [
     statusName: "inactive - account deleted",
     statusDescription:
       "User account has been deleted and can no longer access the service",
+    statusCreatedAt: currentDate(),
+  },
+  // 9. Grace period expired (free subscription expired + 15 day grace window passed)
+  {
+    statusId: 9,
+    statusUniqueId: uuidv4(),
+    statusName: "inactive - grace period expired",
+    statusDescription:
+      "Driver's free subscription expired and the 15-day grace period has ended. Must purchase a paid subscription to reactivate.",
     statusCreatedAt: currentDate(),
   },
 ];

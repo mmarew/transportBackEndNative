@@ -418,15 +418,47 @@ const accountStatus = async ({
     }
     // Priority 6: No Subscription (7) - driver only.
     // Driver can work by 2 optional ways: (1) active subscription OR (2) balance to pay by commission.
-    // If both fail → set INACTIVE_DRIVER_DOESN_T_HAVE_A_SUBSCRIPTION.
+    // If both fail → check grace period for free subscriptions, then block.
     else if (Number(roleId) === usersRoles.driverRoleId) {
       const hasActiveSubscription = Boolean(subscriptionInfo?.hasActiveSubscription);
-      //get current net balance of the user from userBalance
       const netBalanceOfUser = Number(userBalance?.Balance?.netBalance ?? 0);
       const canPayByCommission = netBalanceOfUser > 0;
+
       if (!hasActiveSubscription && !canPayByCommission) {
-        finalStatusId = USER_STATUS.INACTIVE_DRIVER_DOESN_T_HAVE_A_SUBSCRIPTION;
-        reason = "Driver doesn't have an active subscription or balance to do by commission charges";
+        // Check if this was a free subscription that expired recently
+        const subDetails = subscriptionInfo?.subscriptionDetails;
+        const freeSub = Array.isArray(subDetails)
+          ? subDetails.find(s => s.isFree === 1 || s.isFree === true)
+          : null;
+
+        if (freeSub?.endDate) {
+          const endDate = new Date(freeSub.endDate);
+          const now = new Date();
+          const GRACE_PERIOD_DAYS = 2;
+          const msPerDay = 24 * 60 * 60 * 1000;
+          const daysSinceExpiry = Math.floor((now - endDate) / msPerDay);
+
+          if (daysSinceExpiry <= GRACE_PERIOD_DAYS) {
+            // Within grace period: don't block, allow doc uploads + vehicle registration
+            finalStatusId = USER_STATUS.INACTIVE_REQUIRED_DOCUMENTS_MISSING;
+            reason = "Free subscription expired — in grace period";
+            // Attach grace period info for frontend
+            subscriptionInfo.gracePeriod = {
+              isActive: true,
+              daysRemaining: GRACE_PERIOD_DAYS - daysSinceExpiry,
+              expiresAt: new Date(endDate.getTime() + GRACE_PERIOD_DAYS * msPerDay).toISOString(),
+              totalGraceDays: GRACE_PERIOD_DAYS,
+            };
+          } else {
+            // Past grace period: hard block
+            finalStatusId = USER_STATUS.GRACE_PERIOD_EXPIRED;
+            reason = "Free subscription expired and grace period ended";
+          }
+        } else {
+          // No free subscription found (paid sub expired or never had one)
+          finalStatusId = USER_STATUS.INACTIVE_DRIVER_DOESN_T_HAVE_A_SUBSCRIPTION;
+          reason = "Driver doesn't have an active subscription or balance to do by commission charges";
+        }
       }
     }
 

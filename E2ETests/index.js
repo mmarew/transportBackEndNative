@@ -42,6 +42,7 @@ const {
   testGetVehicleAttachedDocuments,
   testGetVehicleDocumentHistory,
   testGetProfileHistory,
+  testGracePeriodWorkflow,
 } = require("./Documents");
 const {
   testUpsertFCMToken,
@@ -270,6 +271,7 @@ const initiateTest = async () => {
     await safe("testDeliveryConfirmationRules", testDeliveryConfirmationRules)();
     await safe("testJourneyPodStatusWorkflow", testJourneyPodStatusWorkflow)();
     await safe("runDocumentTests", runDocumentTests)();
+    await safe("testGracePeriodWorkflow", testGracePeriodWorkflow)();
     await safe("testDocumentUrlWorkflow", testDocumentUrlWorkflow)();
     await safe("runDelinquencyTests", runDelinquencyTests)();
     await safe("runAnalyticsAndAdminTests", runAnalyticsAndAdminTests)();
