@@ -214,6 +214,7 @@ exports.getAssignments = async (filters = {}) => {
     jd.decisionBy,
     jd.journeyStatusId         AS jdJourneyStatusId,
     -- Journey
+    j.journeyUniqueId,
     j.journeyStartedAt,
     j.journeyCompletedAt
   `;
@@ -292,8 +293,9 @@ exports.getAssignments = async (filters = {}) => {
       },
     ],
     journey:
-      r.journeyStartedAt || r.journeyCompletedAt
+      r.journeyStartedAt || r.journeyCompletedAt || r.journeyUniqueId
         ? {
+            journeyUniqueId: r.journeyUniqueId,
             journeyDecisionUniqueId: r.journeyDecisionUniqueId,
             journeyStartedAt: r.journeyStartedAt,
             journeyCompletedAt: r.journeyCompletedAt,
