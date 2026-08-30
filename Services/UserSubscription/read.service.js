@@ -261,7 +261,6 @@ const getUnassignedFreePlans = async (filters = {}, connection) => {
       JOIN SubscriptionPlanPricing spp2 ON ds.subscriptionPlanPricingUniqueId = spp2.subscriptionPlanPricingUniqueId
       WHERE spp2.subscriptionPlanUniqueId = sp.subscriptionPlanUniqueId
         AND ds.driverUniqueId = ?
-        AND Date(ds.endDate) >= Date(CURDATE()) 
     )
   `);
   if (planName) {

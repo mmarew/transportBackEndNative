@@ -163,24 +163,32 @@ const validateAccountStatusParams = ({
 async function checkAndGrantUserSubscription(driverUniqueId) {
   try {
     let wasGranted = false;
-    // return { driverUniqueId };
     // 1. Check for unassigned free plans (limit to 1)
-    const unassignedFreePlans = await getSubscriptionData({
-      dataType: "freePlans",
-      driverUniqueId,
-      page: 1,
-      limit: 1
-    });
-
-    // 2. Grant if found (but only one at a time)
-    if (unassignedFreePlans?.data?.length > 0) {
-      const plan = unassignedFreePlans.data[0];
-      await createUserSubscription({
+    //    A grant failure must NEVER abort the active-subscription summary below,
+    //    so it is isolated in its own try/catch.
+    try {
+      const unassignedFreePlans = await getSubscriptionData({
+        dataType: "freePlans",
         driverUniqueId,
-        subscriptionPlanPricingUniqueId: plan.subscriptionPlanPricingUniqueId,
-        userSubscriptionCreatedBy: driverUniqueId
+        page: 1,
+        limit: 1
       });
-      wasGranted = true;
+
+      // 2. Grant if found (but only one at a time)
+      if (unassignedFreePlans?.data?.length > 0) {
+        const plan = unassignedFreePlans.data[0];
+        await createUserSubscription({
+          driverUniqueId,
+          subscriptionPlanPricingUniqueId: plan.subscriptionPlanPricingUniqueId,
+          userSubscriptionCreatedBy: driverUniqueId
+        });
+        wasGranted = true;
+      }
+    } catch (error) {
+      logger.warn("Free-plan grant skipped", {
+        driverUniqueId,
+        error: error.message
+      });
     }
 
     // 3. Check active subscriptions (single query)
