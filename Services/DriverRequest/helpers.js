@@ -338,8 +338,8 @@ const fetchJourneyNotificationData = async (
       const shipperProfilePhotoData = shipperDocuments?.data;
       const lastPhotoIndex = shipperProfilePhotoData?.length - 1;
       shipperProfilePhoto =
-        shipperProfilePhotoData?.[lastPhotoIndex]?.attachedDocumentName;
-      if (shipperProfilePhoto) {
+        shipperProfilePhotoData?.[lastPhotoIndex]?.attachedDocumentName || null;
+      if (!shipperRequest.hasOwnProperty("profileImage")) {
         shipperRequest.profileImage = shipperProfilePhoto;
       }
     } catch (error) {

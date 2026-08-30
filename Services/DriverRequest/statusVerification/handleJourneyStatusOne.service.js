@@ -56,7 +56,7 @@ const attachShipperProfilePhoto = async (shipper) => {
     const lastPhotoIndex = photoData?.length - 1;
     const shipperProfilePhoto =
       photoData?.[lastPhotoIndex]?.attachedDocumentName || null;
-    if (shipperProfilePhoto) {
+    if (!shipper.hasOwnProperty("profileImage")) {
       shipper.profileImage = shipperProfilePhoto;
     }
   } catch (error) {

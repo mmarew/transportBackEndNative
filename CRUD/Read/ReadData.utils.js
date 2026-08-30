@@ -44,15 +44,32 @@ const getAttachedDocumentsByUserUniqueIdAndDocumentTypeId = async (
   documentTypeId,
   connection = null,
 ) => {
-  const sqlToGetDocument = `select * from AttachedDocuments, DocumentTypes where attachedDocumentCreatedByUserId=? and DocumentTypes.documentTypeId=?`;
-  const values = [ownerUserUniqueId, documentTypeId];
-  const queryExecutor = transactionStorage.getStore() || connection || pool;
-  const [documents] = await queryExecutor.query(sqlToGetDocument, values);
+  const { getAttachedDocumentsByFilter } = require("../../Services/AttachedDocuments/read.service");
+  const result = await getAttachedDocumentsByFilter({
+    filter: {
+      ownerType: "user",
+      ownerUniqueId: ownerUserUniqueId,
+      documentTypeId,
+    },
+    pagination: { page: 1, limit: 1000, offset: 0 },
+    sort: { by: "attachedDocumentCreatedAt", order: "ASC" },
+  });
 
-  return {
-    message: "success",
-    data: documents,
-  };
+  // Return the stored relative path ("/uploads/...") instead of the resolved
+  // backend base URL; the frontends prepend their own API base URL.
+  if (Array.isArray(result?.data)) {
+    for (const doc of result.data) {
+      const uploadsIdx =
+        typeof doc.attachedDocumentName === "string"
+          ? doc.attachedDocumentName.indexOf("/uploads/")
+          : -1;
+      if (uploadsIdx !== -1) {
+        doc.attachedDocumentName = doc.attachedDocumentName.slice(uploadsIdx);
+      }
+    }
+  }
+
+  return result;
 };
 
 module.exports = {
