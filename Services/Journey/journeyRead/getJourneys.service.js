@@ -7,6 +7,9 @@ const {
   transactionStorage
 } = require("../../../Utils/TransactionContext");
 const AppError = require("../../../Utils/AppError");
+const {
+  repairMissingJourneyByDecision
+} = require("../journeyRepair.service");
 
 const {
   
@@ -140,6 +143,15 @@ const getJourneys = async (filters = {}) => {
       queryParams.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
     }
     const whereClause = queryWhereParts.length > 0 ? ` WHERE ${queryWhereParts.join(" AND ")}` : "";
+
+    // Self-heal: a completed decision can lose its Journey row (the 2026-08-27
+    // schema rebuild wiped pre-existing rows). Reconstruct it via the existing
+    // createJourney service so journey reads (and the shipper POD screen's
+    // journey-by-decision fallback) still resolve a journeyUniqueId. Idempotent —
+    // createJourney skips when the row already exists.
+    if (journeyDecisionUniqueId) {
+      await repairMissingJourneyByDecision(journeyDecisionUniqueId, executor);
+    }
 
     // Fixed SQL query without duplicate joins
     const sql = `

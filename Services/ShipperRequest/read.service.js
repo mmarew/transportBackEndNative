@@ -11,6 +11,9 @@ const logger = require("../../Utils/logger");
 const AppError = require("../../Utils/AppError");
 const { transactionStorage } = require("../../Utils/TransactionContext");
 const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
+const {
+  repairMissingJourneyByDecision,
+} = require("../Journey/journeyRepair.service");
 // verifyShipperStatus removed - only available via API endpoint to reduce heavy operations
 // verifyShipperStatus removed - only available via API endpoint to reduce heavy operations
 
@@ -874,6 +877,38 @@ const getDetailedJourneyData = async (shipperRequests) => {
         );
         for (const j of allJourneys) {
           journeyByDecisionUniqueId.set(j.journeyDecisionUniqueId, j);
+        }
+
+        // Self-heal: a completed decision can lose its Journey row (the
+        // 2026-08-27 schema rebuild wiped pre-existing rows). Without it the
+        // shipper's completed screen shows `journey: {}` and the POD submit
+        // cannot resolve a journeyUniqueId. Reconstruct missing rows for the
+        // completed decisions in this batch via the existing createJourney
+        // service (idempotent — skipped when the row exists).
+        const repairedJourneys = [];
+        for (const sr of srsNeedingJourney) {
+          const decisions = decisionsBySR.get(sr.shipperRequestId) || [];
+          for (const d of decisions) {
+            if (!d?.journeyDecisionUniqueId) continue;
+            if (journeyByDecisionUniqueId.has(d.journeyDecisionUniqueId)) continue;
+            const result = await repairMissingJourneyByDecision(
+              d.journeyDecisionUniqueId,
+              executor,
+            );
+            if (result.repaired && result.journey?.journeyDecisionUniqueId) {
+              journeyByDecisionUniqueId.set(
+                result.journey.journeyDecisionUniqueId,
+                result.journey,
+              );
+              repairedJourneys.push(result.journey);
+            }
+          }
+        }
+        if (repairedJourneys.length > 0) {
+          const logger = require("../../Utils/logger");
+          logger.info("Auto-repaired missing Journey rows for completed decisions", {
+            count: repairedJourneys.length,
+          });
         }
       }
     }
