@@ -1318,6 +1318,7 @@ exports.manualCheckin = async (data) => {
   await rescanPendingQueueOrder({
     queueOrganizationUniqueId,
     vehicleTypeUniqueId: vehicleDriver.vehicleTypeUniqueId,
+    user,
     executor,
   });
 
@@ -1863,18 +1864,47 @@ const notifyShipperOfQueueReservation = async ({
 };
 
 /**
- * Core offer primitive — mark the FRONT waiting driver of an order's vehicle
- * type as `requested`, link the order, create the JourneyDecision, and notify
- * only that driver over socket. Drivers already holding an active offer
- * elsewhere are skipped past (they keep their position for the next order).
+ * Core offer primitive — mark a queue driver as having `requested` an order,
+ * link the order, create the JourneyDecision, and notify only that driver over
+ * socket.
+ *
+ * The driver is selected in ONE of three ways:
+ *   1. FIFO (default): the FRONT waiting driver of the order's vehicle type
+ *      (`afterQueueNumber`/`excludeVehicleDriverUniqueId` steer the scan).
+ *   2. By queue entry: `targetQueueUniqueId` pinpoints a specific entry.
+ *   3. By driver: `targetVehicleDriverUniqueId` pinpoints a specific driver's
+ *      active vehicle assignment.
+ *
+ * Drivers already holding an active offer elsewhere, or who already refused /
+ * cancelled / had admin-cancelled THIS exact order, are never re-offered it.
+ * In FIFO mode they are skipped past (advancing to the next waiting driver); in
+ * targeted mode (2 or 3) the dispatch throws a 4xx explaining why the named
+ * driver could not take the order.
  *
  * With `throwIfNone` (manual dispatch) an empty queue is a 404; with the auto
  * path (handleQueueDispatch / advance) an empty queue just means the order
  * stays waiting — the call returns `{ offered: false }` instead.
  *
- * A driver who has already rejected (or cancelled, or had admin-cancelled)
- * this exact order is skipped by the front-driver query — the order advances
- * to the next waiting driver who hasn't refused it.
+ * @param {Object} params
+ * @param {Object} params.executor - DB executor (query-capable connection/pool).
+ * @param {string} params.queueOrganizationUniqueId - The queue org UUID.
+ * @param {string} params.queueDate - Queue date (YYYY-MM-DD) the entry must belong to.
+ * @param {string} [params.vehicleTypeUniqueId] - Vehicle type of the order. Falls
+ *   back to the order's own vehicleTypeUniqueId when omitted (targeted dispatch).
+ * @param {string} params.shipperRequestUniqueId - The order to offer.
+ * @param {number} [params.afterQueueNumber] - FIFO: only consider entries with
+ *   a queueNumber greater than this (used by reject/advance/timeout).
+ * @param {string} [params.excludeVehicleDriverUniqueId] - FIFO: skip this driver.
+ * @param {string} [params.targetQueueUniqueId] - Target a SPECIFIC queue entry.
+ * @param {string} [params.targetVehicleDriverUniqueId] - Target a SPECIFIC
+ *   driver (their active vehicle assignment UUID).
+ * @param {Object} params.user - The acting admin (userUniqueId recorded as performer).
+ * @param {boolean} [params.throwIfNone=true] - true → 404 when no driver is
+ *   eligible; false → return `{ offered: false }`.
+ * @returns {Promise<{offered: true, data: Object}|{offered: false, data: null}>}
+ * @throws {AppError} 404 when no eligible driver (throwIfNone) or targeted entry/driver gone.
+ * @throws {AppError} 400 when a targeted driver is reserved for another shipper
+ *   or has no active DriverRequest record.
  */
 const offerToDriver = async ({
   executor,
@@ -1884,6 +1914,8 @@ const offerToDriver = async ({
   shipperRequestUniqueId,
   afterQueueNumber,
   excludeVehicleDriverUniqueId,
+  targetQueueUniqueId,
+  targetVehicleDriverUniqueId,
   user,
   throwIfNone = true,
 }) => {
@@ -1892,6 +1924,12 @@ const offerToDriver = async ({
     executor,
     shipperRequestUniqueId,
   );
+
+  // Targeted dispatch identifies the driver by queue entry (or vehicle
+  // assignment); when no vehicle type is passed we take it from the order and
+  // the target entry/driver must still match that type.
+  const isTargeted = !!(targetQueueUniqueId || targetVehicleDriverUniqueId);
+  const matchedTypeUniqueId = vehicleTypeUniqueId || shipperRequest.vehicleTypeUniqueId;
 
   // Use the active transaction connection when one exists (dispatch wraps this
   // call in executeInTransaction so the FOR UPDATE lock is held across the
@@ -1921,60 +1959,62 @@ const offerToDriver = async ({
      * If `afterQueueNumber` is provided, skips drivers up to that position
      * (used by advance/reject/timeout to move to the next driver).
      */
+    const whereParts = [
+      `dq.queueOrganizationUniqueId = ?`,
+      `dq.queueDate = ?`,
+      `dq.status IN ('waiting', 'notagreed')`,
+      `dq.queueDeletedAt IS NULL`,
+      `v.vehicleTypeUniqueId = ?`,
+    ];
+    const queryParams = [
+      queueOrganizationUniqueId,
+      queueDate,
+      matchedTypeUniqueId,
+    ];
+    if (after) {
+      whereParts.push(`dq.queueNumber > ?`);
+      queryParams.push(after);
+    }
+    if (targetQueueUniqueId) {
+      whereParts.push(`dq.queueUniqueId = ?`);
+      queryParams.push(targetQueueUniqueId);
+    }
+    if (targetVehicleDriverUniqueId) {
+      whereParts.push(`dq.vehicleDriverUniqueId = ?`);
+      queryParams.push(targetVehicleDriverUniqueId);
+    }
+    if (excludeVehicleDriverUniqueId) {
+      whereParts.push(`dq.vehicleDriverUniqueId <> ?`);
+      queryParams.push(excludeVehicleDriverUniqueId);
+    }
+    whereParts.push(`NOT EXISTS (
+           SELECT 1 FROM JourneyDecisions jd
+           JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+           WHERE jd.shipperRequestId = ?
+             AND dr.userUniqueId = vd.driverUserUniqueId
+             AND jd.journeyStatusId IN (?, ?, ?, ?)
+         )`);
+    queryParams.push(...skipRejectedParams);
+
     const [front] = await txExecutor.query(
       `SELECT dq.*, vd.driverUserUniqueId, u.phoneNumber, u.fullName
        FROM DriverQueue dq
        JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
        JOIN Vehicle v ON v.vehicleUniqueId = vd.vehicleUniqueId
        JOIN Users u ON u.userUniqueId = vd.driverUserUniqueId
-       WHERE dq.queueOrganizationUniqueId = ? AND dq.queueDate = ?
-         AND dq.status IN ('waiting', 'notagreed') AND dq.queueDeletedAt IS NULL
-         AND v.vehicleTypeUniqueId = ?
-         ${after ? "AND dq.queueNumber > ?" : ""}
-         ${excludeVehicleDriverUniqueId ? "AND dq.vehicleDriverUniqueId <> ?" : ""}
-         AND NOT EXISTS (
-           SELECT 1 FROM JourneyDecisions jd
-           JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
-           WHERE jd.shipperRequestId = ?
-             AND dr.userUniqueId = vd.driverUserUniqueId
-             AND jd.journeyStatusId IN (?, ?, ?, ?)
-         )
+       WHERE ${whereParts.join(" AND ")}
        ORDER BY dq.queueNumber ASC LIMIT 1
        FOR UPDATE`,
-      after
-        ? excludeVehicleDriverUniqueId
-          ? [
-              queueOrganizationUniqueId,
-              queueDate,
-              vehicleTypeUniqueId,
-              after,
-              excludeVehicleDriverUniqueId,
-              ...skipRejectedParams,
-            ]
-          : [
-              queueOrganizationUniqueId,
-              queueDate,
-              vehicleTypeUniqueId,
-              after,
-              ...skipRejectedParams,
-            ]
-        : excludeVehicleDriverUniqueId
-          ? [
-              queueOrganizationUniqueId,
-              queueDate,
-              vehicleTypeUniqueId,
-              excludeVehicleDriverUniqueId,
-              ...skipRejectedParams,
-            ]
-          : [
-              queueOrganizationUniqueId,
-              queueDate,
-              vehicleTypeUniqueId,
-              ...skipRejectedParams,
-            ],
+      queryParams,
     );
 
     if (front.length === 0) {
+      if (isTargeted) {
+        throw new AppError(
+          "Targeted driver/entry not found or not dispatchable",
+          AppError.NOT_FOUND,
+        );
+      }
       if (throwIfNone) {
         throw new AppError(
           "No waiting driver in this vehicle type's queue",
@@ -1993,6 +2033,12 @@ const offerToDriver = async ({
       entry.targetedShipperUserUUID &&
       shipperRequest.userUniqueId !== entry.targetedShipperUserUUID
     ) {
+      if (isTargeted) {
+        throw new AppError(
+          "Driver is reserved for a different shipper",
+          AppError.BAD_REQUEST,
+        );
+      }
       after = entry.queueNumber;
       continue;
     }
@@ -2003,6 +2049,12 @@ const offerToDriver = async ({
       queueOrganizationUniqueId,
     );
     if (!driverRequest) {
+      if (isTargeted) {
+        throw new AppError(
+          "Driver has no active DriverRequest record",
+          AppError.BAD_REQUEST,
+        );
+      }
       after = entry.queueNumber;
       continue;
     }
@@ -2089,16 +2141,84 @@ const offerToDriver = async ({
 };
 
 /**
- * Dispatch — offer the front waiting driver (of the order's vehicle type) the
- * order. This is the MANUAL trigger (QueueOrgAdmin) for a waiting order.
+ * Dispatch — manually offer a waiting order to a queue driver (QueueOrgAdmin).
+ *
+ * Exactly one driver-selection mode must be used:
+ *   1. `vehicleTypeUniqueId` → offer to the FRONT waiting driver of that type
+ *      (FIFO). `queueUniqueId`/`driverPhoneNumber` must be absent.
+ *   2. `queueUniqueId` → offer to a specific queue entry (its driver). The
+ *      entry must be `waiting`/`notagreed` in this org for today, of the
+ *      order's vehicle type, not have already refused the order, and not be
+ *      pinned to a different shipper.
+ *   3. `driverPhoneNumber` → offer to a specific driver by phone (resolved to
+ *      their active vehicle assignment, then their queue entry under the same
+ *      rules as mode 2).
+ *
+ * `drivePhoneNumber` and `queueUniqueId` are mutually exclusive. When either
+ * is used, `vehicleTypeUniqueId` may be omitted (it defaults to the order's).
+ *
+ * @param {Object} data
+ * @param {string} data.queueOrganizationUniqueId - UUID of the queue org (required).
+ * @param {string} [data.vehicleTypeUniqueId] - FIFO dispatch to front driver of this type.
+ * @param {string} [data.queueUniqueId] - Targeted dispatch to this queue entry.
+ * @param {string} [data.driverPhoneNumber] - Targeted dispatch to this driver's phone.
+ * @param {string} [data.shipperRequestUniqueId] - The order to dispatch (required;
+ *   the service resolves it internally).
+ * @param {Object} data.user - The acting admin (recorded as performer).
+ * @returns {Promise<{message: string, offered: boolean, data: Object|null}>}
+ *   On success `{ message: "success", offered: true, data: { queueUniqueId,
+ *   queueNumber, driverUserUniqueId, journeyDecisionUniqueId, status: "requested" } }`.
+ * @throws {AppError} 400 - no selection mode given, or both queueUniqueId and
+ *   driverPhoneNumber given.
+ * @throws {AppError} 404 - queue org not ready, driver phone unknown/inactive,
+ *   order unknown, or targeted entry/driver not dispatchable.
+ * @throws {AppError} 400 - targeted driver reserved for another shipper or has
+ *   no active DriverRequest record.
  */
 exports.dispatch = async (data) => {
   const {
     queueOrganizationUniqueId,
     vehicleTypeUniqueId,
+    queueUniqueId,
+    driverPhoneNumber,
     shipperRequestUniqueId,
     user,
   } = data;
+  if (!queueUniqueId && !driverPhoneNumber && !vehicleTypeUniqueId) {
+    throw new AppError(
+      "Provide vehicleTypeUniqueId (front driver), queueUniqueId, or driverPhoneNumber",
+      AppError.BAD_REQUEST,
+    );
+  }
+  if (queueUniqueId && driverPhoneNumber) {
+    throw new AppError(
+      "Provide either queueUniqueId or driverPhoneNumber, not both",
+      AppError.BAD_REQUEST,
+    );
+  }
+
+  // Resolve a phone number to the driver's active vehicle assignment.
+  let targetVehicleDriverUniqueId = null;
+  if (driverPhoneNumber) {
+    const [driverRows] = await db().query(
+      `SELECT vd.vehicleDriverUniqueId
+       FROM Users u
+       JOIN VehicleDriver vd ON vd.driverUserUniqueId = u.userUniqueId
+       WHERE u.phoneNumber = ?
+         AND vd.assignmentStatus = 'active'
+         AND vd.vehicleDriverDeletedAt IS NULL
+       LIMIT 1`,
+      [driverPhoneNumber],
+    );
+    if (driverRows.length === 0) {
+      throw new AppError(
+        "No active driver found for that phone number",
+        AppError.NOT_FOUND,
+      );
+    }
+    targetVehicleDriverUniqueId = driverRows[0].vehicleDriverUniqueId;
+  }
+
   const result = await executeInTransaction(
     () =>
       offerToDriver({
@@ -2106,6 +2226,8 @@ exports.dispatch = async (data) => {
         queueOrganizationUniqueId,
         queueDate: today(),
         vehicleTypeUniqueId,
+        targetQueueUniqueId: queueUniqueId || null,
+        targetVehicleDriverUniqueId,
         shipperRequestUniqueId,
         afterQueueNumber: null,
         user,

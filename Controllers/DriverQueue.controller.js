@@ -6,9 +6,15 @@ const { HTTP_STATUS } = require("../Utils/Constants");
 
 exports.checkin = async (req, res, next) => {
   try {
-    await executeInTransaction(() =>
+    const result = await executeInTransaction(() =>
       service.checkin({ ...req.body, user: req.user }),
     );
+    // Active-journey fence: the driver already has an order in flight. Surface
+    // the in-flight journey (alreadyInJourney flag) so the driver app can
+    // resume it instead of a bare empty position.
+    if (result?.data?.alreadyInJourney) {
+      return ServerResponder(res, result, HTTP_STATUS.OK);
+    }
     // Return the canonical queue position shape (same as myPosition)
     // so the driver app always gets { queue: {...}, organization: {...} }.
     const position = await service.myPosition(

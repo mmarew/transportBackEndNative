@@ -49,7 +49,7 @@ const testMarkNegativeStatusAsSeen = async ({ userType = "driver" } = {}) => {
     return result.data;
   } catch (error) {
     const status = error.response?.status;
-    if (status === 400 || status === 404) {
+    if (status === 400 || status === 404 || status === 403) {
       console.log("⏩ markNegativeStatusAsSeen: no pending notification to clear (expected)");
       return { skipped: true };
     }

@@ -486,7 +486,7 @@ const testTQH14HistoryPerformedBy = async () => {
 const testTQH15History404 = async () => {
   try {
     await expectStatus(
-      getEntryHistory("00000000-0000-0000-0000-000000000000", qadminToken()),
+      getEntryHistory("19f4a9ce-83ea-4af4-a12e-3d4b1f5c5a2c", qadminToken()),
       404,
       "TQ-H15 history nonexistent",
     );

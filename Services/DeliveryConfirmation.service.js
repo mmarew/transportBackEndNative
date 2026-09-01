@@ -570,9 +570,10 @@ exports.submitReceiptPhotos = async ({
   // 3. Verify the caller is the driver of this journey
   const [driverRows] = await executor.query(
     `SELECT dr.userUniqueId
-     FROM JourneyDecisions jd
+     FROM Journey j
+     JOIN JourneyDecisions jd ON jd.journeyDecisionUniqueId = j.journeyDecisionUniqueId
      JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
-     WHERE jd.journeyDecisionUniqueId = ?`,
+     WHERE j.journeyUniqueId = ?`,
     [journeyUniqueId],
   );
   if (driverRows[0]?.userUniqueId !== driverUserUniqueId) {
@@ -703,6 +704,7 @@ exports.createDeliveryConfirmation = async ({
         journeyUniqueId,
         receiverUserUniqueId,
         deliveryConfirmationStatus,
+        deliveryConfirmationSource,
         deliveryConfirmationDeliveredQuantity,
         deliveryConfirmationQuantityUnit,
         deliveryConfirmationCondition,
@@ -714,7 +716,7 @@ exports.createDeliveryConfirmation = async ({
         deliveryConfirmationSubmittedAt,
         deliveryConfirmationCreatedBy,
         deliveryConfirmationCreatedAt
-      ) VALUES (?, ?, ?, 'PENDING', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, 'PENDING', 'FORMAL_POD', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const values = [
       deliveryConfirmationUniqueId,

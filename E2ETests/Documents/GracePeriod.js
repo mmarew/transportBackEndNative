@@ -13,6 +13,7 @@ const { backendURL, usersData, USER_STATUS } = require("../constants");
 const { authConfig, getPendingAttachedDocument } = require("../Utils");
 const { report } = require("../Reporter");
 
+
 const GRACE_PERIOD_DAYS = 2; // must match backend constant
 
 // ── Helper: call accountStatus directly via admin endpoint ─────────────────
@@ -53,30 +54,22 @@ const createExpiredFreeSubUser = async () => {
   });
   const userUniqueId = createRes.data?.data?.userUniqueId;
 
-  // Verify phone (get OTP token)
-  const otpRes = await axios.post(backendURL + "/api/user/send-otp", {
-    phoneNumber: phone.replace("+", ""),
-    roleId: 2,
-  });
-  const otpToken = otpRes.data?.data?.token;
-
-  // Verify with OTP
-  await axios.post(
-    backendURL + "/api/user/verify-phone",
-    { token: otpToken },
-    { headers: { "Content-Type": "application/json" } },
+  // Verify with the well-known test OTP (101010) — always accepted as fallback
+  // verifyUserByOTP returns the JWT token directly
+  const verifyRes = await axios.post(
+    backendURL + "/api/user/verifyUserByOTP",
+    {
+      phoneNumber: phone.replace("+", ""),
+      OTP: 101010,
+      roleId: 2,
+    },
   );
-
-  // Login to get auth token
-  const loginRes = await axios.post(backendURL + "/api/user/loginUser", {
-    phoneNumber: phone.replace("+", ""),
-    roleId: 2,
-  });
-  const token = loginRes.data?.data?.token;
+  const token = verifyRes.data?.token || verifyRes.data?.data?.token;
+  if (!token) throw new Error("Failed to get token from OTP verification");
 
   // Manually expire the free subscription (set endDate to 3 days ago)
   const subRes = await axios.get(
-    backendURL + "/api/admin/userSubscriptions?driverUniqueId=" + userUniqueId,
+    backendURL + "/api/finance/userSubscription?driverUniqueId=" + userUniqueId,
     authConfig(usersData.admin.token),
   );
   const subs = subRes.data?.data?.data || subRes.data?.data || [];

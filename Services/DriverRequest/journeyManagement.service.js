@@ -61,6 +61,7 @@ const startJourney = async (body) => {
         DriverRequest.driverRequestUniqueId,
         DriverRequest.userUniqueId,
         ShipperRequest.shipperRequestUniqueId,
+        ShipperRequest.isPodRequired,
         Users.fullName,
         Users.email,
         Users.phoneNumber
@@ -327,6 +328,7 @@ const completeJourney = async (body) => {
       SELECT JourneyDecisions.*, DriverRequest.driverRequestUniqueId,
         DriverRequest.userUniqueId,
         ShipperRequest.shipperRequestUniqueId,
+        ShipperRequest.isPodRequired,
         ShipperRequest.userUniqueId as shipperUserUniqueId,
         ShipperRequest.shippingCost,
         ShipperRequest.requestMode,
@@ -878,6 +880,7 @@ const transitionLoadingStage = (stage) => async (body) => {
           DriverRequest.driverRequestUniqueId,
           DriverRequest.userUniqueId,
           ShipperRequest.shipperRequestUniqueId,
+          ShipperRequest.isPodRequired,
           Journey.journeyUniqueId,
           Journey.journeyProofOfLoading,
           Users.fullName,

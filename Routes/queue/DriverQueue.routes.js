@@ -264,27 +264,56 @@ router.delete(
 
 /**
  * @route   POST /api/queue/dispatch
- * @summary Manually dispatch a waiting order to the front driver
+ * @summary Manually dispatch a waiting order to a queue driver
  *
  * @description
- * Dispatches a specific shipper request (order) to the front driver of
- * the matching vehicle type in the queue. Creates a JourneyDecision with
- * status 2 (requestedByShipper) and updates the order status.
+ * Dispatches a specific shipper request (order) to a queue driver, creating a
+ * JourneyDecision with status 2 (requestedByShipper) and updating the order
+ * status. Exactly ONE driver-selection mode must be provided:
  *
- * If `shipperRequestUniqueId` is omitted, dispatches the oldest pending
- * order for the org+vehicle type.
+ *   1. `vehicleTypeUniqueId` — offer to the FRONT waiting driver of the type
+ *      (FIFO). This is the only mode allowed without a targeted driver.
+ *   2. `queueUniqueId` — offer to a SPECIFIC driver's queue entry.
+ *   3. `driverPhoneNumber` — offer to a SPECIFIC driver by phone (resolved to
+ *      their active vehicle assignment, then their today's queue entry).
+ *
+ * Modes 2 and 3 are mutually exclusive and ignore FIFO ordering: the targeted
+ * entry must be `waiting`/`notagreed` for this org today, match the order's
+ * vehicle type, must not have already refused the order, and must not be
+ * pinned (targetedShipperUserUUID) to a different shipper — otherwise the
+ * dispatch fails with 4xx.
+ *
+ * If `vehicleTypeUniqueId` is omitted in modes 2–3 it defaults to the order's
+ * vehicle type. If `shipperRequestUniqueId` is omitted, dispatches the oldest
+ * pending order for the org+vehicle type.
  *
  * @access  Private (QueueOrgAdmin)
- * @body    {string}  queueOrganizationUniqueId  UUID of the queue org (required)
- * @body    {string}  vehicleTypeUniqueId         UUID of the vehicle type (required)
+ * @body    {string}  queueOrganizationUniqueId   UUID of the queue org (required)
+ * @body    {string}  [vehicleTypeUniqueId]       Vehicle type UUID → front-driver mode
+ * @body    {string}  [queueUniqueId]             DriverQueue entry UUID → targeted driver
+ * @body    {string}  [driverPhoneNumber]         Driver phone (+251...) → targeted driver
  * @body    {string}  [shipperRequestUniqueId]    UUID of a specific order to dispatch
  *
- * @returns {Object}  { message: "success", data: { journeyDecision, driver, order } }
+ * @returns {Object}  { message: "success", offered: true, data: { queueUniqueId, queueNumber, driverUserUniqueId, journeyDecisionUniqueId, status } }
  *
- * @example POST /api/queue/dispatch
+ * @example POST /api/queue/dispatch  (front driver)
  * Body: {
  *   "queueOrganizationUniqueId": "58f68fea-...",
  *   "vehicleTypeUniqueId": "9b2e8446-...",
+ *   "shipperRequestUniqueId": "optional-specific-order-uuid"
+ * }
+ *
+ * @example POST /api/queue/dispatch  (specific driver by queue entry)
+ * Body: {
+ *   "queueOrganizationUniqueId": "58f68fea-...",
+ *   "queueUniqueId": "7680e724-b6ae-482d-aefc-176fef4d6a36",
+ *   "shipperRequestUniqueId": "optional-specific-order-uuid"
+ * }
+ *
+ * @example POST /api/queue/dispatch  (specific driver by phone)
+ * Body: {
+ *   "queueOrganizationUniqueId": "58f68fea-...",
+ *   "driverPhoneNumber": "+251912345678",
  *   "shipperRequestUniqueId": "optional-specific-order-uuid"
  * }
  */

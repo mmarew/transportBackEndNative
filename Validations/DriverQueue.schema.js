@@ -50,6 +50,8 @@ exports.checkout = Joi.object({
 
 exports.dispatchBody = Joi.object({
   queueOrganizationUniqueId: uuidSchema.required(),
-  vehicleTypeUniqueId: uuidSchema.required(),
+  vehicleTypeUniqueId: uuidSchema.optional(),
+  queueUniqueId: uuidSchema.optional(),
+  driverPhoneNumber: Joi.string().min(8).max(20).optional(),
   shipperRequestUniqueId: uuidSchema.optional(),
 });

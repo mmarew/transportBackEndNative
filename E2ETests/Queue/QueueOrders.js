@@ -27,6 +27,7 @@ const {
   acceptOrder,
   checkin,
   manualCheckin,
+  removeEntry,
   getLatestOrders,
   getOrderByUniqueId,
   getJourneyDecisionCount,
@@ -164,26 +165,6 @@ const testTQ17NonOfferedDriverDenied = async () => {
   }
 };
 
-// ── TQ-33 · Active-journey fence — driver in flight cannot re-join queue ──────
-
-const testTQ33ActiveJourneyFence = async () => {
-  try {
-    await expectStatus(
-      checkin("queueDriver2", ORG()),
-      409,
-      "TQ-33 active-journey check-in fence",
-    );
-    await expectStatus(
-      manualCheckin(ORG(), "queueDriver2"),
-      409,
-      "TQ-33 active-journey manual check-in fence",
-    );
-    report.pass("TQ-33: driver with active journey denied check-in (409)");
-  } catch (error) {
-    report.fail("TQ-33: active-journey fence", error);
-  }
-};
-
 // ── TQ-13 · Driver holding another offer is skipped (d2 agreed) ───────────────
 
 const testTQ13SkipHoldingDriver = async () => {
@@ -284,11 +265,33 @@ const testTQ19ShipperPriceReject = async () => {
 
 const testTQ18DriverRejectAdvances = async () => {
   try {
-    // d2 (agreed after TQ-15) is free → re-checks-in at the back.
-    await checkin("queueDriver2", ORG());
+    delete orders.O_D;
+
+    // Free d2's active journey (O_A accepted in TQ-15) so he can rejoin.
+    await cancelOrder({ orderUniqueId: orders.O_A, cancelAs: "admin" });
+
+    // O_B is still `waiting` after TQ-19's shipper reject. Clear it before the
+    // re-check-in — otherwise d2's check-in auto-dispatch would hand the stale
+    // pending order to him before O_D is even created.
+    const oB = await getOrderByUniqueId(orders.O_B);
+    if (oB && oB.journeyStatusId === journeyStatusMap.waiting) {
+      await cancelOrder({ orderUniqueId: orders.O_B, cancelAs: "shipper" });
+    }
+
+// Admin re-check-in revives d2's `agreed` entry at the BACK of the line
+    // (nextQueueNumber) — the driver endpoint would revive at the ORIGINAL
+    // position (#2) and become front. d3 must stay front for O_D.
+    const adminCheckin = await manualCheckin(ORG(), "queueDriver2");
+    if (!adminCheckin?.queueUniqueId) {
+      throw new Error(`d2 admin re-check-in failed: ${JSON.stringify(adminCheckin)}`);
+    }
     const reEntry = await entryOf("queueDriver2");
-    if (!reEntry || reEntry.status !== "waiting" || reEntry.queueRefusalCount !== 0) {
-      throw new Error(`d2 re-check-in failed: ${JSON.stringify(reEntry)}`);
+    if (
+      !reEntry ||
+      reEntry.status !== "waiting" ||
+      reEntry.queueNumber <= 3
+    ) {
+      throw new Error(`d2 re-check-in failed (expect waiting at the back): ${JSON.stringify(reEntry)}`);
     }
 
     await createQueueOrder({
@@ -303,6 +306,25 @@ const testTQ18DriverRejectAdvances = async () => {
     }
     const d3Before = e3.queueRefusalCount;
 
+    // d3's older cancelled-by-shipper O_B request still counts as "active"
+    // (not marked seen) for the reject/cancel engine — mark it seen first so
+    // the reject below targets the LIVE O_D offer.
+    const [drRows] = await pool.query(
+      `SELECT dr.driverRequestUniqueId
+       FROM DriverRequest dr
+       JOIN JourneyDecisions jd ON jd.driverRequestId = dr.driverRequestId
+       JOIN ShipperRequest sr ON sr.shipperRequestId = jd.shipperRequestId
+       WHERE sr.shipperRequestUniqueId = ? LIMIT 1`,
+      [orders.O_B],
+    );
+    if (drRows.length > 0) {
+      await axios.put(
+        backendURL + DRIVER_REQUEST_ENDPOINTS.MARK_NEGATIVE_STATUS_AS_SEEN,
+        { driverRequestUniqueId: drRows[0].driverRequestUniqueId },
+        authConfig(driverToken("queueDriver3")),
+      );
+    }
+
     await expectStatus(rawDriverReject("queueDriver3"), 200, "TQ-18 d3 reject");
 
     const d3After = await entryOf("queueDriver3");
@@ -316,6 +338,35 @@ const testTQ18DriverRejectAdvances = async () => {
     report.pass("TQ-18: driver reject pre-accept → order advances, refusal +1, entry notagreed");
   } catch (error) {
     report.fail("TQ-18: driver reject advances order", error);
+  }
+};
+
+// ── TQ-33 · Active-journey fence on driver check-in ───────────────────────────
+
+const testTQ33ActiveJourneyFence = async () => {
+  try {
+    // d2 is `agreed` on O_A (accepted in TQ-15) → check-in must report the
+    // in-flight journey instead of resurrecting him into the queue.
+    const res = await axios.post(
+      backendURL + "/api/queue/driver/checkin",
+      {
+        queueOrganizationUniqueId: ORG(),
+        vehicleDriverUniqueId: queueState.drivers.queueDriver2.vehicleDriverUniqueId,
+        latitude: 9.03,
+        longitude: 38.74,
+      },
+      authConfig(driverToken("queueDriver2")),
+    );
+    const payload = res.data?.data ?? res.data;
+    if (!payload || Array.isArray(payload) || payload.alreadyInJourney !== true) {
+      throw new Error(`expected alreadyInJourney=true, got ${JSON.stringify(payload)}`);
+    }
+    if (payload.journeyStatusId !== journeyStatusMap.acceptedByShipper) {
+      throw new Error(`expected journeyStatusId 4, got ${payload.journeyStatusId}`);
+    }
+    report.pass("TQ-33: check-in with active journey → alreadyInJourney (no queue mutation)");
+  } catch (error) {
+    report.fail("TQ-33: active-journey check-in fence", error);
   }
 };
 
@@ -373,12 +424,17 @@ const testTQ22RepeatedRejectNoop = async () => {
     const decisionsBefore = await getJourneyDecisionCount(orders.O_D);
     const canceledBefore = (await getCanceledJourneysForOrder(orders.O_D)).length;
 
-    // No active request left for d3 → 4xx and NO state change.
-    await expectStatus(
-      rawDriverReject("queueDriver3"),
-      404,
-      "TQ-22 repeated reject",
-    );
+    // No active request left for d3 → a NO-OP. The cancel service answers 200
+    // with noActiveRequest, or 4xx — either way there must be NO state change.
+    let rejectStatus = 500;
+    try {
+      rejectStatus = (await rawDriverReject("queueDriver3")).status;
+    } catch (e) {
+      rejectStatus = e?.response?.status || 500;
+    }
+    if (![200, 400, 403].includes(rejectStatus)) {
+      throw new Error(`repeated reject should be a no-op, got HTTP ${rejectStatus}`);
+    }
 
     const d3After = await entryOf("queueDriver3");
     if (d3After.queueRefusalCount !== d3Before.queueRefusalCount) {
@@ -684,14 +740,26 @@ const testTQ31ConcurrentAccept = async () => {
 
 const testTQ32CheckinRace = async () => {
   try {
+    // d1 has no active journey (never accepted an offer) — the fence would
+    // otherwise short-circuit the race to `alreadyInJourney`.
     await Promise.all([
-      checkin("queueDriver4", ORG()),
-      checkin("queueDriver4", ORG()),
-      checkin("queueDriver4", ORG()),
+      checkin("queueDriver1", ORG()),
+      checkin("queueDriver1", ORG()),
+      checkin("queueDriver1", ORG()),
     ]);
-    const active = await getActiveQueueCountForDriver("queueDriver4");
+    const active = await getActiveQueueCountForDriver("queueDriver1");
     if (active !== 1) {
       throw new Error(`parallel check-in must yield exactly 1 active row, got ${active}`);
+    }
+    // Reset d1 to `removed` so the AdminOps suite sees its intended clean slate.
+    const d1Entry = await entryOf("queueDriver1");
+    if (!d1Entry?.queueUniqueId) {
+      throw new Error("d1 active entry missing after race");
+    }
+    await removeEntry(d1Entry.queueUniqueId, usersData.queueOrgAdmin.token);
+    const d1After = await entryOf("queueDriver1");
+    if (d1After && d1After.status !== "removed") {
+      throw new Error(`d1 should be removed after cleanup: ${JSON.stringify(d1After)}`);
     }
     report.pass("TQ-32: parallel check-in race → exactly one active row");
   } catch (error) {

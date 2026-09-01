@@ -1,6 +1,6 @@
 "use strict";
 
-// Queue admin manual operations + non-queue regression — TQ-33..TQ-36, TQ-39.
+// Queue admin manual operations + non-queue regression — TQ-33..TQ-37, TQ-39.
 
 const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
@@ -19,6 +19,8 @@ const {
   removeEntry,
   manualDispatch,
   acceptOrder,
+  checkin,
+  cancelOrder,
   getLatestOrders,
   getOrderByUniqueId,
   getQueueEntryByDriver,
@@ -132,6 +134,8 @@ const testTQ36ManualDispatch = async () => {
       vehicleTypeUniqueId: queueState.vehicleTypes.typeA,
     });
     const orderUniqueId = (await getLatestOrders(1))[0].shipperRequestUniqueId;
+    queueState.adminOps.oMUniqueId = orderUniqueId;
+    queueState.adminOps.oMDriverKey = "queueDriver1";
     const order = await getOrderByUniqueId(orderUniqueId);
     if (order.journeyStatusId !== 1) {
       throw new Error(`O_M should wait (no waiting driver), got ${order.journeyStatusId}`);
@@ -152,34 +156,25 @@ const testTQ36ManualDispatch = async () => {
       "TQ-36 manual dispatch empty queue",
     );
 
-    // Queue admin checks a driver back in, then manually dispatches → requested.
+    // Queue admin checks d1 back in — the check-in auto-dispatch immediately
+    // hands the still-waiting O_M to the front driver.
     const entry = await manualCheckin(ORG(), "queueDriver1", qadminToken());
     if (!entry?.queueUniqueId) {
-      throw new Error("re-check-in before manual dispatch failed");
+      throw new Error("re-check-in before dispatch failed");
     }
-    const dispatch = await manualDispatch({
-      queueOrganizationUniqueId: ORG(),
-      vehicleTypeUniqueId: queueState.vehicleTypes.typeA,
-      shipperRequestUniqueId: orderUniqueId,
-      token: qadminToken(),
-    });
-    if (!dispatch?.offered) {
-      throw new Error(`manual dispatch did not offer: ${JSON.stringify(dispatch)}`);
-    }
-
     const row = await entryOf("queueDriver1");
     if (!row || row.status !== "requested" || row.shipperRequestUniqueId !== orderUniqueId) {
-      throw new Error(`d1 not requested O_M after manual dispatch: ${JSON.stringify(row)}`);
+      throw new Error(`d1 not requested O_M after check-in dispatch: ${JSON.stringify(row)}`);
     }
     const accepted = await acceptOrder("queueDriver1", 6000);
     if (!accepted) {
-      throw new Error("manual-dispatched order accept failed");
+      throw new Error("O_M accept failed");
     }
     const after = await entryOf("queueDriver1");
     if (!after || after.status !== "agreed") {
       throw new Error(`d1 should be agreed after accept: ${JSON.stringify(after)}`);
     }
-    report.pass("TQ-36: manual dispatch empty→404, then check-in + dispatch → offer → accept");
+    report.pass("TQ-36: manual dispatch empty→404, then check-in dispatch → offer → accept");
   } catch (error) {
     report.fail("TQ-36: manual dispatch", error);
   }
@@ -225,17 +220,187 @@ const testTQ39NonQueueRegression = async () => {
   }
 };
 
+// ── TQ-37 · Targeted dispatch (queueUniqueId / driverPhoneNumber) ─────────────
+//
+// POST /api/queue/dispatch normally offers to the FRONT waiting driver of the
+// order's vehicle type (FIFO — covered by TQ-36). QueueOrgAdmins can instead
+// name a SPECIFIC driver via `queueUniqueId` (their DriverQueue entry) or
+// `driverPhoneNumber` (their active vehicle assignment). The targeted entry
+// must still be `waiting`/`notagreed` today, match the order's vehicle type,
+// not have already refused the order, and not be pinned to another shipper.
+
+const testTQ37TargetedDispatch = async () => {
+  try {
+    // TQ-36 left d1 `agreed` on O_M, so a fresh order has no eligible driver
+    // and must stay `waiting`.
+    const d1Entry = await entryOf("queueDriver1");
+    if (!d1Entry?.queueUniqueId || d1Entry.status !== "agreed") {
+      throw new Error(`expected d1 agreed on O_M: ${JSON.stringify(d1Entry)}`);
+    }
+
+    await createQueueOrder({
+      queueOrganizationUniqueId: ORG(),
+      vehicleTypeUniqueId: queueState.vehicleTypes.typeB,
+    });
+    const guardOrderUniqueId = (await getLatestOrders(1))[0]?.shipperRequestUniqueId;
+    if ((await getOrderByUniqueId(guardOrderUniqueId)).journeyStatusId !== 1) {
+      throw new Error("guard order should wait while d1 holds O_M");
+    }
+
+    // ── Guards: the targeted modes must validate before mutating anything ──
+    await expectStatus(
+      manualDispatch({
+        queueOrganizationUniqueId: ORG(),
+        queueUniqueId: d1Entry.queueUniqueId,
+        driverPhoneNumber: "+251111111111",
+        shipperRequestUniqueId: guardOrderUniqueId,
+        token: qadminToken(),
+      }),
+      400,
+      "TQ-37 conflicting selectors (queueUniqueId + driverPhoneNumber)",
+    );
+    await expectStatus(
+      manualDispatch({
+        queueOrganizationUniqueId: ORG(),
+        queueUniqueId: "19f4a9ce-83ea-4af4-a12e-3d4b1f5c5a2c",
+        shipperRequestUniqueId: guardOrderUniqueId,
+        token: qadminToken(),
+      }),
+      404,
+      "TQ-37 unknown queueUniqueId",
+    );
+    await expectStatus(
+      manualDispatch({
+        queueOrganizationUniqueId: ORG(),
+        driverPhoneNumber: "+251999999999",
+        shipperRequestUniqueId: guardOrderUniqueId,
+        token: qadminToken(),
+      }),
+      404,
+      "TQ-37 unknown driverPhoneNumber",
+    );
+    await expectStatus(
+      manualDispatch({
+        queueOrganizationUniqueId: ORG(),
+        queueUniqueId: d1Entry.queueUniqueId,
+        shipperRequestUniqueId: guardOrderUniqueId,
+        token: qadminToken(),
+      }),
+      404,
+      "TQ-37 busy (agreed) entry not dispatchable",
+    );
+
+    // ── Reset d1 to a real `waiting` state through the product flows, so the
+    // positives are driven by the same code paths as production:
+    //   1. admin-cancel O_M → journey ends, driver request terminalized
+    //   2. driver re-checks-in → the engine revives the agreed entry to
+    //      `waiting` and (re)creates a clean waiting DriverRequest. With no
+    //      pending order left the check-in auto-dispatch has nothing to steal.
+    // ──
+    await cancelOrder({ orderUniqueId: queueState.adminOps.oMUniqueId, cancelAs: "admin" });
+    await checkin("queueDriver1", ORG());
+    const waitingEntry = await entryOf("queueDriver1");
+    if (!waitingEntry || waitingEntry.status !== "waiting") {
+      throw new Error(
+        `d1 should be waiting after revive reset: ${JSON.stringify(waitingEntry)}`,
+      );
+    }
+
+    // ── POSITIVE #1: targeted dispatch by driverPhoneNumber ──
+    await createQueueOrder({
+      queueOrganizationUniqueId: ORG(),
+      vehicleTypeUniqueId: queueState.vehicleTypes.typeA,
+    });
+    const oT1UniqueId = (await getLatestOrders(1))[0]?.shipperRequestUniqueId;
+    const viaPhone = await manualDispatch({
+      queueOrganizationUniqueId: ORG(),
+      driverPhoneNumber: usersData.queueDriver1?.phoneNumber,
+      shipperRequestUniqueId: oT1UniqueId,
+      token: qadminToken(),
+    });
+    if (viaPhone?.offered !== true) {
+      throw new Error(
+        `targeted (driverPhoneNumber) dispatch failed: ${JSON.stringify(viaPhone)}`,
+      );
+    }
+    const afterPhoneDispatch = await entryOf("queueDriver1");
+    if (
+      !afterPhoneDispatch ||
+      afterPhoneDispatch.status !== "requested" ||
+      afterPhoneDispatch.shipperRequestUniqueId !== oT1UniqueId
+    ) {
+      throw new Error(
+        `d1 should be requested O_T1 after phone dispatch: ${JSON.stringify(afterPhoneDispatch)}`,
+      );
+    }
+
+    // ── POSITIVE #2: targeted dispatch by queueUniqueId ──
+    // Cancel O_T1 as admin → driver request terminalized + queue entry released
+    // back to `waiting` (releaseEntryOnOrderCancel keeps position, no refusal
+    // counted). A second order O_T2 created on top waits for the named entry.
+    await createQueueOrder({
+      queueOrganizationUniqueId: ORG(),
+      vehicleTypeUniqueId: queueState.vehicleTypes.typeA,
+    });
+    const oT2UniqueId = (await getLatestOrders(1))[0]?.shipperRequestUniqueId;
+    await cancelOrder({ orderUniqueId: oT1UniqueId, cancelAs: "admin" });
+    const releasedEntry = await entryOf("queueDriver1");
+    if (!releasedEntry || releasedEntry.status !== "waiting") {
+      throw new Error(
+        `d1 should be waiting after O_T1 cancel: ${JSON.stringify(releasedEntry)}`,
+      );
+    }
+    const viaEntry = await manualDispatch({
+      queueOrganizationUniqueId: ORG(),
+      queueUniqueId: releasedEntry.queueUniqueId,
+      shipperRequestUniqueId: oT2UniqueId,
+      token: qadminToken(),
+    });
+    if (viaEntry?.offered !== true) {
+      throw new Error(
+        `targeted (queueUniqueId) dispatch failed: ${JSON.stringify(viaEntry)}`,
+      );
+    }
+    const afterEntryDispatch = await entryOf("queueDriver1");
+    if (
+      !afterEntryDispatch ||
+      afterEntryDispatch.status !== "requested" ||
+      afterEntryDispatch.shipperRequestUniqueId !== oT2UniqueId
+    ) {
+      throw new Error(
+        `d1 should be requested O_T2 after targeted dispatch: ${JSON.stringify(afterEntryDispatch)}`,
+      );
+    }
+
+    // ── Leave d1 free (waiting, no active journey) for the History suite ──
+    await cancelOrder({ orderUniqueId: oT2UniqueId, cancelAs: "admin" });
+    const finalRow = await entryOf("queueDriver1");
+    if (!finalRow || finalRow.status !== "waiting") {
+      throw new Error(
+        `d1 should be waiting at TQ-37 end: ${JSON.stringify(finalRow)}`,
+      );
+    }
+
+    report.pass(
+      "TQ-37: targeted dispatch by queueUniqueId + driverPhoneNumber (guards + positives)",
+    );
+  } catch (error) {
+    report.fail("TQ-37: targeted dispatch", error);
+  }
+};
+
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 const runQueueAdminTests = async () => {
   console.log("\n═══════════════════════════════════════════════════");
-  console.log("  QUEUE ADMIN OPS — TQ-33..TQ-36, TQ-39");
+  console.log("  QUEUE ADMIN OPS — TQ-33..TQ-37, TQ-39");
   console.log("═══════════════════════════════════════════════════\n");
 
   await testTQ33ManualCheckin();
   await testTQ34OverridePosition();
   await testTQ35RemoveEntry();
   await testTQ36ManualDispatch();
+  await testTQ37TargetedDispatch();
   await testTQ39NonQueueRegression();
 };
 

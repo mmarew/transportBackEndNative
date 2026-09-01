@@ -78,13 +78,34 @@ const fullJourneyLifecycle = async ({
   // 2. Checkin driver to trigger dispatch
   await checkin(driverKey, ORG());
 
-  // 3. Get driver journey status (offer should be present)
-  await getDriverJourneyStatus({ userType: driverKey });
-  const status = usersData[driverKey]?.journeyStatus;
-  const ids = status?.uniqueIds || {};
+  // 3. Get driver journey status (offer should be present). Under a slow DB the
+  // offer can lag behind the check-in, so poll until the status reflects the
+  // NEWLY created order — otherwise the accept/start/complete calls below reuse
+  // the previous lifecycle's journey ids and poison every downstream assertion.
+  let status = null;
+  let ids = {};
+  for (let attempt = 0; attempt < 20; attempt++) {
+    await getDriverJourneyStatus({ userType: driverKey });
+    status = usersData[driverKey]?.journeyStatus;
+    ids = status?.uniqueIds || {};
+    if (
+      ids?.driverRequestUniqueId &&
+      ids?.journeyDecisionUniqueId &&
+      ids?.shipperRequestUniqueId === orderUniqueId
+    ) {
+      break;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
 
-  if (!ids.driverRequestUniqueId || !ids.journeyDecisionUniqueId) {
-    throw new Error(`No offer found for ${driverKey} after dispatch`);
+  if (
+    !ids.driverRequestUniqueId ||
+    !ids.journeyDecisionUniqueId ||
+    ids.shipperRequestUniqueId !== orderUniqueId
+  ) {
+    throw new Error(
+      `No offer matching order ${orderUniqueId} found for ${driverKey}: ${JSON.stringify(status?.uniqueIds)}`,
+    );
   }
 
   // 4. Accept the order
@@ -135,6 +156,39 @@ const getReceiptPhotos = async (deliveryConfirmationUniqueId) => {
     [deliveryConfirmationUniqueId],
   );
   return rows;
+};
+
+/**
+ * POST /api/deliveryConfirmations/receipt with real photo files (multipart).
+ */
+const submitReceipt = async ({
+  journeyUniqueId,
+  driverKey,
+  photoCount = 1,
+  notes,
+  latitude,
+  longitude,
+}) => {
+  const form = new FormData();
+  for (let i = 0; i < photoCount; i++) {
+    const buf = Buffer.from(
+      `fake-receipt-jpeg-${Date.now()}-${i}-${Math.random().toString(16).slice(2)}`,
+      "utf8",
+    );
+    form.append(
+      "photos",
+      new Blob([buf], { type: "image/jpeg" }),
+      `receipt_${i}.jpg`,
+    );
+  }
+  form.append("journeyUniqueId", journeyUniqueId);
+  if (notes) form.append("notes", notes);
+  if (latitude != null) form.append("latitude", String(latitude));
+  if (longitude != null) form.append("longitude", String(longitude));
+  const cfg = authConfig(driverToken(driverKey));
+  return axios.post(backendURL + "/api/deliveryConfirmations/receipt", form, {
+    headers: { ...cfg.headers, "Content-Type": "multipart/form-data" },
+  });
 };
 
 // ── Tests ────────────────────────────────────────────────────────────────────
@@ -188,10 +242,14 @@ const testTRP02AutoConfirmNoPod = async () => {
   try {
     const lifecycle = await fullJourneyLifecycle({ isPodRequired: false });
 
-    // Wait briefly for the async auto-confirm in completeJourney .then()
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    // The auto-confirm is fire-and-forget after journey completion, so poll
+    // for the row instead of a fixed sleep (slow-DB windows need more time).
+    let pod = null;
+    for (let attempt = 0; attempt < 30 && !pod; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      pod = await getPodForJourney(lifecycle.journeyUniqueId);
+    }
 
-    const pod = await getPodForJourney(lifecycle.journeyUniqueId);
     if (!pod) {
       throw new Error(
         "No DeliveryConfirmation created after journey completion with isPodRequired=false",
@@ -248,16 +306,14 @@ const testTRP04SubmitReceiptPhotos = async () => {
     const lifecycle = await fullJourneyLifecycle({ isPodRequired: true });
 
     // Submit receipt photos via the new endpoint
-    const res = await axios.post(
-      backendURL + "/api/deliveryConfirmations/receipt",
-      {
-        journeyUniqueId: lifecycle.journeyUniqueId,
-        notes: "Delivered 3 boxes to Shop A",
-        latitude: 8.54,
-        longitude: 39.27,
-      },
-      authConfig(driverToken(lifecycle.driverKey)),
-    );
+    const res = await submitReceipt({
+      journeyUniqueId: lifecycle.journeyUniqueId,
+      driverKey: lifecycle.driverKey,
+      photoCount: 1,
+      notes: "Delivered 3 boxes to Shop A",
+      latitude: 8.54,
+      longitude: 39.27,
+    });
 
     const result = res.data?.data || res.data;
     if (!result?.deliveryConfirmationUniqueId) {
@@ -292,24 +348,20 @@ const testTRP05IdempotentReceiptSubmission = async () => {
     const lifecycle = await fullJourneyLifecycle({ isPodRequired: true });
 
     // First submission
-    const res1 = await axios.post(
-      backendURL + "/api/deliveryConfirmations/receipt",
-      {
-        journeyUniqueId: lifecycle.journeyUniqueId,
-        notes: "First receipt",
-      },
-      authConfig(driverToken(lifecycle.driverKey)),
-    );
+    const res1 = await submitReceipt({
+      journeyUniqueId: lifecycle.journeyUniqueId,
+      driverKey: lifecycle.driverKey,
+      photoCount: 1,
+      notes: "First receipt",
+    });
 
     // Second submission (idempotent)
-    const res2 = await axios.post(
-      backendURL + "/api/deliveryConfirmations/receipt",
-      {
-        journeyUniqueId: lifecycle.journeyUniqueId,
-        notes: "Second receipt (duplicate)",
-      },
-      authConfig(driverToken(lifecycle.driverKey)),
-    );
+    const res2 = await submitReceipt({
+      journeyUniqueId: lifecycle.journeyUniqueId,
+      driverKey: lifecycle.driverKey,
+      photoCount: 1,
+      notes: "Second receipt (duplicate)",
+    });
 
     const data2 = res2.data?.data || res2.data;
     if (!data2?.deliveryConfirmationUniqueId) {
@@ -421,14 +473,12 @@ const testTRP09OnlyDriverCanSubmit = async () => {
     // Try submitting as a different driver
     const otherDriver = "queueDriver3";
     await expectStatus(
-      axios.post(
-        backendURL + "/api/deliveryConfirmations/receipt",
-        {
-          journeyUniqueId: lifecycle.journeyUniqueId,
-          notes: "Should fail — wrong driver",
-        },
-        authConfig(driverToken(otherDriver)),
-      ),
+      submitReceipt({
+        journeyUniqueId: lifecycle.journeyUniqueId,
+        driverKey: otherDriver,
+        photoCount: 1,
+        notes: "Should fail — wrong driver",
+      }),
       [403],
       "TRP-09",
     );
@@ -446,11 +496,12 @@ const testTRP10PodStatusReflection = async () => {
   try {
     const lifecycle = await fullJourneyLifecycle({ isPodRequired: false });
 
-    // Wait for auto-confirm
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    // Verify via DB (the API query may not include this journey in default results)
-    const pod = await getPodForJourney(lifecycle.journeyUniqueId);
+    // Poll for the async auto-confirm row (see TRP-02 for why not a fixed wait).
+    let pod = null;
+    for (let attempt = 0; attempt < 30 && !pod; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      pod = await getPodForJourney(lifecycle.journeyUniqueId);
+    }
     if (!pod) {
       throw new Error("Auto-confirmed POD not found in DB");
     }
@@ -484,26 +535,38 @@ const testTRP11MultipleReceiptPhotos = async () => {
       `/uploads/receipt_shop_C_${Date.now()}.jpg`,
     ];
 
+    const [driverRow] = await pool.query(
+      `SELECT dr.userUniqueId
+       FROM Journey j
+       JOIN JourneyDecisions jd ON jd.journeyDecisionUniqueId = j.journeyDecisionUniqueId
+       JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+       WHERE j.journeyUniqueId = ?
+       LIMIT 1`,
+      [lifecycle.journeyUniqueId],
+    );
     const driverUid =
+      driverRow[0]?.userUniqueId ||
       usersData[lifecycle.driverKey]?.userUniqueId ||
       "00000000-0000-0000-0000-000000000000";
+    const [shipperRow] = await pool.query(
+      "SELECT userUniqueId FROM ShipperRequest WHERE shipperRequestUniqueId = ? LIMIT 1",
+      [lifecycle.orderUniqueId],
+    );
     const shipperUid =
-      usersData.shipper?.userUniqueId ||
-      "00000000-0000-0000-0000-000000000000";
+      shipperRow[0]?.userUniqueId || usersData.shipper?.userUniqueId;
 
-    // Insert a test confirmation directly
+// Insert a test confirmation directly
     await pool.query(
       `INSERT INTO DeliveryConfirmations (
         deliveryConfirmationUniqueId, journeyUniqueId, receiverUserUniqueId,
         deliveryConfirmationStatus, deliveryConfirmationSource,
-        deliveryConfirmationPhotoUrl, deliveryConfirmationCreatedBy,
+        deliveryConfirmationCreatedBy,
         confirmedByUserUniqueId, deliveryConfirmationCreatedAt, deliveryConfirmationUpdatedAt
-      ) VALUES (?, ?, ?, 'CONFIRMED', 'RECEIPT_AUTO', ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, 'CONFIRMED', 'RECEIPT_AUTO', ?, ?, ?, ?)`,
       [
         deliveryConfirmationUniqueId,
         lifecycle.journeyUniqueId,
         shipperUid,
-        testPhotos[0],
         driverUid,
         driverUid,
         now,
@@ -535,7 +598,11 @@ const testTRP11MultipleReceiptPhotos = async () => {
       }
     }
 
-    // Cleanup: delete the test confirmation
+    // Cleanup: delete the child photos then the test confirmation
+    await pool.query(
+      "DELETE FROM DeliveryConfirmationPhotos WHERE deliveryConfirmationUniqueId = ?",
+      [deliveryConfirmationUniqueId],
+    );
     await pool.query(
       "DELETE FROM DeliveryConfirmations WHERE deliveryConfirmationUniqueId = ?",
       [deliveryConfirmationUniqueId],
@@ -589,7 +656,10 @@ const testTRP12BackwardCompatibility = async () => {
       "AUTO_NO_POD",
     ];
     for (const dc of existingDc) {
-      if (!validSources.includes(dc.deliveryConfirmationSource)) {
+      if (
+        dc.deliveryConfirmationSource !== null &&
+        !validSources.includes(dc.deliveryConfirmationSource)
+      ) {
         throw new Error(
           `Invalid source value: ${dc.deliveryConfirmationSource}`,
         );

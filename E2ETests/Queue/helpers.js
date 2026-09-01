@@ -374,10 +374,10 @@ const removeEntry = async (queueUniqueId, token = superAdminToken()) => {
   return res.data;
 };
 
-const manualDispatch = async ({ queueOrganizationUniqueId, vehicleTypeUniqueId, shipperRequestUniqueId, token = superAdminToken() }) => {
+const manualDispatch = async ({ queueOrganizationUniqueId, vehicleTypeUniqueId, queueUniqueId, driverPhoneNumber, shipperRequestUniqueId, token = superAdminToken() }) => {
   const res = await axios.post(
     backendURL + "/api/queue/dispatch",
-    { queueOrganizationUniqueId, vehicleTypeUniqueId, shipperRequestUniqueId },
+    { queueOrganizationUniqueId, vehicleTypeUniqueId, queueUniqueId, driverPhoneNumber, shipperRequestUniqueId },
     authConfig(token),
   );
   return res.data;
