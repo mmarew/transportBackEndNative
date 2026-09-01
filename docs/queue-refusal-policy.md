@@ -33,12 +33,12 @@ line is corrected.
 
 | Case                                                                                  | Action                                                   |
 | ------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| Driver rejects offer                                                                  | Order → next driver; driver keeps position;`count += 1`  |
-| Driver times out (3 min)                                                              | Order → next driver; driver keeps position;`count += 1`  |
-| Shipper rejects the driver's quoted price (agreement rejection)                       | Order → next driver; driver keeps position;`count += 1`  |
+| Driver rejects offer                                                                  | Order → next driver; driver keeps position; entry `notagreed`;`count += 1`  |
+| Driver times out (3 min)                                                              | Order → next driver; driver keeps position; entry `notagreed`;`count += 1`  |
+| Shipper rejects the driver's quoted price (agreement rejection)                       | Order → next driver; driver keeps position; entry `notagreed`;`count += 1`  |
 | Job cancelled by shipper / platform admin /**queue org admin** / system (whole order) | Entry released to`waiting`, position kept; **no count**  |
 | `count` reaches N                                                                     | Driver moves to back of line;`count = 0`                 |
-| Driver accepts (loaded)                                                               | Driver leaves queue;`count` is irrelevant (entry closed) |
+| Driver accepts (agreed)                                                               | Driver leaves queue;`count` is irrelevant (entry closed) |
 
 ## 2. Why not "remove the driver from the queue"
 
@@ -126,7 +126,7 @@ driver refusal.
 - Counter lives on the `DriverQueue` entry as `queueRefusalCount` (int, default 0).
 - Increment on each counted refusal **while the entry holds the front position**.
 - Reset to 0 when the driver reaches the back via the rule, or naturally when the
-  entry leaves/re-enters (accept → `loaded`; check-out → re-check-in creates a
+  entry leaves/re-enters (accept → `agreed`; check-out → re-check-in creates a
   new entry with a fresh counter and a new `queueNumber` at the back).
 - The queue resets daily (`queueDate`), so the counter is implicitly per-day.
 
@@ -135,7 +135,7 @@ driver refusal.
 When `queueRefusalCount >= N` at refusal time:
 
 1. Set the entry's `queueNumber` to `max(queueNumber) + 1` among **active**
-   (`waiting`) entries of the same `(queueOrganizationUniqueId, queueDate, vehicleTypeUniqueId)` — i.e. the back of the line.
+   (`waiting`/`notagreed`) entries of the same `(queueOrganizationUniqueId, queueDate, vehicleTypeUniqueId)` — i.e. the back of the line.
 2. Reset `queueRefusalCount = 0`.
 3. Leave other entries' numbers untouched (no renumbering storm).
 4. Emit a queue snapshot + notify the queue org admin (`messageType: queue_refusal_moved_to_back`) so the admin sees the position change.
@@ -161,36 +161,38 @@ driver, that day).
 ### 4.5 Entry state machine (the invariant)
 
 `DriverQueue.status` is the whole queue contract. The counter only ever exists on
-`waiting`/`offered` entries; it never survives `loaded`/`removed`.
+`waiting`/`notagreed`/`requested` entries; it never survives `agreed`/`removed`.
 
 ```
             check-in (queueNumber = MAX+1, count = 0)
                      │
                      ▼
                  ┌──────────┐   offer (createQueueOffer)
-                 │  waiting │ ─────────────────────────► ┌──────────┐
-                 └──────────┘                            │  offered │
-                     ▲   ▲                               └──────────┘
+                 │  waiting │ ─────────────────────────► ┌────────────┐
+                 └──────────┘                            │  requested │
+                     ▲   ▲                               └────────────┘
                      │   │                                    │
-  release on         │   │  rejection / timeout:              │  driver accepts
-  whole-job cancel   │   │    status → waiting,               │  (markEntryLoaded)
-  (no count)         │   │    count += 1;                     │
+   release on         │   │  reject/timeout/price-reject:     │  driver accepts
+   whole-job cancel   │   │    status → notagreed,            │  (markEntryAgreed)
+   (no count)         │   │    count += 1;                    │
                      │   │    count == N → queueNumber        │
                      │   │    = MAX+1, count = 0              │
                      │   └─────── (order advances)            ▼
-                     │                                    ┌──────────┐
-   re-check-in       │                                    │  loaded  │ (left the
-   (revive,          └──────────(moved to back)──────────►│          │  line)
-   count = 0)                                             └──────────┘
+                     │                                    ┌────────────┐
+    re-check-in      │   notagreed ──offer──► requested  │   agreed   │ (left the
+    (revive,         └──────────(moved to back)─────────►│            │  line)
+    count = 0)                                           └────────────┘
 ```
 
 Rules:
 
-- Rejection / timeout / price-reject: `offered → waiting`, `count += 1`; on
+- Rejection / timeout / price-reject: `requested → notagreed`, `count += 1`; on
   `count == N` also `queueNumber = MAX+1` and `count = 0`.
-- Whole-job cancel: `offered → waiting`, position and count untouched
+- Whole-job cancel: `requested → waiting`, position and count untouched
   (see [queue-order-cancellation.md](queue-order-cancellation.md)).
-- Accept: `offered → loaded` (leaves the line; count is moot).
+- Accept: `requested → agreed` (leaves the line; count is moot).
+- A `notagreed` entry is re-eligible: the next offer picks it back up
+  (`notagreed → requested`).
 - Re-check-in revives a previous entry with `count = 0` and a new back position.
 
 ## 5. Config & schema
@@ -226,7 +228,7 @@ Queue dispatch writes:
 
 | #   | Check                                                                     | Pass criteria                                                                                                                   |
 | --- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Driver rejects offer                                                      | `queueRefusalCount` increments; entry `waiting`; order offered to next driver                                                   |
+| 1   | Driver rejects offer                                                      | `queueRefusalCount` increments; entry `notagreed` (position kept); order offered to next driver                                             |
 | 2   | Driver times out (3 min)                                                  | Same as#1 via `releaseExpiredOffers` scan                                                                                       |
 | 3   | Shipper rejects driver's price                                            | `JourneyDecision = rejectedByShipper(8)`; `queueRefusalCount` increments                                                        |
 | 4   | Whole-job cancel (shipper / platform admin /**queue org admin** / system) | Entry released to`waiting`, position kept, **count unchanged** — see [queue-order-cancellation.md](queue-order-cancellation.md) |

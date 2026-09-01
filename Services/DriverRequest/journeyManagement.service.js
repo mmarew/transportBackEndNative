@@ -547,7 +547,7 @@ const completeJourney = async (body) => {
     // Close the queue slot: a COMPLETED queue order consumes the driver's slot.
     // Mark the entry 'removed' (same closed state as checkout/leave) so the
     // driver is out of the queue and MUST re-register for the next placement.
-    // Best-effort + idempotent — only touches entries still 'loaded' and
+    // Best-effort + idempotent — only touches entries still 'agreed' and
     // holding this order; non-queue journeys are untouched.
     if (combinedData?.queueOrganizationUniqueId) {
       const {

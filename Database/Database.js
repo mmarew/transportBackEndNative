@@ -2138,7 +2138,7 @@ CREATE TABLE IF NOT EXISTS QueueAuditLog (
 -- is always readable from DriverQueue itself; oldValue tells you what it was
 -- BEFORE this change. Walk history backwards + read DriverQueue for full timeline.
 -- Columns tracked: queueNumber, status, targetedShipperUserUUID, shipperRequestUniqueId,
--- offeredAt, loadedAt. Created by logQueueHistory() in DriverQueue.service.js.
+-- requestedAt, agreedAt. Created by logQueueHistory() in DriverQueue.service.js.
 
 CREATE TABLE IF NOT EXISTS DriverQueueHistory (
     historyId INT AUTO_INCREMENT PRIMARY KEY,

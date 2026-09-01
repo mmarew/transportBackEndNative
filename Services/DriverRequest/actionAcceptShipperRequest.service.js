@@ -186,10 +186,10 @@ const acceptShipperRequest = async (body) => {
     );
 
     // Queue-dispatch orders: driver accepted → the queue entry leaves the
-    // dispatch line (marked loaded).
+    // dispatch line (marked agreed; journey progress follows journeyStatusId).
     if (isQueueOrder) {
-      const { markEntryLoaded } = require("../DriverQueue.service");
-      await markEntryLoaded({ shipperRequestUniqueId, userUniqueId });
+      const { markEntryAgreed } = require("../DriverQueue.service");
+      await markEntryAgreed({ shipperRequestUniqueId, userUniqueId });
     }
 
     // Send notification directly to shipper without processing all requests

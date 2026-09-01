@@ -38,7 +38,7 @@ shipper rejects the driver's price
   → JourneyDecision + DriverRequest = rejectedByShipper(8), decisionBy='shipper'
      [Services/ShipperRequest/actionReject.service.js → updateNegativeJourneyStatus]
   → rejectOffer (shipper-side, no driverUserUniqueId)
-      entry: offered → waiting   (keeps queueNumber)
+      entry: requested → notagreed   (keeps queueNumber, stays in line)
       order:  offered to NEXT driver of same vehicle type   [offerToNextDriver]
 ```
 
@@ -46,8 +46,8 @@ shipper rejects the driver's price
 
 - The rejecting driver **keeps their position** — rejecting one agreement is
   "pass on this load", not "lose your turn".
-- The order **advances** — `offerToNextDriver` skips to the next `waiting`
-  driver of the order's vehicle type.
+- The order **advances** — `offerToNextDriver` skips to the next `waiting`/
+  `notagreed` driver of the order's vehicle type.
 - **Counted** against the refusal policy (`applyRefusalPolicy`) — the driver
   quoted their own price and did not close at the shipper's terms, so the line
   moved past them; at N it triggers move-to-back (see
@@ -66,15 +66,15 @@ A queue order cancelled at the job level updates `ShipperRequest` /
 
 ### 3.1 How it breaks the line
 
-If a driver is currently **holding the offer** (`DriverQueue.status = 'offered'`)
+If a driver is currently **holding the offer** (`DriverQueue.status = 'requested'`)
 when the order is cancelled:
 
-1. The entry keeps `status = 'offered'` with `shipperRequestUniqueId` still set.
+1. The entry keeps `status = 'requested'` with `shipperRequestUniqueId` still set.
 2. The background offer-window scan (`releaseExpiredOffers`) will **not** release
    it, because that query filters `sr.journeyStatusId = requested` — the order is
    now `cancelled`.
-3. `offerToDriver` only ever offers to `status = 'waiting'` entries — so the
-   stuck driver receives **no future offers for the rest of the day**.
+3. `offerToDriver` only ever offers to `status IN ('waiting','notagreed')`
+   entries — so the stuck driver receives **no future offers for the rest of the day**.
 4. No `emitQueueSnapshot` fires, so the queue-org-admin dashboard shows the
    driver as still holding an order that no longer exists.
 
@@ -84,9 +84,9 @@ Net effect: **one cancelled order silently blocks one driver's whole queue day.*
 
 | Driver state at cancel | Queue impact |
 | ---------------------- | ------------ |
-| `offered` (holds the offer) | **BREAKS** — entry stuck `offered`, driver blocked |
-| `waiting` (no offer) | None — entry untouched, still in line |
-| `loaded` (already accepted / on the road) | Driver already left the line (`loaded`); they simply become free to re-check-in |
+| `requested` (holds the offer) | **BREAKS** — entry stuck `requested`, driver blocked |
+| `waiting` / `notagreed` (no offer) | None — entry untouched, still in line |
+| `agreed` (already accepted / on the road) | Driver already left the line (`agreed`); they simply become free to re-check-in |
 
 ### 3.3 Design decision
 
@@ -110,9 +110,9 @@ the queue-admin signal.)
 
 | Case | Action |
 | ---- | ------ |
-| Entry `offered` for the cancelled order | → `waiting`, clear `offeredAt`/`shipperRequestUniqueId`, **keep queueNumber**, **refusal counter untouched — no penalty for the holding driver, no matter who cancelled (shipper / platform admin / queue org admin)**, emit snapshot + notify org admin |
+| Entry `requested` for the cancelled order | → `waiting`, clear `requestedAt`/`shipperRequestUniqueId`, **keep queueNumber**, **refusal counter untouched — no penalty for the holding driver, no matter who cancelled (shipper / platform admin / queue org admin)**, emit snapshot + notify org admin |
 | Entry already `waiting` | Nothing to do |
-| Entry `loaded` (accepted / journey started) | No release needed (already out of line) — see §6 policy note |
+| Entry `agreed` (accepted / journey started) | No release needed (already out of line) — see §6 policy note |
 | Batch order (`numberOfVehicles = N`) | Each cancelled `ShipperRequest` slot releases **its own** holding entry |
 
 Rejected alternative: **blocking queue-order cancellation entirely.** Clients
@@ -128,10 +128,10 @@ Mirror `rejectOffer` minus the refusal counter and minus the advance:
 ```js
 // DriverQueue.service.js
 exports.releaseEntryOnOrderCancel = async ({ shipperRequestUniqueId, user }) => {
-  // SELECT the entry where dq.shipperRequestUniqueId = ? AND dq.status = 'offered'
+  // SELECT the entry where dq.shipperRequestUniqueId = ? AND dq.status = 'requested'
   //   AND dq.queueDeletedAt IS NULL ... FOR UPDATE
   //   → none found: return { released: false }
-  // updateData(DriverQueue, { status:'waiting', offeredAt:null, shipperRequestUniqueId:null,
+  // updateData(DriverQueue, { status:'waiting', requestedAt:null, shipperRequestUniqueId:null,
   //                          queueUpdatedAt, queueUpdatedBy }, { queueId })
   // emitQueueSnapshot(...)
   // notifyQueueOrgAdmins({ ..., messageType: "queue_order_cancelled" })
@@ -143,7 +143,7 @@ exports.releaseEntryOnOrderCancel = async ({ shipperRequestUniqueId, user }) => 
 `db()` (transaction-aware: the ambient tx connection inside a transaction, else
 the pool) plus `updateData`, so it is safe to call from inside a transaction or
 after commit; the `FOR UPDATE` row lock serializes against the offer-window
-background scan. Returns `{ released: false }` when no `offered` entry exists
+background scan. Returns `{ released: false }` when no `requested` entry exists
 (idempotent).
 
 Same guarantees as `rejectOffer`: resets the entry in place, position preserved,
@@ -179,9 +179,9 @@ gone and the driver released (data: `{ driverUserUniqueId, queueUniqueId }`).
 | Driver holds offer + order cancelled (Type A) | Released to `waiting`, position kept, **not counted** as refusal |
 | **Queue org admin** cancels the job (role 11 → `cancelledByAdmin`) | Same as above — release to `waiting`, position kept, **no penalty** to the holding driver. The admin's cancel goes through the same `actionCancel` → `releaseEntryOnOrderCancel` path as a shipper cancel |
 | Driver's price rejected by shipper (Type B) | `rejectOffer` advances the order; driver keeps position; **`count += 1`** toward the refusal limit |
-| Driver already accepted (entry `loaded`) | Already out of line; nothing to release. Optional policy: first-right-of-refusal on the next matching order this day (open question) |
+| Driver already accepted (entry `agreed`) | Already out of line; nothing to release. Optional policy: first-right-of-refusal on the next matching order this day (open question) |
 | Partial batch cancel | Only the cancelled slot's entry is released; other slots continue dispatch |
-| Order cancelled twice / already cancelled | Idempotent — no `offered` entry → `released: false` |
+| Order cancelled twice / already cancelled | Idempotent — no `requested` entry → `released: false` |
 | Driver refused earlier (counter > 0), then order cancelled (Type A) | Counter **unchanged** (cancellation ≠ refusal) |
 | Cancel while no offer held | No-op on the queue |
 
@@ -192,18 +192,18 @@ gone and the driver released (data: `{ driverUserUniqueId, queueUniqueId }`).
 
 | # | Check | Pass criteria |
 | - | ----- | ------------- |
-| 1 | Cancel a queue order while the front driver holds the offer | Entry → `waiting`, position kept, `offeredAt`/`shipperRequestUniqueId` cleared, **no `count += 1`** |
-| 2 | Same entry immediately offered a NEW order | The released driver is eligible again (proves no stuck `offered`) |
+| 1 | Cancel a queue order while the front driver holds the offer | Entry → `waiting`, position kept, `requestedAt`/`shipperRequestUniqueId` cleared, **no `count += 1`** |
+| 2 | Same entry immediately offered a NEW order | The released driver is eligible again (proves no stuck `requested`) |
 | 3 | Cancel a non-queue order | Queue untouched; no-op |
 | 4 | Cancel an already-cancelled order | Idempotent; `released: false` |
 | 5 | Partial batch cancel (N slots) | Only the cancelled slot's entry released; other slots keep dispatching |
-| 6 | Driver had accepted (entry `loaded`) before cancel | Entry not touched; driver free to re-check-in |
+| 6 | Driver had accepted (entry `agreed`) before cancel | Entry not touched; driver free to re-check-in |
 | 7 | Admin/system cancel paths (`cancelledByAdmin`/`cancelledBySystem`) | Same release behavior as #1 |
 | 8 | **Queue org admin** cancels the job (role 11 → `cancelledByAdmin`) while a driver holds the offer | Same as #1 — released to `waiting`, position kept, **no penalty** to the holding driver |
 
 ## 7. Open questions
 
-- When a `loaded` driver's order is cancelled mid-journey: reinsert at their old
+- When an `agreed` driver's order is cancelled mid-journey: reinsert at their old
   position for the next order, or require a fresh re-check-in at the back?
   (Recommend: fresh re-check-in — simple, predictable; document for the driver.)
 - Should the *driver* be notified of the cancellation reason via the existing

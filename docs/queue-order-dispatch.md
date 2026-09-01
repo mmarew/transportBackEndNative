@@ -91,7 +91,7 @@ ShipperRequest row:
 ```
 ShipperRequestBatch            one header (auto-upserted), shared order details
    └── ShipperRequest × N      one row per vehicle (status: waiting → requested)
-          └── DriverQueue       front driver's entry: waiting → offered, shipperRequestUniqueId linked
+          └── DriverQueue       front driver's entry: waiting → requested, shipperRequestUniqueId linked
                 └── DriverRequest
                       └── JourneyDecisions   requested, decisionBy = 'shipper'
 ```
@@ -102,7 +102,7 @@ ShipperRequestBatch            one header (auto-upserted), shared order details
 | `ShipperRequest` × N  | Step 1 (`numberOfVehicles - rowsAlreadyInBatch`)         | `queueOrganizationUniqueId` set, status `waiting` → `requested`                                                                         |
 | `DriverRequest`       | `ensureWaitingDriverRequest`                             | reuses the driver's`waiting` request if it has **no** linked decision, else inserts a fresh one (origin = queue org's site)             |
 | `JourneyDecisions`    | `createQueueOffer`                                       | `journeyStatusId = requested`, `decisionBy = 'shipper'`; `JourneyDecisions.driverRequestId` is UNIQUE (one decision per driver request) |
-| `DriverQueue` update  | `offerToDriver`                                          | `status='offered'`, `offeredAt`, `shipperRequestUniqueId`                                                                               |
+| `DriverQueue` update  | `offerToDriver`                                          | `status='requested'`, `requestedAt`, `shipperRequestUniqueId`                                                                               |
 
 After that the **existing accept/reject/timeout engine takes over** — queue
 dispatch only decides _which driver_ gets the offer; the journey lifecycle is
@@ -113,28 +113,28 @@ unchanged.
 For each of the N ShipperRequest rows, `offerToDriver` (the same function used by
 manual `dispatch`) does:
 
-1. Finds the **lowest `queueNumber`** entry where `status='waiting'`, same
-   `queueOrganizationUniqueId`, same `queueDate`, same `vehicleTypeUniqueId`.
+1. Finds the **lowest `queueNumber`** entry where `status IN ('waiting','notagreed')`,
+   same queueOrganizationUniqueId, same queueDate, same vehicleTypeUniqueId.
 2. Skips a driver who is already holding an active offer elsewhere
    (`ensureWaitingDriverRequest` returns null) — advance to the next in line.
-3. Marks the entry `offered`, links the order, creates the JourneyDecision, and
+3. Marks the entry `requested`, links the order, creates the JourneyDecision, and
    notifies **only that driver** (SMS/push, contact via `VehicleDriver`).
 4. Starts the **3-minute offer window** (`QUEUE_OFFER_WINDOW_MINUTES`).
 
 ```
 Queue: D1(pos1)  D2(pos2)  D3(pos3)   ← one vehicle type
 
-Order (N=1) ──offer──> D1 ──rejects──> offer to D2 ──accepts──> D2 loaded (leaves queue)
-Order (N=2) ──offer──> D1 (still pos1) ──accepts──> D1 loaded
-            ──offer──> D3 (new front) ──accepts──> D3 loaded
+Order (N=1) ──offer──> D1 ──rejects──> offer to D2 ──accepts──> D2 agreed (leaves queue)
+Order (N=2) ──offer──> D1 (still pos1) ──accepts──> D1 agreed
+            ──offer──> D3 (new front) ──accepts──> D3 agreed
 ```
 
 Key behaviors:
 
 - **Reject / timeout (3 min)** → the _order_ advances to the next driver in line;
-  the rejecting driver **keeps their position** for the next order.
-- **Accept** → `markEntryLoaded`: entry becomes `loaded` and leaves the queue.
-- **Driver loaded may re-check-in** the same day → new number at the back.
+  the rejecting driver **keeps their position** for the next order (entry `notagreed`).
+- **Accept** → `markEntryAgreed`: entry becomes `agreed` and leaves the queue.
+- **Driver agreed (left the line) may re-check-in** the same day → new number at the back.
 - **Empty queue / everyone rejected** → the order stays `waiting`, `offered:false`.
   It is **auto-offered on the next check-in** of a matching-type driver — see §5.
 
@@ -171,7 +171,7 @@ POST /api/queue/dispatch
 | **Batch must exist**                         | `createRequest` requires `shipperRequestBatchUniqueId` and auto-upserts the batch header; the same batch can be extended with more orders until it reaches `totalVehicles`                                                                                                                                                                                                                                                               | Reuse one batch per shipper/order group; create a new`batchUniqueId` per new order                    |
 | **Org must be approved + enabled**           | Otherwise`403` "Queue organization is not enabled for dispatch"                                                                                                                                                                                                                                                                                                                                                                          | Approve +`queueEnabled=1` via the QueueBoard / org manage page first                                  |
 | **Offer window**                             | Fixed 3 min; timeout silently advances the order (driver not pushed a dedicated "you lost order X" notice yet)                                                                                                                                                                                                                                                                                                                           | Optional UX follow-up                                                                                 |
-| **Shipper notified over socket**             | ✅**Resolved.** `notifyShipperOfQueueEvent` (`Services/DriverQueue.service.js`) resolves the owner via `ShipperRequest.shipperRequestCreatedBy → Users.phoneNumber` and emits `queue_order_offered` on offer and `queue_order_assigned` on accept (`markEntryLoaded`) to the `shipper` socket. Offline shipper / order placed by a role-11 admin (no `shipper` socket) is skipped silently — the QueueOrgAdmin rooms still get snapshots | Verified E2E: offer + accept paths run the notification without error                                 |
+| **Shipper notified over socket**             | ✅**Resolved.** `notifyShipperOfQueueEvent` (`Services/DriverQueue.service.js`) resolves the owner via `ShipperRequest.shipperRequestCreatedBy → Users.phoneNumber` and emits `queue_order_offered` on offer and `queue_order_assigned` on accept (`markEntryAgreed`) to the `shipper` socket. Offline shipper / order placed by a role-11 admin (no `shipper` socket) is skipped silently — the QueueOrgAdmin rooms still get snapshots | Verified E2E: offer + accept paths run the notification without error                                 |
 | **Multiple sites / gates**                   | One org = one queue; a second gate needs a new QueueOrganization                                                                                                                                                                                                                                                                                                                                                                         | Tracked in`queue-dispatch-design.md` §10                                                              |
 
 ## 7. End-to-end checklist for the queue admin
@@ -184,7 +184,7 @@ POST /api/queue/dispatch
    `vehicle.vehicleTypeUniqueId`, `numberOfVehicles`, `shippingCost`, dates, qty,
    origin/destination.
 4. Watch `GET /api/queue/status` — the front driver(s) of the matching type flip
-   to `offered`, then `loaded` on accept; queue order holds for rejects.
+   to `requested`, then `agreed` on accept; queue order holds for rejects.
 5. If an order is stuck `waiting` (empty queue), it will be auto-offered on the
    next matching-type check-in; or re-offer it now via
    `POST /api/queue/dispatch`.
@@ -200,10 +200,10 @@ the third; it is important not to confuse it with the other two.
 | Initiator                  | The**driver** found a street shipper                                                                                                   | **Dispatcher** after a company bid is `accepted_by_shipper`                                                                                       | **Shipper / queue-admin** places an order against an approved+enabled queue org                                                                             |
 | Who is assigned            | The driver themself (they own the load)                                                                                                | Auto 1-to-1: next available**vehicle+driver** pair from the company's fleet                                                                       | FIFO:**front waiting driver** of the order's vehicle type (lowest `queueNumber`)                                                                            |
 | Driver availability rule   | Must have no active request; a waiting/requested one is cancelled first                                                                | Two-layer: (1) no active assignment**anywhere** (`NOT IN completed/cancelled/rejected`), (2) driver must not have **already rejected this batch** | Must not be holding an active offer elsewhere —`ensureWaitingDriverRequest` returns null for a driver with a live offer, and the loop **skips to the next** |
-| Records created            | `ShipperRequest` + `DriverRequest` + `JourneyDecisions` (`decisionBy='driver'`) + `Journey` + route points, all in **one transaction** | `DriverRequest` (upsert, requested) + `JourneyDecisions` + **`CompanyBidVehicleAssignment`** (`'assigned'`)                                       | N`ShipperRequest` rows + reuse-or-create `DriverRequest` + `JourneyDecisions` (`decisionBy='shipper'`); `DriverQueue` entry `waiting→offered→loaded`        |
+| Records created            | `ShipperRequest` + `DriverRequest` + `JourneyDecisions` (`decisionBy='driver'`) + `Journey` + route points, all in **one transaction** | `DriverRequest` (upsert, requested) + `JourneyDecisions` + **`CompanyBidVehicleAssignment`** (`'assigned'`)                                       | N`ShipperRequest` rows + reuse-or-create `DriverRequest` + `JourneyDecisions` (`decisionBy='shipper'`); `DriverQueue` entry `waiting→requested→agreed`        |
 | Dedicated assignment table | No —`JourneyDecisions` is the junction                                                                                                 | Yes —`CompanyBidVehicleAssignment`                                                                                                                | No —`DriverQueue.shipperRequestUniqueId` + `JourneyDecisions` (design decision, `queue-dispatch-design.md` §9)                                              |
 | Partial assignment         | n/a (1 driver = 1 load)                                                                                                                | Assigns as many slots as the fleet allows, returns a summary of the remainder                                                                     | Each of the N orders dispatches independently; an order with an empty/short queue stays`waiting`, auto-offered on the next matching-type check-in (or re-offered via `POST /api/queue/dispatch`) |
-| Confirmation model         | None — driver self-assigns, journey starts immediately                                                                                 | Offer held as`requested` until the driver explicitly confirms (→ status 4)                                                                        | Offer held as`requested`/`offered` for the **3-min window**; driver accepts/rejects/times out                                                               |
+| Confirmation model         | None — driver self-assigns, journey starts immediately                                                                                 | Offer held as`requested` until the driver explicitly confirms (→ status 4)                                                                        | Offer held as`requested` for the **3-min window**; driver accepts/rejects/times out                                                               |
 | Notifications              | SMS to the shipper                                                                                                                     | FCM + WebSocket to the driver and the shipper                                                                                                     | Offer to the front driver (SMS/push) + socket`queue` events to the queue-org admins                                                                         |
 
 ### Lessons reused from the other engines
@@ -216,7 +216,7 @@ the third; it is important not to confuse it with the other two.
   ever needed for queue orders, the same NOT EXISTS pattern applies.
 - **`takeFromStreet` builds the whole chain (request → decision → journey) in one
   transaction** because there is no selection step — the driver _is_ the assignee.
-  Queue dispatch stops at `requested`/`offered` because a driver must still
+  Queue dispatch stops at `requested` because a driver must still
   accept; the `Journey` is created later by the existing accept flow. The queue
   engine intentionally does **not** create a `Journey` at offer time.
 - **If a "pick a specific driver" UI is ever required** (out-of-turn assignment),

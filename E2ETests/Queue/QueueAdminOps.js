@@ -126,7 +126,7 @@ const testTQ35RemoveEntry = async () => {
 
 const testTQ36ManualDispatch = async () => {
   try {
-    // Order placed while no typeA driver is waiting (d2/d3 loaded, d1 removed).
+    // Order placed while no typeA driver is waiting (d2/d3 agreed, d1 removed).
     await createQueueOrder({
       queueOrganizationUniqueId: ORG(),
       vehicleTypeUniqueId: queueState.vehicleTypes.typeA,
@@ -152,7 +152,7 @@ const testTQ36ManualDispatch = async () => {
       "TQ-36 manual dispatch empty queue",
     );
 
-    // Queue admin checks a driver back in, then manually dispatches → offered.
+    // Queue admin checks a driver back in, then manually dispatches → requested.
     const entry = await manualCheckin(ORG(), "queueDriver1", qadminToken());
     if (!entry?.queueUniqueId) {
       throw new Error("re-check-in before manual dispatch failed");
@@ -168,16 +168,16 @@ const testTQ36ManualDispatch = async () => {
     }
 
     const row = await entryOf("queueDriver1");
-    if (!row || row.status !== "offered" || row.shipperRequestUniqueId !== orderUniqueId) {
-      throw new Error(`d1 not offered O_M after manual dispatch: ${JSON.stringify(row)}`);
+    if (!row || row.status !== "requested" || row.shipperRequestUniqueId !== orderUniqueId) {
+      throw new Error(`d1 not requested O_M after manual dispatch: ${JSON.stringify(row)}`);
     }
     const accepted = await acceptOrder("queueDriver1", 6000);
     if (!accepted) {
       throw new Error("manual-dispatched order accept failed");
     }
     const after = await entryOf("queueDriver1");
-    if (!after || after.status !== "loaded") {
-      throw new Error(`d1 should be loaded after accept: ${JSON.stringify(after)}`);
+    if (!after || after.status !== "agreed") {
+      throw new Error(`d1 should be agreed after accept: ${JSON.stringify(after)}`);
     }
     report.pass("TQ-36: manual dispatch empty→404, then check-in + dispatch → offer → accept");
   } catch (error) {

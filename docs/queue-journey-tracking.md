@@ -35,7 +35,7 @@ Show each queue order as a status timeline, reusing the **existing**
 `JourneyStatus` transitions — no new tracking infrastructure:
 
 ```
-requested → assigned (driver accepted) → loaded (left the line)
+requested → assigned (driver accepted) → agreed (left the line)
          → journeyStarted (5)  → journeyCompleted (6)
          → cancelled (7/10/12) → rejectedByDriver (15) / noAnswerFromDriver (13)
 ```

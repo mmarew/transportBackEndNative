@@ -112,7 +112,7 @@ const findTimedOutDriverRequests = async () => {
         AND NOT EXISTS (
           SELECT 1 FROM DriverQueue dq
           WHERE dq.shipperRequestUniqueId = ShipperRequest.shipperRequestUniqueId
-            AND dq.status = 'offered' AND dq.queueDeletedAt IS NULL
+            AND dq.status = 'requested' AND dq.queueDeletedAt IS NULL
         )
         
       ORDER BY JourneyDecisions.decisionTime ASC

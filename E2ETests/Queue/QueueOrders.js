@@ -93,19 +93,19 @@ const testTQ11AutoOfferFront = async () => {
     }
 
     const e2 = await entryOf("queueDriver2");
-    if (!e2 || e2.status !== "offered" || e2.shipperRequestUniqueId !== orders.O_A) {
+    if (!e2 || e2.status !== "requested" || e2.shipperRequestUniqueId !== orders.O_A) {
       throw new Error(`d2 not offered O_A: ${JSON.stringify(e2)}`);
     }
     if ((await getJourneyDecisionCount(orders.O_A)) !== 1) {
       throw new Error("O_A should have exactly 1 decision");
     }
-    report.pass("TQ-11: auto-dispatch offers front driver (d2 offered O_A)");
+    report.pass("TQ-11: auto-dispatch offers front driver (d2 requested O_A)");
   } catch (error) {
     report.fail("TQ-11: auto-dispatch front offer", error);
   }
 };
 
-// ── TQ-15 · Driver accepts → leaves queue (loaded), order in transit ──────────
+// ── TQ-15 · Driver accepts → leaves queue (agreed), order in transit ──────────
 
 const testTQ15AcceptLeavesQueue = async () => {
   try {
@@ -119,14 +119,14 @@ const testTQ15AcceptLeavesQueue = async () => {
       throw new Error(`accept should create a Journey: ${JSON.stringify(accepted?.uniqueIds)}`);
     }
     const e2 = await entryOf("queueDriver2");
-    if (!e2 || e2.status !== "loaded") {
-      throw new Error(`d2 entry should be loaded: ${JSON.stringify(e2)}`);
+    if (!e2 || e2.status !== "agreed") {
+      throw new Error(`d2 entry should be agreed: ${JSON.stringify(e2)}`);
     }
     const order = await getOrderByUniqueId(orders.O_A);
     if (order.journeyStatusId !== journeyStatusMap.acceptedByShipper) {
       throw new Error(`O_A should be acceptedByShipper(4), got ${order.journeyStatusId}`);
     }
-    report.pass("TQ-15: driver accepts → entry loaded, order acceptedByShipper + Journey created");
+    report.pass("TQ-15: driver accepts → entry agreed, order acceptedByShipper + Journey created");
   } catch (error) {
     report.fail("TQ-15: driver accept leaves queue", error);
   }
@@ -184,7 +184,7 @@ const testTQ33ActiveJourneyFence = async () => {
   }
 };
 
-// ── TQ-13 · Driver holding another offer is skipped (d2 loaded) ───────────────
+// ── TQ-13 · Driver holding another offer is skipped (d2 agreed) ───────────────
 
 const testTQ13SkipHoldingDriver = async () => {
   try {
@@ -201,14 +201,14 @@ const testTQ13SkipHoldingDriver = async () => {
     }
 
     const e3 = await entryOf("queueDriver3");
-    if (!e3 || e3.status !== "offered" || e3.shipperRequestUniqueId !== orders.O_B) {
+    if (!e3 || e3.status !== "requested" || e3.shipperRequestUniqueId !== orders.O_B) {
       throw new Error(`d3 not offered O_B: ${JSON.stringify(e3)}`);
     }
     const e2 = await entryOf("queueDriver2");
-    if (!e2 || e2.status !== "loaded") {
-      throw new Error(`d2 (loaded) should NOT hold O_B: ${JSON.stringify(e2)}`);
+    if (!e2 || e2.status !== "agreed") {
+      throw new Error(`d2 (agreed) should NOT hold O_B: ${JSON.stringify(e2)}`);
     }
-    report.pass("TQ-13: holding/loaded driver skipped — next driver offered");
+    report.pass("TQ-13: holding/agreed driver skipped — next driver requested");
   } catch (error) {
     report.fail("TQ-13: skip holding driver", error);
   }
@@ -264,7 +264,7 @@ const testTQ19ShipperPriceReject = async () => {
     }
 
     const after = await entryOf("queueDriver3");
-    if (!after || after.queueRefusalCount !== 1 || after.status !== "waiting" || after.shipperRequestUniqueId) {
+    if (!after || after.queueRefusalCount !== 1 || after.status !== "notagreed" || after.shipperRequestUniqueId) {
       throw new Error(`d3 refusal state wrong after shipper reject: ${JSON.stringify(after)}`);
     }
     if (after.queueNumber !== d3.queueNumber) {
@@ -284,7 +284,7 @@ const testTQ19ShipperPriceReject = async () => {
 
 const testTQ18DriverRejectAdvances = async () => {
   try {
-    // d2 (loaded after TQ-15) is free → re-checks-in at the back.
+    // d2 (agreed after TQ-15) is free → re-checks-in at the back.
     await checkin("queueDriver2", ORG());
     const reEntry = await entryOf("queueDriver2");
     if (!reEntry || reEntry.status !== "waiting" || reEntry.queueRefusalCount !== 0) {
@@ -298,22 +298,22 @@ const testTQ18DriverRejectAdvances = async () => {
     orders.O_D = await (await getLatestOrders(1))[0].shipperRequestUniqueId;
 
     const e3 = await entryOf("queueDriver3");
-    if (!e3 || e3.status !== "offered" || e3.shipperRequestUniqueId !== orders.O_D) {
-      throw new Error(`d3 should be offered O_D (front), got ${JSON.stringify(e3)}`);
+    if (!e3 || e3.status !== "requested" || e3.shipperRequestUniqueId !== orders.O_D) {
+      throw new Error(`d3 should be requested O_D (front), got ${JSON.stringify(e3)}`);
     }
     const d3Before = e3.queueRefusalCount;
 
     await expectStatus(rawDriverReject("queueDriver3"), 200, "TQ-18 d3 reject");
 
     const d3After = await entryOf("queueDriver3");
-    if (!d3After || d3After.queueRefusalCount !== d3Before + 1 || d3After.status !== "waiting") {
+    if (!d3After || d3After.queueRefusalCount !== d3Before + 1 || d3After.status !== "notagreed") {
       throw new Error(`d3 refusal not incremented/released: ${JSON.stringify(d3After)}`);
     }
     const e2 = await entryOf("queueDriver2");
-    if (!e2 || e2.status !== "offered" || e2.shipperRequestUniqueId !== orders.O_D) {
+    if (!e2 || e2.status !== "requested" || e2.shipperRequestUniqueId !== orders.O_D) {
       throw new Error(`O_D should advance to d2: ${JSON.stringify(e2)}`);
     }
-    report.pass("TQ-18: driver reject pre-accept → order advances, refusal +1");
+    report.pass("TQ-18: driver reject pre-accept → order advances, refusal +1, entry notagreed");
   } catch (error) {
     report.fail("TQ-18: driver reject advances order", error);
   }
@@ -326,7 +326,7 @@ const testTQ21EmptyQueueStaysWaiting = async () => {
     await expectStatus(rawDriverReject("queueDriver2"), 200, "TQ-21 d2 reject");
 
     const e2 = await entryOf("queueDriver2");
-    if (!e2 || e2.queueRefusalCount !== 1 || e2.status !== "waiting" || e2.shipperRequestUniqueId) {
+    if (!e2 || e2.queueRefusalCount !== 1 || e2.status !== "notagreed" || e2.shipperRequestUniqueId) {
       throw new Error(`d2 refusal state wrong: ${JSON.stringify(e2)}`);
     }
     const o = await getOrderByUniqueId(orders.O_D);
@@ -335,7 +335,7 @@ const testTQ21EmptyQueueStaysWaiting = async () => {
     }
     const [offeredRows] = await pool.query(
       `SELECT COUNT(*) AS total FROM DriverQueue
-       WHERE shipperRequestUniqueId = ? AND status = 'offered' AND queueDeletedAt IS NULL`,
+       WHERE shipperRequestUniqueId = ? AND status = 'requested' AND queueDeletedAt IS NULL`,
       [orders.O_D],
     );
     if (offeredRows[0].total !== 0) {
@@ -411,13 +411,13 @@ const testTQ24BelowLimitStaysFront = async () => {
       });
       orders["O_E" + i] = await (await getLatestOrders(1))[0].shipperRequestUniqueId;
       const e4 = await entryOf("queueDriver4");
-      if (!e4 || e4.status !== "offered" || e4.shipperRequestUniqueId !== orders["O_E" + i]) {
+      if (!e4 || e4.status !== "requested" || e4.shipperRequestUniqueId !== orders["O_E" + i]) {
         throw new Error(`d4 not offered O_E${i}: ${JSON.stringify(e4)}`);
       }
       await expectStatus(rawDriverReject("queueDriver4"), 200, `TQ-24 d4 reject ${i}`);
     }
     const e4 = await entryOf("queueDriver4");
-    if (!e4 || e4.queueRefusalCount !== 2 || e4.queueNumber !== 1 || e4.status !== "waiting") {
+    if (!e4 || e4.queueRefusalCount !== 2 || e4.queueNumber !== 1 || e4.status !== "notagreed") {
       throw new Error(`d4 should be count=2 at #1, got ${JSON.stringify(e4)}`);
     }
     report.pass("TQ-24: below limit (count 2) → stays at front, position kept");
@@ -437,7 +437,7 @@ const testTQ23RefusalLimitMovesToBack = async () => {
     orders.O_E3 = await (await getLatestOrders(1))[0].shipperRequestUniqueId;
 
     const e4 = await entryOf("queueDriver4");
-    if (!e4 || e4.status !== "offered" || e4.shipperRequestUniqueId !== orders.O_E3) {
+    if (!e4 || e4.status !== "requested" || e4.shipperRequestUniqueId !== orders.O_E3) {
       throw new Error(`d4 not offered O_E3: ${JSON.stringify(e4)}`);
     }
     await expectStatus(rawDriverReject("queueDriver4"), 200, "TQ-23 d4 3rd reject");
@@ -449,8 +449,8 @@ const testTQ23RefusalLimitMovesToBack = async () => {
     if (after.queueNumber <= 1) {
       throw new Error(`d4 should move to back (queueNumber > 1), got ${after.queueNumber}`);
     }
-    if (after.status !== "waiting") {
-      throw new Error(`d4 should stay in queue (waiting), got ${after.status}`);
+    if (after.status !== "notagreed") {
+      throw new Error(`d4 should stay in queue (notagreed), got ${after.status}`);
     }
     const o = await getOrderByUniqueId(orders.O_E3);
     if (o.journeyStatusId !== journeyStatusMap.waiting) {
@@ -473,7 +473,7 @@ const testTQ25ShipperCancelReleases = async () => {
     orders.O_F = await (await getLatestOrders(1))[0].shipperRequestUniqueId;
 
     const e3 = await entryOf("queueDriver3");
-    if (!e3 || e3.status !== "offered" || e3.shipperRequestUniqueId !== orders.O_F) {
+    if (!e3 || e3.status !== "requested" || e3.shipperRequestUniqueId !== orders.O_F) {
       throw new Error(`d3 not offered O_F: ${JSON.stringify(e3)}`);
     }
     const countBefore = e3.queueRefusalCount;
@@ -568,13 +568,13 @@ const testTQ29BatchOneOfferPerSlot = async () => {
 
     const e2 = await entryOf("queueDriver2");
     const e3 = await entryOf("queueDriver3");
-    if (!e2 || !e3 || e2.status !== "offered" || e3.status !== "offered") {
+    if (!e2 || !e3 || e2.status !== "requested" || e3.status !== "requested") {
       throw new Error(`batch should offer d2+d3: ${JSON.stringify({ e2, e3 })}`);
     }
     const linked = new Set([e2.shipperRequestUniqueId, e3.shipperRequestUniqueId]);
     for (const row of batch) {
       if (!linked.has(row.shipperRequestUniqueId)) {
-        throw new Error(`slot ${row.shipperRequestUniqueId} not linked to an offered entry`);
+        throw new Error(`slot ${row.shipperRequestUniqueId} not linked to a requested entry`);
       }
       if ((await getJourneyDecisionCount(row.shipperRequestUniqueId)) !== 1) {
         throw new Error(`slot should have exactly 1 decision`);
@@ -588,10 +588,10 @@ const testTQ29BatchOneOfferPerSlot = async () => {
     }
     const after2 = await entryOf("queueDriver2");
     const after3 = await entryOf("queueDriver3");
-    if (!after2 || !after3 || after2.status !== "loaded" || after3.status !== "loaded") {
-      throw new Error("batch slots should both end loaded");
+    if (!after2 || !after3 || after2.status !== "agreed" || after3.status !== "agreed") {
+      throw new Error("batch slots should both end agreed");
     }
-    report.pass("TQ-29: batch (n=2) → one offer per slot, both accept → both loaded");
+    report.pass("TQ-29: batch (n=2) → one offer per slot, both accept → both agreed");
   } catch (error) {
     report.fail("TQ-29: batch dispatch", error);
   }
@@ -607,8 +607,8 @@ const testTQ30ConcurrentDispatch = async () => {
 
     const batch = await getLatestOrders(2);
     const e4 = await entryOf("queueDriver4");
-    if (!e4 || e4.status !== "offered") {
-      throw new Error(`d4 should be offered after concurrent dispatch: ${JSON.stringify(e4)}`);
+    if (!e4 || e4.status !== "requested") {
+      throw new Error(`d4 should be requested after concurrent dispatch: ${JSON.stringify(e4)}`);
     }
     const winner = batch.find((r) => r.shipperRequestUniqueId === e4.shipperRequestUniqueId);
     const loser = batch.find((r) => r.shipperRequestUniqueId !== e4.shipperRequestUniqueId);
@@ -662,8 +662,8 @@ const testTQ31ConcurrentAccept = async () => {
     }
 
     const e4 = await entryOf("queueDriver4");
-    if (!e4 || e4.status !== "loaded") {
-      throw new Error(`d4 entry should be loaded exactly once: ${JSON.stringify(e4)}`);
+    if (!e4 || e4.status !== "agreed") {
+      throw new Error(`d4 entry should be agreed exactly once: ${JSON.stringify(e4)}`);
     }
     const [decRows] = await pool.query(
       `SELECT jd.journeyStatusId FROM JourneyDecisions jd
@@ -674,7 +674,7 @@ const testTQ31ConcurrentAccept = async () => {
     if (!decRows.every((r) => r.journeyStatusId === journeyStatusMap.acceptedByShipper)) {
       throw new Error("decision should end acceptedByShipper(4) exactly once");
     }
-    report.pass("TQ-31: concurrent accept → final state consistent (entry loaded once, status 4)");
+    report.pass("TQ-31: concurrent accept → final state consistent (entry agreed once, status 4)");
   } catch (error) {
     report.fail("TQ-31: concurrent accept", error);
   }

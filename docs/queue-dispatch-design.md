@@ -49,10 +49,10 @@ A **QueueOrganization record must exist first**; the queue is linked to it.
 
 4. DISPATCH  (first-right-of-refusal)
    Each row offered to FRONT driver of matching type only
-     → JourneyDecision(requested) + notify that driver
-   Accept → driver assigned (leave queue, marked loaded)
+     → JourneyDecision(requested) + notify that driver (entry `requested`)
+   Accept → driver assigned (leave queue, marked agreed)
    Reject/timeout (3 min) → order advances to next in line,
-     rejected driver KEEPS position for the next order
+     rejected driver KEEPS position for the next order (entry `notagreed`)
 
 5. LOADING → JOURNEY
    Assigned driver travels to the site and loads
@@ -79,7 +79,7 @@ disputes (7).**
 | Rejection behavior  | Driver **keeps position**; the _order_ advances to the next driver. Escalation: after **N** consecutive front-position refusals (default 3, `QUEUE_REFUSAL_LIMIT`) the driver moves to the back of the line — see [queue-refusal-policy.md](queue-refusal-policy.md) |
 | Queue scope / reset | Per**queue organization**, resets daily (`queueDate`)              |
 | Offer timeout       | **3 minutes** by default (`QUEUE_OFFER_WINDOW_MINUTES`, env-configurable), auto-advance the order on no response |
-| On accept / load    | Driver is**removed from the queue** (marked `loaded`)              |
+| On accept / load    | Driver is**removed from the queue** (marked `agreed`)              |
 | Order outlives the queue | Order created (or advanced to the end of the line) while no driver is waiting stays `waiting`; it is **auto-offered on the next driver check-in** (FIFO), not just via manual `POST /api/queue/dispatch` |
 
 ## 4. Core mechanic
@@ -91,8 +91,8 @@ next order. All of this happens **within a single vehicle type's queue**.
 ```
 Queue: D1(pos1)  D2(pos2)  D3(pos3)
 
-Order A ──offer──> D1 ──rejects──> offer to D2 ──accepts──> D2 loaded (leaves queue)
-Order B ──offer──> D1 (still pos1) ──accepts──> D1 loaded (leaves queue)
+Order A ──offer──> D1 ──rejects──> offer to D2 ──accepts──> D2 agreed (leaves queue)
+Order B ──offer──> D1 (still pos1) ──accepts──> D1 agreed (leaves queue)
 ```
 
 - Rejection / timeout = "I pass on _this_ order", not "I lose my turn".
@@ -161,8 +161,8 @@ queueNumber                INT         -- 1,2,3… per (queueOrganizationUniqueI
 vehicleDriverUniqueId      FK -> VehicleDriver          -- the truck+driver unit in line
 shipperRequestUniqueId     FK -> ShipperRequest         -- the order assigned to this entry
 joinedAt                  DATETIME    -- server-stamped check-in; dispute truth
-status                     ENUM('waiting','offered','loaded','removed')
-offeredAt / loadedAt       DATETIME
+status                     ENUM('waiting','requested','agreed','notagreed','removed')
+requestedAt / agreedAt     DATETIME
 timestamps (…CreatedAt/CreatedBy/Updated/Deleted)
 
 UNIQUE (vehicleDriverUniqueId, queueOrganizationUniqueId, queueDate)  -- one entry per vehicle/day
@@ -208,15 +208,19 @@ check-in inside a transaction: `COUNT(*) + 1` for that
 
 ```
 check-in ────────────────> waiting
-waiting ──offer──────────> offered      (ShipperRequest created + linked; 3-min timer starts)
-offered ──accept─────────> loaded       (journey proceeds; entry removed from dispatch)
-offered ──reject/timeout─> waiting      (keeps position; order advances — ShipperRequest goes to next driver)
-any ──checkout/override──> removed      (audit logged)
+waiting ──offer──────────> requested   (ShipperRequest created + linked; 3-min timer starts)
+requested ──accept───────> agreed      (journey proceeds; entry removed from dispatch)
+requested ──reject───┐                  (keeps position; order advances — ShipperRequest goes to next driver)
+requested ──timeout──┴──> notagreed     (still in line, eligible for the next order)
+notagreed ──offer───────> requested     (re-offered by a later order — same driver)
+waiting/notagreed ──checkout/override─> removed   (audit logged)
+requested ──whole-job cancel─────────> waiting    (keeps position; no refusal count)
+any ──accept... journey completes───> removed     (closeEntryOnJourneyCompletion)
 ```
 
 ## 7. Dispatch rules (per new order for a queue organization's queue)
 
-1. Consider only entries with `status = 'waiting'` for the same
+1. Consider only entries with `status IN ('waiting','notagreed')` for the same
    `(queueOrganizationUniqueId, queueDate, vehicleTypeUniqueId)` as the order's
    vehicle type — the type is resolved per entry via
    `VehicleDriver.vehicleUniqueId → Vehicle.vehicleTypeUniqueId`.
@@ -225,11 +229,13 @@ any ──checkout/override──> removed      (audit logged)
    (`requested`), and notify **only that driver** (driver contact via
    `VehicleDriver.driverUserUniqueId`).
 3. Start the offer timer (3 min). On:
-   - **accept** → entry `loaded` + journey proceeds normally;
+   - **accept** → entry `agreed` + journey proceeds normally;
    - **reject** → cancel that decision, **order advances** to the next-lowest
-     number in that vehicle type's queue; the driver's entry stays `waiting`;
+     number in that vehicle type's queue; the driver's entry stays `notagreed`
+     (position kept, still eligible for the next order);
    - **timeout** → treat as implicit reject (advance order, driver keeps
-     position). Recommend notifying the silent driver that they lost the order.
+     position, entry `notagreed`). Recommend notifying the silent driver that
+     they lost the order.
 4. The front driver always matches the order's vehicle type (each type has its own
    queue), so a mismatch can only occur if a driver's entry is stale — skip to the
    next matching driver in that type's queue.
@@ -360,11 +366,11 @@ Resolved during implementation:
 
 Still open:
 
-- **Timer UX:** on timeout the order advances and the entry returns to `waiting`; the
-  silent driver is not pushed a dedicated "you lost order X" notice yet.
+- **Timer UX:** on timeout the order advances and the entry returns to `notagreed`;
+  the silent driver is not pushed a dedicated "you lost order X" notice yet.
 - **Daily reset:** confirm reset at midnight _local time at the queue org's site_.
-- **Re-entry:** a driver who loaded may re-check-in the same day → new number at
-  the back. Confirm allowed.
+- **Re-entry:** a driver who agreed (left the line) may re-check-in the same day →
+  new number at the back. Confirm allowed.
 - **Supervisor override:** scope of reorder/removal powers + audit requirements.
 - **Multiple sites:** can one queue organization host more than one queue (e.g.
   National Cement with two plant gates)? If yes, add a `QueueOrganizationSite`

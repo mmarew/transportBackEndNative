@@ -83,8 +83,8 @@ user per queue org (mirrors `CompanyMembership`).
 | `vehicleDriverUniqueId` | VARCHAR(36) → `VehicleDriver.vehicleDriverUniqueId` | The truck+driver unit in line |
 | `shipperRequestUniqueId` | VARCHAR(36) NULL → `ShipperRequest.shipperRequestUniqueId` | Order assigned to this entry |
 | `joinedAt` | DATETIME DEFAULT CURRENT_TIMESTAMP | Server-stamped check-in = dispute truth |
-| `status` | ENUM('waiting','offered','loaded','removed') DEFAULT 'waiting' | |
-| `offeredAt` / `loadedAt` | DATETIME NULL | |
+| `status` | ENUM('waiting','requested','agreed','notagreed','removed') DEFAULT 'waiting' | `requested`=offer pending; `agreed`=driver accepted (left line); `notagreed`=declined, still in line & re-offer-eligible |
+| `requestedAt` / `agreedAt` | DATETIME NULL | offer timestamp / accept timestamp |
 | audit `…CreatedAt/CreatedBy/Updated/Deleted` | | → `Users.userUniqueId` |
 
 `UNIQUE (vehicleDriverUniqueId, queueOrganizationUniqueId, queueDate)` — one
@@ -250,7 +250,7 @@ admin / company / **queueOrgAdmin**). Register `queueOrgAdmin` in
 | `queue:subscribed` | server → client | Ack on join |
 | `queue:unsubscribe` | client → server | Leave rooms |
 | `queue:unsubscribed` | server → client | Ack on leave |
-| `queue` | server → client | Live push: check-in / loaded / removed / offered. Payload = `JSON.stringify({ message:"success", messageTypes, data })` |
+| `queue` | server → client | Live push: check-in / requested / agreed / removed / notagreed. Payload = `JSON.stringify({ message:"success", messageTypes, data })` |
 
 Writes call `emitQueueSnapshot()` (broadcast full queue to the day room) and
 `notifyQueueOrgAdmins()` (push to role-11 sockets). `messageTypes` keys:
@@ -283,9 +283,9 @@ types, socket events, schema, validations, services, controllers, routes):
 5. [x] `handleQueueDispatch` branch in `Services/ShipperRequest/create.service.js` — auto-offer to the front driver when a queue-enabled org places an order. Offer window handled by `releaseExpiredOffers` in `automaticTimeout.service.js`; on reject/timeout advance the order to the next driver (`rejectOffer` / `offerToNextDriver`).
 6. [x] QueueOrgAdmin manage/override endpoints (audit-logged via `QueueAuditLog`).
 7. [x] Schema applied to `transportCompanyTest`; the `ShipperRequest.queueOrganizationUniqueId` column/index/FK are applied idempotently via `ensureQueueOrgReferences()` in `createTable` — `npm run db:create` is safe to re-run.
-8. [x] Accept flow covered by the E2E suite (`E2ETests/Queue/QueueOrders.js`): TQ-15 accept → entry `loaded` / order `acceptedByDriver`, TQ-16 repeat accept denied, TQ-17 non-offered driver denied, TQ-29 batch accept, TQ-31 concurrent accept, TQ-33 active-journey check-in fence. Full end-to-end run against a live DB (accept → `markEntryLoaded` → journey start/complete) is the remaining verification step.
-9. [x] Active-journey fence: `checkin`/`manualCheckin` reject (409) a driver holding an in-flight journey (`acceptedByShipper`/`acceptedByDriver`/`journeyStarted`), preventing double-dispatch after an accept marks the entry `loaded`.
-10. [x] Periodic re-dispatch sweep: `rescanPendingQueueOrders` in `DriverQueue.service.js` runs from `automaticTimeout.service.js` alongside `releaseExpiredOffers`, re-offering pending orders (`waiting`/`requested`, no active offer) to any waiting drivers without needing a fresh check-in event.
+8. [x] Accept flow covered by the E2E suite (`E2ETests/Queue/QueueOrders.js`): TQ-15 accept → entry `agreed` / order `acceptedByDriver`, TQ-16 repeat accept denied, TQ-17 non-offered driver denied, TQ-29 batch accept, TQ-31 concurrent accept, TQ-33 active-journey check-in fence. Full end-to-end run against a live DB (accept → `markEntryAgreed` → journey start/complete) is the remaining verification step.
+9. [x] Active-journey fence: `checkin`/`manualCheckin` reject (409) a driver holding an in-flight journey (`acceptedByShipper`/`acceptedByDriver`/`journeyStarted`), preventing double-dispatch after an accept marks the entry `agreed`.
+10. [x] Periodic re-dispatch sweep: `rescanPendingQueueOrders` in `DriverQueue.service.js` runs from `automaticTimeout.service.js` alongside `releaseExpiredOffers`, re-offering pending orders (`waiting`/`notagreed`, no active offer) to any waiting drivers without needing a fresh check-in event.
 
 ## 7. Related docs
 
