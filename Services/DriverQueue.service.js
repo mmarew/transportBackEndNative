@@ -273,6 +273,7 @@ const publicEntry = (row) => ({
   queueNumber: row.queueNumber,
   joinedAt: row.joinedAt,
   status: row.status,
+  journeyStatusId: row.journeyStatusId ?? null,
   offeredAt: row.offeredAt,
   loadedAt: row.loadedAt,
   vehicleDriverUniqueId: row.vehicleDriverUniqueId,
@@ -290,6 +291,155 @@ const publicEntry = (row) => ({
 // Removed (cancelled/checked-out) and loaded (dispatched/completed) drivers are
 // free to check back in.
 const IN_QUEUE_STATUSES = ["waiting", "offered"];
+
+/**
+ * Batch-fetch the latest profile photo per driver for the queue status board.
+ * Matches the pattern used by getShipperRequest4allOrSingleUser (attached
+ * documents, one photo per user, no N+1).
+ *
+ * @param {object} executor - DB executor
+ * @param {Array<object>} rows - Raw queue status rows (each carries driverUserUniqueId)
+ * @returns {Promise<Map<string, string|null>>} driverUserUniqueId → photo name
+ */
+const buildDriverPhotoMap = async (executor, rows) => {
+  const photosByDriver = new Map();
+  const driverUserIds = [
+    ...new Set(rows.map((r) => r.driverUserUniqueId).filter(Boolean)),
+  ];
+  if (driverUserIds.length === 0) {
+    return photosByDriver;
+  }
+  const [allPhotos] = await executor.query(
+    `SELECT attachedDocumentCreatedByUserId, attachedDocumentName
+     FROM AttachedDocuments
+     WHERE attachedDocumentCreatedByUserId IN (?)
+       AND documentTypeId = ?
+     ORDER BY attachedDocumentId DESC`,
+    [driverUserIds, listOfDocumentsTypeAndId.profilePhoto],
+  );
+  for (const photo of allPhotos) {
+    if (!photosByDriver.has(photo.attachedDocumentCreatedByUserId)) {
+      photosByDriver.set(
+        photo.attachedDocumentCreatedByUserId,
+        photo.attachedDocumentName,
+      );
+    }
+  }
+  return photosByDriver;
+};
+
+/**
+ * Build a single queue-status board entry mirroring the
+ * getShipperRequest4allOrSingleUser shape (shipperRequest / driverRequests /
+ * decisions / journey / proofOfDelivery). Each queue slot has exactly one of
+ * each, so single objects `{}` are used; if a slot ever holds many, they
+ * become arrays `[]`. The driver carries the live journeyStatusId taken from
+ * the driver's latest active DriverRequest.
+ *
+ * @param {object} row - Joined queue status row
+ * @param {Map<string, string|null>} photosByDriver - driverUserUniqueId → photo
+ * @returns {object} { queue, shipperRequest, driverRequests, decisions, journey, proofOfDelivery }
+ */
+const buildQueueEntry = (row, photosByDriver) => {
+  const queue = {
+    queueUniqueId: row.queueUniqueId,
+    queueNumber: row.queueNumber,
+    joinedAt: row.joinedAt,
+    status: row.status,
+    offeredAt: row.offeredAt,
+    loadedAt: row.loadedAt,
+    vehicleDriverUniqueId: row.vehicleDriverUniqueId,
+    shipperRequestUniqueId: row.shipperRequestUniqueId,
+    targetedShipperUserUUID: row.targetedShipperUserUUID || null,
+    driverLatitude: row.driverLatitude || null,
+    driverLongitude: row.driverLongitude || null,
+  };
+
+  const shipperRequest = row.shipperRequestId
+    ? {
+        shipperRequestId: row.shipperRequestId,
+        shipperRequestUniqueId: row.orderShipperRequestUniqueId,
+        shipperRequestBatchUniqueId: row.shipperRequestBatchUniqueId || null,
+        userUniqueId: row.orderUserUniqueId,
+        vehicleTypeUniqueId: row.orderVehicleTypeUniqueId || null,
+        vehicleTypeName: row.orderVehicleTypeName || null,
+        journeyStatusId: row.orderJourneyStatusId ?? null,
+        requestMode: row.requestMode || null,
+        targetCompanyUniqueId: row.targetCompanyUniqueId || null,
+        originLatitude: row.originLatitude || null,
+        originLongitude: row.originLongitude || null,
+        originPlace: row.originPlace || null,
+        destinationLatitude: row.destinationLatitude || null,
+        destinationLongitude: row.destinationLongitude || null,
+        destinationPlace: row.destinationPlace || null,
+        shipperRequestCreatedAt: row.shipperRequestCreatedAt,
+        shippableItemName: row.shippableItemName || null,
+        shippableItemQtyInQuintal: row.shippableItemQtyInQuintal ?? null,
+        shippingDate: row.shippingDate || null,
+        deliveryDate: row.deliveryDate || null,
+        shippingCost: row.shippingCost ?? null,
+        isPodRequired: row.isPodRequired ?? null,
+        isCompletionSeen: row.isCompletionSeen ?? null,
+        fullName: row.shipperFullName || null,
+        email: row.shipperEmail ?? null,
+        phoneNumber: row.shipperPhoneNumber || null,
+        queueOrganizationUniqueId: row.orderQueueOrganizationUniqueId || null,
+      }
+    : {};
+
+  const driverRequests = {
+    driverRequestId: row.activeDriverRequestId ?? null,
+    driverRequestUniqueId: row.activeDriverRequestUniqueId || null,
+    userUniqueId: row.driverUserUniqueId,
+    journeyStatusId: row.driverJourneyStatusId ?? null,
+    fullName: row.fullName || null,
+    phoneNumber: row.phoneNumber || null,
+    email: row.email ?? null,
+    vehicleOfDriver: {
+      vehicleUniqueId: row.vehicleUniqueId,
+      vehicleTypeUniqueId: row.vehicleTypeUniqueId,
+      vehicleTypeName: row.vehicleTypeName,
+      licensePlate: row.licensePlate || null,
+      vehicleDriverId: row.driverVehicleDriverId ?? null,
+    },
+    driverProfilePhoto: photosByDriver.get(row.driverUserUniqueId) || null,
+  };
+
+  const decisions = row.journeyDecisionUniqueId
+    ? {
+        journeyDecisionId: row.journeyDecisionId ?? null,
+        journeyDecisionUniqueId: row.journeyDecisionUniqueId,
+        shipperRequestId: row.decisionShipperRequestId ?? null,
+        driverRequestId: row.decisionDriverRequestId ?? null,
+        journeyStatusId: row.decisionJourneyStatusId ?? null,
+        decisionTime: row.decisionTime,
+        decisionBy: row.decisionBy ?? null,
+        journeyDecisionCreatedAt: row.journeyDecisionCreatedAt,
+        shippingDateByDriver: row.shippingDateByDriver ?? null,
+        deliveryDateByDriver: row.deliveryDateByDriver ?? null,
+        shippingCostByDriver: row.shippingCostByDriver ?? null,
+      }
+    : {};
+
+  const journey = row.journeyUniqueId
+    ? {
+        journeyUniqueId: row.journeyUniqueId,
+        journeyStatusId: row.journeyJourneyStatusId ?? null,
+        fare: row.journeyFare ?? null,
+        journeyStartedAt: row.journeyJourneyStartedAt,
+        journeyCompletedAt: row.journeyJourneyCompletedAt,
+      }
+    : {};
+
+  return {
+    queue,
+    shipperRequest,
+    driverRequests,
+    decisions,
+    journey,
+    proofOfDelivery: null,
+  };
+};
 
 // Journey statuses that mean the driver is still in flight on an order.
 // Accepting a queue offer only marks the queue entry `loaded` (which is NOT in
@@ -917,26 +1067,72 @@ exports.getQueueStatus = async (queueOrganizationUniqueId, query) => {
             dq.offeredAt, dq.loadedAt, dq.vehicleDriverUniqueId,
             dq.shipperRequestUniqueId, dq.targetedShipperUserUUID,
             dq.driverLatitude, dq.driverLongitude,
-            vd.driverUserUniqueId, v.vehicleTypeUniqueId,
-            vt.vehicleTypeName,
-            u.fullName, u.phoneNumber
+            areq.driverRequestId AS activeDriverRequestId,
+            areq.driverRequestUniqueId AS activeDriverRequestUniqueId,
+            areq.journeyStatusId AS driverJourneyStatusId,
+            vd.driverUserUniqueId, vd.vehicleDriverId AS driverVehicleDriverId,
+            v.vehicleUniqueId, v.vehicleTypeUniqueId,
+            v.licensePlate,
+            vt.vehicleTypeId, vt.vehicleTypeName,
+            u.fullName, u.phoneNumber, u.email,
+            su.fullName AS shipperFullName, su.phoneNumber AS shipperPhoneNumber,
+            su.email AS shipperEmail, su.userUniqueId AS shipperUserUniqueId,
+            sr.shipperRequestId, sr.shipperRequestUniqueId AS orderShipperRequestUniqueId,
+            sr.shipperRequestBatchUniqueId, sr.userUniqueId AS orderUserUniqueId,
+            sr.vehicleTypeUniqueId AS orderVehicleTypeUniqueId,
+            sr.journeyStatusId AS orderJourneyStatusId, sr.requestMode,
+            sr.targetCompanyUniqueId, sr.originLatitude, sr.originLongitude,
+            sr.originPlace, sr.destinationLatitude, sr.destinationLongitude,
+            sr.destinationPlace, sr.shipperRequestCreatedAt,
+            sr.shippableItemName, sr.shippableItemQtyInQuintal,
+            sr.shippingDate, sr.deliveryDate, sr.shippingCost,
+            sr.isPodRequired, sr.isCompletionSeen, sr.shipperRequestCreatedBy,
+            sr.queueOrganizationUniqueId AS orderQueueOrganizationUniqueId,
+            ordertt.vehicleTypeName AS orderVehicleTypeName,
+            jd.journeyDecisionId, jd.journeyDecisionUniqueId,
+            jd.shipperRequestId AS decisionShipperRequestId,
+            jd.driverRequestId AS decisionDriverRequestId,
+            jd.journeyStatusId AS decisionJourneyStatusId,
+            jd.decisionTime, jd.decisionBy, jd.journeyDecisionCreatedAt,
+            jd.shippingDateByDriver, jd.deliveryDateByDriver, jd.shippingCostByDriver,
+            j.journeyUniqueId, j.journeyStatusId AS journeyJourneyStatusId,
+            j.fare AS journeyFare, j.journeyStartedAt AS journeyJourneyStartedAt,
+            j.journeyCompletedAt AS journeyJourneyCompletedAt
      FROM DriverQueue dq
      JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
      JOIN Vehicle v          ON v.vehicleUniqueId        = vd.vehicleUniqueId
      JOIN VehicleTypes vt    ON vt.vehicleTypeUniqueId   = v.vehicleTypeUniqueId
      JOIN Users u            ON u.userUniqueId           = vd.driverUserUniqueId
+     LEFT JOIN DriverRequest areq ON areq.driverRequestId = (
+       SELECT req.driverRequestId
+       FROM DriverRequest req
+       WHERE req.userUniqueId = vd.driverUserUniqueId
+         AND req.driverRequestDeletedAt IS NULL
+       ORDER BY req.driverRequestId DESC
+       LIMIT 1
+     )
+     LEFT JOIN JourneyDecisions jd
+       ON jd.driverRequestId = areq.driverRequestId
+     LEFT JOIN ShipperRequest sr
+       ON sr.shipperRequestId = jd.shipperRequestId
+      AND sr.shipperRequestDeletedAt IS NULL
+     LEFT JOIN Users su ON su.userUniqueId = sr.userUniqueId
+     LEFT JOIN VehicleTypes ordertt ON ordertt.vehicleTypeUniqueId = sr.vehicleTypeUniqueId
+     LEFT JOIN Journey j ON j.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
      WHERE dq.queueOrganizationUniqueId = ? AND dq.queueDate = ?
        AND dq.queueDeletedAt IS NULL
      ORDER BY dq.queueNumber ASC`,
     [queueOrganizationUniqueId, queueDate],
   );
 
+  const photosByDriver = await buildDriverPhotoMap(executor, rows);
+
   const byType = {};
   for (const row of rows) {
     const typeName =
       row.vehicleTypeName || row.vehicleTypeUniqueId || "Unknown";
     if (!byType[typeName]) byType[typeName] = [];
-    byType[typeName].push(publicEntry(row));
+    byType[typeName].push(buildQueueEntry(row, photosByDriver));
   }
 
   return {

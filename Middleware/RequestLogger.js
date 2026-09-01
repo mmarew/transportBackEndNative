@@ -1,5 +1,4 @@
 const logger = require("../Utils/logger");
-const { currentDate } = require("../Utils/CurrentDate");
 
 const SLOW_REQUEST_THRESHOLD_MS = 1000;
 
@@ -19,7 +18,7 @@ const SLOW_REQUEST_THRESHOLD_MS = 1000;
  * @param {Function} next - Express next middleware function
  */
 const requestLogger = (req, res, next) => {
-  const startTime = currentDate();
+  const startTime = Date.now();
 
   // Log request start
   logger.debug("Request Started", {
@@ -33,7 +32,7 @@ const requestLogger = (req, res, next) => {
 
   // Capture response finish
   res.on("finish", () => {
-    const responseTime = currentDate() - startTime;
+    const responseTime = Date.now() - startTime;
 
     // Log the completed request
     logger.application.apiRequest(req, res, responseTime);

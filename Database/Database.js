@@ -2087,9 +2087,9 @@ CREATE TABLE IF NOT EXISTS DriverQueue (
     driverLatitude DECIMAL(10, 8) NULL,
     driverLongitude DECIMAL(11, 8) NULL,
     joinedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,       -- server-stamped check-in; dispute truth
-    status ENUM('waiting','offered','loaded','removed') NOT NULL DEFAULT 'waiting',
-    offeredAt DATETIME NULL,
-    loadedAt DATETIME NULL,
+    status ENUM('waiting','requested','agreed','notagreed','removed') NOT NULL DEFAULT 'waiting',
+    requestedAt DATETIME NULL,
+    agreedAt DATETIME NULL,
     queueCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     queueCreatedBy VARCHAR(36) NOT NULL,
     queueUpdatedAt DATETIME NULL,
