@@ -36,6 +36,7 @@ const allowedOrigins = [
   "https://company.dynamicsroute.tech",
   "https://admin.dynamicsroute.tech",
   "https://dynamicsroute.tech",
+  "https://queue.dynamicsroute.tech",
   "http://localhost:5173",
   "http://localhost:3000",
   "https://account.dynamicsroute.tech",
