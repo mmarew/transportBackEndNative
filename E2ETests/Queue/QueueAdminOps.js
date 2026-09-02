@@ -19,7 +19,6 @@ const {
   removeEntry,
   manualDispatch,
   acceptOrder,
-  checkin,
   cancelOrder,
   getLatestOrders,
   getOrderByUniqueId,
@@ -228,6 +227,9 @@ const testTQ39NonQueueRegression = async () => {
 // `driverPhoneNumber` (their active vehicle assignment). The targeted entry
 // must still be `waiting`/`notagreed` today, match the order's vehicle type,
 // not have already refused the order, and not be pinned to another shipper.
+// To create a targetable entry TQ-37 resets d1 through the proven product
+// flows: admin-cancel O_M → remove the stale `agreed` entry → manual
+// check-in → fresh `waiting` entry with a clean waiting DriverRequest.
 
 const testTQ37TargetedDispatch = async () => {
   try {
@@ -290,54 +292,56 @@ const testTQ37TargetedDispatch = async () => {
       "TQ-37 busy (agreed) entry not dispatchable",
     );
 
-    // ── Reset d1 to a real `waiting` state through the product flows, so the
-    // positives are driven by the same code paths as production:
-    //   1. admin-cancel O_M → journey ends, driver request terminalized
-    //   2. driver re-checks-in → the engine revives the agreed entry to
-    //      `waiting` and (re)creates a clean waiting DriverRequest. With no
-    //      pending order left the check-in auto-dispatch has nothing to steal.
+    // ── Reset d1 to a fresh targetable `waiting` entry through the proven
+    // product flows (TQ-33 manual check-in + TQ-35 remove + admin cancel):
+    //   1. admin-cancel O_M → the accepted journey ends cleanly
+    //   2. remove the stale `agreed` entry (queue-admin) 
+    //   3. manual re-check-in → brand-new `waiting` entry with a clean waiting
+    //      DriverRequest. No pending type-A order exists at this point, so the
+    //      check-in auto-dispatch has nothing to steal.
     // ──
     await cancelOrder({ orderUniqueId: queueState.adminOps.oMUniqueId, cancelAs: "admin" });
-    await checkin("queueDriver1", ORG());
+    await removeEntry(d1Entry.queueUniqueId, qadminToken());
+    await manualCheckin(ORG(), "queueDriver1", qadminToken());
     const waitingEntry = await entryOf("queueDriver1");
     if (!waitingEntry || waitingEntry.status !== "waiting") {
       throw new Error(
-        `d1 should be waiting after revive reset: ${JSON.stringify(waitingEntry)}`,
+        `d1 should be waiting after reset: ${JSON.stringify(waitingEntry)}`,
       );
     }
 
-    // ── POSITIVE #1: targeted dispatch by driverPhoneNumber ──
+    // ── POSITIVE #1: targeted dispatch by queueUniqueId ──
     await createQueueOrder({
       queueOrganizationUniqueId: ORG(),
       vehicleTypeUniqueId: queueState.vehicleTypes.typeA,
     });
     const oT1UniqueId = (await getLatestOrders(1))[0]?.shipperRequestUniqueId;
-    const viaPhone = await manualDispatch({
+    const viaEntry = await manualDispatch({
       queueOrganizationUniqueId: ORG(),
-      driverPhoneNumber: usersData.queueDriver1?.phoneNumber,
+      queueUniqueId: waitingEntry.queueUniqueId,
       shipperRequestUniqueId: oT1UniqueId,
       token: qadminToken(),
     });
-    if (viaPhone?.offered !== true) {
+    if (viaEntry?.offered !== true) {
       throw new Error(
-        `targeted (driverPhoneNumber) dispatch failed: ${JSON.stringify(viaPhone)}`,
+        `targeted (queueUniqueId) dispatch failed: ${JSON.stringify(viaEntry)}`,
       );
     }
-    const afterPhoneDispatch = await entryOf("queueDriver1");
+    const afterEntryDispatch = await entryOf("queueDriver1");
     if (
-      !afterPhoneDispatch ||
-      afterPhoneDispatch.status !== "requested" ||
-      afterPhoneDispatch.shipperRequestUniqueId !== oT1UniqueId
+      !afterEntryDispatch ||
+      afterEntryDispatch.status !== "requested" ||
+      afterEntryDispatch.shipperRequestUniqueId !== oT1UniqueId
     ) {
       throw new Error(
-        `d1 should be requested O_T1 after phone dispatch: ${JSON.stringify(afterPhoneDispatch)}`,
+        `d1 should be requested O_T1 after targeted dispatch: ${JSON.stringify(afterEntryDispatch)}`,
       );
     }
 
-    // ── POSITIVE #2: targeted dispatch by queueUniqueId ──
-    // Cancel O_T1 as admin → driver request terminalized + queue entry released
-    // back to `waiting` (releaseEntryOnOrderCancel keeps position, no refusal
-    // counted). A second order O_T2 created on top waits for the named entry.
+    // ── POSITIVE #2: targeted dispatch by driverPhoneNumber ──
+    // Cancel O_T1 as admin → driver request terminalized + the requested
+    // DriverQueue entry released back to `waiting` (position kept, no refusal
+    // counted). A second order O_T2 created on top waits for the named driver.
     await createQueueOrder({
       queueOrganizationUniqueId: ORG(),
       vehicleTypeUniqueId: queueState.vehicleTypes.typeA,
@@ -350,25 +354,25 @@ const testTQ37TargetedDispatch = async () => {
         `d1 should be waiting after O_T1 cancel: ${JSON.stringify(releasedEntry)}`,
       );
     }
-    const viaEntry = await manualDispatch({
+    const viaPhone = await manualDispatch({
       queueOrganizationUniqueId: ORG(),
-      queueUniqueId: releasedEntry.queueUniqueId,
+      driverPhoneNumber: usersData.queueDriver1?.phoneNumber,
       shipperRequestUniqueId: oT2UniqueId,
       token: qadminToken(),
     });
-    if (viaEntry?.offered !== true) {
+    if (viaPhone?.offered !== true) {
       throw new Error(
-        `targeted (queueUniqueId) dispatch failed: ${JSON.stringify(viaEntry)}`,
+        `targeted (driverPhoneNumber) dispatch failed: ${JSON.stringify(viaPhone)}`,
       );
     }
-    const afterEntryDispatch = await entryOf("queueDriver1");
+    const afterPhoneDispatch = await entryOf("queueDriver1");
     if (
-      !afterEntryDispatch ||
-      afterEntryDispatch.status !== "requested" ||
-      afterEntryDispatch.shipperRequestUniqueId !== oT2UniqueId
+      !afterPhoneDispatch ||
+      afterPhoneDispatch.status !== "requested" ||
+      afterPhoneDispatch.shipperRequestUniqueId !== oT2UniqueId
     ) {
       throw new Error(
-        `d1 should be requested O_T2 after targeted dispatch: ${JSON.stringify(afterEntryDispatch)}`,
+        `d1 should be requested O_T2 after phone dispatch: ${JSON.stringify(afterPhoneDispatch)}`,
       );
     }
 

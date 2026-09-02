@@ -1962,7 +1962,9 @@ const offerToDriver = async ({
     const whereParts = [
       `dq.queueOrganizationUniqueId = ?`,
       `dq.queueDate = ?`,
-      `dq.status IN ('waiting', 'notagreed')`,
+      isTargeted
+        ? `(dq.status IN ('waiting', 'notagreed') OR (dq.status = 'requested' AND dq.shipperRequestUniqueId = ?))`
+        : `dq.status IN ('waiting', 'notagreed')`,
       `dq.queueDeletedAt IS NULL`,
       `v.vehicleTypeUniqueId = ?`,
     ];
@@ -1971,6 +1973,9 @@ const offerToDriver = async ({
       queueDate,
       matchedTypeUniqueId,
     ];
+    if (isTargeted) {
+      queryParams.splice(2, 0, shipperRequestUniqueId);
+    }
     if (after) {
       whereParts.push(`dq.queueNumber > ?`);
       queryParams.push(after);
@@ -2025,6 +2030,42 @@ const offerToDriver = async ({
     }
 
     const entry = front[0];
+
+    // IDEMPOTENT TARGETED RE-SELECT: when the targeted entry was already
+    // requested for THIS exact order (typically because the order-create
+    // auto-dispatch already offered it FIFO), a manual dispatch naming the
+    // same entry is a no-op success — no second DriverRequest/JourneyDecision
+    // is created. Non-targeted (FIFO) dispatch never reaches this branch
+    // because the WHERE clause only admits 'requested' rows in targeted mode.
+    if (isTargeted && entry.status === "requested") {
+      const [existingDecisions] = await txExecutor.query(
+        `SELECT jd.journeyDecisionUniqueId
+         FROM JourneyDecisions jd
+         JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+         WHERE jd.shipperRequestId = ?
+           AND dr.userUniqueId = ?
+           AND jd.journeyStatusId = ?
+         ORDER BY jd.journeyDecisionId DESC LIMIT 1`,
+        [
+          shipperRequest.shipperRequestId,
+          entry.driverUserUniqueId,
+          journeyStatusMap.requested,
+        ],
+      );
+      const existingDecision = existingDecisions[0] || null;
+      if (existingDecision) {
+        return {
+          offered: true,
+          data: {
+            queueUniqueId: entry.queueUniqueId,
+            queueNumber: entry.queueNumber,
+            driverUserUniqueId: entry.driverUserUniqueId,
+            journeyDecisionUniqueId: existingDecision.journeyDecisionUniqueId,
+            status: "requested",
+          },
+        };
+      }
+    }
 
     // EXCLUSIVE RESERVATION: if this driver targeted a specific shipper via
     // phone at check-in, only offer them orders from that shipper. Skip to
@@ -2149,12 +2190,14 @@ const offerToDriver = async ({
  *   2. `queueUniqueId` → offer to a specific queue entry (its driver). The
  *      entry must be `waiting`/`notagreed` in this org for today, of the
  *      order's vehicle type, not have already refused the order, and not be
- *      pinned to a different shipper.
+ *      pinned to a different shipper. If the entry is ALREADY `requested` for
+ *      this exact order (e.g. order-create auto-dispatch offered it FIFO), the
+ *      dispatch is an idempotent no-op success and returns the existing offer.
  *   3. `driverPhoneNumber` → offer to a specific driver by phone (resolved to
  *      their active vehicle assignment, then their queue entry under the same
  *      rules as mode 2).
  *
- * `drivePhoneNumber` and `queueUniqueId` are mutually exclusive. When either
+ * `driverPhoneNumber` and `queueUniqueId` are mutually exclusive. When either
  * is used, `vehicleTypeUniqueId` may be omitted (it defaults to the order's).
  *
  * @param {Object} data
