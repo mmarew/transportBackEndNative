@@ -382,6 +382,12 @@ exports.deleteQueueOrganization = async (queueOrganizationUniqueId, userId) => {
     [currentDate(), userId, queueOrganizationUniqueId],
   );
 
+  notifyQueueOrgAdmins({
+    queueOrganizationUniqueId,
+    messageType: "queue_org_deleted",
+    message: { queueOrganizationUniqueId },
+  });
+
   return { message: "success", data: { queueOrganizationUniqueId } };
 };
 
@@ -440,6 +446,12 @@ exports.addMember = async (
       userId,
     ],
   );
+
+  notifyQueueOrgAdmins({
+    queueOrganizationUniqueId,
+    messageType: "queue_member_added",
+    message: { queueOrganizationUniqueId, userUniqueId, roleId },
+  });
 
   return {
     message: "success",

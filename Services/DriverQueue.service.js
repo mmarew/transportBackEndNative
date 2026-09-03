@@ -671,6 +671,11 @@ exports.checkin = async (data) => {
       vehicleTypeUniqueId: vehicleDriver.vehicleTypeUniqueId,
       user,
     });
+    await emitQueueSnapshot({ queueOrganizationUniqueId, queueDate });
+    notifyQueueOrgAdmins({
+      queueOrganizationUniqueId,
+      messageType: "queue_position_changed",
+    });
     return {
       message: "success",
       data: {
@@ -1212,6 +1217,11 @@ exports.manualCheckin = async (data) => {
       );
     }
     // Idempotent: already in THIS queue today — return the existing entry.
+    await emitQueueSnapshot({ queueOrganizationUniqueId, queueDate });
+    notifyQueueOrgAdmins({
+      queueOrganizationUniqueId,
+      messageType: "queue_position_changed",
+    });
     return {
       message: "success",
       data: {
@@ -1380,6 +1390,10 @@ exports.overrideEntry = async (queueUniqueId, body, user) => {
   await emitQueueSnapshot({
     queueOrganizationUniqueId: rows[0].queueOrganizationUniqueId,
     queueDate: rows[0].queueDate,
+  });
+  notifyQueueOrgAdmins({
+    queueOrganizationUniqueId: rows[0].queueOrganizationUniqueId,
+    messageType: "queue_position_changed",
   });
 
   return { message: "success", data: { queueUniqueId, queueNumber } };

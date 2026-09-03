@@ -298,6 +298,14 @@ const messageTypes = {
     message: "Queue organization updated",
     details: "Queue organization profile was updated by its admin.",
   },
+  queue_org_deleted: {
+    message: "Queue organization deleted",
+    details: "A queue organization was soft-deleted by its admin.",
+  },
+  queue_member_added: {
+    message: "New member added to queue organization",
+    details: "A new member was added to a queue organization by its admin.",
+  },
   pod_submitted: {
     message: "POD submitted.",
     details:
