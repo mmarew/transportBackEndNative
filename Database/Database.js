@@ -447,6 +447,11 @@ CREATE TABLE IF NOT EXISTS ShipperRequestBatch (
 
     requestMode ENUM('individual_target', 'company_target') NOT NULL DEFAULT 'individual_target',
     targetCompanyUniqueId VARCHAR(36) NULL DEFAULT NULL,   -- FK → TransportCompany (null if open)
+    -- CANONICAL queue affiliation. Lives ONLY here (NOT on ShipperRequest — DRY):
+    -- rows inherit it via batch join (srb.batchUniqueId = sr.shipperRequestBatchUniqueId).
+    -- Required because company_target batches defer ShipperRequest rows to bid
+    -- acceptance, so only the batch header can represent the queue.
+    queueOrganizationUniqueId VARCHAR(36) NULL DEFAULT NULL, -- FK → QueueOrganization (null if not a queue order)
 
     -- Descriptive metadata for the "Bid Board"
     originLatitude DECIMAL(10, 8) NULL,                    -- Needed for lazy sr creation at bid approval
@@ -474,9 +479,11 @@ CREATE TABLE IF NOT EXISTS ShipperRequestBatch (
     INDEX idx_batch_target (targetCompanyUniqueId),
     INDEX idx_batch_status (journeyStatusId),
     INDEX idx_batch_mode (requestMode),
+    INDEX idx_batch_queue_org (queueOrganizationUniqueId),
     FOREIGN KEY (shipperUserUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId),
-    FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
+    FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId),
+    FOREIGN KEY (queueOrganizationUniqueId) REFERENCES QueueOrganization(queueOrganizationUniqueId)
 );
 
 -- Create the DriverRequest table
