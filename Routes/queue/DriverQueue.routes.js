@@ -353,4 +353,59 @@ router.get(
   controller.getEntryHistory,
 );
 
+// ===========================================================================
+// BIDDING BOARD (flag-only — isBiddingApproved on the batch)
+// ===========================================================================
+
+const biddingSchema = require("../../Validations/DriverBid.schema");
+
+/**
+ * @route   POST /api/queue/bidding/approve
+ * @summary Open/close the bidding board for SPECIFIC orders (per-order)
+ *
+ * @description
+ * Toggles ShipperRequest.isBiddingApproved (the sole, per-order bidding signal)
+ * for each given order, independently. Orders within one batch can diverge —
+ * e.g. some hired via FIFO at status 3+ while others are opened to bidding.
+ * Closed (FALSE, default) = normal FIFO queue order, never distance-matched.
+ * Open (TRUE) = distance-matched to nearby drivers (findNearbyDrivers →
+ * JourneyDecisions) and skipped by FIFO. Orders keep their ordinary
+ * journeyStatusId (there is no 'bidding' status).
+ *
+ * On approval, only orders that are still WAITING (status 1) are matched.
+ *
+ * Access: the shipper who owns the orders (or SuperAdmin).
+ *
+ * @body    {string[]} shipperRequestUniqueIds  The orders to open/close (required, min 1)
+ * @body    {boolean}  [approved=true]          TRUE opens the board, FALSE hides it
+ *
+ * @returns {Object}  { message, data: { shipperRequestUniqueIds, isBiddingApproved, count, waitingMatched } }
+ */
+router.post(
+  "/bidding/approve",
+  validator(biddingSchema.approveBidding),
+  controller.approveBidding,
+);
+
+/**
+ * @route   GET /api/queue/bidding/order/:shipperRequestUniqueId/bids
+ * @summary List all driver bids placed on a queue order
+ *
+ * @description
+ * Lists DriverBid rows for a single queue order joined with the bidding
+ * driver's profile, cheapest bid first. Paginated via query.
+ *
+ * @params  {string}  shipperRequestUniqueId  The order (required)
+ * @query   {number}  [page=1]
+ * @query   {number}  [limit=20]
+ *
+ * @returns {Object}  { message, data: [bids], pagination: { currentPage, limit, totalItems, totalPages } }
+ */
+router.get(
+  "/bidding/order/:shipperRequestUniqueId/bids",
+  validator(biddingSchema.getBidsParams, "params"),
+  validator(biddingSchema.getBidsQuery, "query"),
+  controller.getBidsForOrder,
+);
+
 module.exports = router;

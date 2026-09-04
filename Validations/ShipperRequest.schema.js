@@ -20,9 +20,11 @@ exports.createShipperRequest = Joi.object({
   shipperPhoneNumber: Joi.string().optional(), // required for admin/queue-org-admin when creating request on behalf of a shipper
   // requestType: Joi.string().valid("PASSENGER", "CARGO").optional(),
 
-  // Bidding mode:
+  // Request mode:
   //   'individual_target' — open bid visible to all individual drivers (max 9 vehicles)
   //   'company_target'    — targeted to a transport company for larger fleets (10+ vehicles)
+  // (Bidding-board visibility is a per-order flag — ShipperRequest.isBiddingApproved —
+  // not a requestMode.)
   requestMode: Joi.string()
     .valid("individual_target", "company_target")
     .default("individual_target")

@@ -333,13 +333,15 @@ const completeJourney = async (body) => {
         ShipperRequest.shippingCost,
         ShipperRequest.requestMode,
         ShipperRequest.targetCompanyUniqueId,
-        ShipperRequest.queueOrganizationUniqueId,
+        srb.queueOrganizationUniqueId,
         Journey.journeyUniqueId,
         Journey.journeyStartedAt, Journey.journeyCompletedAt,
         Users.fullName,
         Users.phoneNumber FROM JourneyDecisions
       JOIN DriverRequest ON JourneyDecisions.driverRequestId = DriverRequest.driverRequestId
       JOIN ShipperRequest ON JourneyDecisions.shipperRequestId = ShipperRequest.shipperRequestId
+      -- queueOrganizationUniqueId is canonical on the batch (srb), inherited via join
+      LEFT JOIN ShipperRequestBatch srb ON srb.batchUniqueId = ShipperRequest.shipperRequestBatchUniqueId
       JOIN Journey ON Journey.journeyDecisionUniqueId = JourneyDecisions.journeyDecisionUniqueId
       JOIN Users ON DriverRequest.userUniqueId = Users.userUniqueId
       WHERE JourneyDecisions.journeyDecisionUniqueId = ?

@@ -159,7 +159,8 @@ const getAllActiveRequests = async (filters = {}) => {
       -- Queue orders are dispatched ONLY by queue FIFO (offer → accept) — they
       -- must never be listed as manually-acceptable online jobs, or a driver
       -- can grab queue placements outside the queue system.
-      AND sr.queueOrganizationUniqueId IS NULL
+      -- queueOrganizationUniqueId is canonical on the batch (srb), inherited via join.
+      AND srb.queueOrganizationUniqueId IS NULL
   `;
   let whereConditions = [];
   let values = [activeStatusIds];

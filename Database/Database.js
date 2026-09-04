@@ -384,13 +384,19 @@ CREATE TABLE IF NOT EXISTS ShipperRequest (
     vehicleTypeUniqueId VARCHAR(36) NOT NULL,              -- Foreign key to VehicleType
     journeyStatusId INT NOT NULL,                          -- Foreign key to JourneyStatus
 
-    -- Request mode: controls whether this is open to individual drivers or targeted at one company
+    -- Request mode: controls whether this is open to individual drivers, or targeted at a
+    -- specific company. Bidding-board visibility is NOT a mode — it is a per-order
+    -- flag (ShipperRequest.isBiddingApproved) that tells the matchers whether a
+    -- queue order is open to distance matching. See the isBiddingApproved column below.
+    --   'individual_target' — open to all individual drivers (distance or queue FIFO dispatch)
+    --   'company_target'    — targeted to a transport company (fleet bid flow)
     requestMode ENUM('individual_target', 'company_target') NOT NULL DEFAULT 'individual_target',
     -- Only set when requestMode = 'company_target'; the specific company the shipper is targeting
     targetCompanyUniqueId VARCHAR(36) NULL DEFAULT NULL,
-    -- Queue dispatch: set when the order was placed against a queue-enabled QueueOrganization.
-    -- Queue dispatch replaces distance-based auto-match with front-of-queue offering.
-    queueOrganizationUniqueId VARCHAR(36) NULL DEFAULT NULL, -- FK → QueueOrganization (null if not a queue order)
+    -- Queue dispatch: set on the ShipperRequestBatch (see its CREATE below); queue
+    -- dispatch replaces distance-based auto-match with front-of-queue offering.
+    -- ShipperRequest rows inherit queueOrganizationUniqueId via the batch join — the
+    -- legacy per-row column was dropped in the batch-canonical migration.
 
     originLatitude DECIMAL(10, 8) NOT NULL,                -- Latitude of origin
     originLongitude DECIMAL(11, 8) NOT NULL,               -- Longitude of origin
@@ -416,6 +422,14 @@ CREATE TABLE IF NOT EXISTS ShipperRequest (
     -- Copied from ShipperRequestBatch.isPodRequired at order creation time.
     isPodRequired BOOLEAN NOT NULL DEFAULT TRUE,
     isCompletionSeen BOOLEAN DEFAULT FALSE,               -- if it is completed and seen by shipper 
+
+    -- Bidding-board gate (PER-ORDER, sole bidding signal — no mode, no special status).
+    -- Each ShipperRequest is independently opened to the bidding board. TRUE (via
+    -- approveBidding) => the order is distance-matchable (findNearbyDrivers/Shippers)
+    -- and skipped by FIFO; FALSE (default) => normal order flow. Orders in the same
+    -- batch can diverge (e.g. 3 hired via FIFO at status 3+, 4 opened to bidding).
+    isBiddingApproved BOOLEAN NOT NULL DEFAULT FALSE,
+
     shipperRequestCreatedBy VARCHAR(36) NOT NULL,          -- Who created the request an admin  from call center, shipper himself or driver take from street
     shipperRequestCreatedByRoleId INT NOT NULL,          -- roleId of the creator when it create this request
     shipperRequestUpdatedBy VARCHAR(36) NULL,  -- Who updated the shipper request
@@ -429,9 +443,10 @@ CREATE TABLE IF NOT EXISTS ShipperRequest (
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId),
     FOREIGN KEY (shipperRequestUpdatedBy) REFERENCES Users(userUniqueId),
-    FOREIGN KEY (shipperRequestDeletedBy) REFERENCES Users(userUniqueId)
+    FOREIGN KEY (shipperRequestDeletedBy) REFERENCES Users(userUniqueId),
     -- NOTE: FK to TransportCompany(companyUniqueId) is defined after that table is created below
     -- INDEX added after company tables: idx_shipperRequest_targetCompany (targetCompanyUniqueId)
+    INDEX idx_sr_bidding_approved (isBiddingApproved)
 );
 
 -- ShipperRequestBatch: A metadata table that summarizes a group of requests.
@@ -445,6 +460,8 @@ CREATE TABLE IF NOT EXISTS ShipperRequestBatch (
     vehicleTypeUniqueId VARCHAR(36) NOT NULL,              -- FK → VehicleTypes
     totalVehicles INT NOT NULL DEFAULT 1,                  -- Total number of vehicles requested
 
+    --   'individual_target' — open to all individual drivers (distance or queue FIFO dispatch)
+    --   'company_target'    — targeted to a transport company (fleet bid flow)
     requestMode ENUM('individual_target', 'company_target') NOT NULL DEFAULT 'individual_target',
     targetCompanyUniqueId VARCHAR(36) NULL DEFAULT NULL,   -- FK → TransportCompany (null if open)
     -- CANONICAL queue affiliation. Lives ONLY here (NOT on ShipperRequest — DRY):
@@ -452,6 +469,10 @@ CREATE TABLE IF NOT EXISTS ShipperRequestBatch (
     -- Required because company_target batches defer ShipperRequest rows to bid
     -- acceptance, so only the batch header can represent the queue.
     queueOrganizationUniqueId VARCHAR(36) NULL DEFAULT NULL, -- FK → QueueOrganization (null if not a queue order)
+
+    -- NOTE: The bidding-board gate (isBiddingApproved) lives PER-ORDER on
+    -- ShipperRequest (not here), because orders within one batch can diverge —
+    -- e.g. some hired via FIFO while others are opened to bidding.
 
     -- Descriptive metadata for the "Bid Board"
     originLatitude DECIMAL(10, 8) NULL,                    -- Needed for lazy sr creation at bid approval
@@ -1985,6 +2006,73 @@ CREATE TABLE IF NOT EXISTS CompanyRating (
     INDEX idx_company_rating_job (companyBidRequestUniqueId)
 );
 
+-- DriverBid: individual drivers bidding on a bidding-board order.
+--
+-- Flow (inverse of the FIFO queue: bidding is demand-pull, not FIFO-push):
+--   1. A queue order lives on the open bidding board when its own
+--      ShipperRequest.isBiddingApproved = TRUE (per-order, flag-only; the order keeps
+--      its normal journeyStatusId — there is no special 'bidding' status).
+--   2. A shipper / SuperAdmin opens the board for specific order rows (approveBidding)
+--      → distance matching (findNearbyDrivers/findNearbyShippers) surfaces them to
+--      eligible drivers.
+--   3. Eligible drivers place a bid here (one bid per driver per order → UNIQUE below).
+--   4. Shipper selects a winning driver → bidStatus = 'selected'; the existing
+--      acceptDriverRequest flow finalizes the journey; others → 'not_selected'.
+--
+-- Kept separate from CompanyBidRequest because bidding is per-SHIPPER-REQUEST (one
+-- order/slot) by INDIVIDUAL drivers, whereas company bidding is per-BATCH by a company.
+CREATE TABLE IF NOT EXISTS DriverBid (
+    driverBidId INT AUTO_INCREMENT PRIMARY KEY,
+    driverBidUniqueId VARCHAR(36) UNIQUE NOT NULL,
+
+    -- The queue order (one individual ShipperRequest slot) being bid on.
+    shipperRequestUniqueId VARCHAR(36) NOT NULL,               -- FK → ShipperRequest
+    shipperRequestBatchUniqueId VARCHAR(36) NOT NULL,          -- FK → ShipperRequestBatch (its bidding batch)
+
+    -- Who is bidding
+    driverUserUniqueId VARCHAR(36) NOT NULL,                   -- FK → Users (the driver)
+    driverRequestUniqueId VARCHAR(36) NOT NULL,                -- FK → DriverRequest (driver's request for this order)
+
+    -- Bid terms
+    bidAmount DECIMAL(10,2) NOT NULL,                          -- Driver's counter price
+    bidNotes TEXT NULL,                                        -- Optional message to shipper
+
+    -- Bid lifecycle (relation between driver and shipper for this order)
+    bidStatus ENUM(
+        'submitted',           -- Driver placed a bid; waiting for shipper
+        'selected',            -- Shipper chose this driver
+        'not_selected',        -- Shipper chose another driver
+        'withdrawn',           -- Driver pulled their bid before decision
+        'expired'              -- Bidding closed without selection
+    ) NOT NULL DEFAULT 'submitted',
+    bidStatusUpdatedAt DATETIME NULL,
+    bidStatusUpdatedBy VARCHAR(36) NULL,
+
+    -- The queue order's journey status at bid time (ordinary lifecycle — no 'bidding' status)
+    journeyStatusId INT NOT NULL,                              -- FK → JourneyStatus
+
+    driverBidCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    driverBidCreatedBy VARCHAR(36) NOT NULL,                   -- FK → Users
+    driverBidUpdatedAt DATETIME NULL,
+    driverBidUpdatedBy VARCHAR(36) NULL,
+    driverBidDeletedAt DATETIME NULL,
+    driverBidDeletedBy VARCHAR(36) NULL,
+
+    UNIQUE KEY uq_driver_order_bid (driverUserUniqueId, shipperRequestUniqueId), -- One bid per driver per order
+    INDEX idx_driverBid_order (shipperRequestUniqueId),
+    INDEX idx_driverBid_batch (shipperRequestBatchUniqueId),
+    INDEX idx_driverBid_driver (driverUserUniqueId),
+    INDEX idx_driverBid_status (bidStatus),
+    FOREIGN KEY (shipperRequestUniqueId) REFERENCES ShipperRequest(shipperRequestUniqueId),
+    FOREIGN KEY (shipperRequestBatchUniqueId) REFERENCES ShipperRequestBatch(batchUniqueId),
+    FOREIGN KEY (driverUserUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (driverRequestUniqueId) REFERENCES DriverRequest(driverRequestUniqueId),
+    FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId),
+    FOREIGN KEY (driverBidCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (driverBidUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (driverBidDeletedBy) REFERENCES Users(userUniqueId)
+);
+
 -- QueueOrganization: a client that needs fixed-price freight and hosts a virtual
 -- dispatch queue (e.g. Mojo Kaliy customs, Diredawa customs, National Cement).
 -- A queue only exists for a registered queue organization (record must exist first).
@@ -2025,13 +2113,16 @@ CREATE TABLE IF NOT EXISTS QueueOrganization (
     FOREIGN KEY (approvedBy) REFERENCES Users(userUniqueId)
 );
 
--- ShipperRequest.queueOrganizationUniqueId — column is defined in the ShipperRequest
--- CREATE TABLE above (fresh databases get it there). The INDEX + FK are NOT declared
--- here because: (a) QueueOrganization is created AFTER ShipperRequest in this file,
+-- ShipperRequestBatch.queueOrganizationUniqueId — canonical queue ref (DRY), defined in
+-- the ShipperRequestBatch CREATE TABLE above (fresh databases get it there). ShipperRequest
+-- rows inherit it via LEFT JOIN on batchUniqueId. The INDEX + FK are NOT declared here
+-- because: (a) QueueOrganization is created AFTER ShipperRequestBatch in this file,
 -- and (b) an ALTER here breaks re-running the schema on an existing database
 -- (ER_KEY_COLUMN_DOES_NOT_EXITS / duplicate index+FK). They are added idempotently
 -- by ensureQueueOrgReferences() in Services/Database/tableManage.service.js, which
 -- runs after this schema inside createTable() and checks information_schema.
+-- The legacy per-row ShipperRequest.queueOrganizationUniqueId column is intentionally
+-- dropped (see Task 1 migration); ensureQueueOrgReferences() drops it defensively.
 
 -- QueueOrganizationMembership: Links users (QueueOrgAdmin role 11, shipper role 1)
 -- to a QueueOrganization, mirroring TransportCompany/CompanyMembership.

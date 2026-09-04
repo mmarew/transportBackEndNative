@@ -8,6 +8,10 @@ const {
   updateTableController,
   changeColumnPropertyController, // New
   dropColumnController,
+  addIndexController,
+  dropIndexController,
+  dropForeignKeyController,
+  addForeignKeyController,
   getTableColumnsController,
   installPreDefinedDataController, // New
 } = require("../Controllers/Database.controller");
@@ -89,6 +93,39 @@ router.delete(
   validator(tableParams, "params"),
   dropColumnController,
 );
+
+// DEV ONLY: add an index on an existing column (FK requires an index first)
+router.put(
+  DATABASE_ENDPOINTS.ADD_INDEX,
+  verifyTokenOfAxios,
+  validator(tableParams, "params"),
+  addIndexController,
+);
+
+// DEV ONLY: drop an index by name (needed before dropping an indexed column)
+router.delete(
+  DATABASE_ENDPOINTS.DROP_INDEX,
+  verifyTokenOfAxios,
+  validator(tableParams, "params"),
+  dropIndexController,
+);
+
+// DEV ONLY: drop a foreign key constraint (must precede dropping the FK column)
+router.delete(
+  DATABASE_ENDPOINTS.DROP_FK,
+  verifyTokenOfAxios,
+  validator(tableParams, "params"),
+  dropForeignKeyController,
+);
+
+// DEV ONLY: add a foreign key constraint on an existing column without ADD COLUMN
+router.put(
+  DATABASE_ENDPOINTS.ADD_FK,
+  verifyTokenOfAxios,
+  validator(tableParams, "params"),
+  addForeignKeyController,
+);
+
 // New: Route to get table columns
 router.get(
   DATABASE_ENDPOINTS.GET_TABLE_COLUMNS,

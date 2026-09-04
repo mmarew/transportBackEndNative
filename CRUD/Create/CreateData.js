@@ -116,11 +116,9 @@ const createNewShipperRequest = async (
     ...(body?.targetCompanyUniqueId && {
       targetCompanyUniqueId: body.targetCompanyUniqueId,
     }),
-    // Queue dispatch: the queue org this order is placed against (if any). When set,
-    // create.service.js routes to handleQueueDispatch instead of distance-based matching.
-    ...(body?.queueOrganizationUniqueId && {
-      queueOrganizationUniqueId: body.queueOrganizationUniqueId,
-    }),
+    // NOTE: queueOrganizationUniqueId is intentionally NOT written onto the
+    // ShipperRequest row — it is canonical on ShipperRequestBatch (the create
+    // flow writes it once in upsertBatch) and inherited via batch join.
   };
 
   // Insert the new request into the database

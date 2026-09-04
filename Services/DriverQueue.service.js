@@ -460,12 +460,13 @@ const hasActiveJourney = async (executor, driverUserUniqueId) => {
     `SELECT jd.journeyDecisionUniqueId, jd.journeyStatusId,
             jd.journeyDecisionCreatedAt,
             dr.driverRequestUniqueId, sr.shipperRequestUniqueId,
-            sr.queueOrganizationUniqueId, o.queueOrganizationName
+            srb.queueOrganizationUniqueId, o.queueOrganizationName
      FROM JourneyDecisions jd
      JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
      LEFT JOIN ShipperRequest sr ON sr.shipperRequestId = jd.shipperRequestId
+     LEFT JOIN ShipperRequestBatch srb ON srb.batchUniqueId = sr.shipperRequestBatchUniqueId
      LEFT JOIN QueueOrganization o
-       ON o.queueOrganizationUniqueId = sr.queueOrganizationUniqueId
+       ON o.queueOrganizationUniqueId = srb.queueOrganizationUniqueId
      WHERE dr.userUniqueId = ?
        AND jd.journeyStatusId IN (?, ?, ?, ?, ?, ?)
      LIMIT 1`,
@@ -1093,7 +1094,7 @@ exports.getQueueStatus = async (queueOrganizationUniqueId, query) => {
             sr.shippableItemName, sr.shippableItemQtyInQuintal,
             sr.shippingDate, sr.deliveryDate, sr.shippingCost,
             sr.isPodRequired, sr.isCompletionSeen, sr.shipperRequestCreatedBy,
-            sr.queueOrganizationUniqueId AS orderQueueOrganizationUniqueId,
+            srbs.queueOrganizationUniqueId AS orderQueueOrganizationUniqueId,
             ordertt.vehicleTypeName AS orderVehicleTypeName,
             jd.journeyDecisionId, jd.journeyDecisionUniqueId,
             jd.shipperRequestId AS decisionShipperRequestId,
@@ -1122,6 +1123,7 @@ exports.getQueueStatus = async (queueOrganizationUniqueId, query) => {
      LEFT JOIN ShipperRequest sr
        ON sr.shipperRequestId = jd.shipperRequestId
       AND sr.shipperRequestDeletedAt IS NULL
+     LEFT JOIN ShipperRequestBatch srbs ON srbs.batchUniqueId = sr.shipperRequestBatchUniqueId
      LEFT JOIN Users su ON su.userUniqueId = sr.userUniqueId
      LEFT JOIN VehicleTypes ordertt ON ordertt.vehicleTypeUniqueId = sr.vehicleTypeUniqueId
      LEFT JOIN Journey j ON j.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
@@ -2357,9 +2359,16 @@ const rescanPendingQueueOrder = async ({
   const [rows] = await executor.query(
     `SELECT sr.shipperRequestUniqueId
      FROM ShipperRequest sr
-     WHERE sr.queueOrganizationUniqueId = ?
+     -- queueOrganizationUniqueId is canonical on the batch (srb), inherited via join
+     JOIN ShipperRequestBatch srb ON srb.batchUniqueId = sr.shipperRequestBatchUniqueId
+     WHERE srb.queueOrganizationUniqueId = ?
        AND sr.vehicleTypeUniqueId = ?
        AND sr.requestMode <> 'company_target'
+       -- Bidding-board orders (isBiddingApproved=TRUE, PER-ORDER) are distance-matched,
+       -- never FIFO-dispatched, so skip them here. Orders NOT opened to bidding (FALSE,
+       -- or NULL for rows created before the column was back-filled) remain FIFO-offered.
+       -- "IS NOT TRUE" is TRUE for both FALSE and NULL, so legacy NULL rows still dispatch.
+       AND (sr.isBiddingApproved = FALSE OR sr.isBiddingApproved IS NULL)
        AND sr.journeyStatusId IN (?, ?)
        AND sr.shipperRequestDeletedAt IS NULL
        AND NOT EXISTS (

@@ -236,6 +236,31 @@ const messageTypes = {
     details:
       "When a dispatcher assigns a driver to a freight job via company bid. Driver must confirm or reject.",
   },
+  bidding_board_approved: {
+    message: "Order(s) opened to bidding",
+    details:
+      "Specific order(s) were opened to the bidding board: they are now visible to nearby drivers and distance-matching is active.",
+  },
+  bidding_board_hidden: {
+    message: "Order(s) hidden from bidding",
+    details:
+      "Specific order(s) were closed to bidding: they are no longer visible to drivers via distance-matching.",
+  },
+  driver_bid_submitted: {
+    message: "Driver placed a bid",
+    details:
+      "A driver placed a bid on a bidding-board order; the shipper can review it.",
+  },
+  driver_bid_selected: {
+    message: "Your bid was selected",
+    details:
+      "The shipper selected this driver's bid — the driver's offer is now accepted for the order.",
+  },
+  driver_bid_not_selected: {
+    message: "Your bid was not selected",
+    details:
+      "The shipper selected another driver's bid for the order.",
+  },
   driver_document_approved: {
     message: "Your document has been approved",
     details: "When an admin approves a driver's uploaded document.",

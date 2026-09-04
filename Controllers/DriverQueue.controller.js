@@ -127,3 +127,35 @@ exports.getEntryHistory = async (req, res, next) => {
     next(e);
   }
 };
+
+const biddingService = require("../Services/DriverBid.service");
+
+exports.approveBidding = async (req, res, next) => {
+  try {
+    const result = await executeInTransaction(() =>
+      biddingService.approveBidding({
+        shipperRequestUniqueIds: req.body.shipperRequestUniqueIds,
+        approved: req.body.approved,
+        user: req.user,
+      }),
+    );
+    ServerResponder(res, result, HTTP_STATUS.OK);
+  } catch (e) {
+    next(e);
+  }
+};
+
+exports.getBidsForOrder = async (req, res, next) => {
+  try {
+    ServerResponder(
+      res,
+      await biddingService.getBidsForOrder({
+        shipperRequestUniqueId: req.params.shipperRequestUniqueId,
+        page: req.query.page,
+        limit: req.query.limit,
+      }),
+    );
+  } catch (e) {
+    next(e);
+  }
+};

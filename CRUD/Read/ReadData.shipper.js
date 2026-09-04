@@ -79,7 +79,9 @@ const checkActiveShipperRequest = async ({
     FROM ShipperRequest sr
     INNER JOIN Users u ON sr.userUniqueId = u.userUniqueId
     LEFT JOIN JourneyDecisions jd ON sr.shipperRequestId = jd.shipperRequestId
-    WHERE ${queueOrganizationUniqueId ? "sr.queueOrganizationUniqueId = ?" : "sr.userUniqueId = ?"}
+    -- queueOrganizationUniqueId is canonical on the batch (srb), inherited via join
+    LEFT JOIN ShipperRequestBatch srb ON srb.batchUniqueId = sr.shipperRequestBatchUniqueId
+    WHERE ${queueOrganizationUniqueId ? "srb.queueOrganizationUniqueId = ?" : "sr.userUniqueId = ?"}
     AND (
       sr.journeyStatusId IN (?,?,?,?,?,?,?,?) 
       OR (sr.isCompletionSeen = ? AND sr.journeyStatusId = ?)
@@ -136,7 +138,9 @@ const getActiveRequestsCount = async (
       COUNT(DISTINCT CASE WHEN jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByShipper = ? THEN sr.shipperRequestId END) as notSeenCancelledByDriverCount
     FROM ShipperRequest sr
     LEFT JOIN JourneyDecisions jd ON sr.shipperRequestId = jd.shipperRequestId
-    WHERE ${queueOrganizationUniqueId ? "sr.queueOrganizationUniqueId = ?" : "sr.userUniqueId = ?"}
+    -- queueOrganizationUniqueId is canonical on the batch (srb), inherited via join
+    LEFT JOIN ShipperRequestBatch srb ON srb.batchUniqueId = sr.shipperRequestBatchUniqueId
+    WHERE ${queueOrganizationUniqueId ? "srb.queueOrganizationUniqueId = ?" : "sr.userUniqueId = ?"}
     AND sr.shipperRequestDeletedAt IS NULL
     AND (sr.requestMode IS NULL OR sr.requestMode != 'company_target')
     AND (

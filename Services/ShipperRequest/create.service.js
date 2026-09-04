@@ -108,6 +108,7 @@ const createShipperRequest = async (body, journeyStatusId) => {
       throw new AppError("userUniqueId is required", AppError.BAD_REQUEST);
     }
     const numberOfVehicles = body?.numberOfVehicles || 1;
+
     // First check if the user has an active request based on shipperRequestBatchUniqueId
     const shipperRequestBatchUniqueId = body?.shipperRequestBatchUniqueId;
     if (!shipperRequestBatchUniqueId) {
@@ -138,7 +139,7 @@ const createShipperRequest = async (body, journeyStatusId) => {
     // under the company_target batch). Reject any reuse that mismatches the
     // existing header.
     const [batchHeaderRows] = await executor.query(
-      `SELECT shipperUserUniqueId, requestMode
+      `SELECT shipperUserUniqueId, requestMode, queueOrganizationUniqueId
          FROM ShipperRequestBatch
         WHERE batchUniqueId = ? LIMIT 1`,
       [shipperRequestBatchUniqueId],
@@ -152,6 +153,14 @@ const createShipperRequest = async (body, journeyStatusId) => {
       ) {
         throw new AppError(
           `shipperRequestBatchUniqueId is already in use and cannot be reused with a different shipper or request mode.`,
+          AppError.BAD_REQUEST,
+        );
+      }
+      const currentQueue = header.queueOrganizationUniqueId || null;
+      const incomingQueue = body.queueOrganizationUniqueId || null;
+      if (currentQueue !== incomingQueue) {
+        throw new AppError(
+          `shipperRequestBatchUniqueId is already in use and cannot be reused with a different queue organization.`,
           AppError.BAD_REQUEST,
         );
       }
@@ -176,6 +185,7 @@ const createShipperRequest = async (body, journeyStatusId) => {
         totalVehicles: body.numberOfVehicles || 1,
         requestMode: body.requestMode || "individual_target",
         targetCompanyUniqueId: body.targetCompanyUniqueId || null,
+        queueOrganizationUniqueId: body.queueOrganizationUniqueId || null,
         originLatitude: body.originLocation?.latitude ?? null,
         originLongitude: body.originLocation?.longitude ?? null,
         originPlace: body.originLocation?.description || "",
@@ -229,6 +239,11 @@ const createShipperRequest = async (body, journeyStatusId) => {
       // Extract created requests from results
       results.forEach((result) => {
         if (result?.data?.[0]) {
+          // queueOrganizationUniqueId is canonical on the BATCH header, not the
+          // row (DRY). Re-attach it from the request body onto the in-memory
+          // request object so the queue-vs-distance routing below still works.
+          result.data[0].queueOrganizationUniqueId =
+            body.queueOrganizationUniqueId || null;
           newRequests.push(result.data[0]);
         }
       });

@@ -56,13 +56,9 @@ const prepareAndCreateNewBalance = async ({
     // If no previous balance, netBalance remains 0
   }
 
-  // check if there is enough balance to be deducted before deduct if addOrDeduct is deduct and not free
-  if (addOrDeduct === "deduct" && !isFree) {
-    if (netBalance < Number(amount) || netBalance === 0) {
-      throw new AppError("Insufficient balance", AppError.BAD_REQUEST);
-    }
-  }
-
+  // Deductions are allowed to drive the net balance negative (debt): 0 or
+  // insufficient balance does NOT block a deduction (e.g. a commission). The
+  // resulting deficit is a driver debt against the platform.
   const newBalance =
     addOrDeduct === "add"
       ? netBalance + Number(amount)

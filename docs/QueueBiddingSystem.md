@@ -1,257 +1,217 @@
-# Queue Bidding System — Implementation Plan
+# Queue Bidding System — Implementation Plan (FINAL — flag-only model)
+
+> **Design decision (authoritative, updated):** Bidding is **not** a `requestMode` and **not** a
+> journey status. It is a **batch-level boolean gate** — `ShipperRequestBatch.isBiddingApproved` —
+> that tells the distance matchers whether a queue batch's orders are open. Orders keep their
+> ordinary `journeyStatusId` (`waiting(1)`, etc.) and their original `requestMode` at all times.
+>
+> Rejected earlier ideas: a dedicated `queue_driver_bid` mode and a `bidding(21)` status were
+> **redundant** with `isBiddingApproved` and have been dropped. Keep it flag-only.
 
 ## Overview
 
-Three dispatch modes:
+| Dispatch rail                | `requestMode`       | Who Gets It                       | Gate                              |
+| ---------------------------- | ------------------- | --------------------------------- | --------------------------------- |
+| **FIFO dispatch**            | `individual_target` | Front driver auto-offered         | `isBiddingApproved = FALSE` (def)  |
+| **Company bid**              | `company_target`    | Companies bid (existing flow)     | —                                 |
+| **Bidding board (distance)** | any non-company     | Drivers via distance, shipper picks | `isBiddingApproved = TRUE`        |
 
-| Mode | `requestMode` | Price | Who Gets It |
-|------|--------------|-------|-------------|
-| **Non-bid (FIFO)** | `individual_target` | Fixed `shippingCost` | Front driver auto-offered |
-| **Individual driver bid** | `queue_driver_bid` | Base price + driver counter | All eligible drivers bid, shipper picks |
-| **Company bid** | `company_target` | Companies bid | Existing company bid flow |
-
----
-
-## Approval Gate: `isBiddingApproved`
-
-### Schema Change
-
-```sql
-ALTER TABLE ShipperRequest
-ADD COLUMN isBiddingApproved BOOLEAN NOT NULL DEFAULT FALSE
-AFTER isCompletionSeen;
-```
-
-### How It Works
-
-| `journeyStatusId` | `isBiddingApproved` | `findNearbyDrivers`? | `findNearbyShippers`? |
-|---|---|---|---|
-| 1 (waiting) | any | ✅ Finds drivers | ✅ Finds loads |
-| 2 (requested) | any | Already matched | Already matched |
-| 3 (acceptedByDriver) | any | Already matched | Already matched |
-| **21 (bidding)** | **FALSE** | **❌ Excluded** | **❌ Excluded** |
-| **21 (bidding)** | **TRUE** | **✅ Finds drivers** | **✅ Finds loads** |
-
-### How Shippers/Queue Admins Know They Have Overflow
-
-**Query for pending overflow orders (need approval):**
-```sql
-SELECT * FROM ShipperRequest 
-WHERE queueOrganizationUniqueId = ? 
-  AND journeyStatusId = 21 
-  AND isBiddingApproved = FALSE
-```
-
-| Column | Value | Meaning |
-|--------|-------|---------|
-| `journeyStatusId` | `21` (bidding) | Order is in bidding mode (overflow from FIFO) |
-| `isBiddingApproved` | `FALSE` | Needs approval before drivers can see them |
-
-**After approval:** `isBiddingApproved = TRUE` → `findNearbyDrivers` finds drivers → JourneyDecisions created.
+- **FALSE (default)** → normal FIFO queue order: FIFO-dispatchable, **never** distance-matched.
+- **TRUE** (set only by `approveBidding`) → bidding board open: FIFO **skips** it; distance
+  matching (`findNearbyDrivers`/`findNearbyShippers`) surfaces it to drivers.
+- Bidding is **explicit only**: an order gets on the board when a shipper/queue-admin calls
+  `approveBidding`. There is **no auto-overflow** at create time — an under-filled FIFO order just
+  waits normally until someone opts it in.
 
 ---
 
-## Two Matching Directions
+## Schema (PER-ORDER flag; queue org stays batch-canonical)
+
+- `ShipperRequest.requestMode ENUM('individual_target','company_target')` — no bidding mode.
+- `ShipperRequestBatch.requestMode ENUM('individual_target','company_target')` — same.
+- **`ShipperRequest.isBiddingApproved BOOLEAN NOT NULL DEFAULT FALSE`** — the **sole, per-order
+  bidding signal**. Each order is independently opened to the bidding board, so orders within one
+  batch can diverge (e.g. some hired via FIFO at status 3+, others opened to bidding).
+  - Index: `idx_sr_bidding_approved (isBiddingApproved)`.
+- `ShipperRequestBatch.queueOrganizationUniqueId` — still batch-canonical (DRY; rows inherit via
+  join). The bidding flag is deliberately NOT batch-canonical because per-order is the required
+  behavior.
+- `DriverBid` table — one bid per driver per order (`UNIQUE(driverUserUniqueId, shipperRequestUniqueId)`).
+
+**No `bidding` (21) journey status.** `journeyStatusMap` has no `bidding` entry; `biddingCount`
+is not driven by status 21 (it counts `acceptedByDriver`, a pre-existing quirk).
+
+---
+
+## Approval Gate: `isBiddingApproved` (per-order)
+
+| `isBiddingApproved` | Meaning                             | `findNearbyDrivers` / `findNearbyShippers` | FIFO rescan |
+| ------------------- | ----------------------------------- | ------------------------------------------ | ----------- |
+| `FALSE` (default)   | Normal FIFO queue order             | ❌ Excluded (queue orders aren't distance-matched) | ✅ Offered  |
+| `TRUE`              | Order opened to bidding (approved)  | ✅ Finds drivers / loads                    | ❌ Skipped  |
+
+**Worked example (7 orders, one batch):** 3 hired via FIFO → those rows advance to status 3+
+(not re-matched). The other 4 remain `waiting(1)`. `approveBidding({ shipperRequestUniqueIds: [4 ids], approved: true })`
+opens just those 4; the 3 hired orders are untouched. Per-order flag makes this trivially correct.
+
+The order's `journeyStatusId` is its ordinary lifecycle value (`waiting(1)`, etc.); the matchers
+**ignore** status for the queue gate and rely on the per-order flag alone.
+
+---
+
+## Two Matching Directions (all gate on the flag, not status)
 
 ### `findNearbyDrivers` — Shipper → Driver
 
-Finds drivers near order origin. Used when order is **created** or **opened for drivers**.
+Queue orders are excluded from distance matching **unless** `isBiddingApproved = TRUE`:
 
-**Current:** Excludes ALL queue orders:
 ```js
 if (shipperRequest?.queueOrganizationUniqueId) {
-  return [];
-}
-```
-
-**New:** Allow approved bidding orders:
-```js
-if (shipperRequest?.queueOrganizationUniqueId) {
-  if (shipperRequest?.journeyStatusId === journeyStatusMap.bidding 
-      && shipperRequest?.isBiddingApproved) {
-    // Approved bidding — fall through to distance matching
-  } else {
+  if (!shipperRequest?.isBiddingApproved) {
     return [];
   }
+  // Approved bidding order — fall through to distance matching.
 }
 ```
+
+### Bidding driver selection — queued-first, at most 5
+
+When a bidding-board order (`queueOrganizationUniqueId` set + `isBiddingApproved = TRUE`) is
+distance-matched, the selected drivers are **queued-first, then non-queued**:
+
+- **Pool:** all nearby online drivers (queued AND non-queued), nearest within radius.
+- **Priority:** queued drivers first — a driver is *queued* if they have an active `DriverQueue`
+  entry today for the order's `queueOrganizationUniqueId` (`status IN ('waiting','requested','notagreed')`,
+  `queueDeletedAt IS NULL`). Among queued, nearest wins; then non-queued, nearest wins.
+- **Cap: ≤ 5 (maximum, not exact).** `5` is the max number of drivers offered per order, independent
+  of the order's vehicle quantity (a 7-vehicle order still gets at most 5 bidding drivers, each
+  bidding on that one order). If fewer than 5 eligible drivers exist, all of them are offered.
+  Examples: 10 queued → take the 5 nearest queued (0 non-queued); 2 queued → those 2 + 3 nearest
+  non-queued; 0 queued → 5 nearest non-queued; only 3 drivers nearby → 3 offered.
+
+`handleWaitingRequest` later creates one `JourneyDecision` per selected driver, so the queued-first
+set yields the first `JourneyDecision`s and notifications.
+
+Non-queue orders (`queueOrganizationUniqueId` falsy) are unaffected — pure nearest-distance, ≤5.
 
 ### `findNearbyShippers` — Driver → Shipper
 
-Finds loads near driver location. Used when driver **polls status**.
+Queue orders stay out of driver-poll distance results unless **that order** is approved:
 
-**Current SQL:**
 ```sql
-AND ShipperRequest.journeyStatusId IN (?, ?, ?)
-```
-
-**New SQL:**
-```sql
-AND ShipperRequest.journeyStatusId IN (?, ?, ?, ?)
 AND (
-  ShipperRequest.journeyStatusId != ?
-  OR ShipperRequest.isBiddingApproved = TRUE
+  srb.queueOrganizationUniqueId IS NULL
+  OR ShipperRequest.isBiddingApproved = TRUE   -- per-order flag
 )
+AND ShipperRequest.journeyStatusId IN (?, ?, ?)  -- normal lifecycle statuses only
 ```
+
+(`company_target` is already excluded by the `requestMode != 'company_target'` join clause, so
+company deals never land on the individual bidding board.)
 
 ---
 
-## Full Bidding Flow
+## Full Bidding Flow (explicit)
 
 ```
-1. Shipper creates 10 orders → 3 dispatched via FIFO, 7 overflow
-2. Overflow → status 21, isBiddingApproved = FALSE (HIDDEN)
-3. Shipper/admin sees overflow: journeyStatusId=21 AND isBiddingApproved=FALSE
-4. Shipper/admin approves → isBiddingApproved = TRUE
-5. findNearbyDrivers → finds drivers → CREATE JourneyDecisions
-6. findNearbyShippers → drivers see approved loads
-7. Driver accepts → acceptShipperRequest → status 3
-8. Shipper accepts → acceptDriverRequest → status 4 + reject others (14)
+1. Shipper creates a queue batch (individual_target) → orders are normal FIFO, each isBiddingApproved=FALSE
+2. FIFO can't fill some orders, or shipper wants those opened to bidding → shipper/SuperAdmin calls approveBidding
+3. approveBidding sets isBiddingApproved=TRUE on JUST those order rows (per-order)
+4. approveBidding then runs findNearbyDrivers → CREATE JourneyDecisions (distance matching) for still-waiting orders
+   4a. Bidding driver selection: queued drivers of the order's queue org first, then non-queued; at most 5 (see rule)
+5. findNearbyShippers → drivers see approved orders when they poll
+6. Driver accepts → acceptShipperRequest → status 3 (unchanged)
+7. Shipper accepts → acceptDriverRequest → status 4 + reject others (unchanged)
 ```
 
 ---
 
 ## What Changes
 
-### 1. `Utils/ListOfSeedData.js` — Add `bidding: 21` to journeyStatusMap
+### 1. `Utils/ListOfSeedData.js`
+- **Remove** `bidding: 21` from `journeyStatusMap` (not needed — flag-only).
+- **Remove** the `bidding` seed `JourneyStatus` record and its entry in `activeJourneyStatuses`.
 
-**Current (up to 20):**
-```js
-const journeyStatusMap = {
-  waiting: 1,
-  requested: 2,
-  acceptedByDriver: 3,
-  acceptedByShipper: 4,
-  goToLoadingPlace: 5,
-  loading: 6,
-  loaded: 7,
-  journeyStarted: 8,
-  journeyCompleted: 9,
-  cancelledByShipper: 10,
-  rejectedByShipper: 11,
-  cancelledByDriver: 12,
-  cancelledByAdmin: 13,
-  completedByAdmin: 14,
-  cancelledBySystem: 15,
-  noAnswerFromDriver: 16,
-  notSelectedInBid: 17,
-  rejectedByDriver: 18,
-  replacedByCompanyAssignment: 19,
-  partiallyCancelled: 20,
-};
-```
+### 2. `Database/Database.js`
+- Revert both `requestMode` ENUMs to `('individual_target','company_target')`.
+- **Add** `ShipperRequest.isBiddingApproved BOOLEAN NOT NULL DEFAULT FALSE` + `idx_sr_bidding_approved` (per-order).
+- **Remove** `ShipperRequestBatch.isBiddingApproved` + `idx_batch_bidding_approved` (flag moved to the rows).
+- Keep `DriverBid` table; comments updated to per-order flag-only model.
 
-**New (add after 20):**
-```js
-  bidding: 21,  // overflow orders open for driver bidding
-```
+### 3. `Validations/ShipperRequest.schema.js` + `Validations/ShipperRequestBatch.schema.js`
+- Remove `queue_driver_bid` from both `requestMode` `.valid(...)` lists.
+- Remove `"bidding"` from `VALID_JOURNEY_STATUS_NAMES`.
+- `Validations/DriverBid.schema.js` — comment only.
 
-### 2. `findNearbyDrivers` — Allow approved bidding orders
-### 3. `findNearbyShippers` — Add bidding (21) + approval check
-### 4. `approveBidding` — Trigger matching after approval
-### 5. `handleJourneyStatusOne` — Allow approved bidding orders in filter
-### 6. `create.service.js` — Overflow detection
-### 7. `rescanPendingQueueOrder` — Exclude bidding from FIFO rescan
+### 4. `Services/ShipperRequest/create.service.js`
+- **Revert** the `isQueueDriverBid`/`effectiveStatus` block (orders use the caller-supplied
+  `journeyStatusId`; `upsertBatch` + `createNewShipperRequest` pass it directly).
+- **Revert** the FIFO-overflow block (FIFO-unsatisfied orders simply stay waiting; no status flip,
+  no auto-bidding). Revert the now-unused `currentDate` import.
 
----
+### 5. `Services/DriverQueue.service.js` — `rescanPendingQueueOrder`
+- Remove the dead `requestMode <> 'queue_driver_bid'` clause.
+- Gate FIFO to **skip open bidding-board orders**: add `AND sr.isBiddingApproved = FALSE` — normal
+  queue orders (default FALSE) stay FIFO-offered; approved (TRUE) orders are skipped (per-row).
 
-## What Does NOT Change
+### 6. `CRUD/Read/ReadData.matching.js`
+- `findNearbyDrivers`: flag-only guard (return `[]` unless `isBiddingApproved`).
+  - **Queued-first selection (bidding orders):** when `queueOrganizationUniqueId` is set + approved,
+    order candidates by `isQueued DESC, distanceKm ASC` and cap at ≤ 5 — `isQueued` via an `EXISTS`
+    on `DriverQueue` (join `VehicleDriver`) with `status IN ('waiting','requested','notagreed')` for
+    that org today. Non-queue orders keep pure nearest-distance selection. (IMPLEMENTED.)
+- `findNearbyShippers`: queue gate = flag only; drop the `journeyStatusId = bidding` clause/value.
 
-| Component | Status |
-|-----------|--------|
-| `acceptShipperRequest` | **Unchanged** |
-| `acceptDriverRequest` | **Unchanged** |
-| `handleQueueDispatch` | **Unchanged** |
-| `offerToDriver` | **Unchanged** |
+### 7. `Services/DriverBid.service.js`
+- `approveBidding({ shipperRequestUniqueIds: [], approved, user })`: loads the given order rows
+  joined with their batch (queue org + shipper ownership), ownership-fences EACH row (batch shipper
+  or SuperAdmin), then `UPDATE ShipperRequest SET isBiddingApproved = ? WHERE ... IN (...)`
+  (single per-order UPDATE).
+- On approve: run `handleWaitingRequest` per order that is STILL **waiting** (`journeyStatusId = waiting`),
+  creating JourneyDecisions (distance matching).
+- On hide: `isBiddingApproved = FALSE`.
+- `getBidsForOrder`: unchanged (list `DriverBid` rows for an order).
 
----
+### 8. `Services/DriverRequest/statusVerification/handleJourneyStatusOne.service.js`
+- Filter allows a queue order through iff `isBiddingApproved === TRUE` (flag-only; no status check).
 
-## Phase 1: Database Schema
+### 9. Routes / Controller / MessageTypes
+- `Routes/queue/DriverQueue.routes.js`: 2 routes (`POST /bidding/approve`,
+  `GET /bidding/order/:shipperRequestUniqueId/bids`) — comments reworded to flag-only.
+- `Controllers/DriverQueue.controller.js`: 2 handlers — unchanged logic.
+- `Utils/MessageTypes.js`: reword 3 bidding messages (drop `queue_driver_bid` phrasing).
 
-### 1a. Add `queueOrganizationUniqueId` to `ShipperRequestBatch`
-### 1b. Extend `requestMode` ENUM (add `queue_driver_bid`)
-### 1c. Add `bidding` status (ID 21) to `Utils/ListOfSeedData.js`
-### 1d. Add `isBiddingApproved` to `ShipperRequest`
-### 1e. Create `DriverBid` table
+### 10. E2E
+- Skipped (per prior decision) — no `E2ETests/Queue/QueueBid.js`.
 
 ---
 
-## Phase 2: Validation Updates
-
-Add `queue_driver_bid` to `requestMode` ENUM.
-
----
-
-## Phase 3: Service Changes
-
-### 3a. `create.service.js` — Overflow detection
-### 3b. `findNearbyDrivers` — Allow approved bidding orders
-### 3c. `findNearbyShippers` — Add bidding (21) + approval check
-### 3d. `approveBidding` — Trigger matching after approval
-### 3e. `handleJourneyStatusOne` — Allow approved bidding orders in filter
-### 3f. `rescanPendingQueueOrder` — Exclude bidding from FIFO rescan
-### 3g. New: `Services/DriverBid.service.js` — approveBidding, getBidsForOrder
-
----
-
-## Phase 4: API Endpoints
+## API Endpoints (2 new)
 
 ```js
-// Only 2 new routes:
-router.post("/approve-bidding", auth, validate(approveBiddingSchema), driverBidController.approveBidding);
-router.get("/bids/:shipperRequestUniqueId", auth, driverBidController.getBidsForOrder);
+// POST /bidding/approve
+// body: { shipperRequestUniqueIds: string[], approved?: boolean }
+router.post("/bidding/approve", validator(approveBiddingSchema), controller.approveBidding);
+router.get("/bidding/order/:shipperRequestUniqueId/bids", validator(getBidsParams,"params"), validator(getBidsQuery,"query"), controller.getBidsForOrder);
 ```
 
 ---
 
-## Phase 7: E2E Tests
+## Design Decisions (final)
 
-| Test | Description |
-|------|-------------|
-| TQ-B1 | Shipper creates `queue_driver_bid` batch → status 21, isBiddingApproved=FALSE |
-| TQ-B2 | Shipper approves → isBiddingApproved=TRUE → findNearbyDrivers finds drivers → JourneyDecisions |
-| TQ-B3 | Driver polls status → findNearbyShippers finds approved load |
-| TQ-B4 | Driver accepts via acceptShipperRequest → status 3 |
-| TQ-B5 | Shipper accepts via acceptDriverRequest → status 4, others status 14 |
-| TQ-B6 | UN-approved bidding order → not found |
-| TQ-B7 | **Overflow: 10 orders, 3 FIFO, 7 enter bidding** |
-| TQ-B8 | **Shipper approves → matching engine finds drivers** |
-| TQ-B9 | **Multiple drivers match → shipper picks one** |
-| TQ-B10 | **Shipper accepts via acceptDriverRequest → status 4** |
-
----
-
-## Files to Create/Modify
-
-| File | Action | Changes |
-|------|--------|---------|
-| `Utils/ListOfSeedData.js` | Modify | **Add `bidding: 21` to journeyStatusMap** |
-| `Database/Database.js` | Modify | isBiddingApproved, queueOrganizationUniqueId to Batch, DriverBid table |
-| `Validations/ShipperRequest.schema.js` | Modify | Add `queue_driver_bid` to ENUM |
-| `Validations/DriverBid.schema.js` | Create | approveBiddingSchema |
-| `Services/ShipperRequest/create.service.js` | Modify | queue_driver_bid mode, overflow detection |
-| `CRUD/Read/ReadData.matching.js` | Modify | **findNearbyDrivers + findNearbyShippers** |
-| `Services/DriverRequest/statusVerification/handleJourneyStatusOne.service.js` | Modify | Allow approved bidding orders |
-| `Services/DriverQueue.service.js` | Modify | Exclude bidding from FIFO rescan |
-| `Services/DriverBid.service.js` | Create | approveBidding (triggers matching), getBidsForOrder |
-| `Routes/queue/DriverQueue.routes.js` | Modify | 2 new routes |
-| `Controllers/DriverQueue.controller.js` | Modify | 2 controllers |
-| `Utils/MessageTypes.js` | Modify | 6 new message types |
-| `E2ETests/Queue/QueueBid.js` | Create | 10 test scenarios |
-
----
-
-## Design Decisions
-
-1. **One mode per batch** — each batch has ONE `requestMode`.
-2. **All eligible drivers can bid** — active VehicleDriver assignment required.
-3. **Shipper sets base price** — `shippingCost` is the reference.
-4. **One bid per driver per order** — upsert.
-5. **Bidding status (21)** — added to `journeyStatusMap` in `Utils/ListOfSeedData.js`.
-6. **No auto-dispatch for bid orders** — skip FIFO.
-7. **Overflow-triggered bidding** — FIFO can't fill → switch to bidding (21).
-8. **Approval gate (`isBiddingApproved`)** — hidden until shipper/admin approves. Query: `journeyStatusId=21 AND isBiddingApproved=FALSE`.
-9. **`findNearbyDrivers` = Shipper→Driver** — finds drivers when order created/opened.
-10. **`findNearbyShippers` = Driver→Shipper** — finds loads when driver polls status.
-11. **No changes to accept/reject flow** — unchanged.
-12. **No new discovery API** — both matching functions extended.
+1. **Flag-only** — `ShipperRequest.isBiddingApproved` is the sole bidding signal; no `queue_driver_bid`
+   mode, no `bidding` status (both were redundant).
+2. **Per-order** — the flag lives on each `ShipperRequest` row (NOT the batch), so orders within one
+   batch can diverge (e.g. 3 hired via FIFO at status 3+, 4 opened to bidding). Deliberately not
+   batch-canonical.
+3. **Explicit opt-in** — only `approveBidding` opens a board; no auto-overflow at create.
+4. **First-class default** — `FALSE` keeps an order a normal FIFO queue order (unchanged behavior).
+5. **One bid per driver per order** — `UNIQUE(driverUserUniqueId, shipperRequestUniqueId)`.
+6. **No change to accept/reject flow** — `acceptShipperRequest` / `acceptDriverRequest` unchanged.
+7. **No new discovery API** — both matching functions extended (flag gate).
+8. **Bidding driver cap is ≤ 5 (max, not exact)** — at most 5 drivers are distance-matched per order,
+   independent of the order's vehicle quantity. Fewer if fewer eligible drivers exist.
+9. **Queued-first priority for bidding orders** — for an in-queue bidding order, queued drivers
+   (checked into the order's queue org today) are selected before non-queued, both nearest-first,
+   filling up to the 5-slot cap. Only applies when `queueOrganizationUniqueId` is set; non-queue
+   orders keep pure nearest-distance selection.

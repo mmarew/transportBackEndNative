@@ -84,6 +84,54 @@ const dropColumnController = async (req, res, next) => {
   }
 };
 
+const addIndexController = async (req, res, next) => {
+  try {
+    const { tableName } = req.params;
+    const result = await executeInTransaction(async () => {
+      return await databaseService.addIndex(tableName, req.body);
+    });
+    res.status(HTTP_STATUS.OK).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const dropIndexController = async (req, res, next) => {
+  try {
+    const { tableName } = req.params;
+    const result = await executeInTransaction(async () => {
+      return await databaseService.dropIndex(tableName, req.body);
+    });
+    res.status(HTTP_STATUS.OK).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const dropForeignKeyController = async (req, res, next) => {
+  try {
+    const { tableName } = req.params;
+    const result = await executeInTransaction(async () => {
+      return await databaseService.dropForeignKey(tableName, req.body);
+    });
+    res.status(HTTP_STATUS.OK).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const addForeignKeyController = async (req, res, next) => {
+  try {
+    const { tableName } = req.params;
+    const result = await executeInTransaction(async () => {
+      return await databaseService.addForeignKey(tableName, req.body);
+    });
+    res.status(HTTP_STATUS.OK).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getTableColumnsController = async (req, res, next) => {
   try {
     const response = await databaseService.getTableColumns(
@@ -120,4 +168,8 @@ module.exports = {
   updateTableController,
   changeColumnPropertyController,
   dropColumnController,
+  addIndexController,
+  dropIndexController,
+  dropForeignKeyController,
+  addForeignKeyController,
 };

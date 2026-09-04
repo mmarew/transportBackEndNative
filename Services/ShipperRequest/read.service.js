@@ -427,9 +427,10 @@ const getShipperRequest4allOrSingleUser = async ({ data }) => {
 
     // Filter by queue organization: lets a QueueOrgAdmin list/filter the jobs
     // created under their queue org (on-behalf-of shipper requests).
+    // queueOrganizationUniqueId is canonical on ShipperRequestBatch (srb) — inherited via join.
     if (filters?.queueOrganizationUniqueId) {
       whereClause += whereClause ? " AND " : " WHERE ";
-      whereClause += " ShipperRequest.queueOrganizationUniqueId = ?";
+      whereClause += " ShipperRequestBatch.queueOrganizationUniqueId = ?";
       queryParams.push(filters.queueOrganizationUniqueId);
       countParams.push(filters.queueOrganizationUniqueId);
     }
@@ -517,6 +518,7 @@ const getShipperRequest4allOrSingleUser = async ({ data }) => {
       FROM ShipperRequest 
       JOIN Users ON Users.userUniqueId = ShipperRequest.userUniqueId
       JOIN VehicleTypes ON VehicleTypes.vehicleTypeUniqueId = ShipperRequest.vehicleTypeUniqueId
+      LEFT JOIN ShipperRequestBatch ON ShipperRequestBatch.batchUniqueId = ShipperRequest.shipperRequestBatchUniqueId
       ${whereClause}
     `;
     const [countResult] = await pool.query(sqlCount, countParams);

@@ -31,55 +31,92 @@ const { createRole } = require("../Role.service");
 const { createRole: createCompanyRole } = require("../CompanyRole.service");
 
 /**
- * Idempotently add ShipperRequest.queueOrganizationUniqueId + its index + FK.
+ * Idempotently enforce the BATCH-canonical queue reference model.
  *
- * The column lives in the ShipperRequest CREATE TABLE (fresh DBs get it for free),
- * but an existing database created before that change has the table WITHOUT the
- * column — so `CREATE TABLE IF NOT EXISTS` is a no-op and a bare ALTER in the DDL
- * fails with ER_KEY_COLUMN_DOES_NOT_EXITS. This runs after the schema inside
- * createTable() and applies only the missing pieces, checked via information_schema.
+ * queueOrganizationUniqueId lives ONLY on ShipperRequestBatch (DRY) and is
+ * inherited by ShipperRequest rows via batch join. The legacy per-row
+ * ShipperRequest.queueOrganizationUniqueId column/index/FK no longer exists.
+ *
+ * The batch column lives in the ShipperRequestBatch CREATE TABLE (fresh DBs get
+ * it for free), but an existing database created before that change may lack
+ * it, its index, or its FK — so run after the schema inside createTable() and
+ * apply only the missing pieces, checked via information_schema. Also safely
+ * drops any leftover legacy ShipperRequest queue column/index/FK.
  */
 const ensureQueueOrgReferences = async (connection) => {
   const dbName = dbConfig.database;
 
-  const [colRows] = await connection.query(
+  // 1. Batch column (canonical). ADD if missing (idempotent).
+  const [batchCol] = await connection.query(
     `SELECT COUNT(*) AS cnt FROM information_schema.columns
-     WHERE table_schema = ? AND table_name = 'ShipperRequest' AND column_name = 'queueOrganizationUniqueId'`,
+     WHERE table_schema = ? AND table_name = 'ShipperRequestBatch' AND column_name = 'queueOrganizationUniqueId'`,
     [dbName],
   );
-  if (colRows[0].cnt === 0) {
+  if (batchCol[0].cnt === 0) {
     await connection.query(
-      `ALTER TABLE ShipperRequest
+      `ALTER TABLE ShipperRequestBatch
        ADD COLUMN queueOrganizationUniqueId VARCHAR(36) NULL DEFAULT NULL`,
     );
-    logger.info("Migration: added ShipperRequest.queueOrganizationUniqueId column");
+    logger.info("Migration: added ShipperRequestBatch.queueOrganizationUniqueId column");
   }
 
+  // 2. Batch index on the canonical column.
   const [idxRows] = await connection.query(
     `SELECT COUNT(*) AS cnt FROM information_schema.statistics
-     WHERE table_schema = ? AND table_name = 'ShipperRequest' AND index_name = 'idx_shipperRequest_queueOrg'`,
+     WHERE table_schema = ? AND table_name = 'ShipperRequestBatch' AND index_name = 'idx_batch_queue_org'`,
     [dbName],
   );
   if (idxRows[0].cnt === 0) {
     await connection.query(
-      `ALTER TABLE ShipperRequest
-       ADD INDEX idx_shipperRequest_queueOrg (queueOrganizationUniqueId)`,
+      `ALTER TABLE ShipperRequestBatch
+       ADD INDEX idx_batch_queue_org (queueOrganizationUniqueId)`,
     );
-    logger.info("Migration: added index idx_shipperRequest_queueOrg");
+    logger.info("Migration: added index idx_batch_queue_org");
   }
 
+  // 3. Batch FK -> QueueOrganization on the canonical column.
   const [fkRows] = await connection.query(
     `SELECT COUNT(*) AS cnt FROM information_schema.referential_constraints
-     WHERE constraint_schema = ? AND constraint_name = 'fk_shipperRequest_queueOrg'`,
+     WHERE constraint_schema = ? AND constraint_name = 'fk_ShipperRequestBatch_queueOrganizationUniqueId'`,
     [dbName],
   );
   if (fkRows[0].cnt === 0) {
     await connection.query(
-      `ALTER TABLE ShipperRequest
-       ADD CONSTRAINT fk_shipperRequest_queueOrg
+      `ALTER TABLE ShipperRequestBatch
+       ADD CONSTRAINT fk_ShipperRequestBatch_queueOrganizationUniqueId
        FOREIGN KEY (queueOrganizationUniqueId) REFERENCES QueueOrganization(queueOrganizationUniqueId)`,
     );
-    logger.info("Migration: added FK fk_shipperRequest_queueOrg");
+    logger.info("Migration: added FK fk_ShipperRequestBatch_queueOrganizationUniqueId");
+  }
+
+  // 4. Drop any leftover legacy ShipperRequest queue reference, in dependency
+  //    order (FK -> index -> column), so the old model can never resurface.
+  const [srFk] = await connection.query(
+    `SELECT COUNT(*) AS cnt FROM information_schema.referential_constraints
+     WHERE constraint_schema = ? AND constraint_name = 'fk_shipperRequest_queueOrg'`,
+    [dbName],
+  );
+  if (srFk[0].cnt > 0) {
+    await connection.query(`ALTER TABLE ShipperRequest DROP FOREIGN KEY fk_shipperRequest_queueOrg`);
+    logger.info("Migration: dropped legacy ShipperRequest FK fk_shipperRequest_queueOrg");
+  }
+  const [srIdx] = await connection.query(
+    `SELECT COUNT(*) AS cnt FROM information_schema.statistics
+     WHERE table_schema = ? AND table_name = 'ShipperRequest' AND index_name = 'idx_shipperRequest_queueOrg'`,
+    [dbName],
+  );
+  if (srIdx[0].cnt > 0) {
+    await connection.query(`ALTER TABLE ShipperRequest DROP INDEX idx_shipperRequest_queueOrg`);
+    logger.info("Migration: dropped legacy ShipperRequest index idx_shipperRequest_queueOrg");
+  }
+  const [srCol] = await connection.query(
+    `SELECT COUNT(*) AS cnt FROM information_schema.columns
+     WHERE table_schema = ? AND table_name = 'ShipperRequest' AND column_name = 'queueOrganizationUniqueId'`,
+    [dbName],
+  );
+  if (srCol[0].cnt > 0) {
+    await connection.query(`ALTER TABLE ShipperRequest DROP COLUMN queueOrganizationUniqueId`);
+    logger.info("Migration: dropped legacy ShipperRequest.queueOrganizationUniqueId column");
   }
 };
 
@@ -555,8 +592,8 @@ const createTable = async () => {
     // Run the full schema (all CREATE TABLE IF NOT EXISTS statements)
     await adminConnection.query(sqlQuery);
 
-    // Idempotently add ShipperRequest.queueOrganizationUniqueId index + FK (see
-    // ensureQueueOrgReferences). Must run while this connection still has the DB selected.
+    // Idempotently enforce the BATCH-canonical queueOrganizationUniqueId model
+    // (see ensureQueueOrgReferences). Must run while this connection still has the DB selected.
     await ensureQueueOrgReferences(adminConnection);
 
     // Idempotently enforce "one active request per driver" at the DB level
