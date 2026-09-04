@@ -215,3 +215,10 @@ router.get("/bidding/order/:shipperRequestUniqueId/bids", validator(getBidsParam
    (checked into the order's queue org today) are selected before non-queued, both nearest-first,
    filling up to the 5-slot cap. Only applies when `queueOrganizationUniqueId` is set; non-queue
    orders keep pure nearest-distance selection.
+10. **Re-check-in creates new data** — every call to `checkin` for a driver who already has an entry at
+    the same org today SOFT-DELETES the previous entry (`status='removed'` + `queueDeletedAt`) and
+    inserts a brand-new row with a **fresh `queueUniqueId`** and a **fresh back-of-line `queueNumber`**.
+    There is deliberately NO `UNIQUE(vehicleDriverUniqueId, org, date)` key (dropped via migration
+    `ensureDriverQueueNoUniqueVehicleDay`); the live entry is always the one with `queueDeletedAt IS
+    NULL`. This keeps each check-in's queue data unique for audit/history, and a re-checking driver no
+    longer retains their old position.

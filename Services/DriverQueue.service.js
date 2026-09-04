@@ -477,10 +477,12 @@ const hasActiveJourney = async (executor, driverUserUniqueId) => {
 
 /**
  * Driver's queue entries for today (across all orgs — fence). Returns:
- * - `active`: first entry still in the queue (blocks re-checkin), or null
- * - `atOrg`: existing entry at the target org (revived on re-checkin so the
- *   (vehicleDriverUniqueId, queueOrganizationUniqueId, queueDate) unique key is
- *   reused instead of colliding), or null
+ * - `active`: first entry still in the queue (blocks re-checkin in another
+ *   org), or null. Any non-deleted row with an in-queue status counts.
+ * - `atOrg`: the latest live (non-removed, non-deleted) entry at the target
+ *   org, or null. This is the entry that re-check-in RETIRES (soft-deletes)
+ *   before inserting a brand-new row, so it is always the newest one at the
+ *   org — there is intentionally no unique key on (vehicle, org, day).
  */
 const getDriverQueueState = async (
   executor,
@@ -494,12 +496,15 @@ const getDriverQueueState = async (
      FROM DriverQueue dq
      JOIN QueueOrganization o ON o.queueOrganizationUniqueId = dq.queueOrganizationUniqueId
      JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
-     WHERE dq.queueDate = ? AND vd.driverUserUniqueId = ? AND dq.queueDeletedAt IS NULL`,
+     WHERE dq.queueDate = ? AND vd.driverUserUniqueId = ? AND dq.queueDeletedAt IS NULL
+     ORDER BY dq.queueId DESC`,
     [queueDate, driverUserUniqueId],
   );
   const active = rows.find((r) => IN_QUEUE_STATUSES.includes(r.status)) || null;
   const atOrg =
-    rows.find((r) => r.queueOrganizationUniqueId === targetOrgId) || null;
+    rows.find(
+      (r) => r.queueOrganizationUniqueId === targetOrgId && r.status !== "removed",
+    ) || null;
   return { active, atOrg, rows };
 };
 
@@ -512,11 +517,12 @@ const getDriverQueueState = async (
  * 2. Verify org exists, is approved, and queueEnabled
  * 3. Validate driver proximity to org (if org has checkinRadiusKm set)
  * 4. Fence: reject if driver has an active journey (status 4,3,5,6,7,8)
- * 5. Fence: one queue per driver per day system-wide
- * 6a. If driver already has an entry at this org today → idempotent re-check-in
- *     (preserves queueNumber, updates status to 'waiting', optionally updates shipper target)
- * 6b. If driver had a removed entry at this org today → revive (restore queueNumber)
- * 6c. If no entry today → create new entry with next available queueNumber
+ * 5. Fence: one ACTIVE queue per driver per day system-wide (other-org → 409)
+ * 6. Re-check-in creates BRAND-NEW data: if the driver already has an entry at
+ *    this org today (active or leftover), soft-delete it (status 'removed') and
+ *    insert a fresh row with a NEW queueUniqueId and a NEW back-of-line
+ *    queueNumber. The shipper reservation is freed and re-applied only when a
+ *    new phone is provided. Every check-in therefore yields unique queue data.
  * 7. Auto-dispatch: try to match oldest pending order of this vehicle type
  *
  * @param {object} data
@@ -587,206 +593,98 @@ exports.checkin = async (data) => {
     };
   }
 
-  // FENCE: driver can only be in ONE queue system-wide per day. Removed/agreed
-  // entries are free, so re-checkin revives the same-org entry instead of
-  // colliding with the (vehicleDriverUniqueId, org, date) unique key.
+  // FENCE: driver can only be in ONE ACTIVE queue system-wide per day; an
+  // active entry in a different org is rejected below. Re-check-in at the same
+  // org retires the prior entry and inserts a brand-new row (fresh queueUniqueId),
+  // so there is no unique key on (vehicleDriverUniqueId, org, date).
   const { active, atOrg } = await getDriverQueueState(
     executor,
     vehicleDriver.driverUserUniqueId,
     queueDate,
     queueOrganizationUniqueId,
   );
-  if (active) {
-    if (active.queueOrganizationUniqueId !== queueOrganizationUniqueId) {
-      // FENCE: the driver is already active in ANOTHER org today. One queue
-      // per driver per day system-wide — reject rather than silently return
-      // another org's entry.
-      throw new AppError(
-        "Driver is already in a queue for today — one queue per day",
-        AppError.CONFLICT,
-      );
-    }
-    // Idempotent: already in THIS queue today — return the existing entry.
-    // Update targetedShipperUserUUID ONLY if a new phone number was explicitly provided.
-    // Without this guard, re-checking in without a phone silently clears the reservation.
-    if (data.shipperPhoneNumber !== undefined) {
-      await logQueueHistory(executor, {
-        queueUniqueId: active.queueUniqueId,
-        columnName: "targetedShipperUserUUID",
-        oldValue: active.targetedShipperUserUUID,
-        newValue: targetedShipperUserUUID || null,
-        performedBy: user.userUniqueId,
-      });
-      await updateData({
-        tableName: "DriverQueue",
-        updateValues: {
-          targetedShipperUserUUID: targetedShipperUserUUID || null,
-          queueUpdatedAt: currentDate(),
-          queueUpdatedBy: user.userUniqueId,
-        },
-        conditions: { queueId: active.queueId },
-      });
-    }
-    // Update driver location on re-checkin
-    if (driverLatitude !== null && driverLongitude !== null) {
-      await logQueueHistory(executor, {
-        queueUniqueId: active.queueUniqueId,
-        columnName: "driverLatitude",
-        oldValue: active.driverLatitude,
-        newValue: driverLatitude,
-        performedBy: user.userUniqueId,
-      });
-      await logQueueHistory(executor, {
-        queueUniqueId: active.queueUniqueId,
-        columnName: "driverLongitude",
-        oldValue: active.driverLongitude,
-        newValue: driverLongitude,
-        performedBy: user.userUniqueId,
-      });
-      await updateData({
-        tableName: "DriverQueue",
-        updateValues: {
-          driverLatitude,
-          driverLongitude,
-          queueUpdatedAt: currentDate(),
-          queueUpdatedBy: user.userUniqueId,
-        },
-        conditions: { queueId: active.queueId },
-      });
-    }
-    // Notify shipper if a target was set
-    if (targetedShipperUserUUID) {
-      notifyShipperOfQueueReservation({
-        executor,
-        targetedShipperUserUUID,
-        driverFullName: vehicleDriver.fullName,
-        driverPhoneNumber: vehicleDriver.phoneNumber,
-        queueOrganizationUniqueId,
-        queueNumber: active.queueNumber,
-      });
-    }
-    // Still rescan: the front-driver of this type may be waiting on an order
-    // that outlived the queue (empty at creation / all rejected).
-    await rescanPendingQueueOrder({
-      queueOrganizationUniqueId,
-      vehicleTypeUniqueId: vehicleDriver.vehicleTypeUniqueId,
-      user,
-    });
-    await emitQueueSnapshot({ queueOrganizationUniqueId, queueDate });
-    notifyQueueOrgAdmins({
-      queueOrganizationUniqueId,
-      messageType: "queue_position_changed",
-    });
-    return {
-      message: "success",
-      data: {
-        queueUniqueId: active.queueUniqueId,
-        queueOrganizationUniqueId: active.queueOrganizationUniqueId,
-        queueDate,
-        queueNumber: active.queueNumber,
-        position: active.queueNumber,
-        vehicleTypeUniqueId: vehicleDriver.vehicleTypeUniqueId,
-      },
-    };
+  if (active && active.queueOrganizationUniqueId !== queueOrganizationUniqueId) {
+    // FENCE: the driver is already active in ANOTHER org today. One queue
+    // per driver per day system-wide — reject rather than silently return
+    // another org's entry.
+    throw new AppError(
+      "Driver is already in a queue for today — one queue per day",
+      AppError.CONFLICT,
+    );
   }
 
-  let queueUniqueId;
-  let queueNumber;
+  // Capture the driver's location at check-in time (fall back to the prior
+  // entry's coordinates when the caller didn't send fresh GPS).
+  const checkInLat = driverLatitude ?? atOrg?.driverLatitude ?? null;
+  const checkInLng = driverLongitude ?? atOrg?.driverLongitude ?? null;
+
+  // Carry over the shipper reservation from the prior entry ONLY when the
+  // caller did NOT provide a phone number (this is an implicit re-check-in).
+  // An explicit shipperPhoneNumber always re-targets the reservation.
+  const preserveTarget =
+    data.shipperPhoneNumber === undefined && atOrg
+      ? atOrg.targetedShipperUserUUID || null
+      : targetedShipperUserUUID || null;
+
+  // RE-CHECK-IN creates BRAND-NEW data: a fresh queueUniqueId and a fresh
+  // queueNumber (back of line). Retire the previous same-day entry (soft-delete)
+  // so the new row is the only active one and the shipper reservation is freed.
   if (atOrg) {
-    // Re-check-in: revive the previous entry for the same org + day.
-    // Keep the existing queueNumber so the driver doesn't lose their position.
-    queueNumber = atOrg.queueNumber;
-    queueUniqueId = atOrg.queueUniqueId;
-
-    // Only update targetedShipperUserUUID if phone was explicitly provided.
-    // Preserve existing reservation otherwise.
-    const newTarget = data.shipperPhoneNumber !== undefined
-      ? targetedShipperUserUUID || null
-      : atOrg.targetedShipperUserUUID;
-
     await logQueueHistory(executor, {
       queueUniqueId: atOrg.queueUniqueId,
       columnName: "status",
       oldValue: atOrg.status,
-      newValue: "waiting",
+      newValue: "removed",
       performedBy: user.userUniqueId,
     });
-    await logQueueHistory(executor, {
-      queueUniqueId: atOrg.queueUniqueId,
-      columnName: "targetedShipperUserUUID",
-      oldValue: atOrg.targetedShipperUserUUID,
-      newValue: newTarget,
-      performedBy: user.userUniqueId,
-    });
-    if (driverLatitude !== null && driverLongitude !== null) {
-      await logQueueHistory(executor, {
-        queueUniqueId: atOrg.queueUniqueId,
-        columnName: "driverLatitude",
-        oldValue: atOrg.driverLatitude,
-        newValue: driverLatitude,
-        performedBy: user.userUniqueId,
-      });
-      await logQueueHistory(executor, {
-        queueUniqueId: atOrg.queueUniqueId,
-        columnName: "driverLongitude",
-        oldValue: atOrg.driverLongitude,
-        newValue: driverLongitude,
-        performedBy: user.userUniqueId,
-      });
-    }
     await updateData({
       tableName: "DriverQueue",
       updateValues: {
-        status: "waiting",
-        queueNumber,
-        queueRefusalCount: 0,
-        joinedAt: currentDate(),
-        requestedAt: null,
-        agreedAt: null,
+        status: "removed",
         shipperRequestUniqueId: null,
-        targetedShipperUserUUID: newTarget,
-        driverLatitude: driverLatitude || atOrg.driverLatitude,
-        driverLongitude: driverLongitude || atOrg.driverLongitude,
+        targetedShipperUserUUID: null,
         queueUpdatedAt: currentDate(),
         queueUpdatedBy: user.userUniqueId,
+        queueDeletedAt: currentDate(),
+        queueDeletedBy: user.userUniqueId,
       },
       conditions: { queueId: atOrg.queueId },
     });
-  } else {
-    queueNumber = await nextQueueNumber(
-      executor,
-      queueOrganizationUniqueId,
-      queueDate,
-      vehicleDriver.vehicleTypeUniqueId,
-    );
+  }
 
-    queueUniqueId = uuidv4();
-    try {
-      await createData({
-        tableName: "DriverQueue",
-        insertValues: {
-          queueUniqueId,
-          queueOrganizationUniqueId,
-          queueDate,
-          queueNumber,
-          vehicleDriverUniqueId,
-          targetedShipperUserUUID,
-          driverLatitude,
-          driverLongitude,
-          joinedAt: currentDate(),
-          status: "waiting",
-          queueCreatedBy: user.userUniqueId,
-        },
-      });
-    } catch (error) {
-      if (error.code === "ER_DUP_ENTRY") {
-        throw new AppError(
-          "Driver is already in the queue for this day",
-          AppError.CONFLICT,
-        );
-      }
-      throw error;
+  const queueUniqueId = uuidv4();
+  const queueNumber = await nextQueueNumber(
+    executor,
+    queueOrganizationUniqueId,
+    queueDate,
+    vehicleDriver.vehicleTypeUniqueId,
+  );
+
+  try {
+    await createData({
+      tableName: "DriverQueue",
+      insertValues: {
+        queueUniqueId,
+        queueOrganizationUniqueId,
+        queueDate,
+        queueNumber,
+        vehicleDriverUniqueId,
+        targetedShipperUserUUID: preserveTarget,
+        driverLatitude: checkInLat,
+        driverLongitude: checkInLng,
+        joinedAt: currentDate(),
+        status: "waiting",
+        queueCreatedBy: user.userUniqueId,
+      },
+    });
+  } catch (error) {
+    if (error.code === "ER_DUP_ENTRY") {
+      throw new AppError(
+        "Driver is already in the queue for this day",
+        AppError.CONFLICT,
+      );
     }
+    throw error;
   }
 
   // Check-in auto-offer: pair the oldest pending queue order of this driver's
@@ -1158,6 +1056,12 @@ exports.getQueueStatus = async (queueOrganizationUniqueId, query) => {
 
 /**
  * QueueOrgAdmin manually checks a driver/vehicle into the queue.
+ *
+ * Mirrors `checkin`'s create-new-data rule: if the driver already has an entry
+ * at this org today (active or leftover), it is soft-deleted (`status='removed'`
+ * + `queueDeletedAt`) and a brand-new row is inserted with a fresh queueUniqueId
+ * and a fresh back-of-line queueNumber. Every manual check-in therefore yields
+ * unique queue data; there is no one-entry-per-(vehicle, org, day) constraint.
  */
 exports.manualCheckin = async (data) => {
   const {
@@ -1201,112 +1105,84 @@ exports.manualCheckin = async (data) => {
     );
   }
 
-  // FENCE: driver can only be in ONE queue system-wide per day. Removed/agreed
-  // entries are free, so re-checkin revives the same-org entry instead of
-  // colliding with the (vehicleDriverUniqueId, org, date) unique key.
+  // FENCE: driver can only be in ONE ACTIVE queue system-wide per day; an
+  // active entry in a different org is rejected below. Re-check-in at the same
+  // org retires the prior entry and inserts a brand-new row (fresh queueUniqueId),
+  // so there is no unique key on (vehicleDriverUniqueId, org, date).
   const { active, atOrg } = await getDriverQueueState(
     executor,
     vehicleDriver.driverUserUniqueId,
     queueDate,
     queueOrganizationUniqueId,
   );
-  if (active) {
-    if (active.queueOrganizationUniqueId !== queueOrganizationUniqueId) {
-      // FENCE: driver already active in another org today.
-      throw new AppError(
-        "Driver is already in a queue for today — one queue per day",
-        AppError.CONFLICT,
-      );
-    }
-    // Idempotent: already in THIS queue today — return the existing entry.
-    await emitQueueSnapshot({ queueOrganizationUniqueId, queueDate });
-    notifyQueueOrgAdmins({
-      queueOrganizationUniqueId,
-      messageType: "queue_position_changed",
-    });
-    return {
-      message: "success",
-      data: {
-        queueUniqueId: active.queueUniqueId,
-        queueNumber: active.queueNumber,
-        status: active.status,
-      },
-    };
+  if (active && active.queueOrganizationUniqueId !== queueOrganizationUniqueId) {
+    // FENCE: driver is already active in ANOTHER org today. One queue per
+    // driver per day system-wide — reject rather than silently return.
+    throw new AppError(
+      "Driver is already in a queue for today — one queue per day",
+      AppError.CONFLICT,
+    );
   }
 
-  let queueUniqueId;
-  let assignedNumber;
+  // RE-CHECK-IN creates BRAND-NEW data: retire any prior same-day entry at this
+  // org (soft-delete) and insert a fresh row with a new queueUniqueId +
+  // back-of-line queueNumber. There is no unique key on (vehicle, org, day),
+  // so multiple historical rows per driver/org/day are retained; the live one
+  // is always the newest with queueDeletedAt IS NULL.
   if (atOrg) {
-    // Re-check-in: revive the previous entry for the same org + day.
-    assignedNumber = await nextQueueNumber(
-        executor,
-        queueOrganizationUniqueId,
-        queueDate,
-        vehicleDriver.vehicleTypeUniqueId,
-      );
-    queueUniqueId = atOrg.queueUniqueId;
     await logQueueHistory(executor, {
       queueUniqueId: atOrg.queueUniqueId,
       columnName: "status",
       oldValue: atOrg.status,
-      newValue: "waiting",
-      performedBy: user.userUniqueId,
-    });
-    await logQueueHistory(executor, {
-      queueUniqueId: atOrg.queueUniqueId,
-      columnName: "targetedShipperUserUUID",
-      oldValue: atOrg.targetedShipperUserUUID,
-      newValue: targetedShipperUserUUID || null,
+      newValue: "removed",
       performedBy: user.userUniqueId,
     });
     await updateData({
       tableName: "DriverQueue",
       updateValues: {
-        status: "waiting",
-        queueNumber: assignedNumber,
-        joinedAt: currentDate(),
-        requestedAt: null,
-        agreedAt: null,
+        status: "removed",
         shipperRequestUniqueId: null,
-        targetedShipperUserUUID: targetedShipperUserUUID || null,
+        targetedShipperUserUUID: null,
         queueUpdatedAt: currentDate(),
         queueUpdatedBy: user.userUniqueId,
+        queueDeletedAt: currentDate(),
+        queueDeletedBy: user.userUniqueId,
       },
       conditions: { queueId: atOrg.queueId },
     });
-  } else {
-    assignedNumber = await nextQueueNumber(
-        executor,
+  }
+
+  const queueUniqueId = uuidv4();
+  const assignedNumber = await nextQueueNumber(
+    executor,
+    queueOrganizationUniqueId,
+    queueDate,
+    vehicleDriver.vehicleTypeUniqueId,
+  );
+
+  try {
+    await createData({
+      tableName: "DriverQueue",
+      insertValues: {
+        queueUniqueId,
         queueOrganizationUniqueId,
         queueDate,
-        vehicleDriver.vehicleTypeUniqueId,
+        queueNumber: assignedNumber,
+        vehicleDriverUniqueId,
+        targetedShipperUserUUID,
+        joinedAt: currentDate(),
+        status: "waiting",
+        queueCreatedBy: user.userUniqueId,
+      },
+    });
+  } catch (error) {
+    if (error.code === "ER_DUP_ENTRY") {
+      throw new AppError(
+        "Driver is already in the queue for this day",
+        AppError.CONFLICT,
       );
-
-    queueUniqueId = uuidv4();
-    try {
-      await createData({
-        tableName: "DriverQueue",
-        insertValues: {
-          queueUniqueId,
-          queueOrganizationUniqueId,
-          queueDate,
-          queueNumber: assignedNumber,
-          vehicleDriverUniqueId,
-          targetedShipperUserUUID,
-          joinedAt: currentDate(),
-          status: "waiting",
-          queueCreatedBy: user.userUniqueId,
-        },
-      });
-    } catch (error) {
-      if (error.code === "ER_DUP_ENTRY") {
-        throw new AppError(
-          "Driver is already in the queue for this day",
-          AppError.CONFLICT,
-        );
-      }
-      throw error;
     }
+    throw error;
   }
 
   await emitQueueSnapshot({ queueOrganizationUniqueId, queueDate });

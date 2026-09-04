@@ -2156,13 +2156,20 @@ CREATE TABLE IF NOT EXISTS QueueOrganizationMembership (
 );
 
 -- DriverQueue: the virtual waiting line for a queue organization's drivers.
--- One entry per vehicle (VehicleDriver) per queue org per day.
 -- queueNumber is issued per (queueOrganizationUniqueId, queueDate, vehicleTypeUniqueId)
 -- and (with joinedAt) is the server-stamped dispatch order / dispute truth.
 -- Driver/vehicle type are NOT stored here: driver via VehicleDriver.driverUserUniqueId,
 -- type via VehicleDriver.vehicleUniqueId → Vehicle.vehicleTypeUniqueId.
 -- shipperRequestUniqueId links the order assigned to this entry (same record type
 -- as takeFromStreet / call-in orders, continuing the JourneyDecision → Journey lifecycle).
+--
+-- NOTE on re-check-in: each re-check-in SOFT-DELETES the previous entry for the same
+-- (vehicle, org, day) and inserts a BRAND-NEW row with a fresh queueUniqueId + fresh
+-- queueNumber (back of line). There is intentionally NO unique key on
+-- (vehicleDriverUniqueId, queueOrganizationUniqueId, queueDate) — multiple rows per
+-- vehicle/org/day are allowed so that every check-in produces new, unique data. The
+-- "current" entry is always the one with queueDeletedAt IS NULL; superseded rows are
+-- retained as 'removed' history (audit via DriverQueueHistory keyed by queueUniqueId).
 
 CREATE TABLE IF NOT EXISTS DriverQueue (
     queueId INT AUTO_INCREMENT PRIMARY KEY,
@@ -2194,8 +2201,8 @@ CREATE TABLE IF NOT EXISTS DriverQueue (
     queueUpdatedBy VARCHAR(36) NULL,
     queueDeletedAt DATETIME NULL,
     queueDeletedBy VARCHAR(36) NULL,
-    UNIQUE KEY uq_queue_vehicle_day (vehicleDriverUniqueId, queueOrganizationUniqueId, queueDate),  -- One entry per vehicle/day
     INDEX idx_queue_org_date_number (queueOrganizationUniqueId, queueDate, queueNumber),
+    INDEX idx_queue_vehicle_org_date (vehicleDriverUniqueId, queueOrganizationUniqueId, queueDate),
     INDEX idx_queue_status (status),
     INDEX idx_queue_vehicle (vehicleDriverUniqueId),
     INDEX idx_queue_shipperRequest (shipperRequestUniqueId),

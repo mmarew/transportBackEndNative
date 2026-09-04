@@ -121,6 +121,49 @@ const ensureQueueOrgReferences = async (connection) => {
 };
 
 /**
+ * Idempotently drop the DriverQueue `uq_queue_vehicle_day` UNIQUE key.
+ *
+ * Re-check-in now RETIRES the previous same-day entry (soft-delete) and inserts
+ * a brand-new row with a fresh queueUniqueId + back-of-line queueNumber, so a
+ * driver can legitimately hold multiple rows per (vehicle, org, day) — only one
+ * of which is live (queueDeletedAt IS NULL). The hard UNIQUE key from earlier
+ * schema versions would block that. Dropping it (and adding a plain index for
+ * lookups) is idempotent, so existing databases converge on next boot.
+ */
+const ensureDriverQueueNoUniqueVehicleDay = async (connection) => {
+  const dbName = dbConfig.database;
+
+  const [idxRows] = await connection.query(
+    `SELECT COUNT(*) AS cnt FROM information_schema.statistics
+     WHERE table_schema = ? AND table_name = 'DriverQueue' AND index_name = 'uq_queue_vehicle_day'`,
+    [dbName],
+  );
+  if (idxRows[0].cnt > 0) {
+    await connection.query(
+      `ALTER TABLE DriverQueue DROP INDEX uq_queue_vehicle_day`,
+    );
+    logger.info(
+      "Migration: dropped DriverQueue.uq_queue_vehicle_day unique index",
+    );
+  }
+
+  const [coveredRows] = await connection.query(
+    `SELECT COUNT(*) AS cnt FROM information_schema.statistics
+     WHERE table_schema = ? AND table_name = 'DriverQueue' AND index_name = 'idx_queue_vehicle_org_date'`,
+    [dbName],
+  );
+  if (coveredRows[0].cnt === 0) {
+    await connection.query(
+      `ALTER TABLE DriverQueue
+       ADD INDEX idx_queue_vehicle_org_date (vehicleDriverUniqueId, queueOrganizationUniqueId, queueDate)`,
+    );
+    logger.info(
+      "Migration: added DriverQueue.idx_queue_vehicle_org_date index",
+    );
+  }
+};
+
+/**
  * Idempotently enforce "one active request per driver" at the DB level.
  *
  * Adds a STORED generated column `activeRequestGuard` to DriverRequest that is
@@ -595,6 +638,11 @@ const createTable = async () => {
     // Idempotently enforce the BATCH-canonical queueOrganizationUniqueId model
     // (see ensureQueueOrgReferences). Must run while this connection still has the DB selected.
     await ensureQueueOrgReferences(adminConnection);
+
+    // Idempotently drop DriverQueue's legacy one-entry-per-day UNIQUE key so
+    // re-check-in can insert a brand-new row (fresh queueUniqueId) — see
+    // ensureDriverQueueNoUniqueVehicleDay.
+    await ensureDriverQueueNoUniqueVehicleDay(adminConnection);
 
     // Idempotently enforce "one active request per driver" at the DB level
     // (see ensureDriverActiveRequestGuard). Must run while this connection still
