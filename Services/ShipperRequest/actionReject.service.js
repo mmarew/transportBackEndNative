@@ -115,30 +115,21 @@ const rejectDriverOffer = async body => {
     }
 
     // Queue-dispatch orders: the rejected driver keeps their queue position,
-    // and the ORDER advances to the next driver in line.
-    const [shipperRequestRow] = await getData({
-      tableName: "ShipperRequest",
-      conditions: {
-        shipperRequestUniqueId: body.shipperRequestUniqueId
-      }
-    });
-    if (shipperRequestRow?.queueOrganizationUniqueId) {
-      const { rejectOffer } = require("../DriverQueue.service");
-      try {
-        await rejectOffer({
-          queueOrganizationUniqueId: shipperRequestRow.queueOrganizationUniqueId,
-          shipperRequestUniqueId: body.shipperRequestUniqueId,
-          user: {
-            userUniqueId:
-              body.userUniqueId || shipperRequestRow.shipperRequestCreatedBy,
-          },
-        });
-      } catch (error) {
-        logger.error("Error advancing queue order after shipper reject", {
-          error: error.message,
-          shipperRequestUniqueId: body.shipperRequestUniqueId,
-        });
-      }
+    // and the ORDER advances to the next driver in line. rejectOffer is a safe
+    // no-op when no queue entry currently holds this order.
+    const { rejectOffer } = require("../DriverQueue.service");
+    try {
+      await rejectOffer({
+        shipperRequestUniqueId: body.shipperRequestUniqueId,
+        user: {
+          userUniqueId: body.userUniqueId || body.shipperRequestCreatedBy,
+        },
+      });
+    } catch (error) {
+      logger.error("Error advancing queue order after shipper reject", {
+        error: error.message,
+        shipperRequestUniqueId: body.shipperRequestUniqueId,
+      });
     }
 
     // Fetch driver and shipper data for notification

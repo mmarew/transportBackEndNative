@@ -288,13 +288,11 @@ const cancelDriverRequest = async (data) => {
     if (
       shipperRequestUniqueId &&
       userUniqueId === ownerUserUniqueId &&
-      journeyStatusId === journeyStatusMap.rejectedByDriver &&
-      shipper?.[0]?.queueOrganizationUniqueId
+      journeyStatusId === journeyStatusMap.rejectedByDriver
     ) {
       const { rejectOffer } = require("../DriverQueue.service");
       try {
         await rejectOffer({
-          queueOrganizationUniqueId: shipper[0].queueOrganizationUniqueId,
           shipperRequestUniqueId,
           user,
           driverUserUniqueId: ownerUserUniqueId,

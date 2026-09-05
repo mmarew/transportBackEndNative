@@ -1237,7 +1237,7 @@ exports.manualCheckin = async (data) => {
         queueOrganizationUniqueId,
         queueDate,
         queueNumber: assignedNumber,
-        vehicleDriverUniqueId,
+        vehicleDriverUniqueId: vehicleDriver.vehicleDriverUniqueId,
         targetedShipperUserUUID,
         joinedAt: currentDate(),
         status: "waiting",
@@ -1359,18 +1359,24 @@ exports.removeEntry = async (queueUniqueId, user) => {
   const executor = db();
 
   const [rows] = await executor.query(
-    `SELECT queueId, queueOrganizationUniqueId, queueDate, vehicleDriverUniqueId, queueUniqueId, status
-     FROM DriverQueue WHERE queueUniqueId = ? AND queueDeletedAt IS NULL`,
+    `SELECT dq.queueId, dq.queueOrganizationUniqueId, dq.queueDate, dq.queueNumber,
+            dq.vehicleDriverUniqueId, dq.queueUniqueId, dq.status,
+            dq.shipperRequestUniqueId, v.vehicleTypeUniqueId
+     FROM DriverQueue dq
+     JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+     JOIN Vehicle v         ON v.vehicleUniqueId        = vd.vehicleUniqueId
+     WHERE dq.queueUniqueId = ? AND dq.queueDeletedAt IS NULL`,
     [queueUniqueId],
   );
   if (rows.length === 0) {
     throw new AppError("Queue entry not found", AppError.NOT_FOUND);
   }
+  const entry = rows[0];
 
   await logQueueHistory(executor, {
-    queueUniqueId: rows[0].queueUniqueId,
+    queueUniqueId: entry.queueUniqueId,
     columnName: "status",
-    oldValue: rows[0].status,
+    oldValue: entry.status,
     newValue: "removed",
     performedBy: user.userUniqueId,
   });
@@ -1378,35 +1384,119 @@ exports.removeEntry = async (queueUniqueId, user) => {
     tableName: "DriverQueue",
     updateValues: {
       status: "removed",
+      shipperRequestUniqueId: null,
       queueUpdatedAt: currentDate(),
       queueUpdatedBy: user.userUniqueId,
     },
-    conditions: { queueId: rows[0].queueId },
+    conditions: { queueId: entry.queueId },
   });
 
   await createData({
     tableName: "QueueAuditLog",
     insertValues: {
       queueAuditUniqueId: uuidv4(),
-      queueOrganizationUniqueId: rows[0].queueOrganizationUniqueId,
-      queueDate: rows[0].queueDate,
-      queueUniqueId: rows[0].queueUniqueId,
+      queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+      queueDate: entry.queueDate,
+      queueUniqueId: entry.queueUniqueId,
       action: "remove",
+      beforeValue: JSON.stringify({ status: entry.status }),
       afterValue: JSON.stringify({ status: "removed" }),
       performedBy: user.userUniqueId,
     },
   });
 
+  // Release a live offer: if the driver currently holds an unresolved
+  // (requested) order on this entry, terminalize their active DriverRequest +
+  // JourneyDecision and return the order to the queue so it advances to the
+  // next eligible driver. Mirrors checkout semantics — a removed/checked-out
+  // driver must not keep an active offer or leave an orphaned status-2 journey.
+  const releasedOrder = entry.status === "requested" ? entry.shipperRequestUniqueId : null;
+  if (releasedOrder) {
+    await releaseRequestedOffer({ executor, entry, user });
+    const next = await offerToNextDriver({
+      executor,
+      queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+      queueDate: entry.queueDate,
+      vehicleTypeUniqueId: entry.vehicleTypeUniqueId,
+      afterQueueNumber: entry.queueNumber,
+      excludeVehicleDriverUniqueId: entry.vehicleDriverUniqueId,
+      shipperRequestUniqueId: releasedOrder,
+      user,
+    });
+    await emitQueueSnapshot({
+      queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+      queueDate: entry.queueDate,
+    });
+    notifyQueueOrgAdmins({
+      queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+      messageType: "queue_order_rejected",
+    });
+    return {
+      message: "success",
+      data: { queueUniqueId, status: "removed", releasedOrder, ...next },
+    };
+  }
+
   await emitQueueSnapshot({
-    queueOrganizationUniqueId: rows[0].queueOrganizationUniqueId,
-    queueDate: rows[0].queueDate,
+    queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+    queueDate: entry.queueDate,
   });
   notifyQueueOrgAdmins({
-    queueOrganizationUniqueId: rows[0].queueOrganizationUniqueId,
+    queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
     messageType: "queue_removed",
   });
 
-  return { message: "success", data: { queueUniqueId, status: "removed" } };
+  return { message: "success", data: { queueUniqueId, status: "removed", releasedOrder } };
+};
+
+/**
+ * Terminalize a driver's active (requested) offer for the order currently
+ * linked to the given queue entry — moves both the JourneyDecision and the
+ * DriverRequest to a terminal cancelled-by-admin state (freeing the driver for
+ * future offers) and clears the entry's order link. Used by removeEntry and
+ * checkout to avoid leaving orphaned status-2 active journeys.
+ */
+const releaseRequestedOffer = async ({ executor, entry, user }) => {
+  const now = currentDate();
+
+  if (entry.shipperRequestUniqueId) {
+    await logQueueHistory(executor, {
+      queueUniqueId: entry.queueUniqueId,
+      columnName: "shipperRequestUniqueId",
+      oldValue: entry.shipperRequestUniqueId,
+      newValue: null,
+      performedBy: user.userUniqueId,
+    });
+  }
+
+  // Terminalize any active DriverRequest + JourneyDecision for this driver and
+  // the linked order. The driver may hold multiple historical offers, so we
+  // match on the order currently linked AND a still-active (requested) status.
+  await executor.query(
+    `UPDATE JourneyDecisions jd
+     JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+     JOIN ShipperRequest sr ON sr.shipperRequestId = jd.shipperRequestId
+     JOIN VehicleDriver vd ON vd.driverUserUniqueId = dr.userUniqueId
+     SET jd.journeyStatusId = ?, jd.journeyDecisionUpdatedAt = ?,
+         jd.journeyDecisionUpdatedBy = ?,
+         jd.isCancellationByDriverSeenByShipper = 'no need to see it',
+         dr.journeyStatusId = ?, dr.driverRequestUpdatedAt = ?,
+         dr.driverRequestUpdatedBy = ?
+     WHERE sr.shipperRequestUniqueId = ? AND dr.journeyStatusId IN (?, ?)
+       AND vd.vehicleDriverUniqueId = ?`,
+    [
+      journeyStatusMap.cancelledByAdmin,
+      now,
+      user.userUniqueId,
+      journeyStatusMap.cancelledByAdmin,
+      now,
+      user.userUniqueId,
+      entry.shipperRequestUniqueId,
+      journeyStatusMap.requested,
+      journeyStatusMap.acceptedByShipper,
+      entry.vehicleDriverUniqueId,
+    ],
+  );
 };
 
 const getShipperRequest = async (executor, shipperRequestUniqueId) => {

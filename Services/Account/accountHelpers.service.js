@@ -1,23 +1,14 @@
 "use strict";
 
-
-
-
-
-
 const logger = require("../../Utils/logger");
-const {
-  pool
-} = require("../../Middleware/Database.config");
+const { pool } = require("../../Middleware/Database.config");
 
 const {
   getUserSubscriptionsWithFilters,
   createUserSubscription,
-  getSubscriptionData
+  getSubscriptionData,
 } = require("../UserSubscription");
 const AppError = require("../../Utils/AppError");
-
-
 
 /**
  * @fileoverview Account Service
@@ -84,38 +75,64 @@ const validateAccountStatusParams = ({
   email,
   user,
   body,
-  enableDocumentChecks
+  enableDocumentChecks,
 }) => {
   // Check if at least one user identifier is provided
-  const hasUserIdentifier = ownerUserUniqueId || phoneNumber || email || user?.userUniqueId;
+  const hasUserIdentifier =
+    ownerUserUniqueId || phoneNumber || email || user?.userUniqueId;
   if (!hasUserIdentifier) {
-    throw new AppError("At least one user identifier is required: ownerUserUniqueId, phoneNumber, email, or user.userUniqueId", AppError.BAD_REQUEST);
+    throw new AppError(
+      "At least one user identifier is required: ownerUserUniqueId, phoneNumber, email, or user.userUniqueId",
+      AppError.BAD_REQUEST,
+    );
   }
 
   // Validate ownerUserUniqueId if provided (not null/undefined)
-  if (ownerUserUniqueId !== undefined && ownerUserUniqueId !== null && (typeof ownerUserUniqueId !== "string" || ownerUserUniqueId.trim() === "")) {
-    throw new AppError("ownerUserUniqueId must be a non-empty string", AppError.BAD_REQUEST);
+  if (
+    ownerUserUniqueId !== undefined &&
+    ownerUserUniqueId !== null &&
+    (typeof ownerUserUniqueId !== "string" || ownerUserUniqueId.trim() === "")
+  ) {
+    throw new AppError(
+      "ownerUserUniqueId must be a non-empty string",
+      AppError.BAD_REQUEST,
+    );
   }
 
   // If ownerUserUniqueId is not provided, require phoneNumber or email
   if (!ownerUserUniqueId && !phoneNumber && !email) {
-    throw new AppError("Either ownerUserUniqueId, phoneNumber, or email must be provided to identify the user", AppError.BAD_REQUEST);
+    throw new AppError(
+      "Either ownerUserUniqueId, phoneNumber, or email must be provided to identify the user",
+      AppError.BAD_REQUEST,
+    );
   }
 
   // Validate phoneNumber if provided
-  if (phoneNumber !== undefined && (typeof phoneNumber !== "string" || phoneNumber.trim() === "")) {
-    throw new AppError("phoneNumber must be a non-empty string", AppError.BAD_REQUEST);
+  if (
+    phoneNumber !== undefined &&
+    (typeof phoneNumber !== "string" || phoneNumber.trim() === "")
+  ) {
+    throw new AppError(
+      "phoneNumber must be a non-empty string",
+      AppError.BAD_REQUEST,
+    );
   }
 
   // Validate email if provided
   if (email !== undefined) {
     if (typeof email !== "string" || email.trim() === "") {
-      throw new AppError("email must be a non-empty string", AppError.BAD_REQUEST);
+      throw new AppError(
+        "email must be a non-empty string",
+        AppError.BAD_REQUEST,
+      );
     }
     // Basic email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      throw new AppError("email must be a valid email address", AppError.BAD_REQUEST);
+      throw new AppError(
+        "email must be a valid email address",
+        AppError.BAD_REQUEST,
+      );
     }
   }
 
@@ -124,20 +141,32 @@ const validateAccountStatusParams = ({
     if (typeof user !== "object") {
       throw new AppError("user must be an object", AppError.BAD_REQUEST);
     }
-    if (user.userUniqueId && (typeof user.userUniqueId !== "string" || user.userUniqueId.trim() === "")) {
-      throw new AppError("user.userUniqueId must be a non-empty string", AppError.BAD_REQUEST);
+    if (
+      user.userUniqueId &&
+      (typeof user.userUniqueId !== "string" || user.userUniqueId.trim() === "")
+    ) {
+      throw new AppError(
+        "user.userUniqueId must be a non-empty string",
+        AppError.BAD_REQUEST,
+      );
     }
   }
 
   // Validate that roleId is available (from body/query or user)
-  const hasRoleId = body && body.roleId || user && user.roleId;
+  const hasRoleId = (body && body.roleId) || (user && user.roleId);
   if (!hasRoleId) {
-    throw new AppError("roleId is required and must be provided in body.roleId or user.roleId", AppError.BAD_REQUEST);
+    throw new AppError(
+      "roleId is required and must be provided in body.roleId or user.roleId",
+      AppError.BAD_REQUEST,
+    );
   }
 
   // Validate enableDocumentChecks
   if (typeof enableDocumentChecks !== "boolean") {
-    throw new AppError("enableDocumentChecks must be a boolean", AppError.BAD_REQUEST);
+    throw new AppError(
+      "enableDocumentChecks must be a boolean",
+      AppError.BAD_REQUEST,
+    );
   }
 };
 
@@ -171,7 +200,7 @@ async function checkAndGrantUserSubscription(driverUniqueId) {
         dataType: "freePlans",
         driverUniqueId,
         page: 1,
-        limit: 1
+        limit: 1,
       });
 
       // 2. Grant if found (but only one at a time)
@@ -180,21 +209,21 @@ async function checkAndGrantUserSubscription(driverUniqueId) {
         await createUserSubscription({
           driverUniqueId,
           subscriptionPlanPricingUniqueId: plan.subscriptionPlanPricingUniqueId,
-          userSubscriptionCreatedBy: driverUniqueId
+          userSubscriptionCreatedBy: driverUniqueId,
         });
         wasGranted = true;
       }
     } catch (error) {
       logger.warn("Free-plan grant skipped", {
         driverUniqueId,
-        error: error.message
+        error: error.message,
       });
     }
 
     // 3. Check active subscriptions (single query)
     const activeSubscriptions = await getUserSubscriptionsWithFilters({
       driverUniqueId,
-      isActive: true
+      isActive: true,
     });
     if (activeSubscriptions?.data?.length > 0) {
       const subscriptions = activeSubscriptions.data;
@@ -203,25 +232,60 @@ async function checkAndGrantUserSubscription(driverUniqueId) {
         hasActiveSubscription: true,
         subscriptionType: firstSubscription.isFree ? "free" : "paid",
         subscriptionDetails: subscriptions,
-        wasRecentlyGranted: wasGranted
+        wasRecentlyGranted: wasGranted,
       };
     }
+    // No active subscription found — fetch recently expired subs so the
+    // grace-period logic in accountStatus.service.js can inspect them.
+    // We only look back GRACE_PERIOD_DAYS + 1 days to keep the query cheap.
+    try {
+      const recentlyExpired = await getUserSubscriptionsWithFilters({
+        driverUniqueId,
+        isActive: false,
+        isFree: true,
+        endDateAfter: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0],
+        page: 1,
+        limit: 5,
+      });
+      if (recentlyExpired?.data?.length > 0) {
+        return {
+          hasActiveSubscription: false,
+          subscriptionType: "none",
+          subscriptionDetails: recentlyExpired.data, // Grace period logic reads these
+          wasRecentlyGranted: wasGranted,
+        };
+      }
+    } catch (e) {
+      logger.warn(
+        "Could not fetch recently expired subscriptions for grace period check",
+        {
+          driverUniqueId,
+          error: e.message,
+        },
+      );
+    }
+
     return {
       hasActiveSubscription: false,
       subscriptionType: "none",
       subscriptionDetails: null,
-      wasRecentlyGranted: wasGranted
+      wasRecentlyGranted: wasGranted,
     };
   } catch (error) {
     logger.error("Error checking driver subscription", {
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
     });
-    throw new AppError("Failed to check subscription status", AppError.INTERNAL_SERVER_ERROR);
+    throw new AppError(
+      "Failed to check subscription status",
+      AppError.INTERNAL_SERVER_ERROR,
+    );
   }
 }
 
 module.exports = {
   validateAccountStatusParams,
-  checkAndGrantUserSubscription
+  checkAndGrantUserSubscription,
 };

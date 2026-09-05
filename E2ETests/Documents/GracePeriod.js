@@ -12,6 +12,7 @@ const axios = require("axios");
 const { backendURL, usersData, USER_STATUS } = require("../constants");
 const { authConfig, getPendingAttachedDocument } = require("../Utils");
 const { report } = require("../Reporter");
+const { pool } = require("../../Middleware/Database.config");
 
 
 const GRACE_PERIOD_DAYS = 2; // must match backend constant
@@ -22,7 +23,7 @@ const getAccountStatus = async ({ phoneNumber, roleId }) => {
   if (!adminToken) throw new Error("admin token not found");
   const res = await axios.get(
     backendURL +
-      `/api/admin/accountStatus?roleId=${roleId}&phoneNumber=${encodeURIComponent(phoneNumber)}`,
+      `/api/account/status?roleId=${roleId}&phoneNumber=${encodeURIComponent(phoneNumber)}`,
     authConfig(adminToken),
   );
   return res.data;
@@ -67,7 +68,17 @@ const createExpiredFreeSubUser = async () => {
   const token = verifyRes.data?.token || verifyRes.data?.data?.token;
   if (!token) throw new Error("Failed to get token from OTP verification");
 
-  // Manually expire the free subscription (set endDate to 3 days ago)
+  // Trigger subscription auto-grant: subscriptions are lazily created by
+  // checkAndGrantUserSubscription() which only runs during accountStatus().
+  // Call /api/driver/account once to ensure the free subscription exists
+  // before we try to expire it.
+  await axios.get(
+    backendURL + "/api/driver/account",
+    authConfig(token),
+  );
+
+  // Now expire the free subscription: set endDate to 1 day ago so the driver
+  // is within the 2-day grace window (not past it).
   const subRes = await axios.get(
     backendURL + "/api/finance/userSubscription?driverUniqueId=" + userUniqueId,
     authConfig(usersData.admin.token),
@@ -75,18 +86,29 @@ const createExpiredFreeSubUser = async () => {
   const subs = subRes.data?.data?.data || subRes.data?.data || [];
   if (subs.length > 0) {
     const sub = subs[0];
-    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+    const oneDayAgo = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
       .toISOString()
       .split("T")[0];
+    // PUT /api/finance/userSubscription/:id — correct route for subscription updates.
+    // status must be one of ACTIVE | EXPIRED | CANCELLED (schema-validated).
+    // Only update endDate — the UserSubscription table has no 'status' column;
+    // isActive is derived from CURDATE() vs (startDate, endDate) range.
     await axios.put(
-      backendURL + `/api/admin/userSubscriptions/${sub.userSubscriptionUniqueId}`,
+      backendURL + `/api/finance/userSubscription/${sub.userSubscriptionUniqueId}`,
       {
-        endDate: threeDaysAgo,
-        subscriptionStatus: "expired",
+        endDate: oneDayAgo,
       },
       authConfig(usersData.admin.token),
     );
   }
+
+  // Zero out the user balance so canPayByCommission is false.
+  // The auto-granted free subscription creates a balance; without this
+  // the grace-period check (requires no subscription AND no balance) is skipped.
+  await pool.query(
+    `UPDATE UserBalance SET netBalance = 0 WHERE userUniqueId = ?`,
+    [userUniqueId],
+  );
 
   return { userUniqueId, phone, token, email };
 };
@@ -119,7 +141,7 @@ const testGracePeriodActive = async () => {
     if (!gracePeriod?.isActive) {
       report.fail(
         "Grace Period Active",
-        `Expected gracePeriod.isActive=true but got ${JSON.stringify(gracePeriod)}`,
+        `Expected gracePeriod.isActive=true but got ${JSON.stringify(gracePeriod)} | sub=${JSON.stringify({ hasActive: data?.subscription?.hasActiveSubscription, type: data?.subscription?.subscriptionType, detailsLen: data?.subscription?.subscriptionDetails?.length })} | status=${status}`,
       );
       return;
     }
@@ -146,8 +168,9 @@ const testAdminAccountStatusGracePeriod = async () => {
   try {
     const { phone } = await createExpiredFreeSubUser();
 
+    // Phone is stored without + prefix, so strip it for the lookup
     const statusData = await getAccountStatus({
-      phoneNumber: phone,
+      phoneNumber: phone.replace("+", ""),
       roleId: 2,
     });
 
@@ -156,7 +179,7 @@ const testAdminAccountStatusGracePeriod = async () => {
     if (!gracePeriod?.isActive) {
       report.fail(
         "Admin AccountStatus Grace Period",
-        `Expected gracePeriod.isActive=true but got ${JSON.stringify(gracePeriod)}`,
+        `Expected gracePeriod.isActive=true but got ${JSON.stringify(gracePeriod)} | sub=${JSON.stringify({ hasActive: statusData?.subscription?.hasActiveSubscription, type: statusData?.subscription?.subscriptionType, detailsLen: statusData?.subscription?.subscriptionDetails?.length })} | status=${statusData?.status}`,
       );
       return;
     }

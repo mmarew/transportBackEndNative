@@ -33,6 +33,11 @@ const testGetSystemLogs = async () => {
     const res = await axios.get(backendURL + "/api/admin/system/logs", authConfig(token));
     report.pass(`GET /api/admin/system/logs — ${res.data?.message || "ok"}`);
   } catch (err) {
+    // 404 means the log file doesn't exist yet (e.g. fresh/clean run with no errors logged).
+    // This is an expected state — skip rather than fail.
+    if (err.response?.status === 404) {
+      return report.skip("GET /api/admin/system/logs", "log file does not exist yet (no errors logged)");
+    }
     report.fail("GET /api/admin/system/logs", errMsg(err));
   }
 };

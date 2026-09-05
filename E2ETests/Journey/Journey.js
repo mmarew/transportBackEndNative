@@ -24,7 +24,10 @@ const testGetJourneys = async ({ user, filters = {} } = {}) => {
     cache.data = result.data.data;
     return result.data;
   } catch (error) {
-    console.error("❌ testGetJourneys:", error.response?.data?.error || error.message);
+    console.error(
+      "❌ testGetJourneys:",
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };
@@ -34,13 +37,22 @@ const testGetJourneyById = async ({ user, journeyUniqueId } = {}) => {
   try {
     const token = user?.token || usersData.driver?.token;
     if (!token) throw new Error("token not found");
-    const id = journeyUniqueId || cache.data?.[0]?.journey?.journeyUniqueId || cache.data?.[0]?.journeyUniqueId;
+    const id =
+      journeyUniqueId ||
+      cache.data?.[0]?.journey?.journeyUniqueId ||
+      cache.data?.[0]?.journeyUniqueId;
     if (!id) throw new Error("No journeyUniqueId found");
-    const result = await axios.get(`${backendURL}${BASE_URL}/${id}`, authConfig(token));
+    const result = await axios.get(
+      `${backendURL}${BASE_URL}/${id}`,
+      authConfig(token),
+    );
     console.log("✅ Journey fetched by ID:", id);
     return result.data;
   } catch (error) {
-    console.error("❌ testGetJourneyById:", error.response?.data?.error || error.message);
+    console.error(
+      "❌ testGetJourneyById:",
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };
@@ -50,14 +62,24 @@ const testUpdateJourney = async ({ user, journeyUniqueId, payload } = {}) => {
   try {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
-    const id = journeyUniqueId || cache.data?.[0]?.journey?.journeyUniqueId || cache.data?.[0]?.journeyUniqueId;
+    const id =
+      journeyUniqueId ||
+      cache.data?.[0]?.journey?.journeyUniqueId ||
+      cache.data?.[0]?.journeyUniqueId;
     if (!id) throw new Error("No journeyUniqueId found to update");
     const defaultPayload = { fare: 5000, ...payload };
-    const result = await axios.put(`${backendURL}${BASE_URL}/${id}`, defaultPayload, authConfig(token));
+    const result = await axios.put(
+      `${backendURL}${BASE_URL}/${id}`,
+      defaultPayload,
+      authConfig(token),
+    );
     console.log("✅ Journey updated:", id);
     return result.data;
   } catch (error) {
-    console.error("❌ testUpdateJourney:", error.response?.data?.error || error.message);
+    console.error(
+      "❌ testUpdateJourney:",
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };
@@ -67,13 +89,20 @@ const testDeleteJourney = async ({ user, journeyUniqueId } = {}) => {
   try {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
-    const id = journeyUniqueId || cache.data?.[0]?.journey?.journeyUniqueId || cache.data?.[0]?.journeyUniqueId;
+    const id =
+      journeyUniqueId ||
+      cache.data?.[0]?.journey?.journeyUniqueId ||
+      cache.data?.[0]?.journeyUniqueId;
     if (!id) throw new Error("No journeyUniqueId found to delete");
-    const result = await axios.delete(`${backendURL}${BASE_URL}/${id}`, authConfig(token));
+    const result = await axios.delete(
+      `${backendURL}${BASE_URL}/${id}`,
+      authConfig(token),
+    );
     console.log("✅ Journey deleted:", id);
     return result.data;
   } catch (error) {
-    console.error("❌ testDeleteJourney:", error.response?.data?.error || error.message);
+    // Re-throw so the caller's try/catch can log an appropriate ⚠️ warning.
+    // FK constraint failures (500) are expected when a journey has delivery confirmations.
     throw error;
   }
 };
@@ -83,11 +112,20 @@ const testGetCompletedJourneys = async ({ user } = {}) => {
   try {
     const token = user?.token || usersData.driver?.token;
     if (!token) throw new Error("token not found");
-    const result = await axios.get(backendURL + "/api/driver/getAllCompletedJourney", authConfig(token));
-    console.log("✅ Completed journeys fetched:", result.data.data?.length ?? 0);
+    const result = await axios.get(
+      backendURL + "/api/driver/getAllCompletedJourney",
+      authConfig(token),
+    );
+    console.log(
+      "✅ Completed journeys fetched:",
+      result.data.data?.length ?? 0,
+    );
     return result.data;
   } catch (error) {
-    console.error("❌ testGetCompletedJourneys:", error.response?.data?.error || error.message);
+    console.error(
+      "❌ testGetCompletedJourneys:",
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };
@@ -97,11 +135,17 @@ const testGetOngoingJourney = async ({ user } = {}) => {
   try {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
-    const result = await axios.get(backendURL + "/api/user/getOngoingJourney", authConfig(token));
+    const result = await axios.get(
+      backendURL + "/api/user/getOngoingJourney",
+      authConfig(token),
+    );
     console.log("✅ Ongoing journey fetched:", result.data.data?.length ?? 0);
     return result.data;
   } catch (error) {
-    console.error("❌ testGetOngoingJourney:", error.response?.data?.error || error.message);
+    console.error(
+      "❌ testGetOngoingJourney:",
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };
@@ -123,16 +167,23 @@ const testJourneyWorkflow = async ({ user = usersData.driver } = {}) => {
   if (cache.data?.length > 0) {
     // Response is nested: { journey: { journeyUniqueId }, driver: {...}, shipper: {...} }
     const first = cache.data[0];
-    const journeyUniqueId = first?.journey?.journeyUniqueId || first?.journeyUniqueId;
+    const journeyUniqueId =
+      first?.journey?.journeyUniqueId || first?.journeyUniqueId;
     console.log("📋 Found journey to test with:", journeyUniqueId);
     if (journeyUniqueId) {
       await testGetJourneyById({ user, journeyUniqueId });
       // Note: completed journeys may not be updatable depending on business rules.
       // Wrap in try-catch so a failed update doesn't block the rest of the workflow.
       try {
-        await testUpdateJourney({ user: usersData.admin, journeyUniqueId, payload: { fare: 9999 } });
+        await testUpdateJourney({
+          user: usersData.admin,
+          journeyUniqueId,
+          payload: { fare: 9999 },
+        });
       } catch {
-        console.warn("⚠️  Journey update skipped — journey may be in a terminal state");
+        console.warn(
+          "⚠️  Journey update skipped — journey may be in a terminal state",
+        );
       }
       await testGetJourneys({ user });
       // DELETE the test journey (cleanup) — non-fatal if backend rejects due to state
@@ -140,13 +191,21 @@ const testJourneyWorkflow = async ({ user = usersData.driver } = {}) => {
         await testDeleteJourney({ user: usersData.admin, journeyUniqueId });
         console.log("🗑️  Journey deleted during workflow test");
       } catch (e) {
-        console.warn("⚠️  Journey delete skipped (state/FK constraint):", e.response?.data?.message || e.message);
+        console.warn(
+          "⚠️  Journey delete skipped (state/FK constraint):",
+          e.response?.data?.message || e.message,
+        );
       }
     } else {
-      console.log("⚠️  journeyUniqueId not found in response structure:", JSON.stringify(first, null, 2).slice(0, 300));
+      console.log(
+        "⚠️  journeyUniqueId not found in response structure:",
+        JSON.stringify(first, null, 2).slice(0, 300),
+      );
     }
   } else {
-    console.log("⏩ No journeys found — GET-only workflow complete (run full flow first to create journeys)");
+    console.log(
+      "⏩ No journeys found — GET-only workflow complete (run full flow first to create journeys)",
+    );
   }
 
   // GET completed journeys (as driver)

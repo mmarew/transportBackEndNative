@@ -62,8 +62,10 @@ const executeInTransaction = async (callback, options = {}) => {
     return await callback(existingConnection);
   }
 
-  // Deadlock retry: MySQL error 1213 = ER_LOCK_DEADLOCK
-  const MAX_RETRIES = 1;
+  // Deadlock retry: MySQL error 1213 = ER_LOCK_DEADLOCK. A handful of retries
+  // with a tiny backoff absorbs the transient deadlocks produced by concurrent
+  // queue check-ins/offers contending on the same `FOR UPDATE` rows.
+  const MAX_RETRIES = 4;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     const connection = await pool.getConnection();
@@ -125,16 +127,34 @@ const executeInTransaction = async (callback, options = {}) => {
         const duration = Date.now() - startMs;
 
         // Deadlock: retry once (MySQL already rolled back this transaction)
-        if (error.code === "ER_LOCK_DEADLOCK" && attempt < MAX_RETRIES) {
+        const isDeadlock = error.code === "ER_LOCK_DEADLOCK";
+        // Transient concurrency artifact: parallel check-ins of the SAME driver
+        // each race to create their active `DriverRequest` row, and only one can
+        // hold `uq_driver_active_request`. Business-level duplicates are already
+        // mapped to 4xx AppErrors inside services, so a raw duplicate on this
+        // unique key means the winner's row exists now and a retry will reuse it.
+        const isActiveRequestDup =
+          error.code === "ER_DUP_ENTRY" &&
+          String(error.message || "").includes("uq_driver_active_request");
+        if ((isDeadlock || isActiveRequestDup) && attempt < MAX_RETRIES) {
           clearTimeout(timer);
           connection.release();
           if (logging) {
-            logger.warn("Deadlock detected — retrying transaction", {
-              transactionId,
-              attempt: attempt + 1,
-              duration: `${duration}ms`,
-            });
+            logger.warn(
+              isDeadlock
+                ? "Deadlock detected — retrying transaction"
+                : "Active request race detected — retrying transaction",
+              {
+                transactionId,
+                attempt: attempt + 1,
+                duration: `${duration}ms`,
+              },
+            );
           }
+          // Small jittered backoff so retries do not re-collide in the same ms.
+          await new Promise((r) =>
+            setTimeout(r, 25 + attempt * 25 + Math.floor(Math.random() * 25)),
+          );
           continue;
         }
 

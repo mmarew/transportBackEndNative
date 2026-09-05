@@ -502,7 +502,8 @@ const getShipperRequest4allOrSingleUser = async ({ data }) => {
         Users.email,
         Users.phoneNumber,
         VehicleTypes.vehicleTypeName,
-        ShipperRequestBatch.batchId
+        ShipperRequestBatch.batchId,
+        ShipperRequestBatch.queueOrganizationUniqueId AS batchQueueOrganizationUniqueId
       FROM ShipperRequest 
       JOIN Users ON Users.userUniqueId = ShipperRequest.userUniqueId
       JOIN VehicleTypes ON VehicleTypes.vehicleTypeUniqueId = ShipperRequest.vehicleTypeUniqueId
@@ -983,6 +984,77 @@ const getDetailedJourneyData = async (shipperRequests) => {
       }
     }
 
+    // --- Step 7.75: Batch fetch queue org + queue entry data for queue orders ---
+    // On-behalf-of shipper requests (created by a QueueOrgAdmin) belong to a
+    // QueueOrganization via their ShipperRequestBatch. Attach the queue org and
+    // the driver's live DriverQueue entry (offer) so clients can render the
+    // queue context directly on the shipper-request list item.
+    const queueOrgIds = [
+      ...new Set(
+        shipperRequests
+          .map((sr) => sr.batchQueueOrganizationUniqueId)
+          .filter(Boolean),
+      ),
+    ];
+    let queueOrgByUniqueId = new Map();
+    if (queueOrgIds.length > 0) {
+      const [orgRows] = await executor.query(
+        `SELECT queueOrganizationUniqueId, queueOrganizationName,
+                queueOrganizationType, queueOrganizationPhone,
+                queueOrganizationAddress, latitude, longitude, checkinRadiusKm,
+                approvalStatus, approvalReason, queueEnabled, approvedBy, approvedAt
+         FROM QueueOrganization
+         WHERE queueOrganizationUniqueId IN (?) AND isDeleted = 0`,
+        [queueOrgIds],
+      );
+      for (const o of orgRows) {
+        queueOrgByUniqueId.set(o.queueOrganizationUniqueId, o);
+      }
+    }
+
+    // Map each shipper request → its driver's current DriverQueue entry for that
+    // order (active offer if requested, otherwise the entry holding the job).
+    const orderUniqueIds = shipperRequests
+      .map((sr) => sr.shipperRequestUniqueId)
+      .filter(Boolean);
+    let queueEntryByOrder = new Map();
+    if (orderUniqueIds.length > 0) {
+      const [entryRows] = await executor.query(
+        `SELECT dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate,
+                dq.queueNumber, dq.status, dq.requestedAt, dq.agreedAt,
+                dq.queueRefusalCount, dq.targetedShipperUserUUID,
+                dq.shipperRequestUniqueId, vd.vehicleDriverUniqueId, u.fullName,
+                u.phoneNumber
+         FROM DriverQueue dq
+         JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+         JOIN Users u ON u.userUniqueId = vd.driverUserUniqueId
+         WHERE dq.shipperRequestUniqueId IN (?)
+           AND dq.queueDeletedAt IS NULL`,
+        [orderUniqueIds],
+      );
+      for (const e of entryRows) {
+        queueEntryByOrder.set(e.shipperRequestUniqueId, e);
+      }
+    }
+
+    const buildQueue = (sr) => {
+      const orgUniqueId = sr.batchQueueOrganizationUniqueId;
+      if (!orgUniqueId) return {};
+      const organization = queueOrgByUniqueId.get(orgUniqueId) || null;
+      const entry = queueEntryByOrder.get(sr.shipperRequestUniqueId) || null;
+      return { organization, entry };
+    };
+
+    // Also attach queue context to the pre-filtered waiting/cancelled items.
+    for (const item of waitingResults) {
+      const sr = item.shipperRequest;
+      if (sr?.batchQueueOrganizationUniqueId) {
+        item.queue = buildQueue(sr);
+      } else {
+        item.queue = {};
+      }
+    }
+
     // --- Step 8: Assemble results (pure JS, no queries) ---
     const activeResults = validSRs.map((sr) => {
       const decisions = decisionsBySR.get(sr.shipperRequestId) || [];
@@ -1022,6 +1094,7 @@ const getDetailedJourneyData = async (shipperRequests) => {
         decisions,
         journey,
         proofOfDelivery,
+        queue: buildQueue(sr),
       };
     });
     return [...waitingResults, ...activeResults];

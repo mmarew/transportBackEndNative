@@ -395,37 +395,16 @@ const accountStatus = async ({
     let finalStatusId = 1; // Default: Active
     let reason = "All requirements satisfied";
 
-    // Priority 1: Banned (6)
-    if (banData?.isBanned) {
-      finalStatusId = USER_STATUS.INACTIVE_USER_IS_BANNED_BY_ADMIN;
-      reason = "User is banned";
-    }
-    // Priority 2: No Vehicle (2) - driver/vehicle-owner only
-    else if (requiresVehicle && !userVehicle) {
-      finalStatusId = USER_STATUS.INACTIVE_VEHICLE_NOT_REGISTERED;
-      reason = "No vehicle registered for this role";
-    }
-    // Priority 3–5: Document status (4,3,5) - only when mandatory docs are rejected/missing/pending
-    else if (applyDocumentRules && hasRejectedMandatory) {
-      finalStatusId = USER_STATUS.INACTIVE_DOCUMENTS_REJECTED;
-      reason = "One or more documents have been rejected";
-    } else if (applyDocumentRules && unAttachedMandatory.length > 0) {
-      finalStatusId = USER_STATUS.INACTIVE_REQUIRED_DOCUMENTS_MISSING;
-      reason = "Some required documents are not attached";
-    } else if (applyDocumentRules && hasPendingMandatory) {
-      finalStatusId = USER_STATUS.INACTIVE_DOCUMENTS_PENDING;
-      reason = "One or more documents are pending review";
-    }
-    // Priority 6: No Subscription (7) - driver only.
-    // Driver can work by 2 optional ways: (1) active subscription OR (2) balance to pay by commission.
-    // If both fail → check grace period for free subscriptions, then block.
-    else if (Number(roleId) === usersRoles.driverRoleId) {
-      const hasActiveSubscription = Boolean(subscriptionInfo?.hasActiveSubscription);
-      const netBalanceOfUser = Number(userBalance?.Balance?.netBalance ?? 0);
-      const canPayByCommission = netBalanceOfUser > 0;
+    // Priority 0: Grace period pre-check (drivers only).
+    // Must run BEFORE vehicle/document checks because drivers in the grace
+    // period are explicitly allowed to register vehicles and upload documents.
+    let inGracePeriod = false;
+    if (Number(roleId) === usersRoles.driverRoleId) {
+      const hasActiveSub = Boolean(subscriptionInfo?.hasActiveSubscription);
+      const netBalance = Number(userBalance?.Balance?.netBalance ?? 0);
+      const canPayByCommission = netBalance > 0;
 
-      if (!hasActiveSubscription && !canPayByCommission) {
-        // Check if this was a free subscription that expired recently
+      if (!hasActiveSub && !canPayByCommission) {
         const subDetails = subscriptionInfo?.subscriptionDetails;
         const freeSub = Array.isArray(subDetails)
           ? subDetails.find(s => s.isFree === 1 || s.isFree === true)
@@ -439,23 +418,58 @@ const accountStatus = async ({
           const daysSinceExpiry = Math.floor((now - endDate) / msPerDay);
 
           if (daysSinceExpiry <= GRACE_PERIOD_DAYS) {
-            // Within grace period: don't block, allow doc uploads + vehicle registration
+            inGracePeriod = true;
             finalStatusId = USER_STATUS.INACTIVE_REQUIRED_DOCUMENTS_MISSING;
             reason = "Free subscription expired — in grace period";
-            // Attach grace period info for frontend
             subscriptionInfo.gracePeriod = {
               isActive: true,
               daysRemaining: GRACE_PERIOD_DAYS - daysSinceExpiry,
               expiresAt: new Date(endDate.getTime() + GRACE_PERIOD_DAYS * msPerDay).toISOString(),
               totalGraceDays: GRACE_PERIOD_DAYS,
             };
-          } else {
-            // Past grace period: hard block
+          } else if (daysSinceExpiry > GRACE_PERIOD_DAYS) {
             finalStatusId = USER_STATUS.GRACE_PERIOD_EXPIRED;
             reason = "Free subscription expired and grace period ended";
           }
         } else {
-          // No free subscription found (paid sub expired or never had one)
+          finalStatusId = USER_STATUS.INACTIVE_DRIVER_DOESN_T_HAVE_A_SUBSCRIPTION;
+          reason = "Driver doesn't have an active subscription or balance to do by commission charges";
+        }
+      }
+    }
+
+    // Priority 1: Banned (6) — always applies, even during grace period
+    if (banData?.isBanned) {
+      finalStatusId = USER_STATUS.INACTIVE_USER_IS_BANNED_BY_ADMIN;
+      reason = "User is banned";
+    }
+    // Vehicle/document/subscription checks — skipped when in grace period
+    // because grace period drivers are allowed to register vehicles and upload docs.
+    else if (!inGracePeriod) {
+      // Priority 2: No Vehicle (2) - driver/vehicle-owner only
+      if (requiresVehicle && !userVehicle) {
+        finalStatusId = USER_STATUS.INACTIVE_VEHICLE_NOT_REGISTERED;
+        reason = "No vehicle registered for this role";
+      }
+      // Priority 3–5: Document status (4,3,5) - only when mandatory docs are rejected/missing/pending
+      else if (applyDocumentRules && hasRejectedMandatory) {
+        finalStatusId = USER_STATUS.INACTIVE_DOCUMENTS_REJECTED;
+        reason = "One or more documents have been rejected";
+      } else if (applyDocumentRules && unAttachedMandatory.length > 0) {
+        finalStatusId = USER_STATUS.INACTIVE_REQUIRED_DOCUMENTS_MISSING;
+        reason = "Some required documents are not attached";
+      } else if (applyDocumentRules && hasPendingMandatory) {
+        finalStatusId = USER_STATUS.INACTIVE_DOCUMENTS_PENDING;
+        reason = "One or more documents are pending review";
+      }
+      // Priority 6: No Subscription (7) - driver only.
+      // Driver can work by 2 optional ways: (1) active subscription OR (2) balance to pay by commission.
+      else if (Number(roleId) === usersRoles.driverRoleId) {
+        const hasActiveSubscription = Boolean(subscriptionInfo?.hasActiveSubscription);
+        const netBalanceOfUser = Number(userBalance?.Balance?.netBalance ?? 0);
+        const canPayByCommission = netBalanceOfUser > 0;
+
+        if (!hasActiveSubscription && !canPayByCommission) {
           finalStatusId = USER_STATUS.INACTIVE_DRIVER_DOESN_T_HAVE_A_SUBSCRIPTION;
           reason = "Driver doesn't have an active subscription or balance to do by commission charges";
         }
