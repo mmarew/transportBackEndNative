@@ -537,6 +537,7 @@ const getDriverQueueState = async (
 ) => {
   const [rows] = await executor.query(
     `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueNumber, dq.status,
+            dq.targetedShipperUserUUID, dq.driverLatitude, dq.driverLongitude,
             o.queueOrganizationName
      FROM DriverQueue dq
      JOIN QueueOrganization o ON o.queueOrganizationUniqueId = dq.queueOrganizationUniqueId
@@ -3149,7 +3150,7 @@ exports.getEntryHistory = async (queueUniqueId, user) => {
             vd.driverUserUniqueId
      FROM DriverQueue dq
      JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
-     WHERE dq.queueUniqueId = ? AND dq.queueDeletedAt IS NULL`,
+     WHERE dq.queueUniqueId = ?`,
     [queueUniqueId],
   );
   if (entry.length === 0) {
