@@ -43,7 +43,8 @@ const emitToQueueRoom = ({
   }
   const payload = JSON.stringify({
     message: "success",
-    messageTypes: messageTypes[messageType] || messageTypes.queue_position_changed,
+    messageTypes:
+      messageTypes[messageType] || messageTypes.queue_position_changed,
     data,
   });
   io.to(dayRoom(queueOrganizationUniqueId, queueDate)).emit(eventName, payload);
@@ -115,14 +116,22 @@ const notifyQueueOrgAdmins = async ({
 
     const results = [];
     for (const member of members) {
-      const socketId = await getSocket(SocketUserTypes.QUEUE_ORG_ADMIN, member.phoneNumber?.replace(/\D/g, ""));
+      const socketId = await getSocket(
+        SocketUserTypes.QUEUE_ORG_ADMIN,
+        member.phoneNumber?.replace(/\D/g, ""),
+      );
       if (!socketId) continue;
       const payload = JSON.stringify({
         message: "success",
-        messageTypes: messageTypes[messageType] || messageTypes.queue_position_changed,
+        messageTypes:
+          messageTypes[messageType] || messageTypes.queue_position_changed,
         data: message || { queueOrganizationUniqueId },
       });
-      const res = await emitMessage({ socketId, eventName, messageDetails: payload });
+      const res = await emitMessage({
+        socketId,
+        eventName,
+        messageDetails: payload,
+      });
       results.push({ phoneNumber: member.phoneNumber, status: res.status });
     }
     return { status: "success", data: results };
@@ -156,7 +165,10 @@ const notifyQueueOrgOfLoadingStage = async ({
   stage,
 }) => {
   if (!shipperRequestUniqueId || !stage) {
-    return { status: "error", message: "shipperRequestUniqueId and stage are required" };
+    return {
+      status: "error",
+      message: "shipperRequestUniqueId and stage are required",
+    };
   }
 
   const stageConfig = {
@@ -217,7 +229,9 @@ const notifyQueueOrgOfLoadingStage = async ({
     if (io) {
       const eventPayload = JSON.stringify({
         message: "success",
-        messageTypes: messageTypes[config.messageType] || messageTypes.queue_position_changed,
+        messageTypes:
+          messageTypes[config.messageType] ||
+          messageTypes.queue_position_changed,
         data: payload,
       });
       io.to(orgRoom(queueOrganizationUniqueId)).emit("queue", eventPayload);
