@@ -413,6 +413,53 @@ const ensureDeliveryConfirmationPhotoAttachedBy = async (connection) => {
   }
 };
 
+// Reconcile the DeliveryConfirmations Tier-A on-road signature column to its
+// canonical name.
+//
+// The "receiver" in Tier A is actually the driver who delivers and signs on the
+// road, so the column was renamed to `deliveryConfirmationDriverSignature`
+// (mirroring `deliveryConfirmationDriverSignedAt`, renamed at the same time).
+// Databases created before that rename still hold `deliveryConfirmationReceiverSignature`, and
+// CREATE TABLE IF NOT EXISTS is a no-op there — so any query referencing the
+// canonical name fails with ER_BAD_FIELD_ERROR. This idempotent migration
+// renames the legacy column (preserving existing data) or adds the canonical
+// one when entirely absent — same pattern as ensureCompanyBidRequestBatchColumn.
+const ensureDeliveryConfirmationDriverSignatureColumn = async (connection) => {
+  const dbName = dbConfig.database;
+
+  const [existingRows] = await connection.query(
+    `SELECT column_name FROM information_schema.columns
+     WHERE table_schema = ? AND table_name = 'DeliveryConfirmations'`,
+    [dbName],
+  );
+  const existing = new Set(
+    existingRows.map((r) =>
+      String(r.column_name ?? r.COLUMN_NAME ?? "").toLowerCase(),
+    ),
+  );
+
+  const hasCanonical = existing.has("deliveryconfirmationdriversignature");
+  const hasLegacy = existing.has("deliveryconfirmationreceiversignature");
+
+  if (!hasCanonical && hasLegacy) {
+    await connection.query(
+      `ALTER TABLE DeliveryConfirmations
+       CHANGE COLUMN \`deliveryConfirmationReceiverSignature\` \`deliveryConfirmationDriverSignature\` TEXT NULL`,
+    );
+    logger.info(
+      "Migration: renamed DeliveryConfirmations.deliveryConfirmationReceiverSignature -> deliveryConfirmationDriverSignature",
+    );
+  } else if (!hasCanonical && !hasLegacy) {
+    await connection.query(
+      `ALTER TABLE DeliveryConfirmations
+       ADD COLUMN \`deliveryConfirmationDriverSignature\` TEXT NULL`,
+    );
+    logger.info(
+      "Migration: added DeliveryConfirmations.deliveryConfirmationDriverSignature column",
+    );
+  }
+};
+
 // Reconcile CompanyBidRequest's batch-linkage column to the canonical name.
 //
 // The live schema (Database.js) and all code use `shipperRequestBatchUniqueId`,
@@ -671,6 +718,10 @@ const createTable = async () => {
     // connection still has the DB selected.
     await ensureCompanyBidRequestBatchColumn(adminConnection);
 
+    // Idempotently reconcile the Tier-A on-road signature column to the
+    // canonical deliveryConfirmationDriverSignature (rename/add).
+    await ensureDeliveryConfirmationDriverSignatureColumn(adminConnection);
+
     // Idempotently add any Database.js schema columns missing from existing
     // tables (isPodRequired on ShipperRequest/Batch, Journey stage-columns).
     await ensureSchemaColumnCompleteness(adminConnection);
@@ -917,6 +968,7 @@ module.exports = {
   ensureDeliveryConfirmationColumns,
   ensureDeliveryConfirmationPhotoAttachedBy,
   ensureCompanyBidRequestBatchColumn,
+  ensureDeliveryConfirmationDriverSignatureColumn,
   ensureSchemaColumnCompleteness,
   ensureNoLegacyShipperRequestBatchId,
   ensureSchemaEnums,

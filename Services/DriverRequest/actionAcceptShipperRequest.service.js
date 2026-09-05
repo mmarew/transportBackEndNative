@@ -58,8 +58,12 @@ const acceptShipperRequest = async (body) => {
         AppError.BAD_REQUEST,
       );
     }
-    // check if the driver request is already exists
-    // Include Users join to get userUniqueId for validation
+    // check if the driver request is already exists.
+    // queueOrganizationUniqueId is BATCH-CANONICAL (see tableManage.service —
+    // ShipperRequest.queueOrganizationUniqueId was dropped), so it is read off
+    // ShipperRequestBatch via the batch join, never off ShipperRequest.*.
+    // userUniqueId for owner validation comes from DriverRequest.* (same driver
+    // that owns the request), so a separate Users join is unnecessary.
     const existingRequest = await performJoinSelect({
       baseTable: "DriverRequest",
       joins: [
@@ -72,13 +76,23 @@ const acceptShipperRequest = async (body) => {
           on: "ShipperRequest.shipperRequestId = JourneyDecisions.shipperRequestId",
         },
         {
-          table: "Users",
-          on: "DriverRequest.userUniqueId = Users.userUniqueId",
+          table: "ShipperRequestBatch",
+          on: "ShipperRequest.shipperRequestBatchUniqueId = ShipperRequestBatch.batchUniqueId",
         },
       ],
       conditions: {
         "DriverRequest.driverRequestUniqueId": driverRequestUniqueId,
       },
+      selectColumns: `
+        DriverRequest.*,
+        JourneyDecisions.journeyDecisionUniqueId,
+        ShipperRequest.shipperRequestUniqueId,
+        ShipperRequest.requestMode,
+        ShipperRequest.shipperRequestBatchUniqueId,
+        ShipperRequest.shippingCost,
+        ShipperRequestBatch.queueOrganizationUniqueId,
+        ShipperRequestBatch.shippingCost AS batchShippingCost
+      `,
     });
 
     // if the request is not found, return error
@@ -93,6 +107,9 @@ const acceptShipperRequest = async (body) => {
     // They also SKIP the 1→2→3→4→5 negotiation flow: the price is already
     // agreed, so accepting jumps straight to acceptedByShipper (4) and creates
     // the Journey immediately. The 2→3→4→5 flow stays for nearby-matching only.
+    // queueOrganizationUniqueId is BATCH-CANONICAL (ShipperRequest no longer
+    // has the column — tableManage.service migration), so it is read from the
+    // ShipperRequestBatch join above, never off ShipperRequest.*.
     const isQueueOrder = Boolean(requestData.queueOrganizationUniqueId);
     if (!isQueueOrder && !shippingCostByDriver) {
       throw new AppError(
@@ -172,7 +189,10 @@ const acceptShipperRequest = async (body) => {
             journeyDecisionUniqueId,
             driverRequestUniqueId,
             shipperRequestUniqueId,
-            shippingCostByDriver: requestData.shippingCost ?? 0,
+            shippingCostByDriver:
+              requestData.batchShippingCost ??
+              requestData.shippingCost ??
+              0,
             journeyCreatedBy: userUniqueId,
           });
         } else {

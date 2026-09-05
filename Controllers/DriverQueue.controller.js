@@ -12,15 +12,21 @@ exports.checkin = async (req, res, next) => {
     // Active-journey fence: the driver already has an order in flight. Surface
     // the in-flight journey (alreadyInJourney flag) so the driver app can
     // resume it instead of a bare empty position.
+    console.log(
+      "🚀 ~ result?.data?.alreadyInJourney:",
+      result?.data?.alreadyInJourney,
+    );
     if (result?.data?.alreadyInJourney) {
       return ServerResponder(res, result, HTTP_STATUS.OK);
     }
+
     // Return the canonical queue position shape (same as myPosition)
     // so the driver app always gets { queue: {...}, organization: {...} }.
     const position = await service.myPosition(
       req.body.queueOrganizationUniqueId,
       req.user,
     );
+    console.log("🚀 ~ position:", position);
     ServerResponder(res, position, HTTP_STATUS.CREATED);
   } catch (e) {
     next(e);
@@ -40,7 +46,9 @@ exports.myPosition = async (req, res, next) => {
 
 exports.checkout = async (req, res, next) => {
   try {
-    const queueOrgId = (req.body && req.body.queueOrganizationUniqueId) || req.query.queueOrganizationUniqueId;
+    const queueOrgId =
+      (req.body && req.body.queueOrganizationUniqueId) ||
+      req.query.queueOrganizationUniqueId;
     const result = await executeInTransaction(() =>
       service.checkout(queueOrgId, req.user),
     );
@@ -54,7 +62,10 @@ exports.getQueueStatus = async (req, res, next) => {
   try {
     ServerResponder(
       res,
-      await service.getQueueStatus(req.query.queueOrganizationUniqueId, req.query),
+      await service.getQueueStatus(
+        req.query.queueOrganizationUniqueId,
+        req.query,
+      ),
     );
   } catch (e) {
     next(e);

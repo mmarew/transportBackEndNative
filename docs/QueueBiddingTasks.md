@@ -34,8 +34,10 @@ FOREIGN KEY (queueOrganizationUniqueId) REFERENCES QueueOrganization(queueOrgani
 **File:** `Services/Database/tableManage.service.js` (function `ensureQueueOrgReferences`, lines 42-84; call note at 558)
 
 **How:**
+
 1. Check `information_schema` for `ShipperRequestBatch.queueOrganizationUniqueId`; if missing, `ALTER TABLE ShipperRequestBatch ADD COLUMN ... VARCHAR(36) NULL DEFAULT NULL` + index `idx_batch_queue_org` + FK. (Same pattern as existing code, but target = batch not sr.)
 2. **Backfill** before dropping (only when batch column newly added / value null):
+
    ```sql
    UPDATE ShipperRequestBatch srb
    JOIN ShipperRequest sr ON sr.shipperRequestBatchUniqueId = srb.batchUniqueId
@@ -43,7 +45,9 @@ FOREIGN KEY (queueOrganizationUniqueId) REFERENCES QueueOrganization(queueOrgani
    WHERE srb.queueOrganizationUniqueId IS NULL
      AND sr.queueOrganizationUniqueId IS NOT NULL;
    ```
+
    (Best-effort: several rows in one batch carry the same value, so any one is correct.)
+
 3. **Drop** the legacy field from `ShipperRequest`, in order: drop FK `fk_shipperRequest_queueOrg`, drop index `idx_shipperRequest_queueOrg`, drop column `queueOrganizationUniqueId`. Guard each with its `information_schema` existence check so the DDL is idempotent.
 4. Update the JSDoc comment (line 34) and the second call-site note (line 558) to describe the batch-target migration.
 
@@ -58,6 +62,7 @@ FOREIGN KEY (queueOrganizationUniqueId) REFERENCES QueueOrganization(queueOrgani
 **File:** `CRUD/Create/CreateData.js` (lines 121-124) and `Services/ShipperRequestBatch/batchCreate.service.js` (`upsertBatch`, lines 31-91)
 
 **How:**
+
 1. **CreateData.js:** delete the block
    ```js
    ...(body?.queueOrganizationUniqueId && {
@@ -77,14 +82,18 @@ FOREIGN KEY (queueOrganizationUniqueId) REFERENCES QueueOrganization(queueOrgani
 **File:** `Services/ShipperRequest/create.service.js`
 
 **How:**
+
 1. `upsertBatch` call (lines 172-192): add `queueOrganizationUniqueId: body.queueOrganizationUniqueId || null`.
 2. Extend the batch reuse guard (lines 140-158) to reject reuse with a different `queueOrganizationUniqueId` (add `srb.queueOrganizationUniqueId` to the `SELECT`, compare with incoming).
 3. **Critical:** after `createNewShipperRequest` returns rows (`data[0]`), the DB no longer returns the field on the row. The routing at lines 258-267 (`req?.queueOrganizationUniqueId`, `!req?.queueOrganizationUniqueId`) and line 281 (`createdRequest.queueOrganizationUniqueId`) rely on the in-memory object. Re-attach it from `body`:
+
    ```js
    result.data.forEach((r) => {
-     if (r?.shipperRequestUniqueId) r.queueOrganizationUniqueId = body.queueOrganizationUniqueId || null;
+     if (r?.shipperRequestUniqueId)
+       r.queueOrganizationUniqueId = body.queueOrganizationUniqueId || null;
    });
    ```
+
    (Do this where `newRequests.push(result.data[0])` happens, lines 230-234.)
 
 **Why:** The queue vs distance routing decision happens on in-memory objects before/independent of the DB column. Without re-attaching, every queue order would fall into the distance branch and dispatch breaks.
@@ -110,13 +119,16 @@ FOREIGN KEY (queueOrganizationUniqueId) REFERENCES QueueOrganization(queueOrgani
 **File:** `CRUD/Read/ReadData.matching.js`
 
 **How:**
+
 1. `findNearbyDrivers` guard (lines 12-17): receives the in-memory `shipperRequest` object — Task 4 already re-attaches `queueOrganizationUniqueId`, so this in-memory check still works. If it can also be called with a DB-fetched object elsewhere, keep the field populated by adding a batch join in that caller.
 2. `findNearbyShippers` SQL (lines 106-133): `ShipperRequest.*` no longer contains the field. Add batch join + alias so returned rows still carry `queueOrganizationUniqueId` for downstream filters (e.g. `handleJourneyStatusOne`):
+
    ```sql
    JOIN ShipperRequestBatch srb ON srb.batchUniqueId = ShipperRequest.shipperRequestBatchUniqueId
    ...
    srb.queueOrganizationUniqueId AS queueOrganizationUniqueId,
    ```
+
    Change the exclusion `AND ShipperRequest.queueOrganizationUniqueId IS NULL` (line 124) → `AND srb.queueOrganizationUniqueId IS NULL`.
 
 **Why:** Queue orders must never reach distance matching. With the field off the row, the guard must read from the batch.
@@ -130,6 +142,7 @@ FOREIGN KEY (queueOrganizationUniqueId) REFERENCES QueueOrganization(queueOrgani
 **File:** `Services/ShipperRequest/readActive.service.js`
 
 **How:** A batch join `srb` already exists (line 157). Change line 162:
+
 ```sql
 AND sr.queueOrganizationUniqueId IS NULL   -- was
 AND srb.queueOrganizationUniqueId IS NULL  -- now
@@ -146,10 +159,12 @@ AND srb.queueOrganizationUniqueId IS NULL  -- now
 **File:** `Services/ShipperRequest/read.service.js`
 
 **How:** Change lines 430-434:
+
 ```js
-whereClause += " ShipperRequest.queueOrganizationUniqueId = ?";   // was
-whereClause += " srb.queueOrganizationUniqueId = ?";              // now
+whereClause += " ShipperRequest.queueOrganizationUniqueId = ?"; // was
+whereClause += " srb.queueOrganizationUniqueId = ?"; // now
 ```
+
 The existing `LEFT JOIN ShipperRequestBatch` (line 508) covers both the filtered and count queries.
 
 **Why:** Lets a QueueOrgAdmin list jobs under their queue org; must read from the canonical batch field.
@@ -163,6 +178,7 @@ The existing `LEFT JOIN ShipperRequestBatch` (line 508) covers both the filtered
 **Files:** `CRUD/Read/ReadData.shipper.js`, `Services/DriverRequest/journeyManagement.service.js`
 
 **How:**
+
 1. `ReadData.shipper.js` (lines 82, 139): the `queueOrganizationUniqueId ? "sr.queueOrganizationUniqueId = ?" : "sr.userUniqueId = ?"` ternary needs a batch join when the queue filter is used. Add `JOIN ShipperRequestBatch srb ON srb.batchUniqueId = sr.shipperRequestBatchUniqueId` (when `queueOrganizationUniqueId` set) and use `srb.queueOrganizationUniqueId = ?`. Keep the `sr.userUniqueId` branch unchanged (no join needed).
 2. `journeyManagement.service.js` (line 336): validation query selects `ShipperRequest.queueOrganizationUniqueId`; add batch join + select `srb.queueOrganizationUniqueId`. Line 554 `if (combinedData?.queueOrganizationUniqueId)` then works off the aliased value.
 
@@ -177,6 +193,7 @@ The existing `LEFT JOIN ShipperRequestBatch` (line 508) covers both the filtered
 **File:** `Services/DriverQueue.service.js`
 
 **How:**
+
 1. `rescanPendingQueueOrder` (lines 2357-2379): add batch join, change `WHERE sr.queueOrganizationUniqueId = ?` (line 2360) → `WHERE srb.queueOrganizationUniqueId = ?`. Keep `sr.requestMode <> 'company_target'` and `sr.journeyStatusId IN (?, ?)` on the row.
 2. Display queries:
    - line 463-468: `sr.queueOrganizationUniqueId, o.queueOrganizationName ... ON o.queueOrganizationUniqueId = sr.queueOrganizationUniqueId` → join batch, `srb.queueOrganizationUniqueId`, `ON o.queueOrganizationUniqueId = srb.queueOrganizationUniqueId`.
@@ -194,9 +211,11 @@ The existing `LEFT JOIN ShipperRequestBatch` (line 508) covers both the filtered
 **File:** `Utils/ListOfSeedData.js` (journeyStatusMap, ~line 722)
 
 **How:** After `partiallyCancelled: 20`, add:
+
 ```js
 bidding: 21,  // overflow orders open for driver bidding
 ```
+
 Add the matching `JourneyStatus` seed row (id 21, name 'bidding') in the seed-data section.
 
 **Why:** The bidding feature needs a distinct status to separate "awaiting bids / hidden overflow" from `waiting(1)`/`requested(2)`.
@@ -210,11 +229,15 @@ Add the matching `JourneyStatus` seed row (id 21, name 'bidding') in the seed-da
 **File:** `Database/Database.js`
 
 **How:**
-1. Add to `ShipperRequest` CREATE (near line 393): 
+
+1. Add to `ShipperRequest` CREATE (near line 393):
+
    ```sql
    isBiddingApproved BOOLEAN NOT NULL DEFAULT FALSE,
    ```
+
    (The plan says `AFTER isCompletionSeen`; match that column's position.)
+
 2. Extend BOTH `requestMode` ENUMs (batch line 448, sr line ~390) to add `'queue_driver_bid'` (if the ENUM lives on both tables — batch is authoritative; keep sr in sync or drop if unused).
 3. Add `DriverBid` table per the plan (Phase 1e): id, uniqueId, `shipperRequestUniqueId`, `driverUserUniqueId`, `basePrice`, `bidPrice`, `bidNotes`, `bidStatus` ENUM, `isNonQueueDriver`, timestamps, `UNIQUE(shipperRequestUniqueId, driverUserUniqueId)`, FKs.
 
@@ -229,6 +252,7 @@ Add the matching `JourneyStatus` seed row (id 21, name 'bidding') in the seed-da
 **Files:** `Validations/ShipperRequest.schema.js`, `Validations/DriverBid.schema.js` (create)
 
 **How:**
+
 1. `ShipperRequest.schema.js`: add `"queue_driver_bid"` to the `requestMode` allowed values.
 2. New `Validations/DriverBid.schema.js`:
    ```js
@@ -250,6 +274,7 @@ Add the matching `JourneyStatus` seed row (id 21, name 'bidding') in the seed-da
 **File:** `CRUD/Read/ReadData.matching.js` (same file as Task 6 — apply after batch join is in place)
 
 **How:**
+
 1. `findNearbyDrivers` guard (lines 12-17) → allow approved bidding orders:
    ```js
    if (shipperRequest?.queueOrganizationUniqueId) {
@@ -260,6 +285,7 @@ Add the matching `JourneyStatus` seed row (id 21, name 'bidding') in the seed-da
    }
    ```
 2. `findNearbyShippers` WHERE — add `bidding(21)` to the status list and gate on approval:
+
    ```sql
    AND ShipperRequest.journeyStatusId IN (?, ?, ?, ?)
    AND (
@@ -267,6 +293,7 @@ Add the matching `JourneyStatus` seed row (id 21, name 'bidding') in the seed-da
      OR ShipperRequest.isBiddingApproved = TRUE
    )
    ```
+
    Add `journeyStatusMap.bidding` to `values` and the extra non-equal param.
 
 **Why:** Implements the plan's approval gate: unapproved bidding orders stay hidden from BOTH matching directions; approved ones flow through the existing matching engine (reusing `findNearbyDrivers`/`findNearbyShippers` instead of a separate discovery API).
@@ -280,6 +307,7 @@ Add the matching `JourneyStatus` seed row (id 21, name 'bidding') in the seed-da
 **File:** `Services/DriverBid.service.js` (create) — functions `approveBidding`, `getBidsForOrder`
 
 **How:**
+
 1. `approveBidding({ shipperRequestUniqueId, approved, userUniqueId })`:
    - Update `ShipperRequest SET isBiddingApproved = ?` for the order (shipper-auth check: must own the order, or be QueueOrgAdmin).
    - If `approved = true`, call the same matching routine the create-flow uses (distance-based `findNearbyDrivers`-driven `handleWaitingRequest` path) to create `JourneyDecisions` and notify drivers. Extract/reuse the existing `handleWaitingRequest` from create.service so the logic is not duplicated.
@@ -308,13 +336,17 @@ Add the matching `JourneyStatus` seed row (id 21, name 'bidding') in the seed-da
 **File:** `Services/DriverRequest/statusVerification/handleJourneyStatusOne.service.js`
 
 **How:** Change the filter at lines 126-130 (`!p.queueOrganizationUniqueId`) to also allow approved bidding loads (defence-in-depth, mirroring `findNearbyShippers`):
+
 ```js
 if (p.queueOrganizationUniqueId) {
-  const approved = p.journeyStatusId === journeyStatusMap.bidding && p.isBiddingApproved === true;
+  const approved =
+    p.journeyStatusId === journeyStatusMap.bidding &&
+    p.isBiddingApproved === true;
   if (!approved) return false;
 }
 // then existing requestMode != 'company_target' check
 ```
+
 Note: `findNearbyShippers` (Task 14) already filters at SQL level; this is the in-memory belt-and-suspenders layer.
 
 **Why:** Driver polling (status 1) must surface approved bidding loads while still hiding unapproved queue overflow.
@@ -328,9 +360,11 @@ Note: `findNearbyShippers` (Task 14) already filters at SQL level; this is the i
 **File:** `Services/DriverQueue.service.js` (with Task 10, same function)
 
 **How:** Add to the WHERE (Task 10 already joins `srb`):
+
 ```sql
 AND sr.journeyStatusId IN (?, ?)   -- waiting, requested ONLY — bidding(21) excluded
 ```
+
 Change `journeyStatusMap.requested` list to exclude `bidding`; keep statuses `(waiting, requested)` (or add explicit `AND sr.journeyStatusId <> ?` with 21).
 
 **Why:** Bidding orders are managed by the approval/matching flow, not FIFO rescan. Prevents re-offering hidden overflow.
@@ -344,10 +378,20 @@ Change `journeyStatusMap.requested` list to exclude `bidding`; keep statuses `(w
 **Files:** `Routes/queue/DriverQueue.routes.js`, `Controllers/DriverQueue.controller.js`, `Utils/MessageTypes.js`
 
 **How:**
+
 1. Routes — add 2:
    ```js
-   router.post("/approve-bidding", auth, validate(approveBiddingSchema), driverBidController.approveBidding);
-   router.get("/bids/:shipperRequestUniqueId", auth, driverBidController.getBidsForOrder);
+   router.post(
+     "/approve-bidding",
+     auth,
+     validate(approveBiddingSchema),
+     driverBidController.approveBidding,
+   );
+   router.get(
+     "/bids/:shipperRequestUniqueId",
+     auth,
+     driverBidController.getBidsForOrder,
+   );
    ```
 2. Controller — add `approveBidding`, `getBidsForOrder` wrappers (thin pass-through to `DriverBidService`).
 3. `MessageTypes.js` — add the plan's 6 message types (e.g. `queue_overflow_bidding`, `queue_bidding_approved`, low-bid notification, etc.).
@@ -362,7 +406,7 @@ Change `journeyStatusMap.requested` list to exclude `bidding`; keep statuses `(w
 
 **File:** `E2ETests/Queue/QueueBid.js` (create) + `E2ETests/Queue/QueueAdminOps.js` (optional ref to new flow)
 
-**How:** Implement the 10 scenarios from the plan (TQ-B1..B10): create `queue_driver_bid` batch → status 21 hidden; approve → matching finds drivers + JourneyDecisions; driver poll sees approved load; accept flow to 3/4; unapproved hidden; overflow 10→3 FIFO→7 bidding; multiple matches → pick; accept → status 4. Also cover the batch-only inheritance: verify a queue order is excluded when `srb.queueOrganizationUniqueId` set but a plain order isn't.
+**How:** Implement the 10 scenarios from the plan (TQ-B1..B10): create `queue_driver_bid` batch → status em set but a plain order isn't.
 
 **Why:** Proves dispatch correctness AND the schema refactor end-to-end.
 
@@ -373,9 +417,11 @@ Change `journeyStatusMap.requested` list to exclude `bidding`; keep statuses `(w
 ## Task 21 — Final global dedup / regression sweep
 
 **How:**
+
 ```bash
 grep -rn "queueOrganizationUniqueId" Services/ CRUD/ Controllers/ Database/Database.js | grep -iv "DriverQueue\|QueueOrganization\|dq\.queue\|QueueMembership\|QueueAudit\|Sbps"
 ```
+
 Expect: matches ONLY where the field is batch-derived via `srb.queueOrganizationUniqueId` or `ShipperRequestBatch`, plus `DriverQueue`/`QueueOrganization` tables (their OWN FK columns stay). ZERO `ShipperRequest.queueOrganizationUniqueId` / `sr.queueOrganizationUniqueId` remain.
 
 Run `node Services/Database/tableManage.service.js` (or the app's table-sync) twice → no errors on second run (idempotency).

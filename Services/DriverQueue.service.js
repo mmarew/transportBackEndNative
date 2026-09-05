@@ -18,8 +18,14 @@ const {
 const { sendFCMNotificationToUser } = require("./Firebase.service");
 const { sendSms } = require("../Utils/smsSender");
 const messageTypes = require("../Utils/MessageTypes");
-const { journeyStatusMap, usersRoles, listOfDocumentsTypeAndId } = require("../Utils/ListOfSeedData");
-const { getAttachedDocumentsByUserUniqueIdAndDocumentTypeId } = require("../CRUD/Read/ReadData");
+const {
+  journeyStatusMap,
+  usersRoles,
+  listOfDocumentsTypeAndId,
+} = require("../Utils/ListOfSeedData");
+const {
+  getAttachedDocumentsByUserUniqueIdAndDocumentTypeId,
+} = require("../CRUD/Read/ReadData");
 const { createUser } = require("./User.service");
 const logger = require("../Utils/logger");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
@@ -29,7 +35,7 @@ const today = () => new Date().toISOString().slice(0, 10); // eslint-disable-lin
 const QUEUE_OFFER_WINDOW_MINUTES = 3;
 const QUEUE_REFUSAL_LIMIT =
   Number(process.env.QUEUE_REFUSAL_LIMIT) || DOMAIN.DEFAULT_QUEUE_REFUSAL_LIMIT;
-
+const MAX_OFFERS_PER_SWEEP = 50;
 // Shared resolver: org → vehicle type via VehicleDriver → Vehicle
 /**
  * Verify a QueueOrganization exists and is not soft-deleted.
@@ -113,7 +119,14 @@ const validateCheckinDistance = async (executor, org, driverLat, driverLng) => {
         POWER(SIN(RADIANS(? - ?) / 2), 2))
       )
     ) AS distanceKm`,
-    [driverLat, org.latitude, org.latitude, org.latitude, driverLng, org.longitude],
+    [
+      Number(driverLat),
+      Number(org.latitude),
+      Number(org.latitude),
+      Number(org.latitude),
+      Number(driverLng),
+      Number(org.longitude),
+    ],
   );
   const distanceKm = Number(row.distanceKm);
   if (distanceKm > org.checkinRadiusKm) {
@@ -147,11 +160,17 @@ const resolveShipperUserByPhone = async (phoneNumber, createdBy) => {
     createdBy,
   });
   if (result.message === "error") {
-    throw new AppError(result.error || "Failed to resolve shipper from phone", AppError.BAD_REQUEST);
+    throw new AppError(
+      result.error || "Failed to resolve shipper from phone",
+      AppError.BAD_REQUEST,
+    );
   }
   const userUniqueId = result?.data?.userUniqueId;
   if (!userUniqueId) {
-    throw new AppError("Failed to resolve shipper from phone", AppError.BAD_REQUEST);
+    throw new AppError(
+      "Failed to resolve shipper from phone",
+      AppError.BAD_REQUEST,
+    );
   }
   return userUniqueId;
 };
@@ -166,16 +185,20 @@ const logQueueHistory = async (
   { queueUniqueId, columnName, oldValue, newValue, performedBy },
 ) => {
   if (oldValue === newValue) return;
-  await createData({
-    tableName: "DriverQueueHistory",
-    insertValues: {
-      historyUniqueId: uuidv4(),
-      queueUniqueId,
-      columnName,
-      oldValue: oldValue !== null && oldValue !== undefined ? String(oldValue) : null,
-      performedBy,
+  await createData(
+    {
+      tableName: "DriverQueueHistory",
+      insertValues: {
+        historyUniqueId: uuidv4(),
+        queueUniqueId,
+        columnName,
+        oldValue:
+          oldValue !== null && oldValue !== undefined ? String(oldValue) : null,
+        performedBy,
+      },
     },
-  }, executor);
+    executor,
+  );
 };
 
 const getVehicleDriverType = async (executor, vehicleDriverUniqueId) => {
@@ -447,6 +470,13 @@ const buildQueueEntry = (row, photosByDriver) => {
 // IN_QUEUE_STATUSES), so without this fence a dispatched driver could re-check
 // in and be offered a SECOND order while their first journey is still active.
 const ACTIVE_JOURNEY_STATUSES = [
+  // An UNRESOLVED queue offer (status 2 = requested) is treated as an active
+  // engagement: the driver holds a live order that has not been accepted,
+  // rejected, or timed out. Re-check-in while holding one would retire its
+  // queue entry and orphan the offer (the driver's `requested` DriverRequest
+  // blocks fresh offers while the order keeps an unbound `requested` state),
+  // so the fence below must reject it just like an accepted/in-flight journey.
+  journeyStatusMap.requested,
   journeyStatusMap.acceptedByShipper,
   journeyStatusMap.acceptedByDriver,
   journeyStatusMap.goToLoadingPlace,
@@ -455,6 +485,21 @@ const ACTIVE_JOURNEY_STATUSES = [
   journeyStatusMap.journeyStarted,
 ];
 
+/**
+ * Whether the driver currently holds an ACTIVE engagement that blocks a new
+ * check-in.
+ *
+ * Covers both an unsettled queue offer (JourneyDecision status `requested`) and
+ * an in-flight journey (statuses acceptedByDriver → journeyStarted). While one
+ * exists the driver cannot re-check-in / be force-checked-in: the queue entry
+ * carrying the offer must not be retired (soft-deleted) because that orphans
+ * the offer and leaves both the driver and the order stuck. The driver app is
+ * told to cancel/accept the existing connection first.
+ *
+ * @param {*} executor - DB executor (connection or transaction)
+ * @param {string} driverUserUniqueId - The driver / user UUID
+ * @returns {Promise<Object|null>} The in-flight journey info, or null when free
+ */
 const hasActiveJourney = async (executor, driverUserUniqueId) => {
   const [rows] = await executor.query(
     `SELECT jd.journeyDecisionUniqueId, jd.journeyStatusId,
@@ -468,7 +513,7 @@ const hasActiveJourney = async (executor, driverUserUniqueId) => {
      LEFT JOIN QueueOrganization o
        ON o.queueOrganizationUniqueId = srb.queueOrganizationUniqueId
      WHERE dr.userUniqueId = ?
-       AND jd.journeyStatusId IN (?, ?, ?, ?, ?, ?)
+       AND jd.journeyStatusId IN (?, ?, ?, ?, ?, ?, ?)
      LIMIT 1`,
     [driverUserUniqueId, ...ACTIVE_JOURNEY_STATUSES],
   );
@@ -503,7 +548,8 @@ const getDriverQueueState = async (
   const active = rows.find((r) => IN_QUEUE_STATUSES.includes(r.status)) || null;
   const atOrg =
     rows.find(
-      (r) => r.queueOrganizationUniqueId === targetOrgId && r.status !== "removed",
+      (r) =>
+        r.queueOrganizationUniqueId === targetOrgId && r.status !== "removed",
     ) || null;
   return { active, atOrg, rows };
 };
@@ -516,7 +562,10 @@ const getDriverQueueState = async (
  * 1. Resolve optional shipperPhoneNumber → targetedShipperUserUUID
  * 2. Verify org exists, is approved, and queueEnabled
  * 3. Validate driver proximity to org (if org has checkinRadiusKm set)
- * 4. Fence: reject if driver has an active journey (status 4,3,5,6,7,8)
+ * 4. Fence: reject if driver has an active engagement = an UNRESOLVED queue
+ *    offer (status 2 = requested) or an in-flight journey (status 4,3,5,6,7,8).
+ *    A driver holding either is told "active journey — cancel/accept first" so
+ *    the fence never orphans a live offer by soft-deleting its queue entry.
  * 5. Fence: one ACTIVE queue per driver per day system-wide (other-org → 409)
  * 6. Re-check-in creates BRAND-NEW data: if the driver already has an entry at
  *    this org today (active or leftover), soft-delete it (status 'removed') and
@@ -536,6 +585,7 @@ const getDriverQueueState = async (
  * @throws {AppError} 403 if org not approved or not enabled
  * @throws {AppError} 400 if location required but not provided, or if too far from org
  * @throws {AppError} 409 if driver is already in another queue today
+ * @throws {AppError} 409 if the driver holds an active request/in-flight journey
  * @throws {AppError} 404 if org not found
  */
 exports.checkin = async (data) => {
@@ -547,7 +597,8 @@ exports.checkin = async (data) => {
   let targetedShipperUserUUID = null;
   if (data.shipperPhoneNumber) {
     targetedShipperUserUUID = await resolveShipperUserByPhone(
-      data.shipperPhoneNumber, user.userUniqueId,
+      data.shipperPhoneNumber,
+      user.userUniqueId,
     );
   }
 
@@ -567,12 +618,14 @@ exports.checkin = async (data) => {
   );
   const queueDate = today();
 
-  // FENCE: a driver holding an ACTIVE journey (accepted/started, not yet
-  // completed or cancelled) cannot join the queue. Accepting a queue offer
-  // marks the entry `agreed` but that alone doesn't block re-checkin, so this
-  // guard is what prevents double-dispatch while the first order is in flight.
-  // Idempotent — instead of failing a re-check-in, report the journey already
-  // in flight so the driver app can surface the existing order.
+  // FENCE: a driver holding an ACTIVE engagement cannot join the queue. This
+  // covers both an UNRESOLVED queue offer (status 2 = requested) and an
+  // in-flight journey (accepted/started, not yet completed or cancelled).
+  // Without it a re-check-in would retire the queue entry carrying the live
+  // offer and orphan it (the driver's `requested` DriverRequest blocks fresh
+  // offers while the order stays stuck in `requested`). Idempotent — instead
+  // of failing, report the journey already in flight so the driver app can
+  // surface / cancel the existing connection first.
   const activeJourney = await hasActiveJourney(
     executor,
     vehicleDriver.driverUserUniqueId,
@@ -603,7 +656,10 @@ exports.checkin = async (data) => {
     queueDate,
     queueOrganizationUniqueId,
   );
-  if (active && active.queueOrganizationUniqueId !== queueOrganizationUniqueId) {
+  if (
+    active &&
+    active.queueOrganizationUniqueId !== queueOrganizationUniqueId
+  ) {
     // FENCE: the driver is already active in ANOTHER org today. One queue
     // per driver per day system-wide — reject rather than silently return
     // another org's entry.
@@ -919,19 +975,22 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
     conditions: { queueId: rows[0].queueId },
   });
 
-  await createData({
-    tableName: "QueueAuditLog",
-    insertValues: {
-      queueAuditUniqueId: uuidv4(),
-      queueOrganizationUniqueId: orgId,
-      queueDate,
-      queueUniqueId: rows[0].queueUniqueId,
-      action: "remove",
-      beforeValue: JSON.stringify({ status: rows[0].status }),
-      afterValue: JSON.stringify({ status: "removed" }),
-      performedBy: user.userUniqueId,
+  await createData(
+    {
+      tableName: "QueueAuditLog",
+      insertValues: {
+        queueAuditUniqueId: uuidv4(),
+        queueOrganizationUniqueId: orgId,
+        queueDate,
+        queueUniqueId: rows[0].queueUniqueId,
+        action: "remove",
+        beforeValue: JSON.stringify({ status: rows[0].status }),
+        afterValue: JSON.stringify({ status: "removed" }),
+        performedBy: user.userUniqueId,
+      },
     },
-  }, executor);
+    executor,
+  );
 
   await emitQueueSnapshot({ queueOrganizationUniqueId: orgId, queueDate });
   notifyQueueOrgAdmins({
@@ -941,7 +1000,11 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
 
   return {
     message: "success",
-    data: { queueUniqueId: rows[0].queueUniqueId, status: "removed", releasedOrder },
+    data: {
+      queueUniqueId: rows[0].queueUniqueId,
+      status: "removed",
+      releasedOrder,
+    },
   };
 };
 
@@ -1075,7 +1138,8 @@ exports.manualCheckin = async (data) => {
   let targetedShipperUserUUID = null;
   if (data.shipperPhoneNumber) {
     targetedShipperUserUUID = await resolveShipperUserByPhone(
-      data.shipperPhoneNumber, user.userUniqueId,
+      data.shipperPhoneNumber,
+      user.userUniqueId,
     );
   }
 
@@ -1095,9 +1159,11 @@ exports.manualCheckin = async (data) => {
   }
   const queueDate = today();
 
-  // FENCE: a driver holding an ACTIVE journey (accepted/started, not yet
-  // completed or cancelled) cannot be force-checked in — their previous queue
-  // order is still in flight.
+  // FENCE: a driver holding an ACTIVE engagement — an UNRESOLVED queue offer
+  // (status 2 = requested) or an in-flight journey (accepted/started, not yet
+  // completed or cancelled) — cannot be force-checked in. Retiring the queue
+  // entry that carries the live offer would orphan it, so the driver must
+  // cancel/accept the existing connection first.
   if (await hasActiveJourney(executor, vehicleDriver.driverUserUniqueId)) {
     throw new AppError(
       "Driver has an active journey — finish or cancel it before joining the queue",
@@ -1115,7 +1181,10 @@ exports.manualCheckin = async (data) => {
     queueDate,
     queueOrganizationUniqueId,
   );
-  if (active && active.queueOrganizationUniqueId !== queueOrganizationUniqueId) {
+  if (
+    active &&
+    active.queueOrganizationUniqueId !== queueOrganizationUniqueId
+  ) {
     // FENCE: driver is already active in ANOTHER org today. One queue per
     // driver per day system-wide — reject rather than silently return.
     throw new AppError(
@@ -1189,18 +1258,24 @@ exports.manualCheckin = async (data) => {
   notifyQueueOrgAdmins({ queueOrganizationUniqueId });
 
   // Audit log for manual checkin
-  await createData({
-    tableName: "QueueAuditLog",
-    insertValues: {
-      queueAuditUniqueId: uuidv4(),
-      queueOrganizationUniqueId,
-      queueDate,
-      queueUniqueId,
-      action: "manual_checkin",
-      afterValue: JSON.stringify({ queueNumber: assignedNumber, status: "waiting" }),
-      performedBy: user.userUniqueId,
+  await createData(
+    {
+      tableName: "QueueAuditLog",
+      insertValues: {
+        queueAuditUniqueId: uuidv4(),
+        queueOrganizationUniqueId,
+        queueDate,
+        queueUniqueId,
+        action: "manual_checkin",
+        afterValue: JSON.stringify({
+          queueNumber: assignedNumber,
+          status: "waiting",
+        }),
+        performedBy: user.userUniqueId,
+      },
     },
-  }, executor);
+    executor,
+  );
 
   // Auto-dispatch pending orders to this newly available driver
   await rescanPendingQueueOrder({
@@ -1821,7 +1896,8 @@ const offerToDriver = async ({
   // assignment); when no vehicle type is passed we take it from the order and
   // the target entry/driver must still match that type.
   const isTargeted = !!(targetQueueUniqueId || targetVehicleDriverUniqueId);
-  const matchedTypeUniqueId = vehicleTypeUniqueId || shipperRequest.vehicleTypeUniqueId;
+  const matchedTypeUniqueId =
+    vehicleTypeUniqueId || shipperRequest.vehicleTypeUniqueId;
 
   // Use the active transaction connection when one exists (dispatch wraps this
   // call in executeInTransaction so the FOR UPDATE lock is held across the
@@ -2217,13 +2293,16 @@ exports.handleQueueDispatch = async ({
  * already rejected the OLDEST pending order (e.g. an order they were offered
  * earlier but refused), so we keep walking the queue of pending orders and
  * attempt each one in FIFO order until an offer actually lands. Each
- * `handleQueueDispatch` marks the front driver `offered`, so the next iteration
+ * `offerToDriver` marks the front driver `offered`, so the next iteration
  * advances to the next driver — a single check-in can therefore fill several
  * free slots when the org has a backlog.
  *
- * Runs inside the check-in's transaction: `executeInTransaction` reuses the
- * outer connection, so the front-driver `FOR UPDATE` lock serializes concurrent
- * check-ins and the same order cannot be double-offered.
+ * Runs inside the check-in's transaction: reuses the outer connection via
+ * `transactionStorage` so the just-created queue entry is visible to
+ * `offerToDriver` and the `FOR UPDATE` lock serializes concurrent check-ins.
+ * Calls `offerToDriver` directly (not through `handleQueueDispatch`) to avoid
+ * nesting a second `executeInTransaction` which would open a separate
+ * connection blind to the outer tx's uncommitted rows.
  * Best-effort — returns `{ offered: false, data: null }` when nothing pending.
  */
 const rescanPendingQueueOrder = async ({
@@ -2231,7 +2310,12 @@ const rescanPendingQueueOrder = async ({
   vehicleTypeUniqueId,
   user,
 }) => {
-  const executor = db();
+  // When called inside an outer transaction (e.g. checkin), use that
+  // transaction's connection so offerToDriver can see the just-created queue
+  // entry.  handleQueueDispatch wraps in its OWN executeInTransaction, which
+  // opens a new connection blind to the outer tx's uncommitted rows — the
+  // front-driver SELECT would miss them and return no match.
+  const executor = transactionStorage.getStore() || db();
   const [rows] = await executor.query(
     `SELECT sr.shipperRequestUniqueId
      FROM ShipperRequest sr
@@ -2266,11 +2350,15 @@ const rescanPendingQueueOrder = async ({
     return { offered: false, data: null };
   }
   for (const row of rows) {
-    const result = await exports.handleQueueDispatch({
+    const result = await offerToDriver({
+      executor,
       queueOrganizationUniqueId,
+      queueDate: today(),
       vehicleTypeUniqueId,
       shipperRequestUniqueId: row.shipperRequestUniqueId,
+      afterQueueNumber: null,
       user,
+      throwIfNone: false,
     });
     if (result?.offered) {
       return result;
@@ -2280,7 +2368,6 @@ const rescanPendingQueueOrder = async ({
 };
 
 // Safety cap per sweep so a pathological backlog can never loop forever.
-const MAX_OFFERS_PER_SWEEP = 50;
 
 /**
  * Periodic re-dispatch sweep — safety net for pending queue orders.
@@ -2915,11 +3002,15 @@ exports.getEntryHistory = async (queueUniqueId, user) => {
   }
 
   // Ownership check: driver can only view own entry's history; admins bypass
-  const isAdmin = user.roleId === usersRoles.adminRoleId
-    || user.roleId === usersRoles.supperAdminRoleId
-    || user.roleId === usersRoles.queueOrgAdminRoleId;
+  const isAdmin =
+    user.roleId === usersRoles.adminRoleId ||
+    user.roleId === usersRoles.supperAdminRoleId ||
+    user.roleId === usersRoles.queueOrgAdminRoleId;
   if (!isAdmin && entry[0].driverUserUniqueId !== user.userUniqueId) {
-    throw new AppError("Not authorized to view this entry's history", AppError.FORBIDDEN);
+    throw new AppError(
+      "Not authorized to view this entry's history",
+      AppError.FORBIDDEN,
+    );
   }
 
   const [history] = await executor.query(

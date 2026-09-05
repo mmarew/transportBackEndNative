@@ -430,13 +430,42 @@ const handleExistingJourney = async (driverRequest, vehicle
       error: caErr.message
     });
   }
+  // ── Queue organization check ────────────────────────────────────────────
+  // Resolve the QUEUE organization that dispatched this order, via the order's
+  // batch → `ShipperRequestBatch.queueOrganizationUniqueId` → `QueueOrganization`.
+  // Mirrors `companyAssignment`: present (object) ⇔ the driver's current job came
+  // from a queue org, null ⇔ not a queue-dispatched job. Include the canonical
+  // `queueOrganizationUniqueId` so clients can tell a queue offer apart by id
+  // alone, matching the org surfaced by the check-in `alreadyInJourney` payload.
+  let queue = null;
+  try {
+    const [qoRows] = await pool.query(
+      `SELECT o.queueOrganizationUniqueId, o.queueOrganizationName
+       FROM ShipperRequestBatch b
+       JOIN QueueOrganization o ON o.queueOrganizationUniqueId = b.queueOrganizationUniqueId
+       WHERE b.batchUniqueId = ?
+         AND b.batchDeletedAt IS NULL
+       LIMIT 1`,
+      [shipper?.shipperRequestBatchUniqueId],
+    );
+    if (qoRows && qoRows.length > 0) {
+      queue = qoRows[0];
+    }
+  } catch (qErr) {
+    logger.warn("Could not fetch queue organization for driver", {
+      driverUserUniqueId: driverRequest.userUniqueId,
+      error: qErr.message,
+    });
+  }
   return {
     message: "Journey status fetched",
     status: shipper?.journeyStatusId || journeyStatusId,
     ...responseMessage,
-    // null  → individual job  → use /api/driver/* endpoints
-    // object → company job    → use PATCH /api/company/assignments/:id/status
-    companyAssignment
+    // null  → individual/company job, no queue org → use /api/driver/* endpoints
+    // object → queue-dispatched job → org is queueOrganizationUniqueId
+    // (mirrors companyAssignment: object ⇔ company job)
+    companyAssignment,
+    queue,
   };
 };
 
