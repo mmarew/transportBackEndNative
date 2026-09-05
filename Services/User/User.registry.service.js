@@ -11,6 +11,7 @@ const { currentDate, addHours } = require("../../Utils/CurrentDate");
 const bcrypt = require("bcryptjs");
 const { usersRoles, USER_STATUS } = require("../../Utils/ListOfSeedData");
 const AppError = require("../../Utils/AppError");
+const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
 const { transactionStorage } = require("../../Utils/TransactionContext");
 const generateOTP = require("../../Utils/GenerateOTP");
 const {
@@ -107,6 +108,27 @@ const ensureCredentialForUser = async ({ userUniqueId, rawPassword }) => {
   return { message: "User operation completed" };
 };
 
+/**
+ * Assign a role to a user, creating the UserRole row and an initial
+ * UserRoleStatusCurrent when the role has not been assigned yet.
+ *
+ * SECURITY / INTEGRITY NOTE: This is intentionally INSERT-ONLY for the status.
+ * When the role already exists and already has a status, the status is left
+ * untouched. Status transitions are owned by `updateUserRoleStatus` (which
+ * moves the current row to history before changing it) and by the
+ * account-status evaluation. If this helper overwrote an existing status it
+ * would let a (re)registration silently change an account's lifecycle state —
+ * e.g. un-ban an admin-suspended user or pop an account back to a setup state
+ * on every public create/login call — which is why callers pass the same
+ * status back on re-use without effect.
+ *
+ * @param {string} userUniqueId - Owner of the role being assigned.
+ * @param {number} roleId - Role to ensure (Roles.roleId).
+ * @param {number} [statusId] - Initial status for the role; only applied when
+ *   the role's status row is created now (no effect on an existing status).
+ * @param {string} [description] - Reason stored with a newly created status.
+ * @returns {Promise<void>}
+ */
 const handleUserRoleStatus = async (
   userUniqueId,
   roleId,
@@ -151,13 +173,8 @@ const handleUserRoleStatus = async (
       ],
     );
   }
-  // //if user role status is already assigned, update it
-  // else {
-  //   await executor.query(
-  //     "UPDATE UserRoleStatusCurrent SET statusId = ?, userRoleStatusDescription = ?, userRoleStatusCreatedAt = ? WHERE userRoleId = ?",
-  //     [statusId, description, currentDate(), userRoleId],
-  //   );
-  // }
+  // NOTE: Deliberately insert-only — never overwrite an existing status here.
+  // See the JSDoc above for the security rationale.
 };
 
 const registerNewUser = async ({
@@ -170,58 +187,74 @@ const registerNewUser = async ({
   createdBy,
   rawPassword,
 }) => {
-  const userUniqueId = uuidv4();
-  const userCreatedAt = currentDate();
-  const userCreatedByParam = createdBy || userUniqueId;
+  // Atomic registration: the Users row, its credential, and its initial role
+  // must commit together. Nested calls (ensureCredentialForUser and
+  // authService.handleExistingUser) join the same transaction through
+  // transactionStorage, so a mid-flow failure rolls back instead of leaving an
+  // orphaned user row without credentials/role. Nested-safe: if a caller is
+  // already inside a transaction, executeInTransaction reuses that connection.
+  return executeInTransaction(async () => {
+    const userUniqueId = uuidv4();
+    const userCreatedAt = currentDate();
+    const userCreatedByParam = createdBy || userUniqueId;
 
-  // Use provided email if it exists (even if it's a placeholder we just carefully generated)
-  const cleanEmail = email ? email : getPlaceholderEmail(phoneNumber);
+    // Use provided email if it exists (even if it's a placeholder we just carefully generated)
+    const cleanEmail = email ? email : getPlaceholderEmail(phoneNumber);
 
-  const executor = transactionStorage.getStore() || pool;
-  const [userIns] = await executor.query(
-    "INSERT INTO Users (userUniqueId, fullName, phoneNumber, email, userCreatedAt, userCreatedBy,isEmailVerified,isPhoneVerified) VALUES (?, ?, ?, ?, ?, ?,?,?)",
-    [
+    const executor = transactionStorage.getStore() || pool;
+    const [userIns] = await executor.query(
+      "INSERT INTO Users (userUniqueId, fullName, phoneNumber, email, userCreatedAt, userCreatedBy,isEmailVerified,isPhoneVerified) VALUES (?, ?, ?, ?, ?, ?,?,?)",
+      [
+        userUniqueId,
+        fullName,
+        phoneNumber,
+        cleanEmail,
+        userCreatedAt,
+        userCreatedByParam,
+        false,
+        false,
+      ],
+    );
+
+    if (userIns.affectedRows === 0) {
+      throw new AppError("User registration failed", AppError.INTERNAL_SERVER_ERROR);
+    }
+
+    // OPTIMIZATION: Construct userData locally using insertId to avoid a redundant SELECT query
+    const userData = {
+      userId: userIns.insertId,
       userUniqueId,
       fullName,
       phoneNumber,
-      cleanEmail,
+      email: cleanEmail,
       userCreatedAt,
-      userCreatedByParam,
-      false,
-      false,
-    ],
-  );
+      userCreatedBy: userCreatedByParam,
+      isEmailVerified: false,
+      isPhoneVerified: false,
+    };
 
-  if (userIns.affectedRows === 0) {
-    throw new AppError("User registration failed", AppError.INTERNAL_SERVER_ERROR);
-  }
+    await ensureCredentialForUser({ userUniqueId, rawPassword });
 
-  // OPTIMIZATION: Construct userData locally using insertId to avoid a redundant SELECT query
-  const userData = {
-    userId: userIns.insertId,
-    userUniqueId,
-    fullName,
-    phoneNumber,
-    email: cleanEmail,
-    userCreatedAt,
-    userCreatedBy: userCreatedByParam,
-    isEmailVerified: false,
-    isPhoneVerified: false,
-  };
-
-  await ensureCredentialForUser({ userUniqueId, rawPassword });
-
-  if (!authService) {
-    authService = require("./auth");
-  }
-  return await authService.handleExistingUser({
-    requestedFrom,
-    user: userData,
-    roleId,
-    statusId,
+    if (!authService) {
+      authService = require("./auth");
+    }
+    return await authService.handleExistingUser({
+      requestedFrom,
+      user: userData,
+      roleId,
+      statusId,
+    });
   });
 };
 
+/**
+ * Public (self-service) user creation / OTP login.
+ *
+ * Creates a brand-new account, or for an existing phone/email turns the request
+ * into an OTP-login for the requested role. Registration is atomic (see
+ * registerNewUser). Includes identity-hijacking guards: a phone tied to a
+ * different real email is blocked unless explicitly a street entry.
+ */
 const createUser = async (body) => {
   const {
     fullName,
@@ -231,6 +264,18 @@ const createUser = async (body) => {
     userRoleStatusDescription,
     requestedFrom,
   } = body;
+
+  // Reject invalid statuses up-front (only when explicitly provided) so a
+  // client cannot silently register a role in an impossible/nonexistent state.
+  // When omitted, the default behavior is preserved (no status row until the
+  // account-status evaluation establishes one).
+  if (statusId !== undefined && (!Number.isInteger(statusId) || statusId < 1)) {
+    throw new AppError(
+      "statusId must be a positive integer when provided",
+      AppError.BAD_REQUEST,
+    );
+  }
+
   let email = body?.email?.trim();
   //if there is no email, generate placeholder email
   if (!email) {
@@ -337,129 +382,157 @@ const createUser = async (body) => {
   });
 };
 
+/**
+ * Ensure an EXISTING user can act in a role: refresh their credential hash and
+ * assign the role (with an initial status) if it isn't already held. Shared by
+ * the admin/super-admin creation path so the credential + role pair is not
+ * duplicated across its email-hit and phone-hit branches.
+ *
+ * @param {object} params
+ * @param {string} params.userUniqueId - Target user.
+ * @param {number} params.roleId - Role to ensure.
+ * @param {number} [params.statusId] - Initial status when the role is new.
+ * @param {string} [params.description] - Reason for the status when created.
+ * @param {string} [params.rawPassword] - OTP/password to store for verification.
+ * @returns {Promise<void>}
+ */
+const prepareUserForRole = async ({
+  userUniqueId,
+  roleId,
+  statusId,
+  description = "",
+  rawPassword,
+}) => {
+  await ensureCredentialForUser({ userUniqueId, rawPassword });
+  await handleUserRoleStatus(userUniqueId, roleId, statusId, description);
+};
+
+/**
+ * Admin / super-admin user creation.
+ *
+ * Resolves the target by real email, then by phone, creating the user when
+ * unknown and otherwise ensuring the requested role + refreshed credentials.
+ * All mutations run inside ONE transaction so a conflict (phone/email mismatch)
+ * rolls back every partial change instead of leaving a half-prepared account.
+ */
 const createUserByAdminOrSuperAdmin = async ({
   body,
   userUniqueId,
   userRoleStatusDescription,
 }) => {
-  const { fullName, phoneNumber, roleId, statusId } = body;
-  let email = body?.email?.trim();
+  return executeInTransaction(async () => {
+    const { fullName, phoneNumber, roleId, statusId } = body;
+    let email = body?.email?.trim();
 
-  //if email is not provided create placeholder email
-  if (!email) {
-    email = getPlaceholderEmail(phoneNumber);
-  }
-  const userDataByEmail = await getData({
-    tableName: "Users",
-    conditions: { email },
-  });
-
-  if (userDataByEmail?.[0]) {
-    await ensureCredentialForUser({
-      userUniqueId: userDataByEmail[0].userUniqueId,
-      rawPassword: body?.rawPassword || body?.OTP,
-    });
-    await handleUserRoleStatus(
-      userDataByEmail[0].userUniqueId,
-      roleId,
-      statusId,
-      "",
-    );
-    //
-    if (
-      !isPlaceholderEmail(email) &&
-      phoneNumber &&
-      userDataByEmail[0].phoneNumber !== phoneNumber
-    ) {
-      throw new AppError("There is a difference in phone number", AppError.CONFLICT);
+    //if email is not provided create placeholder email
+    if (!email) {
+      email = getPlaceholderEmail(phoneNumber);
     }
-    if (!isPlaceholderEmail(email)) {
+    const userDataByEmail = await getData({
+      tableName: "Users",
+      conditions: { email },
+    });
+
+    if (userDataByEmail?.[0]) {
+      await prepareUserForRole({
+        userUniqueId: userDataByEmail[0].userUniqueId,
+        roleId,
+        statusId,
+        description: "",
+        rawPassword: body?.rawPassword || body?.OTP,
+      });
+      //
+      if (
+        !isPlaceholderEmail(email) &&
+        phoneNumber &&
+        userDataByEmail[0].phoneNumber !== phoneNumber
+      ) {
+        throw new AppError("There is a difference in phone number", AppError.CONFLICT);
+      }
+      if (!isPlaceholderEmail(email)) {
+        return {
+          message: "User operation completed",
+          data: null,
+        };
+      }
+
+      if (isPlaceholderEmail(email)) {
+        // If we found a user by this placeholder email but their phone number doesn't match,
+        // we generate a unique one for the NEW user we are about to create.
+        if (userDataByEmail[0].phoneNumber !== phoneNumber) {
+          email = getPlaceholderEmail(
+            // eslint-disable-next-line no-magic-numbers -- random 6-digit suffix for placeholder
+            phoneNumber + Math.floor(Math.random() * 1000000),
+          );
+        } else {
+          // Same phone + Same placeholder = Same user. We're done.
+          return {
+            message: "User operation completed",
+            data: null,
+          };
+        }
+      }
+    }
+
+    const userDataByPhoneNumber = await getData({
+      tableName: "Users",
+      conditions: { phoneNumber },
+    });
+
+    if (userDataByPhoneNumber?.[0]) {
+      const existingUser = userDataByPhoneNumber[0];
+      const existingUserUniqueId = existingUser.userUniqueId;
+
+      // Update fullName if user.fullName is not provided before, but now fullName is provided and different
+      if (
+        !existingUser.fullName &&
+        fullName &&
+        existingUser.fullName !== fullName
+      ) {
+        await updateData({
+          tableName: "Users",
+          updateValues: { fullName },
+          conditions: { userUniqueId: existingUserUniqueId },
+        });
+      }
+
+      // Ensure the user is registered for the new role and status, and refresh
+      // the credential hash for verification
+      await prepareUserForRole({
+        userUniqueId: existingUserUniqueId,
+        roleId,
+        statusId,
+        description: userRoleStatusDescription,
+        rawPassword: body?.rawPassword || body?.OTP,
+      });
+
+      // Only check for email difference if the PROVIDED email is a real email (not a placeholder)
+      if (
+        email &&
+        !isPlaceholderEmail(email) &&
+        existingUser.email &&
+        existingUser.email !== email
+      ) {
+        throw new AppError("There is a difference in email address", AppError.CONFLICT);
+      }
+
       return {
         message: "User operation completed",
         data: null,
       };
     }
 
-    if (isPlaceholderEmail(email)) {
-      // If we found a user by this placeholder email but their phone number doesn't match,
-      // we generate a unique one for the NEW user we are about to create.
-      if (userDataByEmail[0].phoneNumber !== phoneNumber) {
-        email = getPlaceholderEmail(
-          // eslint-disable-next-line no-magic-numbers -- random 6-digit suffix for placeholder
-          phoneNumber + Math.floor(Math.random() * 1000000),
-        );
-      } else {
-        // Same phone + Same placeholder = Same user. We're done.
-        return {
-          message: "User operation completed",
-          data: null,
-        };
-      }
-    }
-  }
-
-  const userDataByPhoneNumber = await getData({
-    tableName: "Users",
-    conditions: { phoneNumber },
-  });
-
-  if (userDataByPhoneNumber?.[0]) {
-    const existingUser = userDataByPhoneNumber[0];
-    const existingUserUniqueId = existingUser.userUniqueId;
-
-    // Update fullName if user.fullName is not provided before, but now fullName is provided and different
-    if (
-      !existingUser.fullName &&
-      fullName &&
-      existingUser.fullName !== fullName
-    ) {
-      await updateData({
-        tableName: "Users",
-        updateValues: { fullName },
-        conditions: { userUniqueId: existingUserUniqueId },
-      });
-    }
-
-    // Ensure the user is registered for the new role and status
-    await handleUserRoleStatus(
-      existingUserUniqueId,
+    return await registerNewUser({
+      fullName,
+      phoneNumber,
+      email,
       roleId,
       statusId,
       userRoleStatusDescription,
-    );
-
-    // Generate/Update OTP for verification
-    await ensureCredentialForUser({
-      userUniqueId: existingUserUniqueId,
+      requestedFrom: "Supper Admin/Admin",
+      createdBy: userUniqueId,
       rawPassword: body?.rawPassword || body?.OTP,
     });
-
-    // Only check for email difference if the PROVIDED email is a real email (not a placeholder)
-    if (
-      email &&
-      !isPlaceholderEmail(email) &&
-      existingUser.email &&
-      existingUser.email !== email
-    ) {
-      throw new AppError("There is a difference in email address", AppError.CONFLICT);
-    }
-
-    return {
-      message: "User operation completed",
-      data: null,
-    };
-  }
-
-  return await registerNewUser({
-    fullName,
-    phoneNumber,
-    email,
-    roleId,
-    statusId,
-    userRoleStatusDescription,
-    requestedFrom: "Supper Admin/Admin",
-    createdBy: userUniqueId,
-    rawPassword: body?.rawPassword || body?.OTP,
   });
 };
 //some jobs can be done by system itself by written codes not by admin or supper admin or users
