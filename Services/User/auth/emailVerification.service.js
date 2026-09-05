@@ -14,6 +14,7 @@ const logger = require("../../../Utils/logger");
 const {
   usersRoles
 } = require("../../../Utils/ListOfSeedData");
+const { SocketUserTypes } = require("../../../Utils/SocketUserTypes");
 const AppError = require("../../../Utils/AppError");
 
 const {
@@ -114,13 +115,13 @@ const verifyEmailByToken = async token => {
       const cleanedPhone = userRow.phoneNumber.replace(/\//g, "").replace(/\+/g, "");
       for (const ur of userRoles) {
         const roleId = Number(ur.roleId);
-        let userType = "shipper";
+        let userType = SocketUserTypes.SHIPPER;
         if (roleId === usersRoles.driverRoleId) {
-          userType = "driver";
+          userType = SocketUserTypes.DRIVER;
         } else if (roleId === usersRoles.adminRoleId) {
-          userType = "admin";
+          userType = SocketUserTypes.ADMIN;
         } else if (roleId === usersRoles.supperAdminRoleId) {
-          userType = "admin";
+          userType = SocketUserTypes.ADMIN;
         }
         const socketId = await getSocket(userType, cleanedPhone);
         if (socketId) {
@@ -221,7 +222,11 @@ const reportMisdirectedEmail = async token => {
   });
   if (user && user.phoneNumber) {
     const cleanedPhone = user.phoneNumber.replace(/\+/g, "");
-    const roles = ["shipper", "driver", "admin"];
+    const roles = [
+      SocketUserTypes.SHIPPER,
+      SocketUserTypes.DRIVER,
+      SocketUserTypes.ADMIN,
+    ];
     for (const role of roles) {
       const socketId = await getSocket(role, cleanedPhone);
       if (socketId) {

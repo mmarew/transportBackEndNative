@@ -1086,6 +1086,20 @@ const transitionLoadingStage = (stage) => async (body) => {
       action: config.companyAction,
     });
 
+    // 🔔 Queue org admins (real-time): when the order is a queue order and the
+    // load happens at the queue site, push the loading-stage update to the
+    // queue org. Best-effort + idempotent — skipped when the order is not
+    // linked to a queue organization (batch header) or the socket layer is down.
+    const { notifyQueueOrgOfLoadingStage } = require("../../Utils/QueueSocket");
+    await notifyQueueOrgOfLoadingStage({
+      shipperRequestUniqueId: shipperRequest?.shipperRequestUniqueId,
+      driverName: driverInfo?.driver?.fullName || "",
+      driverPhoneNumber: driverInfo?.driver?.phoneNumber || "",
+      latitude,
+      longitude,
+      stage: config.companyAction, // 'going_to_loading_place' | 'started_loading' | 'completed_loading'
+    });
+
     return {
       message: config.successMessage,
       status: config.targetStatus,

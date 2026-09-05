@@ -331,6 +331,21 @@ const messageTypes = {
     message: "New member added to queue organization",
     details: "A new member was added to a queue organization by its admin.",
   },
+  queue_driver_going_to_loading_place: {
+    message: "Driver on the way to the queue loading point",
+    details:
+      "A queue-assigned driver confirmed they are heading to the loading place (queue site) to pick up the cargo.",
+  },
+  queue_driver_started_loading: {
+    message: "Driver started loading at the queue loading point",
+    details:
+      "A queue-assigned driver arrived at the loading place and started loading the cargo.",
+  },
+  queue_driver_completed_loading: {
+    message: "Driver completed loading at the queue loading point",
+    details:
+      "A queue-assigned driver finished loading the cargo and is ready to depart.",
+  },
   pod_submitted: {
     message: "POD submitted.",
     details:

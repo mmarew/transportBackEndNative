@@ -20,6 +20,7 @@ const ServerResponder = require("../../Utils/ServerResponder");
 const {
   usersRoles
 } = require("../../Utils/ListOfSeedData");
+const { SocketUserTypes } = require("../../Utils/SocketUserTypes");
 const {
   getOtpMessage,
   getPhoneVerificationLinkMessage,
@@ -216,13 +217,13 @@ const updateUser = async (req, res, next) => {
             // WebSocket Session Revocation
             const oldPhone = user.phoneNumber;
             const roleId = Number(req.user.roleId);
-            let userType = "shipper";
+            let userType = SocketUserTypes.SHIPPER;
             if (roleId === usersRoles.driverRoleId) {
-              userType = "driver";
+              userType = SocketUserTypes.DRIVER;
             } else if (roleId === usersRoles.adminRoleId) {
-              userType = "admin";
+              userType = SocketUserTypes.ADMIN;
             } else if (roleId === usersRoles.supperAdminRoleId) {
-              userType = "admin";
+              userType = SocketUserTypes.ADMIN;
             }
             const socketId = await getSocket(userType, oldPhone.replace(/\+/g, ""));
             if (socketId) {

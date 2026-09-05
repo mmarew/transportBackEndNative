@@ -4,6 +4,7 @@ const { db } = require("../CompanyHelper.service");
 const { currentDate } = require("../../Utils/CurrentDate");
 const messageTypes = require("../../Utils/MessageTypes");
 const { usersRoles } = require("../../Utils/ListOfSeedData");
+const { SocketUserTypes } = require("../../Utils/SocketUserTypes");
 const logger = require("../../Utils/logger");
 
 /**
@@ -149,7 +150,7 @@ exports.upsertBatch = async ({
         const io = socketIO.io;
         if (io) {
           for (const sock of io.sockets.sockets.values()) {
-            if (sock.userType === "company") {
+            if (sock.userType === SocketUserTypes.COMPANY) {
               sock.emit("messages", JSON.stringify(message));
             }
           }

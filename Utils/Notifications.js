@@ -4,6 +4,7 @@ const { redis } = require("../Config/redis.config");
 const logger = require("./logger");
 const AppError = require("./AppError");
 const { db } = require("../Services/CompanyHelper.service");
+const { SocketUserTypes } = require("./SocketUserTypes");
 
 // Regular expression to validate phone numbers (only digits, between 9 and 15 digits)
 const phoneNumberRegex = /^[0-9]{9,15}$/;
@@ -18,7 +19,7 @@ const sendSocketIONotificationToDriver = async ({
   message,
   phoneNumber,
   eventName,
-  userType = "driver",
+  userType = SocketUserTypes.DRIVER,
 }) => {
   const cleanedPhoneNumber = cleanPhoneNumber(phoneNumber);
   if (!cleanedPhoneNumber || !phoneNumberRegex.test(cleanedPhoneNumber)) {
@@ -79,7 +80,7 @@ const sendSocketIONotificationToShipper = async ({
   message,
   phoneNumber,
   eventName,
-  userType = "shipper",
+  userType = SocketUserTypes.SHIPPER,
 }) => {
   const cleanedPhoneNumber = cleanPhoneNumber(phoneNumber);
   if (!cleanedPhoneNumber || !phoneNumberRegex.test(cleanedPhoneNumber)) {
@@ -148,7 +149,7 @@ const sendSocketIONotificationToAdmin = async ({ message, eventName }) => {
   try {
     let keys = [];
     try {
-      keys = await redis.keys("admin:*");
+      keys = await redis.keys(`${SocketUserTypes.ADMIN}:*`);
     } catch (redisError) {
       logger.error("Redis connection error", {
         error: redisError.message,
@@ -246,7 +247,7 @@ const sendSocketIONotificationToCompany = async ({
   phoneNumber,
   message,
   eventName,
-  userType = "company",
+  userType = SocketUserTypes.COMPANY,
 }) => {
   try {
     const targets = [];

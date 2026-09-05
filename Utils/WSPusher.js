@@ -9,6 +9,7 @@ const { getDriverJourneyStatus } = require("../Services/DriverRequest");
 const messageTypes = require("./MessageTypes");
 const logger = require("./logger");
 const { getLastLocationsForShipper } = require("./LastLocationStore");
+const { SocketUserTypes, VALID_USER_TYPES } = require("./SocketUserTypes");
 
 const phoneNumberRegex = /^[0-9]{9,15}$/;
 
@@ -56,20 +57,13 @@ async function WSPusher({ socket }) {
       );
     }
 
-    const validUserTypes = [
-      "driver",
-      "shipper",
-      "SMSSender",
-      "admin",
-      "company",
-      "queueOrgAdmin",
-    ];
+    const validUserTypes = VALID_USER_TYPES;
     if (!validUserTypes.includes(user)) {
       return sendError(socket, "Invalid user type", "BAD_REQUEST");
     }
 
     // Special check for SMSSender
-    if (user === "SMSSender") {
+    if (user === SocketUserTypes.SMSSENDER) {
       const password = socket.handshake.auth.password;
       if (!password) {
         return sendError(
@@ -113,7 +107,7 @@ async function WSPusher({ socket }) {
     // for the next tracker tick or the 30s REST poll). Emits right here, in the
     // same connection flow as connection_established, so the client listener is
     // already attached.
-    if (user === "shipper") {
+    if (user === SocketUserTypes.SHIPPER) {
       try {
         const lastLocations = await getLastLocationsForShipper(
           cleanedPhoneNumber,
@@ -136,9 +130,9 @@ async function WSPusher({ socket }) {
 
     // Get status if shipper or driver
     let status = null;
-    if (user === "shipper") {
+    if (user === SocketUserTypes.SHIPPER) {
       status = await getShipperJourneyStatus(userUniqueId);
-    } else if (user === "driver") {
+    } else if (user === SocketUserTypes.DRIVER) {
       status = await getDriverJourneyStatus(userUniqueId);
     }
 
