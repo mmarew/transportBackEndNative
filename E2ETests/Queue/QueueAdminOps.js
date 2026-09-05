@@ -105,8 +105,15 @@ const testTQ35RemoveEntry = async () => {
     await removeEntry(queueUniqueId, qadminToken());
 
     const row = await entryOf("queueDriver1");
-    if (!row || row.status !== "removed") {
-      throw new Error(`entry should be removed: ${JSON.stringify(row)}`);
+    if (row) {
+      throw new Error(`entry should be gone after remove: ${JSON.stringify(row)}`);
+    }
+    const [removedRows] = await pool.query(
+      `SELECT status, queueDeletedAt FROM DriverQueue WHERE queueUniqueId = ?`,
+      [queueUniqueId],
+    );
+    if (!removedRows[0] || removedRows[0].status !== "removed" || !removedRows[0].queueDeletedAt) {
+      throw new Error(`entry expected removed+deleted, got ${JSON.stringify(removedRows[0])}`);
     }
     const [auditRows] = await pool.query(
       `SELECT * FROM QueueAuditLog

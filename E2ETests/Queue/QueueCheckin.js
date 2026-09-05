@@ -175,10 +175,22 @@ const testTQ10Checkout = async () => {
     await checkout("queueDriver1", queueOrganizationUniqueId);
 
     const entry = await getActiveEntry("queueDriver1", queueOrganizationUniqueId);
-    if (!entry || entry.status !== "removed") {
-      throw new Error(`driver01 entry expected 'removed', got ${entry?.status}`);
+    if (entry) {
+      throw new Error(`driver01 should have no active entry after checkout, got ${JSON.stringify(entry)}`);
     }
-    report.pass("TQ-10: checkout marks entry removed");
+    const [removedRows] = await pool.query(
+      `SELECT dq.status, dq.queueDeletedAt
+       FROM DriverQueue dq
+       JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+       JOIN Users u ON u.userUniqueId = vd.driverUserUniqueId
+       WHERE dq.queueOrganizationUniqueId = ? AND dq.queueDate = ? AND u.phoneNumber = ?
+       ORDER BY dq.queueId DESC LIMIT 1`,
+      [queueOrganizationUniqueId, dbToday(), require("../constants").usersData["queueDriver1"].phoneNumber],
+    );
+    if (!removedRows[0] || removedRows[0].status !== "removed" || !removedRows[0].queueDeletedAt) {
+      throw new Error(`driver01 entry expected removed+deleted, got ${JSON.stringify(removedRows[0])}`);
+    }
+    report.pass("TQ-10: checkout removes driver from queue + soft-deletes entry");
 
     const pos = await myPosition("queueDriver1", queueOrganizationUniqueId);
     if (!Array.isArray(pos)) {

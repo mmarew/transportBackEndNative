@@ -1011,6 +1011,8 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
       shipperRequestUniqueId: null,
       queueUpdatedAt: currentDate(),
       queueUpdatedBy: user.userUniqueId,
+      queueDeletedAt: currentDate(),
+      queueDeletedBy: user.userUniqueId,
     },
     conditions: { queueId: rows[0].queueId },
   });
@@ -1446,6 +1448,8 @@ exports.removeEntry = async (queueUniqueId, user) => {
       shipperRequestUniqueId: null,
       queueUpdatedAt: currentDate(),
       queueUpdatedBy: user.userUniqueId,
+      queueDeletedAt: currentDate(),
+      queueDeletedBy: user.userUniqueId,
     },
     conditions: { queueId: entry.queueId },
   });
@@ -2750,6 +2754,8 @@ exports.closeEntryOnJourneyCompletion = async ({
       shipperRequestUniqueId: null,
       queueUpdatedAt: currentDate(),
       queueUpdatedBy: userUniqueId || null,
+      queueDeletedAt: currentDate(),
+      queueDeletedBy: userUniqueId || null,
     },
     conditions: { queueId: entry.queueId },
   });
