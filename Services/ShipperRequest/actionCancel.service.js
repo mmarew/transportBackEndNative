@@ -262,7 +262,16 @@ const cancelShipperRequest = async body => {
     // 3. Queue-dispatch order cancelled at the job level: release any driver
     //    entry still holding this order's offer back to waiting (position kept,
     //    no refusal counted). No-op for non-queue orders and no-offer states.
-    if (shipperRequest?.queueOrganizationUniqueId) {
+    //    `queueOrganizationUniqueId` is canonical on the batch (ShipperRequestBatch)
+    //    — that is why it is joined here instead of read off ShipperRequest.
+    const [batchRows] = await executor.query(
+      `SELECT srb.queueOrganizationUniqueId
+       FROM ShipperRequest sr
+       LEFT JOIN ShipperRequestBatch srb ON srb.batchUniqueId = sr.shipperRequestBatchUniqueId
+       WHERE sr.shipperRequestUniqueId = ? LIMIT 1`,
+      [shipperRequestUniqueId],
+    );
+    if (batchRows[0]?.queueOrganizationUniqueId) {
       try {
         const { releaseEntryOnOrderCancel } = require("../DriverQueue.service");
         await releaseEntryOnOrderCancel({

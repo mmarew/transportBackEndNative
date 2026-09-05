@@ -542,7 +542,8 @@ const getDriverQueueState = async (
      JOIN QueueOrganization o ON o.queueOrganizationUniqueId = dq.queueOrganizationUniqueId
      JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
      WHERE dq.queueDate = ? AND vd.driverUserUniqueId = ? AND dq.queueDeletedAt IS NULL
-     ORDER BY dq.queueId DESC`,
+     ORDER BY dq.queueId DESC
+     FOR UPDATE`,
     [queueDate, driverUserUniqueId],
   );
   const active = rows.find((r) => IN_QUEUE_STATUSES.includes(r.status)) || null;
@@ -608,6 +609,22 @@ exports.checkin = async (data) => {
       "Queue organization is not enabled for dispatch",
       AppError.FORBIDDEN,
     );
+  }
+
+  // SERIALIZE concurrent check-ins for the same org: hold a FOR UPDATE lock on
+  // the org row for the rest of this transaction. Without it, parallel
+  // check-ins of the same driver can all observe "no active entry" and each
+  // INSERT a fresh DriverQueue row (no unique key on driver/org/day), leaving
+  // several active entries. The lock makes later check-ins wait, and the
+  // current-read state fetch below then retires the committed entry instead of
+  // double-inserting.
+  const [orgLockRow] = await executor.query(
+    `SELECT queueOrganizationUniqueId FROM QueueOrganization
+     WHERE queueOrganizationUniqueId = ? AND isDeleted = 0 FOR UPDATE`,
+    [queueOrganizationUniqueId],
+  );
+  if (orgLockRow.length === 0) {
+    throw new AppError("Queue organization not found", AppError.NOT_FOUND);
   }
 
   await validateCheckinDistance(executor, org, driverLatitude, driverLongitude);
@@ -741,6 +758,26 @@ exports.checkin = async (data) => {
       );
     }
     throw error;
+  }
+
+  // Column-level audit for the fresh entry: creation status + any shipper
+  // reservation applied at check-in. Without these, a brand-new entry has no
+  // history rows and the reservation is invisible to the audit trail.
+  await logQueueHistory(executor, {
+    queueUniqueId,
+    columnName: "status",
+    oldValue: null,
+    newValue: "waiting",
+    performedBy: user.userUniqueId,
+  });
+  if (preserveTarget) {
+    await logQueueHistory(executor, {
+      queueUniqueId,
+      columnName: "targetedShipperUserUUID",
+      oldValue: null,
+      newValue: preserveTarget,
+      performedBy: user.userUniqueId,
+    });
   }
 
   // Check-in auto-offer: pair the oldest pending queue order of this driver's
@@ -884,11 +921,14 @@ exports.myPosition = async (queueOrganizationUniqueId, user) => {
   }
 
   const [shipperHistory] = await executor.query(
-    `SELECT oldValue, performedAt
-     FROM DriverQueueHistory
-     WHERE queueUniqueId = ? AND columnName = 'targetedShipperUserUUID'
-     ORDER BY performedAt DESC LIMIT 10`,
-    [rows[0].queueUniqueId],
+    `SELECT h.oldValue, h.performedAt
+     FROM DriverQueueHistory h
+     JOIN DriverQueue dq ON dq.queueUniqueId = h.queueUniqueId
+     JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+     WHERE vd.driverUserUniqueId = ? AND dq.queueOrganizationUniqueId = ? AND dq.queueDate = ?
+       AND h.columnName = 'targetedShipperUserUUID'
+     ORDER BY h.performedAt DESC LIMIT 10`,
+    [rows[0].driverUserUniqueId, orgId, queueDate],
   );
 
   return {
@@ -1252,6 +1292,25 @@ exports.manualCheckin = async (data) => {
       );
     }
     throw error;
+  }
+
+  // Column-level audit for the fresh entry: creation status + any shipper
+  // reservation applied at manual check-in (mirrors `checkin`).
+  await logQueueHistory(executor, {
+    queueUniqueId,
+    columnName: "status",
+    oldValue: null,
+    newValue: "waiting",
+    performedBy: user.userUniqueId,
+  });
+  if (targetedShipperUserUUID) {
+    await logQueueHistory(executor, {
+      queueUniqueId,
+      columnName: "targetedShipperUserUUID",
+      oldValue: null,
+      newValue: targetedShipperUserUUID,
+      performedBy: user.userUniqueId,
+    });
   }
 
   await emitQueueSnapshot({ queueOrganizationUniqueId, queueDate });

@@ -102,18 +102,21 @@ const testTQH02RecheckinPreservesReservation = async () => {
 
     // Re-checkin without shipperPhoneNumber
     const result = await checkin("queueDriver1", ORG());
-    if (result.queueUniqueId !== before.queueUniqueId) {
-      throw new Error("re-checkin returned different entry");
+    if (result.queueUniqueId === before.queueUniqueId) {
+      throw new Error("re-check-in should retire the prior entry and create a fresh one");
     }
 
     const after = await entryOf("queueDriver1");
+    if (after.queueUniqueId === before.queueUniqueId) {
+      throw new Error("entry was not refreshed on re-check-in");
+    }
     if (after.targetedShipperUserUUID !== beforeTarget) {
       throw new Error(
         `reservation silently cleared: was ${beforeTarget}, now ${after.targetedShipperUserUUID}`,
       );
     }
 
-    report.pass("TQ-H02: re-checkin without phone preserves targetedShipperUserUUID");
+    report.pass("TQ-H02: re-check-in creates fresh entry and carries the reservation over");
   } catch (error) {
     report.fail("TQ-H02: re-checkin preserves reservation", error);
   }
@@ -129,11 +132,14 @@ const testTQH03RecheckinUpdatesReservation = async () => {
     const before = await entryOf("queueDriver1");
     const beforeTarget = before.targetedShipperUserUUID;
 
-    // Re-checkin with a different phone (use admin phone as dummy)
+    // Re-checkin with a different phone (use admin phone as dummy) → fresh entry
     const newPhone = usersData.admin.phoneNumber;
     await checkinWithShipper("queueDriver1", ORG(), newPhone);
 
     const after = await entryOf("queueDriver1");
+    if (after.queueUniqueId === before.queueUniqueId) {
+      throw new Error("re-check-in should retire the prior entry and create a fresh one");
+    }
     if (after.targetedShipperUserUUID === beforeTarget) {
       throw new Error("reservation not updated after re-checkin with new phone");
     }
@@ -141,14 +147,14 @@ const testTQH03RecheckinUpdatesReservation = async () => {
       throw new Error("new reservation is null");
     }
 
-    // History should have 2 entries now
+    // The fresh entry must log its shipper reservation at creation.
     const history = await getEntryHistory(after.queueUniqueId, driverTokenOf("queueDriver1"));
     const shipperChanges = history.filter((h) => h.columnName === "targetedShipperUserUUID");
-    if (shipperChanges.length < 2) {
-      throw new Error(`expected >= 2 shipper history entries, got ${shipperChanges.length}`);
+    if (shipperChanges.length < 1) {
+      throw new Error(`expected at least 1 shipper history entry on fresh entry, got ${shipperChanges.length}`);
     }
 
-    report.pass("TQ-H03: re-checkin with new phone updates reservation + history has 2 entries");
+    report.pass("TQ-H03: re-check-in with new phone → fresh entry, updated reservation + shipper history");
   } catch (error) {
     report.fail("TQ-H03: re-checkin updates reservation", error);
   }
@@ -432,21 +438,32 @@ const testTQH12CheckoutLogsAudit = async () => {
 const testTQH13RecheckinReviveLogsHistory = async () => {
   try {
     // Checkout first to set up revive scenario
-    await checkin("queueDriver1", ORG());
+    const e1 = await checkin("queueDriver1", ORG());
+    const e1Id = e1.queueUniqueId;
     await checkout("queueDriver1", ORG());
 
-    // Re-checkin (revive)
-    await checkin("queueDriver1", ORG());
+    // Re-checkin (revive) → fresh entry
+    const e2 = await checkin("queueDriver1", ORG());
     const after = await entryOf("queueDriver1");
     if (!after) throw new Error("no entry after revive checkin");
 
+    // The fresh entry must log its creation status at minimum.
     const history = await getEntryHistory(after.queueUniqueId, driverTokenOf("queueDriver1"));
     const statusChanges = history.filter((h) => h.columnName === "status");
-    if (statusChanges.length < 2) {
-      throw new Error(`expected >= 2 status changes (offer+remove, or remove+revive), got ${statusChanges.length}`);
+    if (statusChanges.length < 1) {
+      throw new Error(`fresh entry should log creation status, got ${statusChanges.length}`);
     }
 
-    report.pass("TQ-H13: re-checkin revive logs status history (waiting→removed→waiting)");
+    // The retired entry must log the full chain: creation + checkout removal.
+    const retiredHistory = await getEntryHistory(e1Id, driverTokenOf("queueDriver1"));
+    const retiredStatusChanges = retiredHistory.filter((h) => h.columnName === "status");
+    if (retiredStatusChanges.length < 2) {
+      throw new Error(
+        `expected >= 2 status changes on retired entry (create + remove), got ${retiredStatusChanges.length}`,
+      );
+    }
+
+    report.pass("TQ-H13: re-check-in revive chain logged (create + remove, fresh entry logs creation)");
   } catch (error) {
     report.fail("TQ-H13: re-checkin revive logs history", error);
   }

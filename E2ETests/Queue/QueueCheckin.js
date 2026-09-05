@@ -88,19 +88,23 @@ const testTQ07IdempotentRecheckin = async () => {
   try {
     const before = await getActiveEntry("queueDriver1", queueOrganizationUniqueId);
     const again = await checkin("queueDriver1", queueOrganizationUniqueId);
-    if (again.queueUniqueId !== before.queueUniqueId) {
-      throw new Error("Re-check-in returned a different queueUniqueId");
+    if (again.queueUniqueId === before.queueUniqueId) {
+      throw new Error("Re-check-in should retire the prior entry and create a fresh one");
     }
-    if (again.queueNumber !== before.queueNumber) {
-      throw new Error(`Re-check-in repositioned driver01: ${before.queueNumber} → ${again.queueNumber}`);
+    if (again.queueNumber <= before.queueNumber) {
+      throw new Error(
+        `Re-check-in should place driver01 at the back: ${before.queueNumber} → ${again.queueNumber}`,
+      );
     }
     const activeCount = await getActiveQueueCountForDriver("queueDriver1");
     if (activeCount !== 1) {
       throw new Error(`Expected 1 active row for driver01, got ${activeCount}`);
     }
-    report.pass("TQ-07: re-check-in idempotent (same entry, same number)");
+    report.pass(
+      "TQ-07: re-check-in retires prior entry & creates fresh back-of-line entry (single active row)",
+    );
   } catch (error) {
-    report.fail("TQ-07: idempotent re-check-in", error);
+    report.fail("TQ-07: re-check-in fresh entry semantics", error);
   }
 };
 
@@ -144,8 +148,8 @@ const testTQ09MyPosition = async () => {
     if (Array.isArray(pos) || entry.queueNumber !== 2) {
       throw new Error(`driver02 myPosition expected queueNumber 2, got ${JSON.stringify(pos)}`);
     }
-    if (entry.waitingAhead !== 1) {
-      throw new Error(`driver02 waitingAhead expected 1, got ${entry.waitingAhead}`);
+    if (entry.waitingAhead !== 0) {
+      throw new Error(`driver02 waitingAhead expected 0, got ${entry.waitingAhead}`);
     }
     if (!pos?.organization?.queueOrganizationUniqueId) {
       throw new Error(`driver02 myPosition missing organization, got ${JSON.stringify(pos)}`);
