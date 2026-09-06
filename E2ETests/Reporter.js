@@ -28,4 +28,4 @@ const report = {
   },
 };
 
-module.exports = { report };
+module.exports = { report, stats };

@@ -78,6 +78,7 @@ const {
 const { usersData, USER_STATUS } = require("./constants");
 const { report } = require("./Reporter");
 const { ensureCoreUsers } = require("./Auth/bootstrap");
+const { runQueueTests } = require("./Queue");
 
 const { runReferenceCRUD } = require("./Phases/runReferenceCRUD");
 const { runIndividualFlow } = require("./Phases/runIndividualFlow");
@@ -348,6 +349,12 @@ const initiateTest = async () => {
     await safe("testDeleteBatch", testDeleteBatch)();
     await safe("testVehicleDocumentUpload", testVehicleDocumentUpload)();
     await safe("testDeleteUser", testDeleteUser)();
+
+    // ── Phase Q: Full queue suite (org, checkin, orders, admin ops,
+    // ── loading stages, history/audit trail, receipt/POD) ──────────────
+    // Self-contained: provisions its own queue drivers/shipper/org. Runs
+    // integrated so its counts add to the grand total (not a separate run).
+    await safe("runQueueTests", () => runQueueTests({ reset: false, silent: true }))();
 
     const passed = report.summary();
     if (passed) {

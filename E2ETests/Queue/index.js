@@ -6,7 +6,7 @@
 
 const { ensureCoreUsers, ensureQueueDrivers } = require("../Auth/bootstrap");
 const { queueState } = require("./state");
-const { report } = require("../Reporter");
+const { report, stats } = require("../Reporter");
 const {
   getVehicleTypes,
   registerQueueDrivers,
@@ -45,8 +45,18 @@ const cleanupFenceOrg = async () => {
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
-const runQueueTests = async () => {
-  report.reset();
+/**
+ * Run the full queue suite.
+ *
+ * @param {object} [options]
+ * @param {boolean} [options.reset=true] - Reset the shared reporter tally first.
+ *   Pass `false` when this suite is invoked from E2ETests/index.js so its results
+ *   add to the cumulated count instead of wiping it.
+ * @param {boolean} [options.silent=false] - Suppress this suite's own summary
+ *   block when running integrated (E2ETests/index.js prints the grand total).
+ */
+const runQueueTests = async ({ reset = true, silent = false } = {}) => {
+  if (reset) report.reset();
   console.log("═══════════════════════════════════════════════════");
   console.log("  QUEUE E2E SUITE —", new Date().toISOString());
   console.log("═══════════════════════════════════════════════════\n");
@@ -88,13 +98,16 @@ const runQueueTests = async () => {
   await testTQ04SoftDelete();
   await cleanupFenceOrg();
 
-  const passed = report.summary();
-  console.log(
-    passed
-      ? "  ✅ Queue suite completed — all green"
-      : "  ❌ Queue suite completed with failures",
-  );
-  return passed;
+  if (!silent) {
+    const passed = report.summary();
+    console.log(
+      passed
+        ? "  ✅ Queue suite completed — all green"
+        : "  ❌ Queue suite completed with failures",
+    );
+    return passed;
+  }
+  return stats.failed === 0;
 };
 
 module.exports = { runQueueTests };
