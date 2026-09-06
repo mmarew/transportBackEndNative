@@ -32,12 +32,11 @@ const {
 const {
   buildQueueOrderPayload,
   createQueueOrder,
-  cancelOrder,
+  checkin,
   acceptOrder,
   rejectOrderByDriver,
   getLatestOrders,
   getOrderByUniqueId,
-  getJourneyDecisionCount,
   driverToken,
   shipperToken,
   expectStatus,
@@ -91,25 +90,29 @@ const resolveHoldingDriverKey = async (orderUniqueId) => {
   return driverKeyByPhone(rows[0]?.phoneNumber);
 };
 
-/** Resolve which driver holds a non-queue order's live JourneyDecision. */
-const resolveNonQueueHoldingDriverKey = async (orderUniqueId) => {
+/** Latest two driverRequestIds for an order's decisions (DESC = newest first). */
+const decisionChain = async (orderUniqueId) => {
   const [rows] = await pool.query(
-    `SELECT u.phoneNumber
+    `SELECT jd.driverRequestId, jd.journeyStatusId
      FROM JourneyDecisions jd
      JOIN ShipperRequest sr ON sr.shipperRequestId = jd.shipperRequestId
-     JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
-     JOIN Users u ON u.userUniqueId = dr.userUniqueId
      WHERE sr.shipperRequestUniqueId = ?
-     ORDER BY jd.journeyDecisionId DESC LIMIT 1`,
+     ORDER BY jd.journeyDecisionId DESC LIMIT 2`,
     [orderUniqueId],
   );
-  return driverKeyByPhone(rows[0]?.phoneNumber);
+  return rows;
 };
 
-/** Cancel-loop a driver until they no longer carry an active engagement. */
-const forceFreeDriver = async (driverKey) => {
+/** Drop-in street driver who creates waiting DriverRequests at Addis. Must be
+ *  an ACTIVE account; the canonical `driver` is ACTIVE only in the main suite,
+ *  so an activated queue driver is used instead. */
+const STREET_KEY = "queueDriver3";
+
+/** Cancel-loop a driver until they carry no active engagement (status null/1).
+ *  Each iteration also exercises the active-transfer cancel branch harmlessly. */
+const forceFreeDriver = async (driverKey, limit = 10) => {
   let guard = 0;
-  while (guard < 6) {
+  while (guard < limit) {
     const st = await getDriverJourneyStatus({ userType: driverKey });
     const status = st?.status;
     if (!status || !Number.isFinite(status) || status === journeyStatusMap.waiting) {
@@ -125,13 +128,21 @@ const forceFreeDriver = async (driverKey) => {
 
 const testTQ34QueueCancelAfterAccept = async () => {
   try {
+    // Earlier suites may close/retire every typeA entry (journeys complete =
+    // soft-delete). Guarantee a waiting driver so dispatch actually offers.
+    await checkin("queueDriver1", ORG()).catch(() => {});
+
     await createQueueOrder({
       queueOrganizationUniqueId: ORG(),
       vehicleTypeUniqueId: typeA(),
     });
     const orderUniqueId = (await getLatestOrders(1))[0].shipperRequestUniqueId;
 
-    const dk = await resolveHoldingDriverKey(orderUniqueId);
+    let dk = null;
+    for (let i = 0; i < 10 && !dk; i++) {
+      dk = await resolveHoldingDriverKey(orderUniqueId);
+      if (!dk) await new Promise((r) => setTimeout(r, 500));
+    }
     if (!dk || !usersData[dk]?.phoneNumber) {
       throw new Error(`no active queue offer for ${orderUniqueId}`);
     }
@@ -220,7 +231,7 @@ const testTQ34QueueCancelAfterAccept = async () => {
 
 const testTQ35NonQueueRejectRematchesNearest = async () => {
   try {
-    // Create a NON-queue order at the same Addis coordinates the queue driver
+    // Create a NON-queue order at the same Addis coordinates the street driver
     // will self-report from.
     const payload = buildQueueOrderPayload({ vehicleTypeUniqueId: typeA() });
     delete payload.queueOrganizationUniqueId;
@@ -231,42 +242,44 @@ const testTQ35NonQueueRejectRematchesNearest = async () => {
     );
     const orderUniqueId = (await getLatestOrders(1))[0].shipperRequestUniqueId;
 
-    // Give a typeA queue driver a waiting street (DriverRequest) row, which
-    // auto-matches the waiting order (create-request side handleWaitingRequest).
-    const streetKey = "queueDriver3";
-    await forceFreeDriver(streetKey);
-    const drCreate = await axios.post(
-      backendURL + DRIVER_REQUEST_ENDPOINTS.DRIVER_REQUEST,
-      {
-        currentLocation: {
-          latitude: 9.03,
-          longitude: 38.74,
-          description: "Addis Ababa, Ethiopia",
-        },
-      },
-      authConfig(driverToken(streetKey)),
-    );
-    if (!drCreate.data || (![200, 201].includes(drCreate.status) && !drCreate.data?.message)) {
-      throw new Error(`drop-in driver request failed: ${JSON.stringify(drCreate.data)}`);
+    // The drop-in street driver creates a waiting DriverRequest at the coords.
+    // Auto-match tie-breaks towards OLDER nearby waiting orders, so reject any
+    // unrelated match and re-create until OUR order is the matched one.
+    await forceFreeDriver(STREET_KEY);
+    let attempts = 0;
+    while (attempts < 8) {
+      try {
+        await axios.post(
+          backendURL + DRIVER_REQUEST_ENDPOINTS.DRIVER_REQUEST,
+          {
+            currentLocation: {
+              latitude: 9.03,
+              longitude: 38.74,
+              description: "Addis Ababa, Ethiopia",
+            },
+          },
+          authConfig(driverToken(STREET_KEY)),
+        );
+      } catch (error) {
+        // Driver momentarily engaged elsewhere — free and retry.
+        await forceFreeDriver(STREET_KEY);
+      }
+      const st = await getDriverJourneyStatus({ userType: STREET_KEY });
+      if (st?.uniqueIds?.shipperRequestUniqueId === orderUniqueId) break;
+      if (st?.status === journeyStatusMap.requested && st?.uniqueIds?.shipperRequestUniqueId) {
+        await rejectOrderByDriver(STREET_KEY).catch(() => {});
+      }
+      attempts += 1;
     }
 
-    // Wait for the order to be actively matched (status 2 = requested).
-    let o = null;
-    for (let i = 0; i < 20; i++) {
-      o = await getOrderByUniqueId(orderUniqueId);
-      if (o?.journeyStatusId === journeyStatusMap.requested) break;
-      await new Promise((r) => setTimeout(r, 500));
+    const matched = await getDriverJourneyStatus({ userType: STREET_KEY });
+    if (matched?.uniqueIds?.shipperRequestUniqueId !== orderUniqueId) {
+      throw new Error(
+        `could not match order to the street driver (last=${matched?.uniqueIds?.shipperRequestUniqueId})`,
+      );
     }
-    if (!o || o.journeyStatusId !== journeyStatusMap.requested) {
-      throw new Error(`non-queue order not auto-matched: ${JSON.stringify(o)}`);
-    }
-
-    const matchedKey = await resolveNonQueueHoldingDriverKey(orderUniqueId);
-    if (!matchedKey) {
-      throw new Error("could not resolve the matched non-queue driver");
-    }
-    if (matchedKey !== streetKey) {
-      // Whichever typeA street driver got matched, use them as the canceller.
+    if (matched?.status !== journeyStatusMap.requested) {
+      throw new Error(`street driver should hold the order at requested(2), got ${matched?.status}`);
     }
 
     const queueLinksBefore = (
@@ -276,7 +289,7 @@ const testTQ35NonQueueRejectRematchesNearest = async () => {
       )
     )[0][0].total;
 
-    await expectStatus(rejectOrderByDriverHttp(matchedKey), 200, "TQ-35 non-queue reject");
+    await expectStatus(rejectOrderByDriverHttp(STREET_KEY), 200, "TQ-35 non-queue reject");
 
     // Non-queue cancel must NEVER touch DriverQueue.
     const queueLinksAfter = (
@@ -286,23 +299,26 @@ const testTQ35NonQueueRejectRematchesNearest = async () => {
       )
     )[0][0].total;
     if (queueLinksAfter !== 0 || queueLinksBefore !== 0) {
-      throw new Error(`DriverQueue must be untouched by non-queue cancel (${queueLinksBefore}→${queueLinksAfter})`);
+      throw new Error(
+        `DriverQueue must be untouched by non-queue cancel (${queueLinksBefore}→${queueLinksAfter})`,
+      );
     }
 
     // Order is actively re-matched to a DIFFERENT driver OR stays waiting.
     const afterOrder = await getOrderByUniqueId(orderUniqueId);
+    const chain = await decisionChain(orderUniqueId);
     if (afterOrder.journeyStatusId === journeyStatusMap.requested) {
-      const nextKey = await resolveNonQueueHoldingDriverKey(orderUniqueId);
-      if (!nextKey || nextKey === matchedKey) {
-        throw new Error(
-          `re-match must pick a different driver (${matchedKey}), got ${nextKey}`,
-        );
-      }
-      if ((await getJourneyDecisionCount(orderUniqueId)) < 2) {
+      if (chain.length < 2) {
         throw new Error("re-match should add a second JourneyDecision");
       }
+      if (chain[0].driverRequestId === chain[1].driverRequestId) {
+        throw new Error("re-match must pick a different driver (DriverRequest)");
+      }
+      if (chain[0].journeyStatusId !== journeyStatusMap.requested) {
+        throw new Error(`re-match link should be requested(2), got ${chain[0].journeyStatusId}`);
+      }
       report.pass(
-        `TQ-35: non-queue reject → order re-matched to nearest driver (${matchedKey} → ${nextKey}), DriverQueue untouched`,
+        "TQ-35: non-queue reject → order actively re-matched to a different driver, DriverQueue untouched",
       );
     } else if (afterOrder.journeyStatusId === journeyStatusMap.waiting) {
       report.pass(
