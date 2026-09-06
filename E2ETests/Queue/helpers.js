@@ -558,7 +558,7 @@ const getActiveQueueCountForDriver = async (driverKey, queueDate = dbToday()) =>
      JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
      JOIN Users u ON u.userUniqueId = vd.driverUserUniqueId
      WHERE u.phoneNumber = ? AND dq.queueDate = ? AND dq.queueDeletedAt IS NULL
-       AND dq.status IN ('waiting','requested','notagreed')`,
+       AND dq.status IN (1, 2, 18)`,
     [usersData[driverKey].phoneNumber, queueDate],
   );
   return rows[0].total;

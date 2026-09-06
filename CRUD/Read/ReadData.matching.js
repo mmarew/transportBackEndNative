@@ -52,7 +52,7 @@ const findNearbyDrivers = async ({ shipperRequest }) => {
                  WHERE qvd.driverUserUniqueId = Users.userUniqueId
                    AND dq.queueOrganizationUniqueId = ?
                    AND dq.queueDate = ?
-                   AND dq.status IN ('waiting', 'requested', 'notagreed')
+                   AND dq.status IN (${journeyStatusMap.waiting}, ${journeyStatusMap.requested}, ${journeyStatusMap.rejectedByDriver})
                    AND dq.queueDeletedAt IS NULL
                 ) AS isQueued,
                 `

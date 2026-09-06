@@ -193,6 +193,24 @@ const startJourney = async (body) => {
         connection: conn,
       });
 
+      // Mirror journeyStarted (8) onto the queue entry if this order was
+      // queue-allocated (best-effort/idempotent; no-op for non-queue).
+      try {
+        const {
+          updateQueueEntryOnJourneyProgress,
+        } = require("../DriverQueue.service");
+        await updateQueueEntryOnJourneyProgress({
+          shipperRequestUniqueId: combinedData.shipperRequestUniqueId,
+          userUniqueId,
+          journeyStatusId: journeyStatusMap.journeyStarted,
+        });
+      } catch (queueProgressError) {
+        logger.error("Error advancing queue entry to journeyStarted", {
+          error: queueProgressError.message,
+          shipperRequestUniqueId: combinedData.shipperRequestUniqueId,
+        });
+      }
+
       return { combinedData, finalJourneyUniqueId };
     },
     { timeout: 15000 },
@@ -549,10 +567,10 @@ const completeJourney = async (body) => {
     });
 
     // Close the queue slot: a COMPLETED queue order consumes the driver's slot.
-    // Mark the entry 'removed' (same closed state as checkout/leave) so the
+    // Mark the entry journeyCompleted (same closure as checkout/leave) so the
     // driver is out of the queue and MUST re-register for the next placement.
-    // Best-effort + idempotent — only touches entries still 'agreed' and
-    // holding this order; non-queue journeys are untouched.
+    // Best-effort + idempotent — only touches entries still agreed and holding
+    // this order; non-queue journeys are untouched.
     if (combinedData?.queueOrganizationUniqueId) {
       const {
         closeEntryOnJourneyCompletion,
@@ -990,6 +1008,24 @@ const transitionLoadingStage = (stage) => async (body) => {
         journeyStatusId: config.targetStatus,
         connection: conn,
       });
+
+      // Mirror the loading-stage progress onto the queue entry, if this order
+      // was queue-allocated (best-effort/idempotent; no-op for non-queue).
+      try {
+        const {
+          updateQueueEntryOnJourneyProgress,
+        } = require("../DriverQueue.service");
+        await updateQueueEntryOnJourneyProgress({
+          shipperRequestUniqueId: combinedData.shipperRequestUniqueId,
+          userUniqueId,
+          journeyStatusId: config.targetStatus,
+        });
+      } catch (queueProgressError) {
+        logger.error("Error advancing queue entry loading stage", {
+          error: queueProgressError.message,
+          shipperRequestUniqueId: combinedData.shipperRequestUniqueId,
+        });
+      }
 
       await createJourneyRoutePoint(
         {

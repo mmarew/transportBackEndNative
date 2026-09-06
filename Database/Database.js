@@ -2169,7 +2169,8 @@ CREATE TABLE IF NOT EXISTS QueueOrganizationMembership (
 -- (vehicleDriverUniqueId, queueOrganizationUniqueId, queueDate) — multiple rows per
 -- vehicle/org/day are allowed so that every check-in produces new, unique data. The
 -- "current" entry is always the one with queueDeletedAt IS NULL; superseded rows are
--- retained as 'removed' history (audit via DriverQueueHistory keyed by queueUniqueId).
+-- retained as history (status holds the terminal journeyStatusMap id; audit via
+-- DriverQueueHistory keyed by queueUniqueId).
 
 CREATE TABLE IF NOT EXISTS DriverQueue (
     queueId INT AUTO_INCREMENT PRIMARY KEY,
@@ -2192,7 +2193,7 @@ CREATE TABLE IF NOT EXISTS DriverQueue (
     driverLatitude DECIMAL(10, 8) NULL,
     driverLongitude DECIMAL(11, 8) NULL,
     joinedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,       -- server-stamped check-in; dispute truth
-    status ENUM('waiting','requested','agreed','notagreed','removed') NOT NULL DEFAULT 'waiting',
+    status INT NOT NULL DEFAULT 1, -- journeyStatusMap id (1=waiting, 2=requested, 3=acceptedByDriver, 5/6/7 loading stages, 8=journeyStarted, 9=journeyCompleted, 10=cancelledByShipper, 12=cancelledByDriver, 13=cancelledByAdmin, 16=noAnswerFromDriver, 18=rejectedByDriver)
     requestedAt DATETIME NULL,
     agreedAt DATETIME NULL,
     queueCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

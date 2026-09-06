@@ -596,6 +596,71 @@ const ensureSchemaEnums = async (connection) => {
   }
 };
 
+/**
+ * Idempotently convert DriverQueue.status from the legacy string ENUM
+ * ('waiting','requested','agreed','notagreed','removed') to an INT holding a
+ * journeyStatusMap id, so the whole project speaks ONE status vocabulary.
+ *
+ * Remap (legacy → journeyStatusMap id):
+ *   waiting  → 1 (journeyStatusMap.waiting)
+ *   requested→ 2 (journeyStatusMap.requested)
+ *   agreed   → 3 (journeyStatusMap.acceptedByDriver)
+ *   notagreed→ 18 (journeyStatusMap.rejectedByDriver — cancelled_before_accept)
+ *   removed  → 9 (journeyCompleted) when a linked Journey actually completed,
+ *              else 12 (cancelledByDriver — checkout/leave default).
+ *            11/13/16 contexts are only knowable from DriverQueueHistory and
+ *            cannot be recovered reliably from the row alone.
+ *
+ * After remapping, ALTERs the column to INT NOT NULL DEFAULT 1 (the
+ * journeyStatusMap.waiting id). Uses information_schema so it is a no-op on
+ * fresh DBs where Database.js already declares INT.
+ */
+const ensureDriverQueueStatusJourneyMapInt = async (connection) => {
+  const dbName = dbConfig.database;
+
+  const [rows] = await connection.query(
+    `SELECT COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT
+     FROM information_schema.columns
+     WHERE table_schema = ? AND table_name = 'DriverQueue' AND column_name = 'status'`,
+    [dbName],
+  );
+  if (rows.length === 0) return;
+  if (rows[0].COLUMN_TYPE && rows[0].COLUMN_TYPE.toLowerCase().startsWith("int")) {
+    return; // already migrated
+  }
+
+  // Stage 1: relax the column to VARCHAR so the remap can write both the legacy
+  // strings and the incoming numeric ids without ENUM "Data truncated" errors.
+  await connection.query(
+    `ALTER TABLE DriverQueue MODIFY COLUMN \`status\` VARCHAR(30) NOT NULL DEFAULT 'waiting'`,
+  );
+
+  // Stage 2: remap every legacy string to its journeyStatusMap id (as a string).
+  await connection.query(
+    `UPDATE DriverQueue dq
+     LEFT JOIN ShipperRequest sr ON sr.shipperRequestUniqueId = dq.shipperRequestUniqueId
+     LEFT JOIN JourneyDecisions jd ON jd.shipperRequestId = sr.shipperRequestId
+     LEFT JOIN Journey j ON j.journeyDecisionUniqueId = jd.journeyDecisionUniqueId AND j.journeyStatusId = 9
+     SET dq.status = CASE
+       WHEN dq.status = 'waiting' THEN '1'
+       WHEN dq.status = 'requested' THEN '2'
+       WHEN dq.status = 'agreed' THEN '3'
+       WHEN dq.status = 'notagreed' THEN '18'
+       WHEN dq.status = 'removed' AND j.journeyUniqueId IS NOT NULL THEN '9'
+       WHEN dq.status = 'removed' THEN '12'
+       ELSE '12'
+     END`,
+  );
+
+  // Stage 3: tighten back to the canonical INT (journeyStatusMap waiting id).
+  await connection.query(
+    `ALTER TABLE DriverQueue MODIFY COLUMN \`status\` INT NOT NULL DEFAULT 1`,
+  );
+  logger.info(
+    "Migration: converted DriverQueue.status ENUM → journeyStatusMap INT id",
+  );
+};
+
 // Reconcile any columns that live in Database.js (the schema source of truth)
 // but are missing from an existing table in the live DB.
 //
@@ -733,6 +798,11 @@ const createTable = async () => {
     // Idempotently widen any ENUM columns whose schema value-set grew (e.g.
     // decisionBy gained 'queue'/'company', bidStatus gained 'completed').
     await ensureSchemaEnums(adminConnection);
+
+    // Idempotently convert DriverQueue.status from the legacy string ENUM to a
+    // journeyStatusMap INT id (see ensureDriverQueueStatusJourneyMapInt). Must
+    // run while this connection still has the DB selected.
+    await ensureDriverQueueStatusJourneyMapInt(adminConnection);
   } finally {
     await adminConnection.end();
   }
@@ -972,5 +1042,6 @@ module.exports = {
   ensureSchemaColumnCompleteness,
   ensureNoLegacyShipperRequestBatchId,
   ensureSchemaEnums,
+  ensureDriverQueueStatusJourneyMapInt,
   DELIVERY_CONFIRMATION_COLUMNS,
 };

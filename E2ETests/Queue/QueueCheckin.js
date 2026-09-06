@@ -70,7 +70,7 @@ const testTQ05CheckinNumbers = async () => {
     if (
       typeA.length !== 3 ||
       typeB.length !== 1 ||
-      rows.some((r) => r.status !== "waiting") ||
+      rows.some((r) => r.status !== 1) ||
       rows.some((r) => r.queueRefusalCount !== 0)
     ) {
       throw new Error(`Unexpected DriverQueue rows: ${JSON.stringify(rows)}`);
@@ -187,7 +187,7 @@ const testTQ10Checkout = async () => {
        ORDER BY dq.queueId DESC LIMIT 1`,
       [queueOrganizationUniqueId, dbToday(), require("../constants").usersData["queueDriver1"].phoneNumber],
     );
-    if (!removedRows[0] || removedRows[0].status !== "removed" || !removedRows[0].queueDeletedAt) {
+    if (!removedRows[0] || removedRows[0].status !== 12 || !removedRows[0].queueDeletedAt) {
       throw new Error(`driver01 entry expected removed+deleted, got ${JSON.stringify(removedRows[0])}`);
     }
     report.pass("TQ-10: checkout removes driver from queue + soft-deletes entry");

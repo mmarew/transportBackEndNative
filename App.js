@@ -53,10 +53,12 @@ const onStartUp = async () => {
       const {
         ensureDeliveryConfirmationColumns,
         ensureDeliveryConfirmationPhotoAttachedBy,
+        ensureDriverQueueStatusJourneyMapInt,
       } = require("./Services/Database/tableManage.service");
       const { pool } = require("./Middleware/Database.config");
       await ensureDeliveryConfirmationColumns(pool);
       await ensureDeliveryConfirmationPhotoAttachedBy(pool);
+      await ensureDriverQueueStatusJourneyMapInt(pool);
       logger.info("DeliveryConfirmations schema migration ensured");
     } catch (migrationError) {
       logger.warn("DeliveryConfirmations schema migration failed", {

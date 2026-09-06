@@ -36,6 +36,34 @@ const QUEUE_OFFER_WINDOW_MINUTES = 3;
 const QUEUE_REFUSAL_LIMIT =
   Number(process.env.QUEUE_REFUSAL_LIMIT) || DOMAIN.DEFAULT_QUEUE_REFUSAL_LIMIT;
 const MAX_OFFERS_PER_SWEEP = 50;
+// DriverQueue.status is a journeyStatusMap id (column is INT) so ONE status
+// vocabulary is used across the whole project. Terminal/closed entries (job
+// done, driver left, admin removed, order cancelled, driver ignored the offer)
+// are soft-deleted rows flagged by queueDeletedAt and keep a terminal id here.
+const QUEUE_STATUS = {
+  WAITING: journeyStatusMap.waiting, // 1
+  REQUESTED: journeyStatusMap.requested, // 2
+  AGREED: journeyStatusMap.acceptedByDriver, // 3
+  GO_TO_LOADING_PLACE: journeyStatusMap.goToLoadingPlace, // 5
+  LOADING: journeyStatusMap.loading, // 6
+  LOADED: journeyStatusMap.loaded, // 7
+  JOURNEY_STARTED: journeyStatusMap.journeyStarted, // 8
+  JOURNEY_COMPLETED: journeyStatusMap.journeyCompleted, // 9
+  SHIPPER_CANCELED: journeyStatusMap.cancelledByShipper, // 10
+  CANCELLED_AFTER_ACCEPT: journeyStatusMap.cancelledByDriver, // 12 (also checkout)
+  QUEUE_ADMIN_CANCELED: journeyStatusMap.cancelledByAdmin, // 13
+  NO_ANSWER_FROM_DRIVER: journeyStatusMap.noAnswerFromDriver, // 16
+  CANCELLED_BEFORE_ACCEPT: journeyStatusMap.rejectedByDriver, // 18 (kept position, still line)
+};
+// Terminal ids — an entry is active (in line + eligible) only while its status
+// is one of the open ids below; anything terminal is a closed/historical row.
+const CLOSED_QUEUE_STATUSES = [
+  journeyStatusMap.journeyCompleted, // 9
+  journeyStatusMap.cancelledByShipper, // 10
+  journeyStatusMap.cancelledByDriver, // 12
+  journeyStatusMap.cancelledByAdmin, // 13
+  journeyStatusMap.noAnswerFromDriver, // 16
+];
 // Shared resolver: org → vehicle type via VehicleDriver → Vehicle
 /**
  * Verify a QueueOrganization exists and is not soft-deleted.
@@ -278,7 +306,7 @@ const nextQueueNumber = async (
  * @property {string} queueUniqueId - Unique identifier for this queue entry
  * @property {number} queueNumber - Position in the queue (1 = front)
  * @property {string} joinedAt - ISO datetime when the driver checked in
- * @property {string} status - Queue status: 'waiting' | 'requested' | 'agreed' | 'notagreed' | 'removed'
+ * @property {string} status - journeyStatusMap id: 1 waiting | 2 requested | 3 agreed (acceptedByDriver) | 5/6/7 loading stages | 8 journeyStarted | 9 journeyCompleted | 10/12/13/16/18 closed/cancelled ids
  * @property {string|null} requestedAt - ISO datetime when an order was requested (null if not yet requested)
  * @property {string|null} agreedAt - ISO datetime when the driver agreed to the order
  * @property {string} vehicleDriverUniqueId - FK → VehicleDriver (driver + vehicle pair)
@@ -314,7 +342,11 @@ const publicEntry = (row) => ({
 // declined the last offer (notagreed) — they remain eligible for the next
 // order. Removed (cancelled/checked-out) and agreed (dispatched/completed)
 // drivers are free to check back in.
-const IN_QUEUE_STATUSES = ["waiting", "requested", "notagreed"];
+const IN_QUEUE_STATUSES = [
+  QUEUE_STATUS.WAITING, // 1
+  QUEUE_STATUS.REQUESTED, // 2
+  QUEUE_STATUS.CANCELLED_BEFORE_ACCEPT, // 18
+];
 
 /**
  * Batch-fetch the latest profile photo per driver for the queue status board.
@@ -551,7 +583,8 @@ const getDriverQueueState = async (
   const atOrg =
     rows.find(
       (r) =>
-        r.queueOrganizationUniqueId === targetOrgId && r.status !== "removed",
+        r.queueOrganizationUniqueId === targetOrgId &&
+        !CLOSED_QUEUE_STATUSES.includes(r.status),
     ) || null;
   return { active, atOrg, rows };
 };
@@ -570,7 +603,7 @@ const getDriverQueueState = async (
  *    the fence never orphans a live offer by soft-deleting its queue entry.
  * 5. Fence: one ACTIVE queue per driver per day system-wide (other-org → 409)
  * 6. Re-check-in creates BRAND-NEW data: if the driver already has an entry at
- *    this org today (active or leftover), soft-delete it (status 'removed') and
+ *    this org today (active or leftover), soft-delete it (terminal status) and
  *    insert a fresh row with a NEW queueUniqueId and a NEW back-of-line
  *    queueNumber. The shipper reservation is freed and re-applied only when a
  *    new phone is provided. Every check-in therefore yields unique queue data.
@@ -708,13 +741,13 @@ exports.checkin = async (data) => {
       queueUniqueId: atOrg.queueUniqueId,
       columnName: "status",
       oldValue: atOrg.status,
-      newValue: "removed",
+      newValue: QUEUE_STATUS.CANCELLED_AFTER_ACCEPT,
       performedBy: user.userUniqueId,
     });
     await updateData({
       tableName: "DriverQueue",
       updateValues: {
-        status: "removed",
+        status: QUEUE_STATUS.CANCELLED_AFTER_ACCEPT,
         shipperRequestUniqueId: null,
         targetedShipperUserUUID: null,
         queueUpdatedAt: currentDate(),
@@ -747,7 +780,7 @@ exports.checkin = async (data) => {
         driverLatitude: checkInLat,
         driverLongitude: checkInLng,
         joinedAt: currentDate(),
-        status: "waiting",
+        status: QUEUE_STATUS.WAITING,
         queueCreatedBy: user.userUniqueId,
       },
     });
@@ -768,7 +801,7 @@ exports.checkin = async (data) => {
     queueUniqueId,
     columnName: "status",
     oldValue: null,
-    newValue: "waiting",
+    newValue: QUEUE_STATUS.WAITING,
     performedBy: user.userUniqueId,
   });
   if (preserveTarget) {
@@ -840,7 +873,7 @@ exports.myPosition = async (queueOrganizationUniqueId, user) => {
        JOIN Vehicle v          ON v.vehicleUniqueId        = vd.vehicleUniqueId
        WHERE dq.queueOrganizationUniqueId = ? AND dq.queueDate = ?
          AND vd.driverUserUniqueId = ? AND dq.queueDeletedAt IS NULL
-         AND dq.status NOT IN ('removed', 'agreed')
+         AND dq.status IN (${IN_QUEUE_STATUSES.join(", ")})
        ORDER BY dq.queueNumber DESC LIMIT 1`,
       [queueOrganizationUniqueId, queueDate, user.userUniqueId],
     );
@@ -853,7 +886,7 @@ exports.myPosition = async (queueOrganizationUniqueId, user) => {
        JOIN Vehicle v          ON v.vehicleUniqueId        = vd.vehicleUniqueId
        WHERE dq.queueDate = ?
          AND vd.driverUserUniqueId = ? AND dq.queueDeletedAt IS NULL
-         AND dq.status NOT IN ('removed', 'agreed')
+         AND dq.status IN (${IN_QUEUE_STATUSES.join(", ")})
        ORDER BY dq.queueNumber DESC LIMIT 1`,
       [queueDate, user.userUniqueId],
     );
@@ -876,7 +909,7 @@ exports.myPosition = async (queueOrganizationUniqueId, user) => {
      JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
      JOIN Vehicle v          ON v.vehicleUniqueId        = vd.vehicleUniqueId
      WHERE dq.queueOrganizationUniqueId = ? AND dq.queueDate = ?
-       AND v.vehicleTypeUniqueId = ? AND dq.status NOT IN ('removed', 'agreed')
+       AND v.vehicleTypeUniqueId = ? AND dq.status IN (${IN_QUEUE_STATUSES.join(", ")})
        AND dq.queueNumber < ? AND dq.queueDeletedAt IS NULL`,
     [orgId, queueDate, vehicleType, queueNum],
   );
@@ -947,7 +980,7 @@ exports.myPosition = async (queueOrganizationUniqueId, user) => {
 };
 
 /**
- * Driver leaves the queue (checkout / no-show) — entry marked 'removed'.
+ * Driver leaves the queue (checkout / no-show) — entry marked terminal.
  * If queueOrganizationUniqueId provided, scope to that org; otherwise find via fence.
  */
 exports.checkout = async (queueOrganizationUniqueId, user) => {
@@ -961,7 +994,7 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
        FROM DriverQueue dq
        JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
        WHERE dq.queueOrganizationUniqueId = ? AND dq.queueDate = ?
-         AND vd.driverUserUniqueId = ? AND dq.status != 'removed'
+         AND vd.driverUserUniqueId = ? AND dq.status IN (${IN_QUEUE_STATUSES.join(", ")})
          AND dq.queueDeletedAt IS NULL
        ORDER BY dq.queueNumber DESC LIMIT 1`,
       [queueOrganizationUniqueId, queueDate, user.userUniqueId],
@@ -972,7 +1005,7 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
       `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate, dq.status, dq.shipperRequestUniqueId
        FROM DriverQueue dq
        JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
-       WHERE dq.queueDate = ? AND vd.driverUserUniqueId = ? AND dq.status != 'removed'
+       WHERE dq.queueDate = ? AND vd.driverUserUniqueId = ? AND dq.status IN (${IN_QUEUE_STATUSES.join(", ")})
          AND dq.queueDeletedAt IS NULL
        ORDER BY dq.queueNumber DESC LIMIT 1`,
       [queueDate, user.userUniqueId],
@@ -986,14 +1019,14 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
   }
 
   const orgId = rows[0].queueOrganizationUniqueId;
-  const isRequested = rows[0].status === "requested";
+  const isRequested = rows[0].status === QUEUE_STATUS.REQUESTED;
   const releasedOrder = isRequested ? rows[0].shipperRequestUniqueId : null;
 
   await logQueueHistory(executor, {
     queueUniqueId: rows[0].queueUniqueId,
     columnName: "status",
     oldValue: rows[0].status,
-    newValue: "removed",
+    newValue: QUEUE_STATUS.CANCELLED_AFTER_ACCEPT,
     performedBy: user.userUniqueId,
   });
   if (isRequested) {
@@ -1008,7 +1041,7 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
   await updateData({
     tableName: "DriverQueue",
     updateValues: {
-      status: "removed",
+      status: QUEUE_STATUS.CANCELLED_AFTER_ACCEPT,
       shipperRequestUniqueId: null,
       queueUpdatedAt: currentDate(),
       queueUpdatedBy: user.userUniqueId,
@@ -1028,7 +1061,7 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
         queueUniqueId: rows[0].queueUniqueId,
         action: "remove",
         beforeValue: JSON.stringify({ status: rows[0].status }),
-        afterValue: JSON.stringify({ status: "removed" }),
+        afterValue: JSON.stringify({ status: QUEUE_STATUS.CANCELLED_AFTER_ACCEPT }),
         performedBy: user.userUniqueId,
       },
     },
@@ -1045,7 +1078,7 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
     message: "success",
     data: {
       queueUniqueId: rows[0].queueUniqueId,
-      status: "removed",
+      status: QUEUE_STATUS.CANCELLED_AFTER_ACCEPT,
       releasedOrder,
     },
   };
@@ -1153,7 +1186,9 @@ exports.getQueueStatus = async (queueOrganizationUniqueId, query) => {
       queueOrganization: org,
       queueDate,
       totalWaiting: rows.filter((r) =>
-        ["waiting", "notagreed"].includes(r.status),
+        [QUEUE_STATUS.WAITING, QUEUE_STATUS.CANCELLED_BEFORE_ACCEPT].includes(
+          r.status,
+        ),
       ).length,
       queues: byType,
     },
@@ -1164,7 +1199,7 @@ exports.getQueueStatus = async (queueOrganizationUniqueId, query) => {
  * QueueOrgAdmin manually checks a driver/vehicle into the queue.
  *
  * Mirrors `checkin`'s create-new-data rule: if the driver already has an entry
- * at this org today (active or leftover), it is soft-deleted (`status='removed'`
+ * at this org today (active or leftover), it is soft-deleted (terminal status +
  * + `queueDeletedAt`) and a brand-new row is inserted with a fresh queueUniqueId
  * and a fresh back-of-line queueNumber. Every manual check-in therefore yields
  * unique queue data; there is no one-entry-per-(vehicle, org, day) constraint.
@@ -1246,13 +1281,13 @@ exports.manualCheckin = async (data) => {
       queueUniqueId: atOrg.queueUniqueId,
       columnName: "status",
       oldValue: atOrg.status,
-      newValue: "removed",
+      newValue: QUEUE_STATUS.CANCELLED_AFTER_ACCEPT,
       performedBy: user.userUniqueId,
     });
     await updateData({
       tableName: "DriverQueue",
       updateValues: {
-        status: "removed",
+        status: QUEUE_STATUS.CANCELLED_AFTER_ACCEPT,
         shipperRequestUniqueId: null,
         targetedShipperUserUUID: null,
         queueUpdatedAt: currentDate(),
@@ -1283,7 +1318,7 @@ exports.manualCheckin = async (data) => {
         vehicleDriverUniqueId: vehicleDriver.vehicleDriverUniqueId,
         targetedShipperUserUUID,
         joinedAt: currentDate(),
-        status: "waiting",
+        status: QUEUE_STATUS.WAITING,
         queueCreatedBy: user.userUniqueId,
       },
     });
@@ -1303,7 +1338,7 @@ exports.manualCheckin = async (data) => {
     queueUniqueId,
     columnName: "status",
     oldValue: null,
-    newValue: "waiting",
+    newValue: QUEUE_STATUS.WAITING,
     performedBy: user.userUniqueId,
   });
   if (targetedShipperUserUUID) {
@@ -1331,7 +1366,7 @@ exports.manualCheckin = async (data) => {
         action: "manual_checkin",
         afterValue: JSON.stringify({
           queueNumber: assignedNumber,
-          status: "waiting",
+          status: QUEUE_STATUS.WAITING,
         }),
         performedBy: user.userUniqueId,
       },
@@ -1349,7 +1384,11 @@ exports.manualCheckin = async (data) => {
 
   return {
     message: "success",
-    data: { queueUniqueId, queueNumber: assignedNumber, status: "waiting" },
+    data: {
+      queueUniqueId,
+      queueNumber: assignedNumber,
+      status: QUEUE_STATUS.WAITING,
+    },
   };
 };
 
@@ -1439,13 +1478,13 @@ exports.removeEntry = async (queueUniqueId, user) => {
     queueUniqueId: entry.queueUniqueId,
     columnName: "status",
     oldValue: entry.status,
-    newValue: "removed",
+    newValue: QUEUE_STATUS.QUEUE_ADMIN_CANCELED,
     performedBy: user.userUniqueId,
   });
   await updateData({
     tableName: "DriverQueue",
     updateValues: {
-      status: "removed",
+      status: QUEUE_STATUS.QUEUE_ADMIN_CANCELED,
       shipperRequestUniqueId: null,
       queueUpdatedAt: currentDate(),
       queueUpdatedBy: user.userUniqueId,
@@ -1464,7 +1503,7 @@ exports.removeEntry = async (queueUniqueId, user) => {
       queueUniqueId: entry.queueUniqueId,
       action: "remove",
       beforeValue: JSON.stringify({ status: entry.status }),
-      afterValue: JSON.stringify({ status: "removed" }),
+      afterValue: JSON.stringify({ status: QUEUE_STATUS.QUEUE_ADMIN_CANCELED }),
       performedBy: user.userUniqueId,
     },
   });
@@ -1474,7 +1513,7 @@ exports.removeEntry = async (queueUniqueId, user) => {
   // JourneyDecision and return the order to the queue so it advances to the
   // next eligible driver. Mirrors checkout semantics — a removed/checked-out
   // driver must not keep an active offer or leave an orphaned status-2 journey.
-  const releasedOrder = entry.status === "requested" ? entry.shipperRequestUniqueId : null;
+  const releasedOrder = entry.status === QUEUE_STATUS.REQUESTED ? entry.shipperRequestUniqueId : null;
   if (releasedOrder) {
     await releaseRequestedOffer({ executor, entry, user });
     const next = await offerToNextDriver({
@@ -1497,7 +1536,7 @@ exports.removeEntry = async (queueUniqueId, user) => {
     });
     return {
       message: "success",
-      data: { queueUniqueId, status: "removed", releasedOrder, ...next },
+      data: { queueUniqueId, status: QUEUE_STATUS.QUEUE_ADMIN_CANCELED, releasedOrder, ...next },
     };
   }
 
@@ -1510,7 +1549,7 @@ exports.removeEntry = async (queueUniqueId, user) => {
     messageType: "queue_removed",
   });
 
-  return { message: "success", data: { queueUniqueId, status: "removed", releasedOrder } };
+  return { message: "success", data: { queueUniqueId, status: QUEUE_STATUS.QUEUE_ADMIN_CANCELED, releasedOrder } };
 };
 
 /**
@@ -2085,8 +2124,8 @@ const offerToDriver = async ({
       `dq.queueOrganizationUniqueId = ?`,
       `dq.queueDate = ?`,
       isTargeted
-        ? `(dq.status IN ('waiting', 'notagreed') OR (dq.status = 'requested' AND dq.shipperRequestUniqueId = ?))`
-        : `dq.status IN ('waiting', 'notagreed')`,
+        ? `(dq.status IN (${QUEUE_STATUS.WAITING}, ${QUEUE_STATUS.CANCELLED_BEFORE_ACCEPT}) OR (dq.status = ${QUEUE_STATUS.REQUESTED} AND dq.shipperRequestUniqueId = ?))`
+        : `dq.status IN (${QUEUE_STATUS.WAITING}, ${QUEUE_STATUS.CANCELLED_BEFORE_ACCEPT})`,
       `dq.queueDeletedAt IS NULL`,
       `v.vehicleTypeUniqueId = ?`,
     ];
@@ -2158,8 +2197,8 @@ const offerToDriver = async ({
     // auto-dispatch already offered it FIFO), a manual dispatch naming the
     // same entry is a no-op success — no second DriverRequest/JourneyDecision
     // is created. Non-targeted (FIFO) dispatch never reaches this branch
-    // because the WHERE clause only admits 'requested' rows in targeted mode.
-    if (isTargeted && entry.status === "requested") {
+    // because the WHERE clause only admits REQUESTED rows in targeted mode.
+    if (isTargeted && entry.status === QUEUE_STATUS.REQUESTED) {
       const [existingDecisions] = await txExecutor.query(
         `SELECT jd.journeyDecisionUniqueId
          FROM JourneyDecisions jd
@@ -2183,7 +2222,7 @@ const offerToDriver = async ({
             queueNumber: entry.queueNumber,
             driverUserUniqueId: entry.driverUserUniqueId,
             journeyDecisionUniqueId: existingDecision.journeyDecisionUniqueId,
-            status: "requested",
+            status: QUEUE_STATUS.REQUESTED,
           },
         };
       }
@@ -2232,7 +2271,7 @@ const offerToDriver = async ({
       queueUniqueId: entry.queueUniqueId,
       columnName: "status",
       oldValue: entry.status,
-      newValue: "requested",
+      newValue: QUEUE_STATUS.REQUESTED,
       performedBy: user.userUniqueId,
     });
     await logQueueHistory(txExecutor, {
@@ -2246,7 +2285,7 @@ const offerToDriver = async ({
     await updateData({
       tableName: "DriverQueue",
       updateValues: {
-        status: "requested",
+        status: QUEUE_STATUS.REQUESTED,
         requestedAt: currentDate(),
         shipperRequestUniqueId,
         queueUpdatedAt: currentDate(),
@@ -2297,7 +2336,7 @@ const offerToDriver = async ({
         queueNumber: entry.queueNumber,
         driverUserUniqueId: entry.driverUserUniqueId,
         journeyDecisionUniqueId: offerResult.journeyDecisionUniqueId,
-        status: "requested",
+        status: QUEUE_STATUS.REQUESTED,
       },
     };
   }
@@ -2332,7 +2371,7 @@ const offerToDriver = async ({
  * @param {Object} data.user - The acting admin (recorded as performer).
  * @returns {Promise<{message: string, offered: boolean, data: Object|null}>}
  *   On success `{ message: "success", offered: true, data: { queueUniqueId,
- *   queueNumber, driverUserUniqueId, journeyDecisionUniqueId, status: "requested" } }`.
+ *   queueNumber, driverUserUniqueId, journeyDecisionUniqueId, status: ${QUEUE_STATUS.REQUESTED} } }`.
  * @throws {AppError} 400 - no selection mode given, or both queueUniqueId and
  *   driverPhoneNumber given.
  * @throws {AppError} 404 - queue org not ready, driver phone unknown/inactive,
@@ -2488,7 +2527,7 @@ const rescanPendingQueueOrder = async ({
        AND NOT EXISTS (
          SELECT 1 FROM DriverQueue dq
          WHERE dq.shipperRequestUniqueId = sr.shipperRequestUniqueId
-           AND dq.status = 'requested'
+           AND dq.status = ${QUEUE_STATUS.REQUESTED}
            AND dq.queueDeletedAt IS NULL
        )
      ORDER BY sr.shipperRequestCreatedAt ASC
@@ -2565,7 +2604,7 @@ exports.rescanPendingQueueOrders = async () => {
      JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
      JOIN Vehicle v          ON v.vehicleUniqueId        = vd.vehicleUniqueId
      JOIN QueueOrganization o ON o.queueOrganizationUniqueId = dq.queueOrganizationUniqueId
-     WHERE dq.queueDate = ? AND dq.status IN ('waiting', 'notagreed') AND dq.queueDeletedAt IS NULL
+     WHERE dq.queueDate = ? AND dq.status IN (${QUEUE_STATUS.WAITING}, ${QUEUE_STATUS.CANCELLED_BEFORE_ACCEPT}) AND dq.queueDeletedAt IS NULL
        AND o.approvalStatus = 'approved' AND o.queueEnabled = 1 AND o.isDeleted = 0`,
     [queueDate],
   );
@@ -2625,13 +2664,13 @@ const offerToNextDriver = ({
 
 /**
  * Any rejection of a queue order's offer — driver-side or shipper-side (shipper
- * rejects the driver's quoted price) — marks the entry `notagreed` (keeps
- * position, stays in line, remains eligible for the next order), advances the
- * ORDER to the next driver of the same vehicle type, and counts one penalty
- * point toward the driver's refusal limit (applyRefusalPolicy). Pass
- * `driverUserUniqueId` to restrict to a specific driver (driver-side reject);
- * omit it to clear whichever entry holds the order (shipper-side price
- * rejection).
+ * rejects the driver's quoted price) — marks the entry `cancelled_before_accept`
+ * (rejectedByDriver id, keeps position, stays in line, remains eligible for the
+ * next order), advances the ORDER to the next driver of the same vehicle type,
+ * and counts one penalty point toward the driver's refusal limit
+ * (applyRefusalPolicy). Pass `driverUserUniqueId` to restrict to a specific
+ * driver (driver-side reject); omit it to clear whichever entry holds the order
+ * (shipper-side price rejection).
  */
 exports.rejectOffer = async (data) => {
   const { shipperRequestUniqueId, user, driverUserUniqueId } = data;
@@ -2643,7 +2682,7 @@ exports.rejectOffer = async (data) => {
      FROM DriverQueue dq
      JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
      JOIN Vehicle v          ON v.vehicleUniqueId        = vd.vehicleUniqueId
-     WHERE dq.shipperRequestUniqueId = ? AND dq.status = 'requested'
+     WHERE dq.shipperRequestUniqueId = ? AND dq.status = ${QUEUE_STATUS.REQUESTED}
        AND dq.queueDeletedAt IS NULL
        ${driverUserUniqueId ? "AND vd.driverUserUniqueId = ?" : ""}
      ORDER BY dq.queueNumber ASC LIMIT 1
@@ -2661,7 +2700,7 @@ exports.rejectOffer = async (data) => {
     queueUniqueId: entry.queueUniqueId,
     columnName: "status",
     oldValue: entry.status,
-    newValue: "notagreed",
+    newValue: QUEUE_STATUS.CANCELLED_BEFORE_ACCEPT,
     performedBy: user.userUniqueId,
   });
   await logQueueHistory(executor, {
@@ -2674,7 +2713,7 @@ exports.rejectOffer = async (data) => {
   await updateData({
     tableName: "DriverQueue",
     updateValues: {
-      status: "notagreed",
+      status: QUEUE_STATUS.CANCELLED_BEFORE_ACCEPT,
       requestedAt: null,
       shipperRequestUniqueId: null,
       queueUpdatedAt: currentDate(),
@@ -2705,17 +2744,200 @@ exports.rejectOffer = async (data) => {
     user,
   });
 
+  if (next.offered === false) {
+    // No further waiting driver of this vehicle type: tell the shipper their
+    // order is not reserved anymore (the org admins already got
+    // "queue_order_rejected" above).
+    await notifyShipperOfQueueEvent({
+      executor,
+      shipperRequestUniqueId,
+      messageType: "queue_order_rejected",
+      message:
+        "The driver rejected your order and no other driver is available at the moment.",
+    });
+  }
+
   return { message: "success", ...next };
 };
 
 /**
+ * Queue-dispatch cancel AFTER the driver accepted the order (cancelledByDriver):
+ * the entry holding the order (agreed / loading-stages / journey-started) is
+ * closed as `cancelled_after_accept` (12, same closure as checkout/leave), so
+ * the driver forfeits the queued slot entirely and must re-register for the
+ * next placement. One penalty point is counted toward the driver's refusal
+ * limit (applyRefusalPolicy). The ORDER is immediately offered to the NEXT
+ * waiting driver of the same vehicle type (offerToNextDriver); when no further
+ * driver is available, the queue org admins and the shipper are notified.
+ * No-op / `{ released: false }` for non-queue orders or when the entry is
+ * already released. Idempotent.
+ */
+exports.releaseQueueEntryAfterDriverCancel = async ({
+  shipperRequestUniqueId,
+  user,
+}) => {
+  const executor = db();
+
+  const [rows] = await executor.query(
+    `SELECT dq.queueId, dq.queueUniqueId, dq.queueNumber, dq.queueOrganizationUniqueId, dq.queueDate,
+            dq.queueRefusalCount, dq.vehicleDriverUniqueId, vd.driverUserUniqueId, v.vehicleTypeUniqueId,
+            dq.status
+     FROM DriverQueue dq
+     JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+     JOIN Vehicle v          ON v.vehicleUniqueId        = vd.vehicleUniqueId
+     WHERE dq.shipperRequestUniqueId = ? AND dq.status IN (
+       ${QUEUE_STATUS.AGREED},
+       ${QUEUE_STATUS.GO_TO_LOADING_PLACE},
+       ${QUEUE_STATUS.LOADING},
+       ${QUEUE_STATUS.LOADED},
+       ${QUEUE_STATUS.JOURNEY_STARTED}
+     )
+       AND dq.queueDeletedAt IS NULL
+     ORDER BY dq.queueNumber ASC LIMIT 1
+     FOR UPDATE`,
+    [shipperRequestUniqueId],
+  );
+  if (rows.length === 0) {
+    return { message: "success", released: false, offered: false, data: null };
+  }
+
+  const entry = rows[0];
+  await logQueueHistory(executor, {
+    queueUniqueId: entry.queueUniqueId,
+    columnName: "status",
+    oldValue: entry.status,
+    newValue: QUEUE_STATUS.CANCELLED_AFTER_ACCEPT,
+    performedBy: user.userUniqueId,
+  });
+  await logQueueHistory(executor, {
+    queueUniqueId: entry.queueUniqueId,
+    columnName: "shipperRequestUniqueId",
+    oldValue: entry.shipperRequestUniqueId,
+    newValue: null,
+    performedBy: user.userUniqueId,
+  });
+  await updateData({
+    tableName: "DriverQueue",
+    updateValues: {
+      status: QUEUE_STATUS.CANCELLED_AFTER_ACCEPT,
+      requestedAt: null,
+      shipperRequestUniqueId: null,
+      queueUpdatedAt: currentDate(),
+      queueUpdatedBy: user.userUniqueId,
+      queueDeletedAt: currentDate(),
+      queueDeletedBy: user.userUniqueId,
+    },
+    conditions: { queueId: entry.queueId },
+  });
+
+  // Penalty: the backed-out commitment counts as a refusal toward the limit.
+  await applyRefusalPolicy({ executor, entry, user });
+
+  await emitQueueSnapshot({
+    queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+    queueDate: entry.queueDate,
+  });
+  notifyQueueOrgAdmins({
+    queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+    messageType: "queue_order_cancelled",
+  });
+
+  const next = await offerToNextDriver({
+    executor,
+    queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+    queueDate: entry.queueDate,
+    vehicleTypeUniqueId: entry.vehicleTypeUniqueId,
+    afterQueueNumber: entry.queueNumber,
+    excludeVehicleDriverUniqueId: entry.vehicleDriverUniqueId,
+    shipperRequestUniqueId,
+    user,
+  });
+
+  if (next.offered === false) {
+    // No further waiting driver of this vehicle type: notify the org admins
+    // and the shipper instead of leaving the order silently unreserved.
+    notifyQueueOrgAdmins({
+      queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+      messageType: "online_driver_not_found",
+      message: {
+        shipperRequestUniqueId,
+        queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+        queueUniqueId: entry.queueUniqueId,
+      },
+    });
+    await notifyShipperOfQueueEvent({
+      executor,
+      shipperRequestUniqueId,
+      messageType: "online_driver_not_found",
+      message:
+        "Driver cancelled after accepting your order; no other driver is available at the moment.",
+    });
+  }
+
+  return { message: "success", released: true, ...next };
+};
+
+/**
  * Close a queue slot once the driver COMPLETED its queue order's journey.
- * The entry is marked 'removed' — the same closed state as checkout/leave — so
+ * The entry is marked `journeyCompleted` (same closure as checkout/leave) so
  * the driver is out of the queue and MUST re-register for the next placement
  * (re-checkin revives the entry with a fresh queue number at the back of the
- * line). Idempotent: no-op unless the entry is still 'agreed' and holding the
+ * line). Idempotent: no-op unless the entry is still `agreed` and holding the
  * completed order. Called from completeJourney after the transaction commits.
  */
+// DriverQueue.status is a journeyStatusMap id, so a queue-allocated order's
+// entry must mirror the in-flight journey: loading stages goToLoadingPlace (5) /
+// loading (6) / loaded (7), then journeyStarted (8), then journeyCompleted (9).
+// This helper advances the entry holding a given order through those progress
+// ids (idempotent — no-op if the entry is gone, closed, or already there).
+exports.updateQueueEntryOnJourneyProgress = async ({
+  shipperRequestUniqueId,
+  userUniqueId,
+  journeyStatusId,
+}) => {
+  const executor = db();
+  const [rows] = await executor.query(
+    `SELECT queueId, queueUniqueId, queueOrganizationUniqueId, queueDate, status
+     FROM DriverQueue
+     WHERE shipperRequestUniqueId = ? AND status IN (
+       ${QUEUE_STATUS.AGREED},
+       ${QUEUE_STATUS.GO_TO_LOADING_PLACE},
+       ${QUEUE_STATUS.LOADING},
+       ${QUEUE_STATUS.LOADED}
+     )
+       AND queueDeletedAt IS NULL
+     LIMIT 1`,
+    [shipperRequestUniqueId],
+  );
+  if (rows.length === 0 || rows[0].status === journeyStatusId) {
+    return { updated: false };
+  }
+
+  const entry = rows[0];
+  await logQueueHistory(executor, {
+    queueUniqueId: entry.queueUniqueId,
+    columnName: "status",
+    oldValue: entry.status,
+    newValue: journeyStatusId,
+    performedBy: userUniqueId || null,
+  });
+  await updateData({
+    tableName: "DriverQueue",
+    updateValues: {
+      status: journeyStatusId,
+      queueUpdatedAt: currentDate(),
+      queueUpdatedBy: userUniqueId || null,
+    },
+    conditions: { queueId: entry.queueId },
+  });
+  await emitQueueSnapshot({
+    queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+    queueDate: entry.queueDate,
+  });
+
+  return { updated: true, queueUniqueId: entry.queueUniqueId };
+};
+
 exports.closeEntryOnJourneyCompletion = async ({
   shipperRequestUniqueId,
   userUniqueId,
@@ -2724,7 +2946,13 @@ exports.closeEntryOnJourneyCompletion = async ({
   const [rows] = await executor.query(
     `SELECT queueId, queueUniqueId, queueOrganizationUniqueId, queueDate, status
      FROM DriverQueue
-     WHERE shipperRequestUniqueId = ? AND status = 'agreed'
+     WHERE shipperRequestUniqueId = ? AND status IN (
+       ${QUEUE_STATUS.AGREED},
+       ${QUEUE_STATUS.GO_TO_LOADING_PLACE},
+       ${QUEUE_STATUS.LOADING},
+       ${QUEUE_STATUS.LOADED},
+       ${QUEUE_STATUS.JOURNEY_STARTED}
+     )
        AND queueDeletedAt IS NULL
      LIMIT 1`,
     [shipperRequestUniqueId],
@@ -2738,7 +2966,7 @@ exports.closeEntryOnJourneyCompletion = async ({
     queueUniqueId: entry.queueUniqueId,
     columnName: "status",
     oldValue: entry.status,
-    newValue: "removed",
+    newValue: QUEUE_STATUS.JOURNEY_COMPLETED,
     performedBy: userUniqueId || null,
   });
   await logQueueHistory(executor, {
@@ -2751,7 +2979,7 @@ exports.closeEntryOnJourneyCompletion = async ({
   await updateData({
     tableName: "DriverQueue",
     updateValues: {
-      status: "removed",
+      status: QUEUE_STATUS.JOURNEY_COMPLETED,
       shipperRequestUniqueId: null,
       queueUpdatedAt: currentDate(),
       queueUpdatedBy: userUniqueId || null,
@@ -2791,7 +3019,7 @@ exports.releaseEntryOnOrderCancel = async ({
             dq.vehicleDriverUniqueId, vd.driverUserUniqueId, dq.status
      FROM DriverQueue dq
      JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
-     WHERE dq.shipperRequestUniqueId = ? AND dq.status = 'requested'
+     WHERE dq.shipperRequestUniqueId = ? AND dq.status = ${QUEUE_STATUS.REQUESTED}
        AND dq.queueDeletedAt IS NULL
      ORDER BY dq.queueNumber ASC LIMIT 1
      FOR UPDATE`,
@@ -2806,7 +3034,7 @@ exports.releaseEntryOnOrderCancel = async ({
     queueUniqueId: entry.queueUniqueId,
     columnName: "status",
     oldValue: entry.status,
-    newValue: "waiting",
+    newValue: QUEUE_STATUS.WAITING,
     performedBy: user?.userUniqueId || null,
   });
   await logQueueHistory(executor, {
@@ -2819,7 +3047,7 @@ exports.releaseEntryOnOrderCancel = async ({
   await updateData({
     tableName: "DriverQueue",
     updateValues: {
-      status: "waiting",
+      status: QUEUE_STATUS.WAITING,
       requestedAt: null,
       shipperRequestUniqueId: null,
       queueUpdatedAt: currentDate(),
@@ -2930,7 +3158,8 @@ exports.markEntryAgreed = async ({ shipperRequestUniqueId, userUniqueId }) => {
      JOIN Users u            ON u.userUniqueId           = vd.driverUserUniqueId
      JOIN Vehicle v          ON v.vehicleUniqueId         = vd.vehicleUniqueId
      JOIN VehicleTypes vt    ON vt.vehicleTypeUniqueId    = v.vehicleTypeUniqueId
-     WHERE dq.shipperRequestUniqueId = ? AND dq.status = 'requested' AND dq.queueDeletedAt IS NULL
+WHERE dq.shipperRequestUniqueId = ? AND dq.status = ${QUEUE_STATUS.REQUESTED}
+       AND dq.queueDeletedAt IS NULL
      LIMIT 1`,
     [shipperRequestUniqueId],
   );
@@ -2941,13 +3170,13 @@ exports.markEntryAgreed = async ({ shipperRequestUniqueId, userUniqueId }) => {
     queueUniqueId: rows[0].queueUniqueId,
     columnName: "status",
     oldValue: rows[0].status,
-    newValue: "agreed",
+    newValue: QUEUE_STATUS.AGREED,
     performedBy: userUniqueId || null,
   });
   await updateData({
     tableName: "DriverQueue",
     updateValues: {
-      status: "agreed",
+      status: QUEUE_STATUS.AGREED,
       agreedAt: currentDate(),
       queueUpdatedAt: currentDate(),
       queueUpdatedBy: userUniqueId || null,
@@ -2991,9 +3220,10 @@ exports.markEntryAgreed = async ({ shipperRequestUniqueId, userUniqueId }) => {
  * Implicit reject (offer window expired) — find every entry that is still
  * `requested` past the window with a linked order still `requested`, mark the
  * decision + driver request free (implicit reject), move the entry to
- * `notagreed` in place (position kept, still in line for the next order), and
- * advance the order. Called by the background automatic-timeout scan. `actor`
- * is the user stamped on the audit trail (the order's creator).
+ * `cancelled_before_accept` (rejectedByDriver id — position kept, still in line
+ * for the next order), and advance the order. Called by the background
+ * automatic-timeout scan. `actor` is the user stamped on the audit trail (the
+ * order's creator).
  */
 exports.releaseExpiredOffers = async ({
   windowMinutes = QUEUE_OFFER_WINDOW_MINUTES,
@@ -3022,7 +3252,7 @@ exports.releaseExpiredOffers = async ({
      JOIN JourneyDecisions jd ON jd.driverRequestId = dr.driverRequestId
        AND jd.shipperRequestId = sr.shipperRequestId
      JOIN Users u ON u.userUniqueId = vd.driverUserUniqueId
-     WHERE dq.status = 'requested' AND dq.queueDeletedAt IS NULL
+     WHERE dq.status = ${QUEUE_STATUS.REQUESTED} AND dq.queueDeletedAt IS NULL
        AND dq.requestedAt IS NOT NULL AND dq.requestedAt < ?
        AND sr.journeyStatusId = ?
      ORDER BY dq.requestedAt ASC`,
@@ -3062,7 +3292,7 @@ exports.releaseExpiredOffers = async ({
       queueUniqueId: entry.queueUniqueId,
       columnName: "status",
       oldValue: entry.status,
-      newValue: "notagreed",
+      newValue: QUEUE_STATUS.CANCELLED_BEFORE_ACCEPT,
       performedBy: actor.userUniqueId,
     });
     await logQueueHistory(executor, {
@@ -3075,7 +3305,7 @@ exports.releaseExpiredOffers = async ({
     await updateData({
       tableName: "DriverQueue",
       updateValues: {
-        status: "notagreed",
+        status: QUEUE_STATUS.CANCELLED_BEFORE_ACCEPT,
         requestedAt: null,
         shipperRequestUniqueId: null,
         queueUpdatedAt: now,
@@ -3102,7 +3332,7 @@ exports.releaseExpiredOffers = async ({
             queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
             queueUniqueId: entry.queueUniqueId,
             queueNumber: entry.queueNumber,
-            status: "waiting",
+            status: QUEUE_STATUS.WAITING,
           },
           shipper: null,
           driver: null,

@@ -106,7 +106,8 @@ router.get(
  * @summary Remove driver from the queue
  *
  * @description
- * Sets `status: 'removed'` on the driver's queue entry for the given org+day.
+ * Sets the driver's queue entry to `cancelled_after_accept` (12, journeyStatusMap
+ * id) for the given org+day.
  * If the driver has an active offer, the linked order is released back to the
  * queue. The driver is removed from the FIFO and their position is freed.
  * Pass `queueOrganizationUniqueId` in body or query.
@@ -235,7 +236,8 @@ router.patch(
  * @summary Remove a queue entry (admin checkout / no-show)
  *
  * @description
- * Sets `status: 'removed'` on a queue entry. Audit-logged to QueueAuditLog.
+ * Sets a queue entry to `queue_admin_canceled` (13, journeyStatusMap id).
+ * Audit-logged to QueueAuditLog.
  * Use this when a driver is a no-show, leaves early, or is removed by
  * admin decision.
  *

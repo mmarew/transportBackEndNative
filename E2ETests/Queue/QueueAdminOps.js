@@ -44,7 +44,7 @@ const testTQ33ManualCheckin = async () => {
       throw new Error(`manual check-in failed: ${JSON.stringify(entry)}`);
     }
     const row = await entryOf("queueDriver1");
-    if (!row || row.status !== "waiting" || row.queueRefusalCount !== 0) {
+    if (!row || row.status !== 1 || row.queueRefusalCount !== 0) {
       throw new Error(`manual check-in entry wrong: ${JSON.stringify(row)}`);
     }
     queueState.adminOps.d1QueueUniqueId = row.queueUniqueId;
@@ -112,7 +112,7 @@ const testTQ35RemoveEntry = async () => {
       `SELECT status, queueDeletedAt FROM DriverQueue WHERE queueUniqueId = ?`,
       [queueUniqueId],
     );
-    if (!removedRows[0] || removedRows[0].status !== "removed" || !removedRows[0].queueDeletedAt) {
+    if (!removedRows[0] || removedRows[0].status !== 13 || !removedRows[0].queueDeletedAt) {
       throw new Error(`entry expected removed+deleted, got ${JSON.stringify(removedRows[0])}`);
     }
     const [auditRows] = await pool.query(
@@ -169,7 +169,7 @@ const testTQ36ManualDispatch = async () => {
       throw new Error("re-check-in before dispatch failed");
     }
     const row = await entryOf("queueDriver1");
-    if (!row || row.status !== "requested" || row.shipperRequestUniqueId !== orderUniqueId) {
+    if (!row || row.status !== 2 || row.shipperRequestUniqueId !== orderUniqueId) {
       throw new Error(`d1 not requested O_M after check-in dispatch: ${JSON.stringify(row)}`);
     }
     const accepted = await acceptOrder("queueDriver1", 6000);
@@ -177,7 +177,7 @@ const testTQ36ManualDispatch = async () => {
       throw new Error("O_M accept failed");
     }
     const after = await entryOf("queueDriver1");
-    if (!after || after.status !== "agreed") {
+    if (!after || after.status !== 3) {
       throw new Error(`d1 should be agreed after accept: ${JSON.stringify(after)}`);
     }
     report.pass("TQ-36: manual dispatch empty→404, then check-in dispatch → offer → accept");
@@ -243,7 +243,7 @@ const testTQ37TargetedDispatch = async () => {
     // TQ-36 left d1 `agreed` on O_M, so a fresh order has no eligible driver
     // and must stay `waiting`.
     const d1Entry = await entryOf("queueDriver1");
-    if (!d1Entry?.queueUniqueId || d1Entry.status !== "agreed") {
+    if (!d1Entry?.queueUniqueId || d1Entry.status !== 3) {
       throw new Error(`expected d1 agreed on O_M: ${JSON.stringify(d1Entry)}`);
     }
 
@@ -311,7 +311,7 @@ const testTQ37TargetedDispatch = async () => {
     await removeEntry(d1Entry.queueUniqueId, qadminToken());
     await manualCheckin(ORG(), "queueDriver1", qadminToken());
     const waitingEntry = await entryOf("queueDriver1");
-    if (!waitingEntry || waitingEntry.status !== "waiting") {
+    if (!waitingEntry || waitingEntry.status !== 1) {
       throw new Error(
         `d1 should be waiting after reset: ${JSON.stringify(waitingEntry)}`,
       );
@@ -337,7 +337,7 @@ const testTQ37TargetedDispatch = async () => {
     const afterEntryDispatch = await entryOf("queueDriver1");
     if (
       !afterEntryDispatch ||
-      afterEntryDispatch.status !== "requested" ||
+      afterEntryDispatch.status !== 2 ||
       afterEntryDispatch.shipperRequestUniqueId !== oT1UniqueId
     ) {
       throw new Error(
@@ -356,7 +356,7 @@ const testTQ37TargetedDispatch = async () => {
     const oT2UniqueId = (await getLatestOrders(1))[0]?.shipperRequestUniqueId;
     await cancelOrder({ orderUniqueId: oT1UniqueId, cancelAs: "admin" });
     const releasedEntry = await entryOf("queueDriver1");
-    if (!releasedEntry || releasedEntry.status !== "waiting") {
+    if (!releasedEntry || releasedEntry.status !== 1) {
       throw new Error(
         `d1 should be waiting after O_T1 cancel: ${JSON.stringify(releasedEntry)}`,
       );
@@ -375,7 +375,7 @@ const testTQ37TargetedDispatch = async () => {
     const afterPhoneDispatch = await entryOf("queueDriver1");
     if (
       !afterPhoneDispatch ||
-      afterPhoneDispatch.status !== "requested" ||
+      afterPhoneDispatch.status !== 2 ||
       afterPhoneDispatch.shipperRequestUniqueId !== oT2UniqueId
     ) {
       throw new Error(
@@ -386,7 +386,7 @@ const testTQ37TargetedDispatch = async () => {
     // ── Leave d1 free (waiting, no active journey) for the History suite ──
     await cancelOrder({ orderUniqueId: oT2UniqueId, cancelAs: "admin" });
     const finalRow = await entryOf("queueDriver1");
-    if (!finalRow || finalRow.status !== "waiting") {
+    if (!finalRow || finalRow.status !== 1) {
       throw new Error(
         `d1 should be waiting at TQ-37 end: ${JSON.stringify(finalRow)}`,
       );

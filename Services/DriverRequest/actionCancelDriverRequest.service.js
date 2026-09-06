@@ -9,6 +9,7 @@ const { updateData } = require("../../CRUD/Update/Data.update");
 
 const {
   sendSocketIONotificationToAdmin,
+  sendSocketIONotificationToShipper,
 } = require("../../Utils/Notifications");
 
 const { currentDate } = require("../../Utils/CurrentDate");
@@ -32,6 +33,24 @@ const logger = require("../../Utils/logger");
 const { sendFCMNotificationToUser } = require("../Firebase.service");
 const { fetchJourneyNotificationData } = require("./helpers");
 const AppError = require("../../Utils/AppError");
+
+/**
+ * Resolve whether an order belongs to a queue organization dispatch batch.
+ * The queue org id lives on ShipperRequestBatch (batch-canonical); null means
+ * the order is a plain street/distance request and must be re-matched by
+ * proximity rather than queue FIFO.
+ */
+const resolveQueueOrganizationUniqueId = async (shipperRow) => {
+  if (!shipperRow?.shipperRequestBatchUniqueId) {
+    return null;
+  }
+  const batchRows = await getData({
+    tableName: "ShipperRequestBatch",
+    conditions: { batchUniqueId: shipperRow.shipperRequestBatchUniqueId },
+    limit: 1,
+  });
+  return batchRows?.[0]?.queueOrganizationUniqueId || null;
+};
 
 /**
  * Cancels a driver request, updating related journey decisions and shipper requests
@@ -125,6 +144,7 @@ const cancelDriverRequest = async (data) => {
     let shipper = null;
     let shipperRequestUniqueId = null;
     let shouldUpdateShipperToWaiting = false;
+    let isCompanyTarget = false;
 
     if (shipperRequestId) {
       shipper = await performJoinSelect({
@@ -146,6 +166,10 @@ const cancelDriverRequest = async (data) => {
       }
 
       shipperRequestUniqueId = shipper?.[0].shipperRequestUniqueId;
+      isCompanyTarget =
+        shipper.length > 0 &&
+        (shipper[0].requestMode === "company_target" ||
+          shipper[0].targetCompanyUniqueId !== null);
     }
 
     // Wrap all status updates in a single transaction to ensure atomicity
@@ -233,11 +257,9 @@ const cancelDriverRequest = async (data) => {
           // Update the ShipperRequest to reflect the cancellation.
           // For company_target mode, the company still owns the bid, so slot returns to acceptedByShipper (4)
           // For individual_target mode, the slot returns to waiting (1) for a new driver
-          // We check for requestMode === 'company_target' or if targetCompanyUniqueId is set.
-          const isCompanyTarget = shipper && shipper.length > 0 && 
-            (shipper[0].requestMode === 'company_target' || shipper[0].targetCompanyUniqueId !== null);
-            
-          const revertStatus = isCompanyTarget ? journeyStatusMap.acceptedByShipper : journeyStatusMap.waiting;
+          const revertStatus = isCompanyTarget
+            ? journeyStatusMap.acceptedByShipper
+            : journeyStatusMap.waiting;
 
           await updateData({
             tableName: "ShipperRequest",
@@ -283,25 +305,123 @@ const cancelDriverRequest = async (data) => {
       },
     );
 
-    // Queue-dispatch orders: a driver rejecting BEFORE accepting keeps their
-    // queue position, and the ORDER advances to the next driver in line.
+    // ACTIVE TRANSFER AFTER THE TRANSACTION COMMITS — a driver-initiated
+    // cancel/reject that leaves the shipper's order driverless is proactively
+    // re-dispatched instead of being left to the next polling cycle:
+    //   - QUEUE orders advance FIFO to the NEXT driver in line (rejectOffer for a
+    //     pre-accept reject, releaseQueueEntryAfterDriverCancel for a post-accept
+    //     cancel). Nothing to do for non-queue orders in this branch.
+    //   - NON-QUEUE (street/distance) orders are re-matched to the NEAREST
+    //     available driver; if none is available, the admin and the shipper are
+    //     notified so the order doesn't silently go stale.
     if (
       shipperRequestUniqueId &&
       userUniqueId === ownerUserUniqueId &&
-      journeyStatusId === journeyStatusMap.rejectedByDriver
+      (journeyStatusId === journeyStatusMap.rejectedByDriver ||
+        journeyStatusId === journeyStatusMap.cancelledByDriver)
     ) {
-      const { rejectOffer } = require("../DriverQueue.service");
       try {
-        await rejectOffer({
-          shipperRequestUniqueId,
-          user,
-          driverUserUniqueId: ownerUserUniqueId,
-        });
+        const queueOrganizationUniqueId = await resolveQueueOrganizationUniqueId(
+          shipper[0],
+        );
+
+        if (queueOrganizationUniqueId) {
+          // Queue-dispatch order: advance the ORDER to the next driver in line.
+          const {
+            rejectOffer,
+            releaseQueueEntryAfterDriverCancel,
+          } = require("../DriverQueue.service");
+          if (journeyStatusId === journeyStatusMap.rejectedByDriver) {
+            await rejectOffer({
+              shipperRequestUniqueId,
+              user,
+              driverUserUniqueId: ownerUserUniqueId,
+            });
+          } else {
+            // Post-accept cancel: close the agreed entry (forfeits the queued
+            // slot), count the refusal penalty, and advance the ORDER to the
+            // next driver. When no next driver exists, this function notifies
+            // the queue org admins and the shipper itself
+            // (messageTypes.online_driver_not_found).
+            await releaseQueueEntryAfterDriverCancel({
+              shipperRequestUniqueId,
+              user,
+            });
+          }
+        } else if (shouldUpdateShipperToWaiting && !isCompanyTarget) {
+          // Non-queue (street/distance) order: re-match to the NEAREST driver.
+          const { handleWaitingRequest } = require(
+            "../ShipperRequest/statusVerification.service",
+          );
+          const notifiedDrivers = new Set();
+          const localDriversData = [];
+          const localDrivers = [];
+          const localDecisions = [];
+          const found = await handleWaitingRequest({
+            shipperRequest: shipper[0],
+            shipperRequestId: shipper[0].shipperRequestId,
+            totalRecords: null,
+            pageSize: null,
+            page: null,
+            driversData: localDriversData,
+            drivers: localDrivers,
+            decisions: localDecisions,
+            notifiedDrivers,
+            userUniqueId: shipper[0].userUniqueId,
+          });
+
+          if (!found) {
+            // No driver available near the shipper right now — notify the admin
+            // and the shipper so the order doesn't silently go stale.
+            try {
+              await sendSocketIONotificationToAdmin({
+                message: {
+                  message: messageTypes.online_driver_not_found.message,
+                  messageType: messageTypes.online_driver_not_found,
+                  data: { shipperRequestUniqueId },
+                },
+              });
+            } catch (error) {
+              logger.error("Error notifying admin — no driver available", {
+                error: error.message,
+                shipperRequestUniqueId,
+              });
+            }
+            try {
+              await sendSocketIONotificationToShipper({
+                message: {
+                  message: messageTypes.online_driver_not_found.message,
+                  messageType: messageTypes.online_driver_not_found,
+                  data: { shipperRequestUniqueId },
+                },
+                phoneNumber: shipper[0].phoneNumber,
+              });
+              if (shipper[0].userUniqueId) {
+                sendFCMNotificationToUser({
+                  userUniqueId: shipper[0].userUniqueId,
+                  roleId: 1,
+                  notification: {
+                    title: messageTypes.online_driver_not_found.message,
+                    body: "No driver is available for your request. Please try again later.",
+                  },
+                });
+              }
+            } catch (error) {
+              logger.error("Error notifying shipper — no driver available", {
+                error: error.message,
+                shipperRequestUniqueId,
+              });
+            }
+          }
+        }
       } catch (error) {
-        logger.error("Error advancing queue order after driver reject", {
-          error: error.message,
-          shipperRequestUniqueId,
-        });
+        logger.error(
+          "Error actively re-dispatching order after driver cancel/reject",
+          {
+            error: error.message,
+            shipperRequestUniqueId,
+          },
+        );
       }
     }
 

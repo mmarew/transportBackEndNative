@@ -175,7 +175,7 @@ const testTQH04CheckoutReleasesOrder = async () => {
     await checkout("queueDriver1", ORG());
 
     const after = await getEntryByQueueUniqueId(before.queueUniqueId);
-    if (!after || after.status !== "removed") {
+    if (!after || after.status !== 12) {
       throw new Error(`expected status removed, got ${after?.status}`);
     }
     if (after.shipperRequestUniqueId !== null) {
@@ -347,7 +347,7 @@ const testTQH10RemoveLogsHistory = async () => {
 
     const history = await getEntryHistory(row.queueUniqueId, qadminToken());
     const statusChanges = history.filter((h) => h.columnName === "status");
-    const removeChange = statusChanges.find((h) => h.oldValue === oldStatus);
+    const removeChange = statusChanges.find((h) => h.oldValue === String(oldStatus));
     if (!removeChange) {
       throw new Error(`no status change from ${oldStatus} logged after remove`);
     }
