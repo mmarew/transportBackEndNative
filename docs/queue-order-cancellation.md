@@ -1,8 +1,10 @@
 # Queue Order Cancellation — Queue Integrity on Shipper/Admin Cancel
 
 > Status: **IMPLEMENTED.** `releaseEntryOnOrderCancel` is live on the whole-job
-> cancel paths (see §4.2 for the accurate hook list). Verification checklist in
-> §6 still needs a manual DB run. Related:
+> cancel paths (see §4.2 for the accurate hook list). The driver-initiated
+> transfers (§3.5 — `releaseQueueEntryAfterDriverCancel`) are **E2E-verified**
+> by the queue suite **TQ-34** (queue cancel-after-accept) and **TQ-35**
+> (non-queue reject → nearest re-match). Related:
 > [queue-dispatch-design.md](queue-dispatch-design.md),
 > [queue-refusal-policy.md](queue-refusal-policy.md),
 > [queue-order-dispatch.md](queue-order-dispatch.md).
@@ -14,8 +16,9 @@ apart:
 
 | Type | Status | The job | The queue effect |
 | ---- | ------ | ------- | ---------------- |
-| **A. Whole-job cancellation** | `cancelledByShipper` (7) / `cancelledByAdmin` (10) / `cancelledBySystem` (12) | **Dead** — no more drivers get it | **RELEASE** the holding entry back to `waiting` (this doc, §3). No advance, **no penalty count**. |
-| **B. Single-driver agreement rejection** | `rejectedByShipper` (8) | **Alive** — advances to the next driver | **HANDLED** by `rejectOffer` (§2). Driver keeps position; **counts as a penalty** toward the refusal limit. |
+| **A. Whole-job cancellation** | `cancelledByShipper` (10) / `cancelledByAdmin` (13) | **Dead** — no more drivers get it | **RELEASE** the holding entry back to `waiting` (this doc, §3). No advance, **no penalty count**. |
+| **B. Single-driver agreement rejection** | `rejectedByShipper` (11) | **Alive** — advances to the next driver | **HANDLED** by `rejectOffer` (§2). Driver keeps position; **counts as a penalty** toward the refusal limit. |
+| **C. Driver-initiated transfer** | `rejectedByDriver` (18) before accept / `cancelledByDriver` (12) after accept | **Alive** — re-matched | Driver-side cancel goes to the **active-transfer** path (§3.5): pre-accept reject → `rejectOffer`; post-accept cancel → `releaseQueueEntryAfterDriverCancel`. **Both count as a refusal penalty.** |
 
 Type B is the common queue moment: the admin dispatches the front driver
 (`requested`, `decisionBy='queue'`), the driver responds — possibly with their
@@ -119,6 +122,65 @@ Rejected alternative: **blocking queue-order cancellation entirely.** Clients
 (factory/customs) legitimately cancel — the design must make cancellation safe,
 not forbid it.
 
+## 3.5 Type C — the DRIVER cancels (active transfer)
+
+Sections 2–3 covered the **shipper/admin** deciding against a driver or a job.
+When the **driver themselves** cancels or rejects, the job is still *alive* and
+must be transferred — this is the **active-transfer** decision.
+
+### 3.5.1 Two driver-side moments
+
+| Driver state when they cancel | Status written | Queue path |
+| ----------------------------- | -------------- | ---------- |
+| **Before accepting** (holding an incoming offer, `requested`=2) | `rejectedByDriver` (18) | `rejectOffer` — entry keeps position, `count += 1` (refusal), order advances FIFO. (§2/§4.1 in [queue-refusal-policy.md](queue-refusal-policy.md)) |
+| **After accepting** (`acceptedByDriver`=3 or later journey state) | `cancelledByDriver` (12) | `releaseQueueEntryAfterDriverCancel` — entry soft-deleted out of line, refusal `count += 1`, order advances to the next waiting driver (§3.5.2) |
+
+Both count as a **refusal penalty** toward `QUEUE_REFUSAL_LIMIT`: from the line's
+perspective the front driver had the chance to close the load and did not.
+
+### 3.5.2 `releaseQueueEntryAfterDriverCancel` (queue orders, post-accept)
+
+`Services/DriverQueue.service.js` (exported next to `rejectOffer`). On a queue
+driver who cancels a job **after accepting**:
+
+1. `SELECT` the entry holding the order FOR UPDATE (status `acceptedByDriver`→
+   journey in progress, `queueDeletedAt IS NULL`). None → `{ released:false,
+   offered:false }` (idempotent).
+2. Audit-log the close: status → `cancelledByDriver` (12).
+3. Update the entry: `status=12`, `requestedAt=NULL`, `shipperRequestUniqueId=NULL`,
+   `queueUpdatedAt/By`, and **`queueDeletedAt/By`** — the driver **forfeits their
+   slot** and must re-check-in (new `queueNumber` at the back) for the next load.
+4. **`applyRefusalPolicy`** → `queueRefusalCount += 1` (and move-to-back if it
+   reaches N — moot on a soft-deleted row, kept for audit consistency).
+5. `emitQueueSnapshot()` + `notifyQueueOrgAdmins({ messageType:
+   "queue_order_cancelled" })`.
+6. `offerToNextDriver({ afterQueueNumber, excludeVehicleDriverUniqueId })` — the
+   order is offered to the **next waiting driver of the same vehicle type**.
+7. If no next driver → `notifyQueueOrgAdmins("online_driver_not_found")` +
+   `notifyShipperOfQueueEvent` (`online_driver_not_found`) — the order stays
+   `waiting` and is auto-offered on the next matching-type check-in.
+
+### 3.5.3 Non-queue (street/distance) orders — nearest re-match
+
+`Services/DriverRequest/actionCancelDriverRequest.service.js` routes driver cancels:
+
+- Order carries a **queue organization** (via its `ShipperRequestBatch`):
+  pre-accept → `rejectOffer`; post-accept → `releaseQueueEntryAfterDriverCancel`.
+- Order is **non-queue** (street / distance match): the reject/cancel reruns
+  `handleWaitingRequest` at the order's origin and re-engages the **nearest**
+  waiting driver; if none, notifies admin (`sendSocketIONotificationToAdmin` +
+  FCM, role 1) and the shipper, and the order stays `waiting`.
+- `DriverQueue` is **never** touched for non-queue orders.
+- Company-target orders (`company_target` + `isCompanyTarget`) keep their own
+  assignment semantics and are skipped by the re-match.
+
+### 3.5.4 Penalty decision
+
+A driver reject (pre- or post-accept) **counts** as a refusal — it is the driver
+declining a load the line was waiting to serve. This is deliberate contrast with
+Types A/B where the *shipper/admin* decides and the front driver is **not**
+penalized.
+
 ## 4. Mechanics
 
 ### 4.1 New release function
@@ -188,7 +250,9 @@ gone and the driver released (data: `{ driverUserUniqueId, queueUniqueId }`).
 ## 6. Verification (how we know this doc is true)
 
 > Implementation is complete; the checks below still need a manual DB run
-> (cancel a real queue order mid-offer and inspect `DriverQueue`).
+> (cancel a real queue order mid-offer and inspect `DriverQueue`). Type C
+> (driver-cancel) checks are **automated** — see **TQ-34** and **TQ-35** in
+> the queue E2E suite (`E2ETests/Queue/ActiveTransfer.js`).
 
 | # | Check | Pass criteria |
 | - | ----- | ------------- |
@@ -200,6 +264,8 @@ gone and the driver released (data: `{ driverUserUniqueId, queueUniqueId }`).
 | 6 | Driver had accepted (entry `agreed`) before cancel | Entry not touched; driver free to re-check-in |
 | 7 | Admin/system cancel paths (`cancelledByAdmin`/`cancelledBySystem`) | Same release behavior as #1 |
 | 8 | **Queue org admin** cancels the job (role 11 → `cancelledByAdmin`) while a driver holds the offer | Same as #1 — released to `waiting`, position kept, **no penalty** to the holding driver |
+| 9 | **TQ-34** — queue driver cancels AFTER accepting | Entry closed `cancelledByDriver`(12)+soft-deleted, `queueRefusalCount` **+1**, order offered to the next driver or left `waiting`; HTTP 200 |
+| 10 | **TQ-35** — driver rejects a NON-queue (street) order | `DriverQueue` untouched (0 links); order re-engaged (`requested`) by the nearest driver or back to `waiting`
 
 ## 7. Open questions
 

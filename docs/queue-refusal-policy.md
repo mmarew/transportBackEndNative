@@ -33,7 +33,8 @@ line is corrected.
 
 | Case                                                                                  | Action                                                   |
 | ------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| Driver rejects offer                                                                  | Order → next driver; driver keeps position; entry `notagreed`;`count += 1`  |
+| Driver rejects offer (pre-accept)                                                     | Order → next driver; driver keeps position; entry `notagreed`;`count += 1`  |
+| Driver cancels AFTER accepting (was `agreed`, then `cancelledByDriver` 12)             | Entry closed (soft-deleted, forfeits slot); `count += 1`; order advances FIFO — see [queue-order-cancellation.md](queue-order-cancellation.md) §3.5 |
 | Driver times out (3 min)                                                              | Order → next driver; driver keeps position; entry `notagreed`;`count += 1`  |
 | Shipper rejects the driver's quoted price (agreement rejection)                       | Order → next driver; driver keeps position; entry `notagreed`;`count += 1`  |
 | Job cancelled by shipper / platform admin /**queue org admin** / system (whole order) | Entry released to`waiting`, position kept; **no count**  |
@@ -67,21 +68,26 @@ mechanics stay exactly as they are.
 
 ```
 Driver-side reject (POST /api/driverRequest/actionCancelDriverRequest)
-  → JourneyDecision: rejectedByDriver (15)
+  → pre-accept:  JourneyDecision: rejectedByDriver (18)
   → rejectOffer()   [DriverQueue.service.js]
        entry.offer → status waiting, offer cleared
        applyRefusalPolicy → count += 1
        offerToNextDriver(afterQueueNumber)  → offer to next driver, same vehicle type
+  → post-accept: JourneyDecision: cancelledByDriver (12)
+  → releaseQueueEntryAfterDriverCancel()    [DriverQueue.service.js, §3.5]
+       entry closed (status 12, soft-deleted), applyRefusalPolicy → count += 1,
+       offerToNextDriver(...) → advance or waiting + no-driver notify
+  → non-queue order: handleWaitingRequest re-match (nearest) or waiting + notify
 
 Shipper-side price rejection (POST /api/shipperRequest/actionReject)
-  → JourneyDecision: rejectedByShipper (8)
+  → JourneyDecision: rejectedByShipper (11)
   → rejectOffer()   [DriverQueue.service.js]
        entry.offer → status waiting, offer cleared
        applyRefusalPolicy → count += 1
        offerToNextDriver(afterQueueNumber)  → offer to next driver, same vehicle type
 
 Background timeout scan  (QUEUE_OFFER_WINDOW_MINUTES = 3)
-  → expired offers: JourneyDecision → rejectedByDriver, entry → waiting,
+  → expired offers: JourneyDecision → noAnswerFromDriver (16), entry → waiting,
     applyRefusalPolicy → count += 1, advance
 ```
 
@@ -94,9 +100,10 @@ Statuses in play (see `Utils/ListOfSeedData.js` `journeyStatusMap`):
 | id  | status             | meaning                                    |
 | --- | ------------------ | ------------------------------------------ |
 | 2   | requested          | offer currently held by a driver           |
-| 8   | rejectedByShipper  | shipper rejected the driver's quoted price |
-| 13  | noAnswerFromDriver | offer window expired (timeout)             |
-| 15  | rejectedByDriver   | driver declined the incoming offer         |
+| 11  | rejectedByShipper  | shipper rejected the driver's quoted price |
+| 12  | cancelledByDriver  | driver cancelled AFTER accepting (`cancelled_after_accept`) |
+| 16  | noAnswerFromDriver | offer window expired (timeout)             |
+| 18  | rejectedByDriver   | driver declined the incoming offer (pre-accept) |
 
 ## 4. New rule — move-to-back after N
 
@@ -226,15 +233,22 @@ Queue dispatch writes:
 
 ## 7. Verification (how we know this doc is true)
 
+> Automated for the driver-initiated paths: **TQ-34** (cancel-after-accept →
+> `count += 1` + entry `cancelledByDriver` 12 + advance/waiting) and **TQ-35**
+> (non-queue reject → nearest re-match / waiting, DriverQueue untouched) in the
+> queue E2E suite (`E2ETests/Queue/ActiveTransfer.js`).
+
 | #   | Check                                                                     | Pass criteria                                                                                                                   |
 | --- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | Driver rejects offer                                                      | `queueRefusalCount` increments; entry `notagreed` (position kept); order offered to next driver                                             |
 | 2   | Driver times out (3 min)                                                  | Same as#1 via `releaseExpiredOffers` scan                                                                                       |
-| 3   | Shipper rejects driver's price                                            | `JourneyDecision = rejectedByShipper(8)`; `queueRefusalCount` increments                                                        |
+| 3   | Shipper rejects driver's price                                            | `JourneyDecision = rejectedByShipper(11)`; `queueRefusalCount` increments                                                        |
 | 4   | Whole-job cancel (shipper / platform admin /**queue org admin** / system) | Entry released to`waiting`, position kept, **count unchanged** — see [queue-order-cancellation.md](queue-order-cancellation.md) |
 | 5   | `count == N`                                                              | Entry moves to back (`queueNumber = MAX+1`), `count = 0`, admin notified `queue_refusal_moved_to_back`                          |
 | 6   | Re-check-in                                                               | Revived entry has`count = 0`, back position                                                                                     |
 | 7   | Schema                                                                    | `DriverQueue.queueRefusalCount` present in live DB; `QUEUE_REFUSAL_LIMIT` env respected                                         |
+| 8   | **TQ-34** driver cancels AFTER accepting                                  | Entry `cancelledByDriver`(12), soft-deleted,`count +1`; order advances or waits; HTTP 200 |
+| 9   | **TQ-35** driver rejects a non-queue (street) offer                       | `DriverQueue` untouched; order re-engaged by nearest or `waiting` |
 
 **Pending code to make the doc true:**
 
@@ -244,6 +258,10 @@ Queue dispatch writes:
 2. ~~`releaseEntryOnOrderCancel` — new export + hooks (§4.5 in
    [queue-order-cancellation.md](queue-order-cancellation.md)).~~
    **DONE** — implemented and hooked on all whole-job cancel paths.
+3. ~~`releaseQueueEntryAfterDriverCancel` — driver cancel-after-accept closes the
+   entry, counts a refusal, and advances the order (§3.5 in
+   [queue-order-cancellation.md](queue-order-cancellation.md)).~~
+   **DONE** — implemented and E2E-verified (TQ-34).
 
 ## 8. Open questions
 

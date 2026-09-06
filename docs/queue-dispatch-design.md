@@ -215,6 +215,7 @@ requested ──timeout──┴──> notagreed     (still in line, eligible f
 notagreed ──offer───────> requested     (re-offered by a later order — same driver)
 waiting/notagreed ──checkout/override─> removed   (audit logged)
 requested ──whole-job cancel─────────> waiting    (keeps position; no refusal count)
+agreed ──driver cancels job─────────> closed     (cancelledByDriver 12, soft-deleted, forfeits slot; refusal +1; order advances — §3.5)
 any ──accept... journey completes───> removed     (closeEntryOnJourneyCompletion)
 ```
 
@@ -247,6 +248,23 @@ any ──accept... journey completes───> removed     (closeEntryOnJourney
    that type via `offerToDriver` (same primitive as creation-time dispatch).
    The QueueOrgAdmin can always still re-offer manually via
    `POST /api/queue/dispatch`.
+
+### 7.1 Driver cancels — active transfer
+
+A driver-side cancel is a **transfer**, not a kill (the job is still alive):
+
+- **Pre-accept reject** (`rejectedByDriver` 18) → `rejectOffer`: driver keeps
+  position, `count += 1`, order advances FIFO.
+- **Post-accept cancel** (`cancelledByDriver` 12) → `releaseQueueEntryAfterDriverCancel`:
+  entry closed + soft-deleted (driver forfeits the slot and must re-check-in),
+  refusal `count += 1`, order offered to the **next waiting driver** of the type;
+  if none → admin + shipper notified (`online_driver_not_found`) and the order
+  waits for the next matching-type check-in.
+- **Non-queue (street / distance) orders** → nearest re-match via
+  `handleWaitingRequest`; `DriverQueue` is never touched.
+
+Full decision + verification: [queue-order-cancellation.md](queue-order-cancellation.md)
+§3.5 and [queue-refusal-policy.md](queue-refusal-policy.md).
 
 ## 8. Proposed endpoints (new)
 

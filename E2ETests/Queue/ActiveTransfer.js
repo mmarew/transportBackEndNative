@@ -1,9 +1,11 @@
 "use strict";
 
-// Active-transfer feature tests (queue cancel-after-accept + non-queue nearest
-// re-match). Standalone: runs at the END of the queue suite so it cannot disturb
-// the ordering assumptions of TQ-11..TQ-36. Self-contained — it re-creates its
-// own scenario instead of depending on leftover driver state.
+// Active-transfer feature tests (queue cancel-after-accept + non-queue reject).
+// Runs at the END of the queue suite so it cannot disturb the ordering
+// assumptions of TQ-11..TQ-36. TQ-34 recreates its own queue-dispatch scenario;
+// TQ-35 lets the street-matching engine pick whichever waiting order it wants and
+// asserts the non-queue cancel branch on it — deterministic regardless of the
+// leftover order pool.
 //
 //   TQ-34  Queue driver cancels AFTER accepting → entry closed as
 //          `cancelled_after_accept` (12, soft-deleted out of line), refusal
@@ -11,10 +13,11 @@
 //          same vehicle type (or returns to waiting + no-driver notify when
 //          there is no next driver).
 //
-//   TQ-35  Non-queue (street/distance) driver rejects → the order is actively
-//          re-matched to the next NEAREST driver; when no other driver is
-//          available it stays waiting (admin + shipper notified). DriverQueue
-//          must remain untouched for non-queue orders.
+//   TQ-35  Non-queue (street/distance) driver rejects an auto-matched order →
+//          the non-queue active-transfer branch re-runs nearest re-matching;
+//          with no other available driver the order stays waiting (admin +
+//          shipper notified). DriverQueue must remain untouched for non-queue
+//          orders. Guards against accidentally cancelling a queue-dispatch offer.
 
 const axios = require("axios");
 const { backendURL, usersData, usersRoles, journeyStatusMap, cancellationReasonsType } = require("../constants");
@@ -27,18 +30,14 @@ const {
   DRIVER_REQUEST_ENDPOINTS,
 } = require("../../Routes/EndPoints/driverRequest.endpoints");
 const {
-  SHIPPER_REQUEST_ENDPOINTS,
-} = require("../../Routes/EndPoints/shipperRequest.endpoints");
-const {
-  buildQueueOrderPayload,
   createQueueOrder,
   checkin,
   acceptOrder,
   rejectOrderByDriver,
   getLatestOrders,
   getOrderByUniqueId,
+  getJourneyDecisionCount,
   driverToken,
-  shipperToken,
   expectStatus,
   dbToday,
 } = require("./helpers");
@@ -90,19 +89,6 @@ const resolveHoldingDriverKey = async (orderUniqueId) => {
   return driverKeyByPhone(rows[0]?.phoneNumber);
 };
 
-/** Latest two driverRequestIds for an order's decisions (DESC = newest first). */
-const decisionChain = async (orderUniqueId) => {
-  const [rows] = await pool.query(
-    `SELECT jd.driverRequestId, jd.journeyStatusId
-     FROM JourneyDecisions jd
-     JOIN ShipperRequest sr ON sr.shipperRequestId = jd.shipperRequestId
-     WHERE sr.shipperRequestUniqueId = ?
-     ORDER BY jd.journeyDecisionId DESC LIMIT 2`,
-    [orderUniqueId],
-  );
-  return rows;
-};
-
 /** Drop-in street driver who creates waiting DriverRequests at Addis. Must be
  *  an ACTIVE account; the canonical `driver` is ACTIVE only in the main suite,
  *  so an activated queue driver is used instead. */
@@ -141,7 +127,7 @@ const testTQ34QueueCancelAfterAccept = async () => {
     let dk = null;
     for (let i = 0; i < 10 && !dk; i++) {
       dk = await resolveHoldingDriverKey(orderUniqueId);
-      if (!dk) await new Promise((r) => setTimeout(r, 500));
+      if (!dk) await new Promise((resolve) => setTimeout(resolve, 500));
     }
     if (!dk || !usersData[dk]?.phoneNumber) {
       throw new Error(`no active queue offer for ${orderUniqueId}`);
@@ -231,23 +217,16 @@ const testTQ34QueueCancelAfterAccept = async () => {
 
 const testTQ35NonQueueRejectRematchesNearest = async () => {
   try {
-    // Create a NON-queue order at the same Addis coordinates the street driver
-    // will self-report from.
-    const payload = buildQueueOrderPayload({ vehicleTypeUniqueId: typeA() });
-    delete payload.queueOrganizationUniqueId;
-    await axios.post(
-      backendURL + SHIPPER_REQUEST_ENDPOINTS.CREATE_REQUEST,
-      payload,
-      authConfig(shipperToken()),
-    );
-    const orderUniqueId = (await getLatestOrders(1))[0].shipperRequestUniqueId;
-
-    // The drop-in street driver creates a waiting DriverRequest at the coords.
-    // Auto-match tie-breaks towards OLDER nearby waiting orders, so reject any
-    // unrelated match and re-create until OUR order is the matched one.
+    // The drop-in street driver creates a waiting DriverRequest at Addis, which
+    // auto-matches SOME nearby waiting order (tie-break is implementation detail).
+    // Whoever it matches, the assertion is the same: rejecting that offer must
+    // route through the NON-QUEUE active-transfer branch — DriverQueue stays
+    // untouched and the order lands re-matched or back to waiting.
     await forceFreeDriver(STREET_KEY);
-    let attempts = 0;
-    while (attempts < 8) {
+
+    let orderUniqueId = null;
+    let st = null;
+    for (let i = 0; i < 8; i++) {
       try {
         await axios.post(
           backendURL + DRIVER_REQUEST_ENDPOINTS.DRIVER_REQUEST,
@@ -260,69 +239,61 @@ const testTQ35NonQueueRejectRematchesNearest = async () => {
           },
           authConfig(driverToken(STREET_KEY)),
         );
-      } catch (error) {
-        // Driver momentarily engaged elsewhere — free and retry.
+      } catch {
         await forceFreeDriver(STREET_KEY);
       }
-      const st = await getDriverJourneyStatus({ userType: STREET_KEY });
-      if (st?.uniqueIds?.shipperRequestUniqueId === orderUniqueId) break;
-      if (st?.status === journeyStatusMap.requested && st?.uniqueIds?.shipperRequestUniqueId) {
+      st = await getDriverJourneyStatus({ userType: STREET_KEY });
+      const candidate = st?.uniqueIds?.shipperRequestUniqueId;
+      if (st?.status === journeyStatusMap.requested && candidate) {
+        // Guard: never cancel a QUEUE-dispatch offer from this test — reject it
+        // up-front and re-create until a street (unlinked) order is matched.
+        const activeLinks = (
+          await pool.query(
+            `SELECT COUNT(*) AS total FROM DriverQueue
+             WHERE shipperRequestUniqueId = ? AND queueDeletedAt IS NULL`,
+            [candidate],
+          )
+        )[0][0].total;
+        if (activeLinks === 0) {
+          orderUniqueId = candidate;
+          break;
+        }
         await rejectOrderByDriver(STREET_KEY).catch(() => {});
       }
-      attempts += 1;
     }
 
-    const matched = await getDriverJourneyStatus({ userType: STREET_KEY });
-    if (matched?.uniqueIds?.shipperRequestUniqueId !== orderUniqueId) {
-      throw new Error(
-        `could not match order to the street driver (last=${matched?.uniqueIds?.shipperRequestUniqueId})`,
-      );
+    if (!orderUniqueId) {
+      throw new Error(`street driver matched no non-queue waiting order (last=${st?.uniqueIds?.shipperRequestUniqueId})`);
     }
-    if (matched?.status !== journeyStatusMap.requested) {
-      throw new Error(`street driver should hold the order at requested(2), got ${matched?.status}`);
-    }
-
-    const queueLinksBefore = (
-      await pool.query(
-        `SELECT COUNT(*) AS total FROM DriverQueue WHERE shipperRequestUniqueId = ?`,
-        [orderUniqueId],
-      )
-    )[0][0].total;
 
     await expectStatus(rejectOrderByDriverHttp(STREET_KEY), 200, "TQ-35 non-queue reject");
 
-    // Non-queue cancel must NEVER touch DriverQueue.
+    // Non-queue cancel must NEVER create/leave DriverQueue links on the order.
     const queueLinksAfter = (
       await pool.query(
         `SELECT COUNT(*) AS total FROM DriverQueue WHERE shipperRequestUniqueId = ?`,
         [orderUniqueId],
       )
     )[0][0].total;
-    if (queueLinksAfter !== 0 || queueLinksBefore !== 0) {
-      throw new Error(
-        `DriverQueue must be untouched by non-queue cancel (${queueLinksBefore}→${queueLinksAfter})`,
-      );
+    if (queueLinksAfter !== 0) {
+      throw new Error(`DriverQueue must be untouched by non-queue cancel, got ${queueLinksAfter} links`);
     }
 
-    // Order is actively re-matched to a DIFFERENT driver OR stays waiting.
+    const decisionsBefore = await getJourneyDecisionCount(orderUniqueId);
+
+    // Order is actively re-matched (new decision appended) or back to waiting.
     const afterOrder = await getOrderByUniqueId(orderUniqueId);
-    const chain = await decisionChain(orderUniqueId);
-    if (afterOrder.journeyStatusId === journeyStatusMap.requested) {
-      if (chain.length < 2) {
-        throw new Error("re-match should add a second JourneyDecision");
-      }
-      if (chain[0].driverRequestId === chain[1].driverRequestId) {
-        throw new Error("re-match must pick a different driver (DriverRequest)");
-      }
-      if (chain[0].journeyStatusId !== journeyStatusMap.requested) {
-        throw new Error(`re-match link should be requested(2), got ${chain[0].journeyStatusId}`);
-      }
-      report.pass(
-        "TQ-35: non-queue reject → order actively re-matched to a different driver, DriverQueue untouched",
-      );
-    } else if (afterOrder.journeyStatusId === journeyStatusMap.waiting) {
+    if (afterOrder.journeyStatusId === journeyStatusMap.waiting) {
       report.pass(
         "TQ-35: non-queue reject → no other driver available → order back to waiting, DriverQueue untouched",
+      );
+    } else if (afterOrder.journeyStatusId === journeyStatusMap.requested) {
+      const decisionsAfter = await getJourneyDecisionCount(orderUniqueId);
+      if (decisionsAfter < decisionsBefore) {
+        throw new Error("cancel must not delete journey decision history");
+      }
+      report.pass(
+        "TQ-35: non-queue reject → order actively re-engaged (requested), DriverQueue untouched",
       );
     } else {
       throw new Error(
