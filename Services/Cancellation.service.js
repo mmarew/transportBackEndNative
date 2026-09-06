@@ -261,10 +261,51 @@ const getCancellationReasonIdByName = async (cancellationReason) => {
   return rows.length > 0 ? rows[0].cancellationReasonsTypeId : null;
 };
 
+/**
+ * Rejects a cancellation reason tagged `requestMode: 'company'` when the job
+ * being cancelled is an individual request. Mirror of the batch guard
+ * (`assertCompanyCancellationReason` in ShipperRequestBatch/batchHelper.js),
+ * which rejects `'individual'` reasons for company freight batches.
+ *
+ * @param {number|null} cancellationReasonsTypeId - Optional reason FK.
+ * @returns {Promise<void>}
+ */
+const assertIndividualCancellationReason = async (cancellationReasonsTypeId) => {
+  if (!cancellationReasonsTypeId) {
+    return;
+  } // optional field — nothing to validate
+
+  const [rows] = await pool.query(
+    `SELECT cancellationReasonsTypeId, cancellationReason, requestMode
+       FROM CancellationReasonsType
+      WHERE cancellationReasonsTypeId = ?
+        AND cancellationReasonTypeDeletedAt IS NULL
+      LIMIT 1`,
+    [cancellationReasonsTypeId],
+  );
+
+  if (!rows || rows.length === 0) {
+    throw new AppError(
+      `Cancellation reason ID ${cancellationReasonsTypeId} not found`,
+      AppError.NOT_FOUND,
+    );
+  }
+
+  const reason = rows[0];
+  if (reason.requestMode === "company") {
+    throw new AppError(
+      `Cancellation reason "${reason.cancellationReason}" is only valid for company freight batches, not individual requests. ` +
+        `Please choose a reason with requestMode 'individual' or 'both'.`,
+      AppError.BAD_REQUEST,
+    );
+  }
+};
+
 module.exports = {
   getAllCancellationReasons,
   addCancellationReason,
   deleteCancellationReason,
   updateCancellationReason,
   getCancellationReasonIdByName,
+  assertIndividualCancellationReason,
 };

@@ -503,8 +503,12 @@ CREATE TABLE IF NOT EXISTS ShipperRequestBatch (
     INDEX idx_batch_queue_org (queueOrganizationUniqueId),
     FOREIGN KEY (shipperUserUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId),
-    FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId),
-    FOREIGN KEY (queueOrganizationUniqueId) REFERENCES QueueOrganization(queueOrganizationUniqueId)
+    FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
+    -- NOTE: queueOrganizationUniqueId FK deliberately NOT declared inline here —
+    -- QueueOrganization is created LATER in this schema (line ~2081), so an inline
+    -- FK would fail a fresh run with ER_FK_CANNOT_OPEN_PARENT (1824). The FK is
+    -- added idempotently AFTER the schema by ensureQueueOrgReferences()
+    -- (Services/Database/tableManage.service.js) once QueueOrganization exists.
 );
 
 -- Create the DriverRequest table

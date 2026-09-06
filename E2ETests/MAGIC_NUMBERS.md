@@ -87,8 +87,15 @@ numeric values depend on seed order and are therefore fragile.** Mirrored in
 
 | ID | Constant (`cancellationReasonsType.`) | E2E flow                                        |
 | -- | ------------------------------------- | ----------------------------------------------- |
-| 2  | `driverCancel`                        | Driver cancels (`roleId=2`, `DriverRequest.js`, `Queue/helpers.js`, `Queue/QueueOrders.js`, `testDriverRejectionFlow.js`) |
-| 6  | `shipperWholeJobCancel`               | Shipper whole-job cancel (queue tests: `Queue/helpers.js`, `Queue/QueueOrders.js`) |
+| 11 | `driverCancel`                        | Driver cancels (`roleId=2`, `DriverRequest.js`, `Queue/helpers.js`, `Queue/QueueOrders.js`, `testDriverRejectionFlow.js`) — driver "Personal or family emergency", requestMode `both` |
+| 5  | `shipperWholeJobCancel`               | Shipper whole-job cancel (queue tests: `Queue/helpers.js`, `Queue/QueueOrders.js`) — shipper "Cargo no longer needs to be transported", requestMode `both` |
+
+> The seed is now minimized to **5 reasons + one "Others" per role** (shipper=1-6,
+> driver=7-12, admin=13-18, queue-org-admin=19-24). Batch `cancel`/`partialCancel`
+> requires a reason with requestMode `'company'`/`'both'` (e.g. ID 3, shipper
+> "Company did not assign vehicles as agreed"); `assertCompanyCancellationReason`
+> rejects `'individual'` reasons. `COMPANY_REPLACED_INDIVIDUAL_REASON` (admin, ID
+> 16) is looked up by name in `assignmentHelper.js` — keep its text unchanged.
 
 > Verify the exact reason text for these IDs against `CancellationReasonsType`
 > in the target DB before changing them.

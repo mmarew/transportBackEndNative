@@ -560,7 +560,7 @@ so we can upload documents for driver verification based on uploadedDocumentName
 **Authentication**: Driver token required
 **Query Parameters:**
 
-- `ownerUserUniqueId=self&roleId=2&cancellationReasonsTypeId=2`
+- `ownerUserUniqueId=self&roleId=2&cancellationReasonsTypeId=11`
 
 **Success Response:**
 
@@ -850,7 +850,7 @@ Drivers receive real-time notifications through WebSocket connections and can ve
 - **404 Not Found**: Driver request or journey decision not found
 - **500 Internal Server Error**: Server error during status update
 
-**For canceling active requests, use:** `DELETE /api/driver/cancelDriverRequest?ownerUserUniqueId=self&roleId=2&cancellationReasonsTypeId=2`
+**For canceling active requests, use:** `DELETE /api/driver/cancelDriverRequest?ownerUserUniqueId=self&roleId=2&cancellationReasonsTypeId=11`
 
 ### Mark Negative Status as Seen
 
@@ -883,7 +883,7 @@ Drivers receive real-time notifications through WebSocket connections and can ve
 - **404 Not Found**: Driver request or journey decision not found
 - **500 Internal Server Error**: Server error during status update
 
-**For canceling active requests, use:** `DELETE /api/driver/cancelDriverRequest?ownerUserUniqueId=self&roleId=2&cancellationReasonsTypeId=2`
+**For canceling active requests, use:** `DELETE /api/driver/cancelDriverRequest?ownerUserUniqueId=self&roleId=2&cancellationReasonsTypeId=11`
 
 ### Street Pickup Requests
 

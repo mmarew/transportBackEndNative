@@ -98,9 +98,9 @@ const testCancelBatch = async ({ user, batchUniqueId } = {}) => {
   for (const candidate of candidates) {
     const id = candidate.batchUniqueId || candidate.shipperRequestBatchUniqueId;
     try {
-      // cancellationReasonsTypeId is NOT NULL in CanceledJourneys — reason 12 has
-      // requestMode 'company' and is valid for company freight batches (reasons 1-11 are 'individual').
-      await axios.put(backendURL + `${BASE_URL}/${id}/cancel`, { cancellationReasonsTypeId: 12 }, authConfig(token));
+      // cancellationReasonsTypeId is NOT NULL in CanceledJourneys — reason 3 has
+      // requestMode 'company' and is valid for company freight batches (reasons 1-2 are 'individual').
+      await axios.put(backendURL + `${BASE_URL}/${id}/cancel`, { cancellationReasonsTypeId: 3 }, authConfig(token));
       cancelled++;
       console.log("✅ Batch canceled:", id);
       cache.partialCanceledId = id;
@@ -143,7 +143,7 @@ const testPartialCancelBatch = async ({ user, batchUniqueId, payload } = {}) => 
     }
     const defaultPayload = {
       slotIds: [slot.shipperRequestUniqueId],
-      cancellationReasonsTypeId: 12,
+      cancellationReasonsTypeId: 3,
       ...payload,
     };
     const result = await axios.put(backendURL + url, defaultPayload, authConfig(token));

@@ -351,54 +351,35 @@ The predefined data is installed through the `installPreDefinedData` service fun
 
 ### Cancellation Reasons
 
+Minimized to **5 reasons + one "Others" per role** (shipper=1, driver=2, admin=3,
+queue-org-admin=11). `requestMode` key: `individual` | `company` | `both`.
+
 ```json
 [
-  { "cancellationReason": "Driver too late", "roleId": 1 },
-  { "cancellationReason": "Driver did not answered requests", "roleId": 2 },
-  { "cancellationReason": "Change of plans", "roleId": 1 },
-  { "cancellationReason": "Driver took too long", "roleId": 1 },
-  { "cancellationReason": "Found another ride", "roleId": 1 },
-  { "cancellationReason": "Wrong vehicle description", "roleId": 1 },
-  {
-    "cancellationReason": "Driver did not meet my location",
-    "roleId": 1
-  },
-  { "cancellationReason": "Incorrect route", "roleId": 1 },
-  {
-    "cancellationReason": "Driver's vehicle didn't match description",
-    "roleId": 1
-  },
-  {
-    "cancellationReason": "Driver was rude or unprofessional",
-    "roleId": 1
-  },
-  { "cancellationReason": "Shipper didn't show up", "roleId": 2 },
-  { "cancellationReason": "Shipper was unresponsive", "roleId": 2 },
-  { "cancellationReason": "Safety concerns", "roleId": 2 },
-  { "cancellationReason": "Incorrect pickup location", "roleId": 2 },
-  {
-    "cancellationReason": "Shipper had too many people",
-    "roleId": 2
-  },
-  {
-    "cancellationReason": "Shipper was disrespectful",
-    "roleId": 2
-  },
-  {
-    "cancellationReason": "Shipper requested an illegal or unsafe route",
-    "roleId": 2
-  },
-  { "cancellationReason": "Vehicle issue", "roleId": 2 },
-  {
-    "cancellationReason": "App-related technical issue",
-    "roleId": 3
-  },
-  { "cancellationReason": "Route unavailable", "roleId": 3 },
-  { "cancellationReason": "Driver no longer available", "roleId": 3 },
-  {
-    "cancellationReason": "Cancelled by queue admin",
-    "roleId": 11
-  }
+  { "cancellationReason": "Driver did not arrive at the pickup location on time", "roleId": 1, "requestMode": "individual" },
+  { "cancellationReason": "Driver's vehicle did not match the request", "roleId": 1, "requestMode": "individual" },
+  { "cancellationReason": "Company did not assign vehicles as agreed", "roleId": 1, "requestMode": "company" },
+  { "cancellationReason": "Found a better price or alternative option", "roleId": 1, "requestMode": "both" },
+  { "cancellationReason": "Cargo no longer needs to be transported", "roleId": 1, "requestMode": "both" },
+  { "cancellationReason": "Others", "roleId": 1, "requestMode": "both" },
+  { "cancellationReason": "Shipper was not at the agreed pickup location", "roleId": 2, "requestMode": "individual" },
+  { "cancellationReason": "Cargo did not match the request description", "roleId": 2, "requestMode": "individual" },
+  { "cancellationReason": "Company changed or reassigned the job", "roleId": 2, "requestMode": "company" },
+  { "cancellationReason": "Vehicle breakdown or mechanical issue", "roleId": 2, "requestMode": "both" },
+  { "cancellationReason": "Personal or family emergency", "roleId": 2, "requestMode": "both" },
+  { "cancellationReason": "Others", "roleId": 2, "requestMode": "both" },
+  { "cancellationReason": "Cancelled due to app or system technical issue", "roleId": 3, "requestMode": "both" },
+  { "cancellationReason": "Fraud or platform policy violation detected", "roleId": 3, "requestMode": "both" },
+  { "cancellationReason": "Duplicate request detected by the system", "roleId": 3, "requestMode": "both" },
+  { "cancellationReason": "Individual request replaced by company fleet assignment — driver reassigned to company-managed freight job", "roleId": 3, "requestMode": "both" },
+  { "cancellationReason": "Driver or company account suspended during an active request", "roleId": 3, "requestMode": "both" },
+  { "cancellationReason": "Others", "roleId": 3, "requestMode": "both" },
+  { "cancellationReason": "Cancelled by queue admin", "roleId": 11, "requestMode": "both" },
+  { "cancellationReason": "Driver unavailable or did not respond", "roleId": 11, "requestMode": "both" },
+  { "cancellationReason": "Duplicate or incorrectly placed order", "roleId": 11, "requestMode": "both" },
+  { "cancellationReason": "Order was placed by mistake", "roleId": 11, "requestMode": "both" },
+  { "cancellationReason": "Shipping date or schedule changed", "roleId": 11, "requestMode": "both" },
+  { "cancellationReason": "Others", "roleId": 11, "requestMode": "both" }
 ]
 ```
 

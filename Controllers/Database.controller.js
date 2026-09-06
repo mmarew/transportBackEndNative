@@ -31,9 +31,12 @@ const dropTableController = async (req, res, next) => {
     if (!tables) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Table name is required" });
     }
-    const result = await executeInTransaction(async () => {
-      return await databaseService.dropTable(tables);
-    });
+    const result = await executeInTransaction(
+      async () => {
+        return await databaseService.dropTable(tables);
+      },
+      { timeout: TIME.FIVE_MINUTES_MS }, // 5 minutes — dropping many/large tables exceeds 30s
+    );
     res.status(HTTP_STATUS.OK).json(result);
   } catch (error) {
     next(error);

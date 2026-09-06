@@ -172,6 +172,13 @@ const cancelDriverRequest = async (data) => {
           shipper[0].targetCompanyUniqueId !== null);
     }
 
+    // Individual-job guard: a cancellation reason tagged `requestMode: 'company'`
+    // is only valid for company freight batches, never for an individual request.
+    if (!isCompanyTarget) {
+      const { assertIndividualCancellationReason } = require("../Cancellation.service");
+      await assertIndividualCancellationReason(cancellationReasonsTypeId);
+    }
+
     // Wrap all status updates in a single transaction to ensure atomicity
     // All operations must succeed or all must fail to maintain data consistency
     await executeInTransaction(

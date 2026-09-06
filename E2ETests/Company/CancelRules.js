@@ -159,7 +159,7 @@ const runCancelRulesTests = async () => {
 
     const cancelRes = await axios.put(
       backendURL + "/api/shipperRequestBatch/" + batchB + "/cancel",
-      { cancellationReasonsTypeId: 12 },
+      { cancellationReasonsTypeId: 3 },
       authConfig(shipper.token),
     );
     if (cancelRes.data?.message === "error") {

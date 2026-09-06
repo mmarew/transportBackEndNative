@@ -177,7 +177,7 @@ const testCancelShipperRequest = async ({ uniqueIds }) => {
       url,
       {
         shipperRequestUniqueId: uniqueIds.shipperRequestUniqueId,
-        cancellationReasonsTypeId: 10,
+        cancellationReasonsTypeId: 2,
       },
       auth,
     ); // or axios.delete if backend expects DELETE

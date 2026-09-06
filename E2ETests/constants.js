@@ -46,9 +46,11 @@ const journeyStatusMap = {
 // Auto-increment — values depend on seed order of Utils/ListOfSeedData.js
 // cancellationReasons, so treat as fragile. Names describe the E2E flow.
 // Reference: E2ETests/MAGIC_NUMBERS.md §3.
+// New seed (5 reasons + "Others" per role): driver reasons are 7-12,
+// shipper reasons are 1-6. Batch cancels require requestMode 'company'/'both'.
 const cancellationReasonsType = {
-  driverCancel: 2,
-  shipperWholeJobCancel: 6,
+  driverCancel: 11, // driver, requestMode 'both' — safe for individual & company cancels
+  shipperWholeJobCancel: 5, // shipper, requestMode 'both'
 };
 
 // Query value for "mark seen / list driver cancellation notifications".

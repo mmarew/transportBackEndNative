@@ -177,6 +177,13 @@ const cancelShipperRequest = async body => {
       throw new AppError("Unauthorized: You can only cancel your own requests or must be an admin/super admin", AppError.FORBIDDEN);
     }
 
+    // Individual-job guard: a cancellation reason tagged `requestMode: 'company'`
+    // is only valid for company freight batches, never for an individual request.
+    if (shipperRequest.requestMode !== "company_target") {
+      const { assertIndividualCancellationReason } = require("../Cancellation.service");
+      await assertIndividualCancellationReason(cancellationReasonsTypeId);
+    }
+
     // Extract journey decisions from all rows (filter out rows where journeyDecisionId is NULL)
     const journeyDecisions = combinedResults.filter(row => row.journeyDecisionId !== null).map(row => ({
       journeyDecisionId: row.journeyDecisionId,

@@ -116,7 +116,7 @@ invariants** (state transitions on `DriverQueue`, `ShipperRequest`, `DriverReque
 | R8   | Consecutive refusals ≥`QUEUE_REFUSAL_LIMIT` (default **3**, env-configurable) → driver moved to back of line, count reset to 0; driver is **not** removed                     | `applyRefusalPolicy`                  |
 | R9   | Accept →`markEntryLoaded`: entry leaves the queue (`loaded`/`removed`), order enters transit                                                                                  | `markEntryLoaded`                     |
 | R10  | Whole-job cancellation (shipper / queue admin / platform admin) releases the linked entry**without** incrementing refusal count; `CanceledJourneys` records `roleId` + reason | `releaseEntry`, cancel service        |
-| R11  | Cancel reasons: role 2 driver`"Cancelled by driver"`, role 11 `"Cancelled by queue admin"`, role 3 platform admin, role 1 shipper                                             | `Utils/ListOfSeedData.js`             |
+| R11  | Cancel reasons: role 2 driver`"Personal or family emergency"`, role 11 `"Cancelled by queue admin"`, role 3 platform admin, role 1 shipper                                             | `Utils/ListOfSeedData.js`             |
 
 ---
 
@@ -385,7 +385,7 @@ Legend — **P**: priority (High/Med/Low). **Auth**: who executes. **Pre**: prec
 #### TQ-18 · Driver rejects pre-accept → order advances, count +1 — **High**
 
 - **Pre:** driver01 (`queueNumber=1`) offered O; driver02 waiting behind.
-- **Steps:** `DELETE /api/driver/cancelDriverRequest?ownerUserUniqueId=<driver01>&roleId=2&cancellationReasonsTypeId=2` (reason `Cancelled by driver`).
+- **Steps:** `DELETE /api/driver/cancelDriverRequest?ownerUserUniqueId=<driver01>&roleId=2&cancellationReasonsTypeId=11` (reason `Personal or family emergency`).
 - **Expected:**
   - 200. Driver01 remains **in queue** (keeps position) — `status` back to `waiting`.
   - Order O auto-offers **driver02** (`queue_order_offered` to driver02).
@@ -393,7 +393,7 @@ Legend — **P**: priority (High/Med/Low). **Auth**: who executes. **Pre**: prec
 - **DB:**
   - `DriverQueue.driver01.queueRefusalCount=1`, `status='waiting'`, `shipperRequestUniqueId=NULL`.
   - `JourneyDecisions`: new decision `journeyStatus='rejected_by_driver'`, `decisionBy` = driver's user id (driver-initiated).
-  - `CanceledJourneys` row for the driver request with `roleId=2`, reason `Cancelled by driver`.
+  - `CanceledJourneys` row for the driver request with `roleId=2`, reason `Personal or family emergency`.
   - `DriverQueue.driver02.status='offered'` linked to O.
 
 #### TQ-19 · Shipper price-reject advances to next driver — **High**
@@ -457,14 +457,14 @@ Legend — **P**: priority (High/Med/Low). **Auth**: who executes. **Pre**: prec
 #### TQ-25 · Shipper cancels whole job — releases entry, no refusal count — **High**
 
 - **Pre:** driver02 offered O (after TQ-19 state); shipper token.
-- **Steps:** `PUT /api/shipperRequest/cancelShipperRequest/:userUniqueId` with `{ roleId: 1, cancellationReasonsTypeId: 6 }`.
+- **Steps:** `PUT /api/shipperRequest/cancelShipperRequest/:userUniqueId` with `{ roleId: 1, cancellationReasonsTypeId: 5 }`.
 - **Expected:**
   - 200. Socket `queue_order_cancelled` to admins; snapshot pushed; shipper/driver notified.
   - Driver02 stays in queue, count **unchanged** (0).
 - **DB:**
   - `DriverQueue.driver02.status='waiting'`, `shipperRequestUniqueId=NULL`, `queueRefusalCount` unchanged.
   - `ShipperRequest.journeyStatus='cancelled_by_shipper'`.
-  - `CanceledJourneys` with `roleId=1`, reason `Cancelled by shipper`.
+  - `CanceledJourneys` with `roleId=1`, reason `Cargo no longer needs to be transported`.
 
 #### TQ-26 · Queue admin cancels whole job — **High**
 

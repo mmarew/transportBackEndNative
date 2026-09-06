@@ -318,7 +318,7 @@ const testIndividualDriverRejection = async () => {
     console.log("── Driver rejecting individual request (pre-accept) ──");
     await axios.put(
       backendURL + DRIVER_REQUEST_ENDPOINTS.CANCEL_DRIVER_REQUEST +
-        "?ownerUserUniqueId=self&roleId=2&cancellationReasonsTypeId=2",
+        "?ownerUserUniqueId=self&roleId=2&cancellationReasonsTypeId=11",
       {},
       authConfig(driver.token),
     );
@@ -534,7 +534,7 @@ const testBatchDriverRejection = async () => {
     console.log("── Driver rejecting job1 for real ──");
     await axios.put(
       backendURL + DRIVER_REQUEST_ENDPOINTS.CANCEL_DRIVER_REQUEST +
-        "?ownerUserUniqueId=self&roleId=2&cancellationReasonsTypeId=2",
+        "?ownerUserUniqueId=self&roleId=2&cancellationReasonsTypeId=11",
       {},
       authConfig(driver.token),
     );
