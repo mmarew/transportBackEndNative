@@ -310,7 +310,13 @@ Queue state changes are **pushed** over socket.io, not polled:
   queue to the day room) and `notifyQueueOrgAdmins()` (role-11 sockets).
 - Message types: `queue_checkin_confirmed`, `queue_position_changed`,
   `queue_order_offered`, `queue_order_rejected`, `queue_order_assigned`,
-  `queue_removed`, `queue_org_approved`, `queue_org_updated`.
+  `queue_removed`, `queue_org_approved`, `queue_org_updated`,
+  `queue_driver_started_journey`, `queue_driver_completed_delivery`.
+- Loading-stage / journey-start updates for queue orders are pushed via
+  `notifyQueueOrgOfLoadingStage()` (`Utils/QueueSocket.js`): statuses 5-8 →
+  `queue_driver_going_to_loading_place`, `queue_driver_started_loading`,
+  `queue_driver_completed_loading`, `queue_driver_started_journey`. Delivery
+  completion (status 9) closes the entry with `queue_driver_completed_delivery`.
 - New socket user type `queueOrgAdmin` registered in `Utils/WSPusher.js`.
 
 REST stays the **source of truth** (`joinedAt` + `queueNumber`); socket is a

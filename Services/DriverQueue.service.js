@@ -3016,6 +3016,7 @@ exports.updateQueueEntryOnJourneyProgress = async ({
 exports.closeEntryOnJourneyCompletion = async ({
   shipperRequestUniqueId,
   userUniqueId,
+  driverName = "",
 }) => {
   const executor = db();
   const [rows] = await executor.query(
@@ -3070,7 +3071,12 @@ exports.closeEntryOnJourneyCompletion = async ({
   });
   notifyQueueOrgAdmins({
     queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
-    messageType: "queue_removed",
+    messageType: "queue_driver_completed_delivery",
+    message: {
+      queueUniqueId: entry.queueUniqueId,
+      shipperRequestUniqueId,
+      driverName,
+    },
   });
 
   return { closed: true, queueUniqueId: entry.queueUniqueId };

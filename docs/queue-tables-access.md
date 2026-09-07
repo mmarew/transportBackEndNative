@@ -256,7 +256,13 @@ Writes call `emitQueueSnapshot()` (broadcast full queue to the day room) and
 `notifyQueueOrgAdmins()` (push to role-11 sockets). `messageTypes` keys:
 `queue_checkin_confirmed`, `queue_position_changed`, `queue_order_offered`,
 `queue_order_rejected`, `queue_order_assigned`, `queue_removed`,
-`queue_org_approved`, `queue_org_updated`.
+`queue_org_approved`, `queue_org_updated`, `queue_driver_started_journey`,
+`queue_driver_completed_delivery`.
+
+Loading-stage + journey updates for queue orders are pushed to admins and the
+org room via `notifyQueueOrgOfLoadingStage()` (`Utils/QueueSocket.js`), matching
+statuses 5-8: `queue_driver_going_to_loading_place`, `queue_driver_started_loading`,
+`queue_driver_completed_loading`, `queue_driver_started_journey`.
 
 ### Example socket client (frontend)
 

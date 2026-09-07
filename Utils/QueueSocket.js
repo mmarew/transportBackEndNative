@@ -153,8 +153,8 @@ const notifyQueueOrgAdmins = async ({
  * broadcasts a live event to the org room so any subscribed client (drivers,
  * admins) sees it.
  *
- * Stages match the loading flow: `going_to_loading_place` (5),
- * `started_loading` (6), `completed_loading` (7).
+ * Stages match the flow: `going_to_loading_place` (5), `started_loading` (6),
+ * `completed_loading` (7), and `started_journey` (8).
  */
 const notifyQueueOrgOfLoadingStage = async ({
   shipperRequestUniqueId,
@@ -183,6 +183,10 @@ const notifyQueueOrgOfLoadingStage = async ({
     completed_loading: {
       messageType: "queue_driver_completed_loading",
       message: `Driver ${driverName} completed loading and is ready to depart`,
+    },
+    started_journey: {
+      messageType: "queue_driver_started_journey",
+      message: `Driver ${driverName} started the journey with your goods`,
     },
   };
 

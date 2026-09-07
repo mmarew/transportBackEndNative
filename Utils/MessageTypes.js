@@ -346,6 +346,16 @@ const messageTypes = {
     details:
       "A queue-assigned driver finished loading the cargo and is ready to depart.",
   },
+  queue_driver_started_journey: {
+    message: "Driver started journey with your goods",
+    details:
+      "A queue-assigned driver loaded the cargo and started the journey to the delivery destination.",
+  },
+  queue_driver_completed_delivery: {
+    message: "Driver delivered goods and left the queue",
+    details:
+      "A queue-assigned driver delivered the goods; their queue entry is closed and they must re-register for the next placement.",
+  },
   pod_submitted: {
     message: "POD submitted.",
     details:

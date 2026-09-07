@@ -268,6 +268,20 @@ const startJourney = async (body) => {
       action: "started_journey",
     });
 
+    // 🔔 Queue org admins (real-time): when the order is a queue order (the
+    // queue org is resolved via the batch header), push the journey-started
+    // update to the queue org. Best-effort + idempotent — skipped when the
+    // order is not linked to a queue organization or the socket layer is down.
+    const { notifyQueueOrgOfLoadingStage } = require("../../Utils/QueueSocket");
+    await notifyQueueOrgOfLoadingStage({
+      shipperRequestUniqueId: shipperRequest?.shipperRequestUniqueId,
+      driverName: driverInfo?.driver?.fullName || "",
+      driverPhoneNumber: driverInfo?.driver?.phoneNumber || "",
+      latitude: body?.journeyStartingLat,
+      longitude: body?.journeyStartingLng,
+      stage: "started_journey",
+    });
+
     return {
       message: "Journey started successfully",
       status: journeyStatusMap.journeyStarted,
@@ -579,6 +593,7 @@ const completeJourney = async (body) => {
         await closeEntryOnJourneyCompletion({
           shipperRequestUniqueId: body.shipperRequestUniqueId,
           userUniqueId: body.userUniqueId,
+          driverName: driverInfo?.driver?.fullName || "",
         });
       } catch (closeError) {
         logger.error("Error closing queue slot after journey completion", {
