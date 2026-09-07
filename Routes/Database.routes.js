@@ -60,7 +60,7 @@ router.get(
 // Route to drop a table by name
 router.delete(
   DATABASE_ENDPOINTS.DROP_TABLES,
-  verifyTokenOfAxios,
+  // verifyTokenOfAxios,
   dropTableController,
 );
 

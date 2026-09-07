@@ -226,6 +226,7 @@ company admin = 7, queue org admin = 11.
 | Queue organization lifecycle                | TQ-01 … TQ-04 |
 | Driver check-in / position / check-out      | TQ-05 … TQ-10 |
 | Auto-dispatch & offer                       | TQ-11 … TQ-14 |
+| Reservation priority (shipper's right)      | TQ-14A … TQ-14C |
 | Accept flow                                 | TQ-15 … TQ-17 |
 | Reject & advance (driver, shipper, timeout) | TQ-18 … TQ-22 |
 | Refusal policy                              | TQ-23 … TQ-24 |
@@ -354,6 +355,31 @@ Legend — **P**: priority (High/Med/Low). **Auth**: who executes. **Pre**: prec
 
 - **Steps:** admin sets `queueEnabled=false` while drivers waiting; place new order.
 - **Expected:** order created but **not** offered (or 403 at creation depending on org gate); no `queue_order_offered`.
+
+#### TQ-14A · Other shipper cannot take a reserved driver — **High**
+
+> A driver who checked in with `shipperPhoneNumber` is reserved for that shipper
+> (`targetedShipperUserUUID`). Orders from any OTHER shipper must never reach
+> them (the reservation is exclusive, not just a priority).
+
+- **Pre:** shipperA; driver01 (truck, `queueNumber=1`) checked in with `shipperPhoneNumber=shipperA.phone` → `targetedShipperUserUUID=shipperA`; general driver02 (truck, `queueNumber=2`) waiting. org enabled.
+- **Steps:** shipperB places order O_B (truck) on the same org.
+- **Expected:** O_B offers **driver02** (general), NOT driver01; driver01 stays `waiting`, unlinked to O_B.
+- **DB:** `DriverQueue.driver01.shipperRequestUniqueId IS NULL`; `DriverQueue.driver02.status='offered'` linked to O_B.
+
+#### TQ-14B · Shipper's order goes to their reserved driver ahead of general FIFO — **High**
+
+- **Pre:** general driverG (truck, `queueNumber=1`) waiting; driverR1 (truck, `queueNumber=2`) reserved for shipperA; driverR2 (truck, `queueNumber=3`) reserved for shipperA.
+- **Steps:** shipperA places order O_A (truck) on the same org.
+- **Expected:** O_A offers **driverR1** (`queueNumber=2`, reserved for A) — the front general driverG (`queueNumber=1`) is passed over while any A-reserved driver is available.
+- **DB:** driverG `status='waiting'`, `shipperRequestUniqueId IS NULL`; driverR1 `status='offered'` linked to O_A.
+
+#### TQ-14C · Reserved fleet exhausted → order falls through to general drivers — **Med**
+
+- **Pre:** TQ-14B state, then driverR1 rejects O_A (driver-cancel, count +1) and driverR2 rejects O_A (count +1); general driverG (queueNumber=1, BEHIND the reserved drivers by queue position) still `waiting`.
+- **Steps:** re-dispatch O_A via `handleQueueDispatch` (or next matching-type check-in rescan).
+- **Expected:** with no remaining A-reserved driver, O_A offers **driverG** — reachable even though `queueNumber=1 <` the reserved drivers' positions (advance is by driver-id exclusion, not a queueNumber threshold).
+- **DB:** driverG `status='offered'` linked to O_A; driverR1/driverR2 `status='waiting'`, each `queueRefusalCount=1`.
 
 ---
 

@@ -864,7 +864,8 @@ const cancellationReasons = [
     requestMode: "both",
   },
   {
-    cancellationReason: "Driver or company account suspended during an active request",
+    cancellationReason:
+      "Driver or company account suspended during an active request",
     roleId: 3,
     requestMode: "both",
   },

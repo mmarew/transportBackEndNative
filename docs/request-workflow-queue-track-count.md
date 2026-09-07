@@ -116,6 +116,8 @@ Create N individual ShipperRequest rows (status = waiting / 1)
 
 **Queue routing** — the order is offered, one at a time, to the **front waiting driver** of that vehicle type. Sequential (not parallel) so each offer advances the queue and fills distinct slots.
 
+**Reservation priority** — a driver who reserved their position for a specific shipper (`targetedShipperUserUUID`, set at check-in when a `shipperPhoneNumber` is provided) may **only** receive orders from that shipper; drivers reserved for a *different* shipper are excluded from the candidate scan entirely (they can never be "stolen"). When the reserving shipper places an order, **their reserved drivers are offered first** (by `queueNumber`), and only when none remain does the order fall through to general (unreserved) drivers.
+
 **Distance routing** — the system finds the nearest available drivers within radius and creates a `JourneyDecision` with `decisionBy: "shipper"` for each, then notifies them.
 
 ### 3.2 Queue FIFO dispatch (`Services/DriverQueue.service.js`)
@@ -129,10 +131,13 @@ Order arrives for vehicleType T
         |
         v
 SELECT front waiting entry FOR UPDATE
-   ORDER BY queueNumber ASC
+   ORDER BY CASE WHEN targetedShipperUserUUID = T's shipper
+                 THEN 0 ELSE 1 END,    -- T's reserved drivers first
+            queueNumber ASC            -- then general FIFO
         |
         filters applied:
-        - skip drivers reserved for a DIFFERENT shipper (targetedShipperUserUUID)
+        - EXCLUDE drivers reserved for a DIFFERENT shipper
+          (WHERE targetedShipperUserUUID IS NULL OR = T's shipper)
         - skip drivers who already refused this exact order
         - skip drivers holding an active offer elsewhere
         |

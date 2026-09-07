@@ -1521,7 +1521,6 @@ exports.removeEntry = async (queueUniqueId, user) => {
       queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
       queueDate: entry.queueDate,
       vehicleTypeUniqueId: entry.vehicleTypeUniqueId,
-      afterQueueNumber: entry.queueNumber,
       excludeVehicleDriverUniqueId: entry.vehicleDriverUniqueId,
       shipperRequestUniqueId: releasedOrder,
       user,
@@ -2028,9 +2027,55 @@ const notifyShipperOfQueueReservation = async ({
  * link the order, create the JourneyDecision, and notify only that driver over
  * socket.
  *
+ * ### Reservation priority (shipper's right)
+ *
+ * A driver can reserve their queue position for ONE shipper at check-in
+ * (`shipperPhoneNumber` → `targetedShipperUserUUID`). That reservation is
+ * exclusive — it is never a hint — and this function enforces both halves:
+ *
+ * - **WHY (#1 — protect):** a driver reserved for shipper X must never be
+ *   offered to shipper Y's order. Without this, another shipper's orders could
+ *   queue-jump ahead of the reserving shipper by consuming their targeted
+ *   drivers ("stealing" the reservation).
+ * - **WHY (#2 — redirect):** shipper X's OWN orders must reach their reserved
+ *   drivers FIRST, even when general (unreserved) drivers sit ahead of them by
+ *   queue position. The reservation is the shipper's right to their fleet.
+ *
+ * - **HOW (#1):** the FIFO scan adds
+ *   `(dq.targetedShipperUserUUID IS NULL OR dq.targetedShipperUserUUID = ?)`,
+ *   so drivers reserved for a DIFFERENT shipper never enter the candidate set —
+ *   they are excluded by the WHERE clause, not skipped per-row. Targeted mode
+ *   dispatch (2/3) additionally throws `400 "Driver is reserved for a different
+ *   shipper"` so an admin can never reassign a reserved driver by hand either.
+ * - **HOW (#2):** the FIFO scan orders candidates
+ *   `CASE WHEN dq.targetedShipperUserUUID = ? THEN 0 ELSE 1 END, dq.queueNumber ASC`
+ *   — the reserving shipper's drivers are offered before all general drivers,
+ *   each group by queueNumber. When no reserved driver remains (all busy, all
+ *   refused, or none checked in), the order falls through to general FIFO.
+ * - **HOW (advance):** because the priority above reorders candidates by
+ *   reservation FIRST, the old advance mechanism (a `queueNumber > ?` cursor)
+ *   became unsafe — after a high-position reserved driver rejected, that cursor
+ *   would also drop lower-numbered general drivers that were still eligible.
+ *   Skipped drivers are therefore excluded by **driver id** (NOT IN on
+ *   `vehicleDriverUniqueId`) instead of by queue position.
+ *
+ * - **WHEN:** every FIFO offer — order-creation auto-dispatch
+ *   (handleQueueDispatch), check-in rescan (rescanPendingQueueOrder), and every
+ *   advance after reject / timeout / cancel / expiry (offerToNextDriver paths).
+ *   Targeted dispatch (2/3) is NOT re-prioritized; a named driver is honored
+ *   only if they are not reserved for a different shipper.
+ *
+ * - **WHO:** requirement specified by the project owner (the reserving shipper
+ *   has full right to their targeted drivers); implemented in the `offerToDriver`
+ *   selection rework. Behavior is testable as TQ-14A / TQ-14B / TQ-14C in
+ *   `docs/testing/queue-process-test-plan.md`.
+ *
  * The driver is selected in ONE of three ways:
- *   1. FIFO (default): the FRONT waiting driver of the order's vehicle type
- *      (`afterQueueNumber`/`excludeVehicleDriverUniqueId` steer the scan).
+ *   1. FIFO (default): the FRONT waiting driver of the order's vehicle type.
+ *      Drivers reserved for a DIFFERENT shipper than this order's creator are
+ *      never considered; drivers this shipper reserved (`targetedShipperUserUUID`
+ *      = the order creator) are offered BEFORE general (unreserved) drivers.
+ *      `excludeVehicleDriverUniqueId` skips a specific driver.
  *   2. By queue entry: `targetQueueUniqueId` pinpoints a specific entry.
  *   3. By driver: `targetVehicleDriverUniqueId` pinpoints a specific driver's
  *      active vehicle assignment.
@@ -2052,9 +2097,8 @@ const notifyShipperOfQueueReservation = async ({
  * @param {string} [params.vehicleTypeUniqueId] - Vehicle type of the order. Falls
  *   back to the order's own vehicleTypeUniqueId when omitted (targeted dispatch).
  * @param {string} params.shipperRequestUniqueId - The order to offer.
- * @param {number} [params.afterQueueNumber] - FIFO: only consider entries with
- *   a queueNumber greater than this (used by reject/advance/timeout).
  * @param {string} [params.excludeVehicleDriverUniqueId] - FIFO: skip this driver.
+ *   Seeds the driver-id exclusion set (replaces the legacy queueNumber cursor).
  * @param {string} [params.targetQueueUniqueId] - Target a SPECIFIC queue entry.
  * @param {string} [params.targetVehicleDriverUniqueId] - Target a SPECIFIC
  *   driver (their active vehicle assignment UUID).
@@ -2072,7 +2116,6 @@ const offerToDriver = async ({
   queueDate,
   vehicleTypeUniqueId,
   shipperRequestUniqueId,
-  afterQueueNumber,
   excludeVehicleDriverUniqueId,
   targetQueueUniqueId,
   targetVehicleDriverUniqueId,
@@ -2109,7 +2152,21 @@ const offerToDriver = async ({
     journeyStatusMap.cancelledByAdmin,
   ];
 
-  let after = afterQueueNumber || null;
+  // Excluded-driver set — WHY/HOW: drivers once skipped mid-scan (reserved for
+  // a different shipper, or with no active DriverRequest) are excluded by their
+  // driver id (NOT IN) instead of by a `queueNumber > ?` cursor. Reservation
+  // priority reorders candidates by (matched reservation, queueNumber), so the
+  // old cursor would have also dropped lower-numbered GENERAL drivers after a
+  // high-position reserved driver was passed; an id-based set lets the scan fall
+  // through to general drivers once the reserved fleet is exhausted.
+  // `excludeVehicleDriverUniqueId` (advance/reject/timeout/cancel) seeds it; the
+  // `NOT EXISTS` on JourneyDecisions makes refusal exclusion redundant but kept
+  // as the authoritative guard.
+  const excludedVehicleDriverUniqueIds = new Set();
+  if (excludeVehicleDriverUniqueId) {
+    excludedVehicleDriverUniqueIds.add(excludeVehicleDriverUniqueId);
+  }
+
   while (true) {
     /**
      * Find the front waiting driver for a vehicle type in a queue org.
@@ -2117,8 +2174,9 @@ const offerToDriver = async ({
      *        → Users (for driver phone/name in socket notification).
      * Uses FOR UPDATE to lock the row while we create the offer, preventing
      * concurrent dispatches from offering the same driver twice.
-     * If `afterQueueNumber` is provided, skips drivers up to that position
-     * (used by advance/reject/timeout to move to the next driver).
+     * In FIFO mode the scan reaches THIS shipper's reserved drivers first
+     * (targetedShipperUserUUID = order creator), then general (unreserved)
+     * drivers, and never drivers reserved for a DIFFERENT shipper.
      */
     const whereParts = [
       `dq.queueOrganizationUniqueId = ?`,
@@ -2137,9 +2195,14 @@ const offerToDriver = async ({
     if (isTargeted) {
       queryParams.splice(2, 0, shipperRequestUniqueId);
     }
-    if (after) {
-      whereParts.push(`dq.queueNumber > ?`);
-      queryParams.push(after);
+    if (!isTargeted) {
+      // Requirement 1 (shipper's right, protect): never even SELECT drivers
+      // reserved for a DIFFERENT shipper than this order's creator — the
+      // reservation is exclusive, so "stealing" by SQL is impossible.
+      whereParts.push(
+        `(dq.targetedShipperUserUUID IS NULL OR dq.targetedShipperUserUUID = ?)`,
+      );
+      queryParams.push(shipperRequest.userUniqueId);
     }
     if (targetQueueUniqueId) {
       whereParts.push(`dq.queueUniqueId = ?`);
@@ -2149,9 +2212,15 @@ const offerToDriver = async ({
       whereParts.push(`dq.vehicleDriverUniqueId = ?`);
       queryParams.push(targetVehicleDriverUniqueId);
     }
-    if (excludeVehicleDriverUniqueId) {
-      whereParts.push(`dq.vehicleDriverUniqueId <> ?`);
-      queryParams.push(excludeVehicleDriverUniqueId);
+    if (excludedVehicleDriverUniqueIds.size > 0) {
+      whereParts.push(
+        `dq.vehicleDriverUniqueId NOT IN (${Array.from(
+          excludedVehicleDriverUniqueIds,
+        )
+          .map(() => "?")
+          .join(", ")})`,
+      );
+      queryParams.push(...excludedVehicleDriverUniqueIds);
     }
     whereParts.push(`NOT EXISTS (
            SELECT 1 FROM JourneyDecisions jd
@@ -2162,6 +2231,18 @@ const offerToDriver = async ({
          )`);
     queryParams.push(...skipRejectedParams);
 
+    // Requirement 2 (shipper's right, redirect): offer THIS shipper's reserved
+    // drivers first, then general (unreserved) drivers, each group by
+    // queueNumber ASC, so a shipper's targeted fleet always outranks general
+    // drivers regardless of queue position. The ORDER BY placeholder reuses the
+    // order creator's userUniqueId and is appended after all WHERE params.
+    const orderByClause = isTargeted
+      ? `dq.queueNumber ASC`
+      : `CASE WHEN dq.targetedShipperUserUUID = ? THEN 0 ELSE 1 END, dq.queueNumber ASC`;
+    if (!isTargeted) {
+      queryParams.push(shipperRequest.userUniqueId);
+    }
+
     const [front] = await txExecutor.query(
       `SELECT dq.*, vd.driverUserUniqueId, u.phoneNumber, u.fullName
        FROM DriverQueue dq
@@ -2169,7 +2250,7 @@ const offerToDriver = async ({
        JOIN Vehicle v ON v.vehicleUniqueId = vd.vehicleUniqueId
        JOIN Users u ON u.userUniqueId = vd.driverUserUniqueId
        WHERE ${whereParts.join(" AND ")}
-       ORDER BY dq.queueNumber ASC LIMIT 1
+       ORDER BY ${orderByClause} LIMIT 1
        FOR UPDATE`,
       queryParams,
     );
@@ -2229,8 +2310,9 @@ const offerToDriver = async ({
     }
 
     // EXCLUSIVE RESERVATION: if this driver targeted a specific shipper via
-    // phone at check-in, only offer them orders from that shipper. Skip to
-    // the next driver in FIFO otherwise.
+    // phone at check-in, only offer them orders from that shipper. In FIFO the
+    // WHERE clause already excludes drivers reserved for a different shipper;
+    // this guard remains as a safety net (and enforces the 400 in targeted mode).
     if (
       entry.targetedShipperUserUUID &&
       shipperRequest.userUniqueId !== entry.targetedShipperUserUUID
@@ -2241,7 +2323,7 @@ const offerToDriver = async ({
           AppError.BAD_REQUEST,
         );
       }
-      after = entry.queueNumber;
+      excludedVehicleDriverUniqueIds.add(entry.vehicleDriverUniqueId);
       continue;
     }
 
@@ -2257,7 +2339,7 @@ const offerToDriver = async ({
           AppError.BAD_REQUEST,
         );
       }
-      after = entry.queueNumber;
+      excludedVehicleDriverUniqueIds.add(entry.vehicleDriverUniqueId);
       continue;
     }
 
@@ -2433,7 +2515,6 @@ exports.dispatch = async (data) => {
         targetQueueUniqueId: queueUniqueId || null,
         targetVehicleDriverUniqueId,
         shipperRequestUniqueId,
-        afterQueueNumber: null,
         user,
         throwIfNone: true,
       }),
@@ -2465,7 +2546,6 @@ exports.handleQueueDispatch = async ({
         queueDate: today(),
         vehicleTypeUniqueId,
         shipperRequestUniqueId,
-        afterQueueNumber: null,
         user,
         throwIfNone: false,
       }),
@@ -2549,7 +2629,6 @@ const rescanPendingQueueOrder = async ({
       queueDate: today(),
       vehicleTypeUniqueId,
       shipperRequestUniqueId: row.shipperRequestUniqueId,
-      afterQueueNumber: null,
       user,
       throwIfNone: false,
     });
@@ -2635,17 +2714,16 @@ exports.rescanPendingQueueOrders = async () => {
 };
 
 /**
- * Advance the offer — offer the order to the NEXT waiting driver in line
- * (strictly after `afterQueueNumber`). Used when the front driver rejects or
- * times out: the driver keeps their position (`waiting`), the ORDER advances.
- * Returns `{ offered: false }` when no further driver of that type is waiting.
+ * Advance the offer — offer the order to the NEXT waiting driver in line.
+ * Used when the front driver rejects or times out: the driver keeps their
+ * position (`waiting`), the ORDER advances. Returns `{ offered: false }` when
+ * no further driver of that type is waiting.
  */
 const offerToNextDriver = ({
   executor,
   queueOrganizationUniqueId,
   queueDate,
   vehicleTypeUniqueId,
-  afterQueueNumber,
   excludeVehicleDriverUniqueId,
   shipperRequestUniqueId,
   user,
@@ -2656,7 +2734,6 @@ const offerToNextDriver = ({
     queueDate,
     vehicleTypeUniqueId,
     shipperRequestUniqueId,
-    afterQueueNumber,
     excludeVehicleDriverUniqueId,
     user,
     throwIfNone: false,
@@ -2738,7 +2815,6 @@ exports.rejectOffer = async (data) => {
     queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
     queueDate: entry.queueDate,
     vehicleTypeUniqueId: entry.vehicleTypeUniqueId,
-    afterQueueNumber: entry.queueNumber,
     excludeVehicleDriverUniqueId: entry.vehicleDriverUniqueId,
     shipperRequestUniqueId,
     user,
@@ -2847,7 +2923,6 @@ exports.releaseQueueEntryAfterDriverCancel = async ({
     queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
     queueDate: entry.queueDate,
     vehicleTypeUniqueId: entry.vehicleTypeUniqueId,
-    afterQueueNumber: entry.queueNumber,
     excludeVehicleDriverUniqueId: entry.vehicleDriverUniqueId,
     shipperRequestUniqueId,
     user,
@@ -3356,7 +3431,6 @@ exports.releaseExpiredOffers = async ({
       queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
       queueDate: entry.queueDate,
       vehicleTypeUniqueId: entry.vehicleTypeUniqueId,
-      afterQueueNumber: entry.queueNumber,
       excludeVehicleDriverUniqueId: entry.vehicleDriverUniqueId,
       shipperRequestUniqueId: entry.shipperRequestUniqueId,
       user: actor,
