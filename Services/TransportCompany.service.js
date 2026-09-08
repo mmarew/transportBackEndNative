@@ -7,6 +7,7 @@ const { usersRoles, companyRoles } = require("../Utils/ListOfSeedData");
 const { db, paginate } = require("./CompanyHelper.service");
 const { getData } = require("../CRUD/Read/ReadData");
 const { addMember } = require("./CompanyMembership.service");
+const { sendCompanyCreatedAlert } = require("../Utils/TelegramNotifier");
 const {
   recordStatusChange,
   recordProfileChanges,
@@ -110,6 +111,22 @@ exports.createCompany = async (data) => {
       membershipStartDate: currentDate(),
       createdByUserUniqueId: createdByUserUniqueId,
       skipApprovalCheck: true,
+    });
+  }
+
+  // Best-effort Telegram alert so the owner can confirm a newly created
+  // company immediately. Never blocks or fails the creation itself.
+  if (user) {
+    void sendCompanyCreatedAlert({
+      companyName,
+      companyRegistrationNumber,
+      companyPhone,
+      companyEmail,
+      companyAddress,
+      companyUniqueId,
+      creatorName: user.fullName,
+      creatorPhone: user.phoneNumber,
+      creatorRoleId: user.roleId,
     });
   }
 

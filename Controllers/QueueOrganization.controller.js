@@ -9,6 +9,7 @@ exports.createQueueOrganization = async (req, res, next) => {
     const result = await executeInTransaction(() =>
       service.createQueueOrganization({
         ...req.body,
+        user: req.user,
         createdByUserUniqueId: req.user.userUniqueId,
       }),
     );

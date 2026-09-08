@@ -18,6 +18,7 @@ const {
   getPlaceholderEmail,
   isPlaceholderEmail,
 } = require("../../Utils/GetPlaceholderEmail");
+const { sendRegistrationAlert } = require("../../Utils/TelegramNotifier");
 
 // Circular dependency handling
 let authService;
@@ -193,7 +194,8 @@ const registerNewUser = async ({
   // transactionStorage, so a mid-flow failure rolls back instead of leaving an
   // orphaned user row without credentials/role. Nested-safe: if a caller is
   // already inside a transaction, executeInTransaction reuses that connection.
-  return executeInTransaction(async () => {
+  let createdUser = null;
+  const result = await executeInTransaction(async () => {
     const userUniqueId = uuidv4();
     const userCreatedAt = currentDate();
     const userCreatedByParam = createdBy || userUniqueId;
@@ -232,6 +234,7 @@ const registerNewUser = async ({
       isEmailVerified: false,
       isPhoneVerified: false,
     };
+    createdUser = userData;
 
     await ensureCredentialForUser({ userUniqueId, rawPassword });
 
@@ -245,6 +248,23 @@ const registerNewUser = async ({
       statusId,
     });
   });
+
+  // Best-effort Telegram alert AFTER the transaction commits so a successful
+  // registration is never rolled back by a failed notification. System-boot
+  // seed users (createdBy is a literal "system"/"Supper Admin" here) are skipped.
+  const isSystemBootstrap = createdBy === "system" || createdBy === "Supper Admin";
+  if (createdUser && !isSystemBootstrap) {
+    void sendRegistrationAlert({
+      fullName: createdUser.fullName,
+      phoneNumber: createdUser.phoneNumber,
+      email: createdUser.email,
+      roleId,
+      userCreatedAt: createdUser.userCreatedAt,
+      userUniqueId: createdUser.userUniqueId,
+    });
+  }
+
+  return result;
 };
 
 /**

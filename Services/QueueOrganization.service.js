@@ -7,6 +7,7 @@ const { usersRoles } = require("../Utils/ListOfSeedData");
 const { db, paginate, paginatedQuery } = require("./CompanyHelper.service");
 const { getData } = require("../CRUD/Read/ReadData");
 const { notifyQueueOrgAdmins } = require("../Utils/QueueSocket");
+const { sendQueueOrganizationCreatedAlert } = require("../Utils/TelegramNotifier");
 
 /**
  * Create a QueueOrganization and auto-assign the creator as its QueueOrgAdmin
@@ -86,6 +87,21 @@ exports.createQueueOrganization = async (data) => {
       createdByUserUniqueId,
     ],
   );
+
+  // Best-effort Telegram alert so the owner can approve a new queue org
+  // immediately. Never blocks or fails the creation itself.
+  if (data.user) {
+    void sendQueueOrganizationCreatedAlert({
+      queueOrganizationName,
+      queueOrganizationType,
+      queueOrganizationPhone,
+      queueOrganizationAddress,
+      queueOrganizationUniqueId,
+      creatorName: data.user.fullName,
+      creatorPhone: data.user.phoneNumber,
+      creatorRoleId: data.user.roleId,
+    });
+  }
 
   return {
     message: "success",

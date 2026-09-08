@@ -7,6 +7,7 @@ const {
   entityDocumentRequirement,
 } = require("../Services/RoleDocumentRequirements");
 const { sendSocketIONotificationToAdmin } = require("../Utils/Notifications");
+const { sendDocumentUploadAlert } = require("../Utils/TelegramNotifier");
 const ServerResponder = require("../Utils/ServerResponder");
 const { uploadToFTP } = require("../Utils/FTPHandler");
 const AppError = require("../Utils/AppError");
@@ -315,6 +316,27 @@ const createAttachedDocuments = async (req, res, next) => {
     if (fileSuccesses.length > 0) {
       const resolvedOwnerType = req.ownerType ?? "user";
       const isDriver = resolvedOwnerType === "user" && roleId === usersRolesList.driver.roleId;
+
+      // Best-effort Telegram alert so the admin can confirm uploaded documents
+      // immediately. Never blocks or fails the upload response itself.
+      try {
+        const uploadedFiles = documentsToRegister
+          .filter((doc) => fileSuccesses.includes(doc.originalFileName))
+          .map((doc) => `${doc.fieldname} — ${doc.originalFileName}`);
+        void sendDocumentUploadAlert({
+          ownerType: resolvedOwnerType,
+          ownerUniqueId: userUniqueId,
+          uploadedByName: user?.fullName,
+          uploadedByPhone: user?.phoneNumber,
+          uploadedByRoleId: user?.roleId,
+          files: uploadedFiles,
+        });
+      } catch (telegramError) {
+        logger.warn("Telegram document alert failed after upload", {
+          reason: telegramError?.message,
+          userUniqueId,
+        });
+      }
 
       if (isDriver) {
         // Driver: full doc + vehicle + subscription check → notify admin

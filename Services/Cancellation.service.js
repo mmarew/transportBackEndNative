@@ -223,7 +223,7 @@ const getAllCancellationReasons = async (filters = {}) => {
 
   if (!rows || rows.length === 0) {
     return {
-      message: "Cancellation reason updated",
+      message: "No cancellation reasons found",
       data: [],
       pagination: {
         currentPage: page,
