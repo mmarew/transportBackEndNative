@@ -1,9 +1,14 @@
 "use strict";
 
+const fs = require("fs");
+const path = require("path");
+
 const logger = require("./logger");
 
 const TELEGRAM_API = "https://api.telegram.org/bot";
 const REQUEST_TIMEOUT_MS = 8000;
+// eslint-disable-next-line no-magic-numbers -- 8MB cap for Telegram previews
+const MAX_PREVIEW_BYTES = 8 * 1024 * 1024;
 
 const ROLE_NAMES = {
   1: "Shipper",
@@ -76,7 +81,7 @@ const buildApprovalBlock = ({ kind, ownerUniqueId } = {}) => {
   ].join("\n");
 };
 
-const sendTelegramMessage = async (text) => {
+const sendTelegramMessage = async (text, { replyKeyboard } = {}) => {
   if (!isConfigured()) {
     logger.warn("Telegram notifier not configured — skipping message");
     return { ok: false, reason: "not-configured" };
@@ -88,15 +93,19 @@ const sendTelegramMessage = async (text) => {
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
+    const body = {
+      chat_id: chatId,
+      text,
+      parse_mode: "MarkdownV2",
+      disable_web_page_preview: true,
+    };
+    if (replyKeyboard) {
+      body.reply_markup = { inline_keyboard: replyKeyboard };
+    }
     const response = await fetch(`${TELEGRAM_API}${token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        parse_mode: "MarkdownV2",
-        disable_web_page_preview: true,
-      }),
+      body: JSON.stringify(body),
       signal: controller.signal,
     });
 
@@ -122,6 +131,85 @@ const sendTelegramMessage = async (text) => {
   }
 };
 
+// Sends a local file as a Telegram document with a caption + inline buttons.
+const sendTelegramDocument = async ({ relativePath, caption, replyKeyboard }) => {
+  if (!isConfigured()) {
+    logger.warn("Telegram notifier not configured — skipping document");
+    return { ok: false, reason: "not-configured" };
+  }
+
+  const absPath = path.join(__dirname, "..", relativePath);
+  let buffer;
+  try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path is our own uploads dir
+    buffer = await fs.promises.readFile(absPath);
+  } catch (error) {
+    logger.warn("Telegram preview file not readable", { relativePath, message: error?.message });
+    return { ok: false, reason: "file-missing" };
+  }
+  if (buffer.length === 0 || buffer.length > MAX_PREVIEW_BYTES) {
+    logger.warn("Telegram preview file skipped (size)", { relativePath, bytes: buffer.length });
+    return { ok: false, reason: "file-too-large" };
+  }
+
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  const controller = new AbortController();
+  // eslint-disable-next-line no-magic-numbers -- extra 4s for large file uploads
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS + 4000);
+
+  try {
+    const form = new FormData();
+    form.append("chat_id", chatId);
+    form.append("caption", caption);
+    form.append("parse_mode", "MarkdownV2");
+    if (replyKeyboard) {
+      form.append("reply_markup", JSON.stringify({ inline_keyboard: replyKeyboard }));
+    }
+    form.append("document", new Blob([buffer]), path.basename(relativePath));
+
+    const response = await fetch(`${TELEGRAM_API}${token}/sendDocument`, {
+      method: "POST",
+      body: form,
+      signal: controller.signal,
+    });
+
+    const payload = await response.json();
+    if (!response.ok || !payload?.ok) {
+      logger.error("Telegram sendDocument failed", {
+        httpStatus: response.status,
+        telegramOk: payload?.ok,
+        description: payload?.description,
+      });
+      return { ok: false, reason: "api-error" };
+    }
+
+    logger.info("Telegram document sent", { messageId: payload?.result?.message_id });
+    return { ok: true };
+  } catch (error) {
+    logger.warn("Telegram sendDocument threw an error", {
+      message: error?.message === "This operation was aborted" ? "request timed out" : error?.message,
+    });
+    return { ok: false, reason: "network-error" };
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+const approveKeyboard = (kind, id) => [
+  [
+    { text: "✅ Approve", callback_data: `approve:${kind}:${id}:approved` },
+    { text: "❌ Reject", callback_data: `approve:${kind}:${id}:rejected` },
+  ],
+];
+
+const docButtons = (docId) => [
+  [
+    { text: "✅ Approve", callback_data: `approve:doc:${docId}:ACCEPTED` },
+    { text: "❌ Reject", callback_data: `approve:doc:${docId}:REJECTED` },
+  ],
+];
+
 const sendCompanyCreatedAlert = async ({
   companyName,
   companyRegistrationNumber,
@@ -146,9 +234,8 @@ const sendCompanyCreatedAlert = async ({
     `👤 Created by: ${escapeMarkdownV2(creatorName ?? "—")} \\(${escapeMarkdownV2(roleName)}, ${escapeMarkdownV2(creatorPhone ?? "—")}\\)`,
   ];
 
-  return sendTelegramMessage(
-    [...lines, buildApprovalBlock({ kind: "company", ownerUniqueId: companyUniqueId })].join("\n"),
-  );
+  const text = [...lines, buildApprovalBlock({ kind: "company", ownerUniqueId: companyUniqueId })].join("\n");
+  return sendTelegramMessage(text, { replyKeyboard: approveKeyboard("company", companyUniqueId) });
 };
 
 const sendDocumentUploadAlert = async ({
@@ -158,27 +245,45 @@ const sendDocumentUploadAlert = async ({
   uploadedByPhone,
   uploadedByRoleId,
   files,
+  docs,
 }) => {
   const roleName = ROLE_NAMES[uploadedByRoleId] || `Role #${uploadedByRoleId}`;
-  const fileList = Array.isArray(files) && files.length > 0
-    ? files.map((f) => `• ${escapeMarkdownV2(f)}`).join("\n")
-    : "• (unspecified)";
+  const approvalKind =
+    ownerType === "company" ? "company" : ownerType === "vehicle" ? "vehicle" : "user";
 
-  const lines = [
+  const header = [
     "📄 *Document\\(s\\) uploaded*",
     `👤 Uploaded by: ${escapeMarkdownV2(uploadedByName ?? "—")} \\(${escapeMarkdownV2(roleName)}, ${escapeMarkdownV2(uploadedByPhone ?? "—")}\\)`,
     `🏷️ Owner type: ${escapeMarkdownV2(ownerType ?? "—")}`,
     `🆔 Owner: \`${escapeMarkdownV2(ownerUniqueId ?? "—")}\``,
+  ].join("\n");
+
+  const docLines =
+    (docs && docs.length > 0 ? docs : files || []).map((d) =>
+      `• ${escapeMarkdownV2(d.fieldname || d)}${
+        d.fieldname ? " — " + escapeMarkdownV2(d.originalFileName || "") : ""
+      }`,
+    );
+
+  const text = [
+    header,
     "📎 Files:",
-    fileList,
-  ];
+    (docLines.length > 0 ? docLines : ["• (unspecified)"]).join("\n"),
+    buildApprovalBlock({ kind: approvalKind, ownerUniqueId }),
+  ].join("\n");
 
-  const approvalKind =
-    ownerType === "company" ? "company" : ownerType === "vehicle" ? "vehicle" : "user";
+  const items = docs && docs.length > 0 ? docs : [{ previewPath: null }];
 
-  return sendTelegramMessage(
-    [...lines, buildApprovalBlock({ kind: approvalKind, ownerUniqueId })].join("\n"),
-  );
+  for (const doc of items) {
+    const buttons = doc.docId ? docButtons(doc.docId) : null;
+    if (doc.previewPath) {
+      await sendTelegramDocument({ relativePath: doc.previewPath, caption: text, replyKeyboard: buttons });
+    } else {
+      await sendTelegramMessage(text, { replyKeyboard: buttons });
+    }
+  }
+
+  return { ok: true };
 };
 
 const sendQueueOrganizationCreatedAlert = async ({
@@ -203,9 +308,12 @@ const sendQueueOrganizationCreatedAlert = async ({
     `👤 Created by: ${escapeMarkdownV2(creatorName ?? "—")} \\(${escapeMarkdownV2(roleName)}, ${escapeMarkdownV2(creatorPhone ?? "—")}\\)`,
   ];
 
-  return sendTelegramMessage(
-    [...lines, buildApprovalBlock({ kind: "queue", ownerUniqueId: queueOrganizationUniqueId })].join("\n"),
-  );
+  const text = [
+    ...lines,
+    buildApprovalBlock({ kind: "queue", ownerUniqueId: queueOrganizationUniqueId }),
+  ].join("\n");
+
+  return sendTelegramMessage(text, { replyKeyboard: approveKeyboard("queue", queueOrganizationUniqueId) });
 };
 
 const sendRegistrationAlert = async ({

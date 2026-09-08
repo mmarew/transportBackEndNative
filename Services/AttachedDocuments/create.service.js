@@ -151,7 +151,10 @@ const createAttachedDocument = async ({
       }
       return {
         message: "Document created successfully",
-        data: null,
+        data: {
+          attachedDocumentUniqueId: newDocument.attachedDocumentUniqueId,
+          attachedDocumentName: newDocument.attachedDocumentName,
+        },
       };
     } else {
       throw new AppError("Failed to create document", AppError.INTERNAL_SERVER_ERROR);

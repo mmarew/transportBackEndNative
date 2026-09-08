@@ -45,6 +45,17 @@ const onStartUp = async () => {
     // Store control object for graceful shutdown
     global.timeoutServiceControl = timeoutServiceControl;
 
+    // Start Telegram bot polling (approve/reject via the alert buttons).
+    // No-op when Telegram isn't configured or TELEGRAM_POLLING=false.
+    try {
+      const { startTelegramBotPolling } = require("./Utils/TelegramBotUpdates");
+      global.telegramPollingControl = startTelegramBotPolling();
+    } catch (pollingError) {
+      logger.warn("Telegram bot polling startup failed", {
+        message: pollingError.message,
+      });
+    }
+
     // Ensure the DeliveryConfirmations enforcement columns exist on a
     // pre-existing database (idempotent, information_schema-checked). CREATE
     // TABLE IF NOT EXISTS alone is a no-op on an old table, so missing columns
@@ -105,6 +116,10 @@ const startServer = async () => {
       // Stop automatic timeout service if it's running
       if (global.timeoutServiceControl) {
         global.timeoutServiceControl.stop();
+      }
+      // Stop Telegram bot polling if it's running
+      if (global.telegramPollingControl) {
+        global.telegramPollingControl.stop();
       }
 
       server.close(() => {

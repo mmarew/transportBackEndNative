@@ -263,6 +263,7 @@ const createAttachedDocuments = async (req, res, next) => {
     }
 
     // Save all documents to database within a transaction
+    const createdDocs = [];
     await executeInTransaction(async () => {
       for (const document of documentsToRegister) {
         try {
@@ -289,13 +290,23 @@ const createAttachedDocuments = async (req, res, next) => {
             }
           }
 
-          await attachedDocumentsService.createAttachedDocument({
+          const createdDoc = await attachedDocumentsService.createAttachedDocument({
             ...document,
             roleId,
             ownerType: finalOwnerType,
             ownerUniqueId: finalOwnerUniqueId,
             uploadedByUserId: user?.userUniqueId,
           });
+
+          // Capture created/existing document for the Telegram alert buttons + preview
+          if (createdDoc?.data?.attachedDocumentUniqueId) {
+            createdDocs.push({
+              docId: createdDoc.data.attachedDocumentUniqueId,
+              previewPath: createdDoc.data.attachedDocumentName || null,
+              fieldname: document.fieldname,
+              originalFileName: document.originalFileName,
+            });
+          }
 
           fileSuccesses.push(document.originalFileName);
           uploadResults.push({
@@ -330,6 +341,7 @@ const createAttachedDocuments = async (req, res, next) => {
           uploadedByPhone: user?.phoneNumber,
           uploadedByRoleId: user?.roleId,
           files: uploadedFiles,
+          docs: createdDocs,
         });
       } catch (telegramError) {
         logger.warn("Telegram document alert failed after upload", {
