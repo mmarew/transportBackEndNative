@@ -33,22 +33,46 @@ const isConfigured = () => {
 
 const getApiBase = () => process.env.APP_API_URL || "{{url}}";
 
-// Approval quick-guide shared by every alert. Endpoints are wrapped in code
-// spans so MarkdownV2 only needs backslash/backtick escaping inside them.
-const buildApprovalBlock = ({ companyUniqueId, queueOrganizationUniqueId } = {}) => {
+// Approval quick-guide tailored to the entity type so each alert only shows
+// the relevant steps. Endpoints are wrapped in code spans so MarkdownV2 only
+// needs backslash/backtick escaping inside them.
+// kind: "user" (drivers/users) | "vehicle" | "company" | "queue" (queue org)
+const buildApprovalBlock = ({ kind, ownerUniqueId } = {}) => {
   const base = getApiBase();
-  const companyId = companyUniqueId || "{companyUniqueId}";
-  const queueOrgId = queueOrganizationUniqueId || "{queueOrganizationUniqueId}";
+  const ownerId = ownerUniqueId || "{id}";
+
+  if (kind === "queue") {
+    return [
+      "",
+      "✅ *How to approve this queue organization:*",
+      `• Register: \`POST ${base}/api/queueOrganization/\``,
+      `• Approve: \`PATCH ${base}/api/queueOrganization/${ownerId}/approve\``,
+      "  body: `{\"approvalStatus\":\"approved\"}`",
+    ].join("\n");
+  }
+
+  if (kind === "company") {
+    return [
+      "",
+      "✅ *How to approve this company:*",
+      `• Docs: upload via \`POST ${base}/api/company/attachDocuments/${ownerId}\`, then \`PUT ${base}/api/admin/acceptRejectAttachedDocuments\``,
+      "  body: `{\"attachedDocumentUniqueId\":\"...\",\"action\":\"ACCEPTED\"}`",
+      `• Company: \`PATCH ${base}/api/company/companies/${ownerId}/approve\``,
+      "  body: `{\"approvalStatus\":\"approved\"}`",
+    ].join("\n");
+  }
+
+  const uploadPath =
+    kind === "vehicle"
+      ? `POST ${base}/api/vehicle/attachDocuments/${ownerId}`
+      : `POST ${base}/api/user/attachDocuments/self`;
+
   return [
     "",
-    "✅ *How to approve:*",
-    `• Docs: upload via \`POST ${base}/api/user/attachDocuments/self\` \\(user/driver\\) or \`POST ${base}/api/company/attachDocuments/{companyUniqueId}\` \\(company\\)`,
-    `• Then approve: \`PUT ${base}/api/admin/acceptRejectAttachedDocuments\``,
+    "✅ *How to approve this document:*",
+    `• Uploaded via: \`${uploadPath}\``,
+    `• Approve: \`PUT ${base}/api/admin/acceptRejectAttachedDocuments\``,
     "  body: `{\"attachedDocumentUniqueId\":\"...\",\"action\":\"ACCEPTED\"}`",
-    `• Transport company: \`PATCH ${base}/api/company/companies/${companyId}/approve\``,
-    "  body: `{\"approvalStatus\":\"approved\"}`",
-    `• Queue org: register via \`POST ${base}/api/queueOrganization/\`, then approve \`PATCH ${base}/api/queueOrganization/${queueOrgId}/approve\``,
-    "  body: `{\"approvalStatus\":\"approved\"}`",
   ].join("\n");
 };
 
@@ -123,7 +147,7 @@ const sendCompanyCreatedAlert = async ({
   ];
 
   return sendTelegramMessage(
-    [...lines, buildApprovalBlock({ companyUniqueId })].join("\n"),
+    [...lines, buildApprovalBlock({ kind: "company", ownerUniqueId: companyUniqueId })].join("\n"),
   );
 };
 
@@ -149,8 +173,11 @@ const sendDocumentUploadAlert = async ({
     fileList,
   ];
 
+  const approvalKind =
+    ownerType === "company" ? "company" : ownerType === "vehicle" ? "vehicle" : "user";
+
   return sendTelegramMessage(
-    [...lines, buildApprovalBlock(ownerType === "company" ? { companyUniqueId: ownerUniqueId } : {})].join("\n"),
+    [...lines, buildApprovalBlock({ kind: approvalKind, ownerUniqueId })].join("\n"),
   );
 };
 
@@ -177,7 +204,7 @@ const sendQueueOrganizationCreatedAlert = async ({
   ];
 
   return sendTelegramMessage(
-    [...lines, buildApprovalBlock({ queueOrganizationUniqueId })].join("\n"),
+    [...lines, buildApprovalBlock({ kind: "queue", ownerUniqueId: queueOrganizationUniqueId })].join("\n"),
   );
 };
 
