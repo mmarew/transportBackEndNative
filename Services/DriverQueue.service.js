@@ -52,7 +52,7 @@ const QUEUE_STATUS = {
   SHIPPER_CANCELED: journeyStatusMap.cancelledByShipper, // 10
   CANCELLED_AFTER_ACCEPT: journeyStatusMap.cancelledByDriver, // 12 (also checkout)
   QUEUE_ADMIN_CANCELED: journeyStatusMap.cancelledByAdmin, // 13
-  NO_ANSWER_FROM_DRIVER: journeyStatusMap.noAnswerFromDriver, // 16
+  NO_ANSWER_FROM_DRIVER: journeyStatusMap.noAnswerFromDriver, // 16 (no-answer timeout; order retained while no next driver takes it)
   CANCELLED_BEFORE_ACCEPT: journeyStatusMap.rejectedByDriver, // 18 (kept position, still line)
 };
 // Terminal ids — an entry is active (in line + eligible) only while its status
@@ -62,7 +62,6 @@ const CLOSED_QUEUE_STATUSES = [
   journeyStatusMap.cancelledByShipper, // 10
   journeyStatusMap.cancelledByDriver, // 12
   journeyStatusMap.cancelledByAdmin, // 13
-  journeyStatusMap.noAnswerFromDriver, // 16
 ];
 // Shared resolver: org → vehicle type via VehicleDriver → Vehicle
 /**
@@ -222,6 +221,8 @@ const logQueueHistory = async (
         columnName,
         oldValue:
           oldValue !== null && oldValue !== undefined ? String(oldValue) : null,
+        newValue:
+          newValue !== null && newValue !== undefined ? String(newValue) : null,
         performedBy,
       },
     },
@@ -338,13 +339,15 @@ const publicEntry = (row) => ({
   driverLongitude: row.driverLongitude || null,
 });
 
-// A driver is still "in queue" while waiting, holding a request, or having
-// declined the last offer (notagreed) — they remain eligible for the next
-// order. Removed (cancelled/checked-out) and agreed (dispatched/completed)
-// drivers are free to check back in.
+// A driver is still "in queue" while waiting, holding a request, having
+// declined the last offer (notagreed), or having timed out on the offer
+// (no-answer) — they remain eligible for the next order. Removed
+// (cancelled/checked-out) and agreed (dispatched/completed) drivers are free
+// to check back in.
 const IN_QUEUE_STATUSES = [
   QUEUE_STATUS.WAITING, // 1
   QUEUE_STATUS.REQUESTED, // 2
+  QUEUE_STATUS.NO_ANSWER_FROM_DRIVER, // 16
   QUEUE_STATUS.CANCELLED_BEFORE_ACCEPT, // 18
 ];
 
@@ -980,6 +983,57 @@ exports.myPosition = async (queueOrganizationUniqueId, user) => {
 };
 
 /**
+ * Terminalize a driver's pending offer for a queue order (their Decision +
+ * active DriverRequest) so no live offer outlives the driver leaving the line
+ * or the order moving on. Mirrors the timeout sweep's terminalizing step: the
+ * request goes to a TERMINAL status (rejectedByDriver), never back to
+ * `waiting`, because a `waiting` request that still carries a decision can
+ * never be reused (JourneyDecisions.driverRequestId is UNIQUE) and keeps
+ * `activeRequestGuard = 1`, killing the next offer on the unique index.
+ * Idempotent — no-op when there is nothing live for the (driver, order) pair.
+ */
+const terminalizeQueueOrderRequest = async ({
+  executor,
+  driverUserUniqueId,
+  shipperRequestUniqueId,
+  actor,
+}) => {
+  const [rows] = await executor.query(
+    `SELECT dr.driverRequestId, jd.journeyDecisionUniqueId
+     FROM ShipperRequest sr
+     JOIN JourneyDecisions jd ON jd.shipperRequestId = sr.shipperRequestId
+     JOIN DriverRequest dr    ON dr.driverRequestId = jd.driverRequestId
+     WHERE sr.shipperRequestUniqueId = ? AND dr.userUniqueId = ?
+       AND dr.journeyStatusId = ?
+     ORDER BY dr.driverRequestId DESC LIMIT 1
+     FOR UPDATE`,
+    [shipperRequestUniqueId, driverUserUniqueId, journeyStatusMap.requested],
+  );
+  if (rows.length === 0) return null;
+  const now = currentDate();
+  await updateData({
+    tableName: "JourneyDecisions",
+    updateValues: {
+      journeyStatusId: journeyStatusMap.rejectedByDriver,
+      journeyDecisionUpdatedAt: now,
+      journeyDecisionUpdatedBy: actor.userUniqueId,
+      isCancellationByDriverSeenByShipper: "no need to see it",
+    },
+    conditions: { journeyDecisionUniqueId: rows[0].journeyDecisionUniqueId },
+  });
+  await updateData({
+    tableName: "DriverRequest",
+    updateValues: {
+      journeyStatusId: journeyStatusMap.rejectedByDriver,
+      driverRequestUpdatedAt: now,
+      driverRequestUpdatedBy: actor.userUniqueId,
+    },
+    conditions: { driverRequestId: rows[0].driverRequestId },
+  });
+  return rows[0];
+};
+
+/**
  * Driver leaves the queue (checkout / no-show) — entry marked terminal.
  * If queueOrganizationUniqueId provided, scope to that org; otherwise find via fence.
  */
@@ -990,9 +1044,11 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
   let rows;
   if (queueOrganizationUniqueId) {
     [rows] = await executor.query(
-      `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate, dq.status, dq.shipperRequestUniqueId
+      `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate, dq.status,
+              dq.shipperRequestUniqueId, dq.vehicleDriverUniqueId, v.vehicleTypeUniqueId
        FROM DriverQueue dq
        JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+       JOIN Vehicle v        ON v.vehicleUniqueId         = vd.vehicleUniqueId
        WHERE dq.queueOrganizationUniqueId = ? AND dq.queueDate = ?
          AND vd.driverUserUniqueId = ? AND dq.status IN (${IN_QUEUE_STATUSES.join(", ")})
          AND dq.queueDeletedAt IS NULL
@@ -1002,9 +1058,11 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
   } else {
     // FENCE: find driver's active queue across all orgs
     [rows] = await executor.query(
-      `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate, dq.status, dq.shipperRequestUniqueId
+      `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate, dq.status,
+              dq.shipperRequestUniqueId, dq.vehicleDriverUniqueId, v.vehicleTypeUniqueId
        FROM DriverQueue dq
        JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+       JOIN Vehicle v        ON v.vehicleUniqueId         = vd.vehicleUniqueId
        WHERE dq.queueDate = ? AND vd.driverUserUniqueId = ? AND dq.status IN (${IN_QUEUE_STATUSES.join(", ")})
          AND dq.queueDeletedAt IS NULL
        ORDER BY dq.queueNumber DESC LIMIT 1`,
@@ -1019,8 +1077,13 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
   }
 
   const orgId = rows[0].queueOrganizationUniqueId;
-  const isRequested = rows[0].status === QUEUE_STATUS.REQUESTED;
-  const releasedOrder = isRequested ? rows[0].shipperRequestUniqueId : null;
+  // An entry can hold an order while offered (REQUESTED) or while retained
+  // after an unanswered offer (NO_ANSWER_FROM_DRIVER). Both must be released
+  // to the next driver when this driver leaves the line — never discarded.
+  const holdsOrder =
+    rows[0].status === QUEUE_STATUS.REQUESTED ||
+    rows[0].status === QUEUE_STATUS.NO_ANSWER_FROM_DRIVER;
+  const releasedOrder = holdsOrder ? rows[0].shipperRequestUniqueId : null;
 
   await logQueueHistory(executor, {
     queueUniqueId: rows[0].queueUniqueId,
@@ -1029,7 +1092,7 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
     newValue: QUEUE_STATUS.CANCELLED_AFTER_ACCEPT,
     performedBy: user.userUniqueId,
   });
-  if (isRequested) {
+  if (holdsOrder) {
     await logQueueHistory(executor, {
       queueUniqueId: rows[0].queueUniqueId,
       columnName: "shipperRequestUniqueId",
@@ -1060,8 +1123,14 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
         queueDate,
         queueUniqueId: rows[0].queueUniqueId,
         action: "remove",
-        beforeValue: JSON.stringify({ status: rows[0].status }),
-        afterValue: JSON.stringify({ status: QUEUE_STATUS.CANCELLED_AFTER_ACCEPT }),
+        beforeValue: JSON.stringify({
+          status: rows[0].status,
+          shipperRequestUniqueId: rows[0].shipperRequestUniqueId,
+        }),
+        afterValue: JSON.stringify({
+          status: QUEUE_STATUS.CANCELLED_AFTER_ACCEPT,
+          shipperRequestUniqueId: null,
+        }),
         performedBy: user.userUniqueId,
       },
     },
@@ -1074,12 +1143,46 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
     messageType: "queue_removed",
   });
 
+  // The order this driver was holding must not be orphaned: terminalize their
+  // pending request for it (offer window / checkout leaves no live offer
+  // dangling), then offer it to the NEXT waiting driver of the same vehicle
+  // type. No next driver → the order simply stays waiting for the next
+  // check-in/rescan; the shipper is told either way.
+  let reoffered = false;
+  if (releasedOrder) {
+    await terminalizeQueueOrderRequest({
+      executor,
+      driverUserUniqueId: user.userUniqueId,
+      shipperRequestUniqueId: releasedOrder,
+      actor: user,
+    });
+    const next = await offerToNextDriver({
+      executor,
+      queueOrganizationUniqueId: orgId,
+      queueDate,
+      vehicleTypeUniqueId: rows[0].vehicleTypeUniqueId,
+      excludeVehicleDriverUniqueId: rows[0].vehicleDriverUniqueId,
+      shipperRequestUniqueId: releasedOrder,
+      user,
+    });
+    reoffered = next.offered === true;
+    await notifyShipperOfQueueEvent({
+      executor,
+      shipperRequestUniqueId: releasedOrder,
+      messageType: "queue_order_reoffered",
+      message: reoffered
+        ? "Driver left the queue; your order was passed to the next driver."
+        : "Driver left the queue while your order was still open; it stays waiting for the next available driver.",
+    });
+  }
+
   return {
     message: "success",
     data: {
       queueUniqueId: rows[0].queueUniqueId,
       status: QUEUE_STATUS.CANCELLED_AFTER_ACCEPT,
       releasedOrder,
+      reoffered,
     },
   };
 };
@@ -2343,6 +2446,56 @@ const offerToDriver = async ({
       continue;
     }
 
+    // NO-ANSWER RETENTION RELEASE: an order surviving its offer window can be
+    // sitting on a `no_answer_from_driver` entry (16, order still attached —
+    // the timeout sweep keeps it there so the first driver's late accept is
+    // still honoured). Now that we have found a CONCRETE next driver for this
+    // order, that retention must be released BEFORE the new offer is created
+    // (otherwise the same order ends up linked to two entries). The released
+    // holder keeps their line position (18) and stays in queue; the late-accept
+    // gate on markEntryAgreed then rejects the first driver with "order passed
+    // to another driver". Locks the stale holder row so concurrent advance +
+    // late-accept serialize.
+    const [staleHolders] = await txExecutor.query(
+      `SELECT queueId, queueUniqueId, queueOrganizationUniqueId, queueDate
+       FROM DriverQueue
+       WHERE shipperRequestUniqueId = ? AND status = ${QUEUE_STATUS.NO_ANSWER_FROM_DRIVER}
+         AND queueDeletedAt IS NULL AND queueId <> ?
+       FOR UPDATE`,
+      [shipperRequestUniqueId, entry.queueId],
+    );
+    for (const stale of staleHolders) {
+      await logQueueHistory(txExecutor, {
+        queueUniqueId: stale.queueUniqueId,
+        columnName: "status",
+        oldValue: QUEUE_STATUS.NO_ANSWER_FROM_DRIVER,
+        newValue: QUEUE_STATUS.CANCELLED_BEFORE_ACCEPT,
+        performedBy: user.userUniqueId,
+      });
+      await logQueueHistory(txExecutor, {
+        queueUniqueId: stale.queueUniqueId,
+        columnName: "shipperRequestUniqueId",
+        oldValue: shipperRequestUniqueId,
+        newValue: null,
+        performedBy: user.userUniqueId,
+      });
+      await updateData({
+        tableName: "DriverQueue",
+        updateValues: {
+          status: QUEUE_STATUS.CANCELLED_BEFORE_ACCEPT,
+          requestedAt: null,
+          shipperRequestUniqueId: null,
+          queueUpdatedAt: currentDate(),
+          queueUpdatedBy: user.userUniqueId,
+        },
+        conditions: { queueId: stale.queueId },
+      });
+      await emitQueueSnapshot({
+        queueOrganizationUniqueId: stale.queueOrganizationUniqueId,
+        queueDate: stale.queueDate,
+      });
+    }
+
     const offerResult = await createQueueOffer(txExecutor, {
       shipperRequest,
       driverRequest,
@@ -3097,10 +3250,19 @@ exports.releaseEntryOnOrderCancel = async ({
   const executor = db();
   const [rows] = await executor.query(
     `SELECT dq.queueId, dq.queueUniqueId, dq.queueNumber, dq.queueOrganizationUniqueId, dq.queueDate,
-            dq.vehicleDriverUniqueId, vd.driverUserUniqueId, dq.status
+            dq.vehicleDriverUniqueId, vd.driverUserUniqueId, dq.status, u.phoneNumber AS driverPhoneNumber
      FROM DriverQueue dq
      JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
-     WHERE dq.shipperRequestUniqueId = ? AND dq.status = ${QUEUE_STATUS.REQUESTED}
+     JOIN Users u          ON u.userUniqueId           = vd.driverUserUniqueId
+     WHERE dq.shipperRequestUniqueId = ? AND dq.status IN (
+       ${QUEUE_STATUS.REQUESTED},
+       ${QUEUE_STATUS.NO_ANSWER_FROM_DRIVER},
+       ${QUEUE_STATUS.AGREED},
+       ${QUEUE_STATUS.GO_TO_LOADING_PLACE},
+       ${QUEUE_STATUS.LOADING},
+       ${QUEUE_STATUS.LOADED},
+       ${QUEUE_STATUS.JOURNEY_STARTED}
+     )
        AND dq.queueDeletedAt IS NULL
      ORDER BY dq.queueNumber ASC LIMIT 1
      FOR UPDATE`,
@@ -3111,11 +3273,34 @@ exports.releaseEntryOnOrderCancel = async ({
   }
 
   const entry = rows[0];
+  // Pre-accept (REQUESTED / retained NO_ANSWER) → the entry goes back to
+  // waiting, position kept, no penalty. Post-accept (agreed / loading stages /
+  // journey started) → the entry is CLOSED as cancelled_after_accept (same
+  // closure as checkout) so the order's cancelled journey cannot leave a
+  // dangling "agreed" slot; NO refusal penalty — the job was cancelled by the
+  // shipper/admin, not backed out by the driver.
+  const isPreAccept =
+    entry.status === QUEUE_STATUS.REQUESTED ||
+    entry.status === QUEUE_STATUS.NO_ANSWER_FROM_DRIVER;
+  const closedStatus = isPreAccept
+    ? QUEUE_STATUS.WAITING
+    : QUEUE_STATUS.CANCELLED_AFTER_ACCEPT;
+
+  // Terminalize the driver's pending request for this order (idempotent — no-op
+  // when the accept/cancel path already moved it off `requested`). Prevents a
+  // `requested` decision for a cancelled order lingering on the driver's app.
+  await terminalizeQueueOrderRequest({
+    executor,
+    driverUserUniqueId: entry.driverUserUniqueId,
+    shipperRequestUniqueId,
+    actor: user ?? { userUniqueId: entry.driverUserUniqueId },
+  });
+
   await logQueueHistory(executor, {
     queueUniqueId: entry.queueUniqueId,
     columnName: "status",
     oldValue: entry.status,
-    newValue: QUEUE_STATUS.WAITING,
+    newValue: closedStatus,
     performedBy: user?.userUniqueId || null,
   });
   await logQueueHistory(executor, {
@@ -3128,9 +3313,15 @@ exports.releaseEntryOnOrderCancel = async ({
   await updateData({
     tableName: "DriverQueue",
     updateValues: {
-      status: QUEUE_STATUS.WAITING,
+      status: closedStatus,
       requestedAt: null,
       shipperRequestUniqueId: null,
+      ...(isPreAccept
+        ? {}
+        : {
+            queueDeletedAt: currentDate(),
+            queueDeletedBy: user?.userUniqueId || null,
+          }),
       queueUpdatedAt: currentDate(),
       queueUpdatedBy: user?.userUniqueId || null,
     },
@@ -3150,7 +3341,33 @@ exports.releaseEntryOnOrderCancel = async ({
     },
   });
 
-  return { released: true, queueUniqueId: entry.queueUniqueId };
+  if (!isPreAccept && entry.driverPhoneNumber) {
+    await sendSocketIONotificationToDriver({
+      phoneNumber: entry.driverPhoneNumber,
+      eventName: "queue",
+      message: {
+        messageTypes: messageTypes.queue_order_cancelled,
+        message: "Your queue job was cancelled — the assigned order is closed",
+        status: null,
+        queue: {
+          queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+          queueUniqueId: entry.queueUniqueId,
+          queueNumber: entry.queueNumber,
+          status: QUEUE_STATUS.CANCELLED_AFTER_ACCEPT,
+        },
+        shipper: null,
+        driver: null,
+        journey: null,
+        decision: null,
+      },
+    });
+  }
+
+  return {
+    released: true,
+    queueUniqueId: entry.queueUniqueId,
+    closedStatus,
+  };
 };
 
 /**
@@ -3223,29 +3440,96 @@ const applyRefusalPolicy = async ({ executor, entry, user }) => {
 };
 
 /**
+ * Pre-journey gate for a queue-order accept. Runs BEFORE the accept flow creates
+ * the Journey/agreement, so a stale accept can never create a Journey.
+ *
+ * Decision table (shipper state → accepting driver → verdict):
+ *  - Entry REQUESTED    + accepting driver is the holder  → allowed.
+ *  - Entry REQUESTED    + accepting driver is NOT holder  → 409 "passed to
+ *    another driver" (the offer had already advanced).
+ *  - Entry NO_ANSWER(16)+ accepting driver is the holder  → allowed (LATE
+ *    ACCEPT honoured — no other driver took the order since the timeout).
+ *  - Entry NO_ANSWER(16)+ any other driver, or no entry holds the order
+ *    (already released/assigned/closed)                       → 409.
+ *  - No live entry for the order                              → 409.
+ *
+ * @returns {Promise<{ queueUniqueId: string, status: number }>}
+ * @throws {AppError} 409 — offer no longer acceptable.
+ */
+const assertQueueOfferAcceptable = async ({
+  shipperRequestUniqueId,
+  driverUserUniqueId,
+}) => {
+  const executor = db();
+  const [rows] = await executor.query(
+    `SELECT dq.queueUniqueId, dq.status, vd.driverUserUniqueId
+     FROM DriverQueue dq
+     JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+     WHERE dq.shipperRequestUniqueId = ?
+       AND dq.status IN (${QUEUE_STATUS.REQUESTED}, ${QUEUE_STATUS.NO_ANSWER_FROM_DRIVER})
+       AND dq.queueDeletedAt IS NULL
+     LIMIT 1`,
+    [shipperRequestUniqueId],
+  );
+  if (rows.length === 0) {
+    throw new AppError(
+      "This queue offer is no longer available for acceptance. The offer window may have expired and the order moved to another driver.",
+      AppError.CONFLICT,
+    );
+  }
+  if (rows[0].driverUserUniqueId !== driverUserUniqueId) {
+    throw new AppError(
+      "This offer was no longer valid for your queue position; the order has already passed to another driver.",
+      AppError.CONFLICT,
+    );
+  }
+  return { queueUniqueId: rows[0].queueUniqueId, status: rows[0].status };
+};
+
+exports.assertQueueOfferAcceptable = assertQueueOfferAcceptable;
+
+/**
  * Driver accepts the queue offer → the entry is marked `agreed` (leaves the
  * dispatch line; journey progress is tracked on the driver's JourneyDecisions /
  * DriverRequest journeyStatusId). Called from the accept flow after the
  * JourneyDecision moves to acceptedByDriver.
+ *
+ * Enforces the same gate as assertQueueOfferAcceptable — status IN (REQUESTED,
+ * NO_ANSWER) + holder match — under a FOR UPDATE lock so a concurrent
+ * advance/stale-holder-release cannot sneak an order onto another driver
+ * between the pre-check and here. A REQUESTED holder that was already
+ * reassigned (order on another driver's entry now) fails with a 409, and a
+ * NO_ANSWER holder whose order nobody else took successfully late-accepts.
  */
 exports.markEntryAgreed = async ({ shipperRequestUniqueId, userUniqueId }) => {
   const executor = db();
   const [rows] = await executor.query(
     `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate, dq.status,
-            u.fullName AS driverName, u.phoneNumber AS driverPhoneNumber,
+            vd.driverUserUniqueId, u.fullName AS driverName, u.phoneNumber AS driverPhoneNumber,
             v.licensePlate, vt.vehicleTypeName
      FROM DriverQueue dq
      JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
      JOIN Users u            ON u.userUniqueId           = vd.driverUserUniqueId
      JOIN Vehicle v          ON v.vehicleUniqueId         = vd.vehicleUniqueId
      JOIN VehicleTypes vt    ON vt.vehicleTypeUniqueId    = v.vehicleTypeUniqueId
-WHERE dq.shipperRequestUniqueId = ? AND dq.status = ${QUEUE_STATUS.REQUESTED}
+     WHERE dq.shipperRequestUniqueId = ?
+       AND dq.status IN (${QUEUE_STATUS.REQUESTED}, ${QUEUE_STATUS.NO_ANSWER_FROM_DRIVER})
        AND dq.queueDeletedAt IS NULL
-     LIMIT 1`,
+     ORDER BY dq.queueNumber ASC LIMIT 1
+     FOR UPDATE`,
     [shipperRequestUniqueId],
   );
   if (rows.length === 0) {
-    return { updated: false };
+    throw new AppError(
+      "This queue offer is no longer available for acceptance. The offer window may have expired and the order moved to another driver.",
+      AppError.CONFLICT,
+    );
+  }
+  if (rows[0].driverUserUniqueId !== userUniqueId) {
+    throw new AppError(
+      "This offer was no longer valid for your queue position; the order has already passed to another driver.",
+      AppError.CONFLICT,
+    );
   }
   await logQueueHistory(executor, {
     queueUniqueId: rows[0].queueUniqueId,
@@ -3298,11 +3582,16 @@ WHERE dq.shipperRequestUniqueId = ? AND dq.status = ${QUEUE_STATUS.REQUESTED}
 };
 
 /**
- * Implicit reject (offer window expired) — find every entry that is still
+ * Offer-window timeout (implicit, PASSIVE) — find every entry that is still
  * `requested` past the window with a linked order still `requested`, mark the
- * decision + driver request free (implicit reject), move the entry to
- * `cancelled_before_accept` (rejectedByDriver id — position kept, still in line
- * for the next order), and advance the order. Called by the background
+ * decision + driver request free (implicit no-answer), and move the entry to
+ * `no_answer_from_driver` (16) RETAINING the order so the first driver's late
+ * accept (after the window, while nobody else has taken the order) is still
+ * honoured. The order is then offered to the NEXT waiting driver of the same
+ * vehicle type; if one exists, offerToDriver's stale-holder release detaches
+ * the order from the 16-entry (position kept, still in line) and the advance
+ * completes; if none exists the order stays on the 16-entry until a later
+ * check-in/rescan or the first driver's late accept. Called by the background
  * automatic-timeout scan. `actor` is the user stamped on the audit trail (the
  * order's creator).
  */
@@ -3345,50 +3634,26 @@ exports.releaseExpiredOffers = async ({
     const actor = { userUniqueId: entry.shipperRequestCreatedBy };
     const now = currentDate();
 
-    await updateData({
-      tableName: "JourneyDecisions",
-      updateValues: {
-        journeyStatusId: journeyStatusMap.rejectedByDriver,
-        journeyDecisionUpdatedAt: now,
-        journeyDecisionUpdatedBy: actor.userUniqueId,
-        isCancellationByDriverSeenByShipper: "no need to see it",
-      },
-      conditions: { journeyDecisionUniqueId: entry.journeyDecisionUniqueId },
-    });
-    // Move the driver request to a TERMINAL status (rejectedByDriver, matching
-    // the decision above), NOT back to `waiting`. A `waiting` request that still
-    // carries a decision can never be reused (JourneyDecisions.driverRequestId
-    // is UNIQUE) and keeps `activeRequestGuard = 1`, so the next offer for this
-    // driver dies on the uq_driver_active_request insert.
-    await updateData({
-      tableName: "DriverRequest",
-      updateValues: {
-        journeyStatusId: journeyStatusMap.rejectedByDriver,
-        driverRequestUpdatedAt: now,
-        driverRequestUpdatedBy: actor.userUniqueId,
-      },
-      conditions: { driverRequestId: entry.driverRequestId },
-    });
+    // NO-ANSWER RETENTION: move to 16 but KEEP the order attached. Unlike an
+    // active reject (which frees the order at once), the first driver keeps the
+    // right to a late accept while nobody else has taken the order. Only when a
+    // concrete next driver is found does offerToDriver release this retention.
+    // The first driver's request + decision are deliberately LEFT at `requested`
+    // here so the late accept can still land (the accept flow requires the
+    // decision at `requested`); they are terminalized to noAnswerFromDriver
+    // below ONLY when the order actually advances to another driver.
     await logQueueHistory(executor, {
       queueUniqueId: entry.queueUniqueId,
       columnName: "status",
-      oldValue: entry.status,
-      newValue: QUEUE_STATUS.CANCELLED_BEFORE_ACCEPT,
-      performedBy: actor.userUniqueId,
-    });
-    await logQueueHistory(executor, {
-      queueUniqueId: entry.queueUniqueId,
-      columnName: "shipperRequestUniqueId",
-      oldValue: entry.shipperRequestUniqueId,
-      newValue: null,
+      oldValue: QUEUE_STATUS.REQUESTED,
+      newValue: QUEUE_STATUS.NO_ANSWER_FROM_DRIVER,
       performedBy: actor.userUniqueId,
     });
     await updateData({
       tableName: "DriverQueue",
       updateValues: {
-        status: QUEUE_STATUS.CANCELLED_BEFORE_ACCEPT,
+        status: QUEUE_STATUS.NO_ANSWER_FROM_DRIVER,
         requestedAt: null,
-        shipperRequestUniqueId: null,
         queueUpdatedAt: now,
         queueUpdatedBy: actor.userUniqueId,
       },
@@ -3397,23 +3662,22 @@ exports.releaseExpiredOffers = async ({
 
     await applyRefusalPolicy({ executor, entry, user: actor });
 
-    // Tell the released driver their offer window expired and the order moved
-    // on — without this the app keeps showing the offer card (or silently
-    // drops it on the next poll) with no explanation. Best-effort: offline
-    // driver is covered by the REST poll fallback.
+    // Tell the released driver their offer window expired — the app otherwise
+    // keeps showing the offer card (or silently drops it on the next poll) with
+    // no explanation. Best-effort: offline driver is covered by the REST poll.
     if (entry.driverPhoneNumber) {
       await sendSocketIONotificationToDriver({
         phoneNumber: entry.driverPhoneNumber,
         eventName: "queue",
         message: {
           messageTypes: messageTypes.queue_order_rejected,
-          message: "Order passed to next driver",
+          message: "Offer window expired",
           status: null,
           queue: {
             queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
             queueUniqueId: entry.queueUniqueId,
             queueNumber: entry.queueNumber,
-            status: QUEUE_STATUS.WAITING,
+            status: QUEUE_STATUS.NO_ANSWER_FROM_DRIVER,
           },
           shipper: null,
           driver: null,
@@ -3440,6 +3704,56 @@ exports.releaseExpiredOffers = async ({
       excludeVehicleDriverUniqueId: entry.vehicleDriverUniqueId,
       shipperRequestUniqueId: entry.shipperRequestUniqueId,
       user: actor,
+    });
+
+    if (next.offered) {
+      // The order is now on ANOTHER driver's entry — the first driver's
+      // late accept must be rejected. Terminalize their still-`requested`
+      // decision + request to noAnswerFromDriver(16) so (a) the accept flow's
+      // `requested` status check fails and the queue pre-gate returns 409
+      // ("passed to another driver"), and (b) their NEXT offer is not blocked
+      // by a dead active request on the uq_driver_active_request unique index.
+      // NOTE: offerToDriver already released the stale 16-entry (→18, order
+      // cleared), so no queue-entry write is needed here.
+      await executor.query(
+        `UPDATE JourneyDecisions jd
+         JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+         JOIN ShipperRequest sr ON sr.shipperRequestId = jd.shipperRequestId
+         SET jd.journeyStatusId = ?,
+             jd.journeyDecisionUpdatedAt = ?,
+             jd.journeyDecisionUpdatedBy = ?,
+             jd.isCancellationByDriverSeenByShipper = 'no need to see it',
+             dr.journeyStatusId = ?,
+             dr.driverRequestUpdatedAt = ?,
+             dr.driverRequestUpdatedBy = ?
+         WHERE sr.shipperRequestUniqueId = ? AND dr.userUniqueId = ?
+           AND dr.journeyStatusId = ? AND jd.journeyStatusId = ?`,
+        [
+          journeyStatusMap.noAnswerFromDriver,
+          now,
+          actor.userUniqueId,
+          journeyStatusMap.noAnswerFromDriver,
+          now,
+          actor.userUniqueId,
+          entry.shipperRequestUniqueId,
+          entry.driverUserUniqueId,
+          journeyStatusMap.requested,
+          journeyStatusMap.requested,
+        ],
+      );
+    }
+
+    // A found next driver already detached the order via offerToDriver's
+    // stale-holder release (16 → 18, order cleared); the shipper is told the
+    // order moved on. When nothing is available, the order stays retained on
+    // the 16-entry for the first driver's late accept.
+    await notifyShipperOfQueueEvent({
+      executor,
+      shipperRequestUniqueId: entry.shipperRequestUniqueId,
+      messageType: "queue_order_reoffered",
+      message: next.offered
+        ? "The driver did not respond in time; your order was passed to the next driver."
+        : "The driver did not respond in time. The order stays available for your reserved queue; you will be notified once a driver accepts.",
     });
     advanced.push({ queueUniqueId: entry.queueUniqueId, ...next });
   }
@@ -3480,7 +3794,7 @@ exports.getEntryHistory = async (queueUniqueId, user) => {
   }
 
   const [history] = await executor.query(
-    `SELECT historyUniqueId, columnName, oldValue, performedBy, performedAt
+    `SELECT historyUniqueId, columnName, oldValue, newValue, performedBy, performedAt
      FROM DriverQueueHistory
      WHERE queueUniqueId = ?
      ORDER BY performedAt DESC`,

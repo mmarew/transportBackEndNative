@@ -9,6 +9,72 @@ const { getData } = require("../CRUD/Read/ReadData");
 const { notifyQueueOrgAdmins } = require("../Utils/QueueSocket");
 const { sendQueueOrganizationCreatedAlert } = require("../Utils/TelegramNotifier");
 
+const listActingUserRoles = async (userUniqueId) => {
+  const [roles] = await db().query(
+    "SELECT roleId FROM UserRole WHERE userUniqueId = ?",
+    [userUniqueId],
+  );
+  return roles.map((r) => r.roleId);
+};
+
+const isPrivilegedActingUser = async (userUniqueId) => {
+  const roles = await listActingUserRoles(userUniqueId);
+  return roles.some(
+    (roleId) =>
+      roleId === usersRoles.adminRoleId || roleId === usersRoles.supperAdminRoleId,
+  );
+};
+
+const isActiveQueueOrgAdminMember = async (queueOrganizationUniqueId, userUniqueId) => {
+  const [rows] = await db().query(
+    `SELECT queueOrganizationMembershipUniqueId
+     FROM QueueOrganizationMembership
+     WHERE queueOrganizationUniqueId = ?
+       AND userUniqueId = ?
+       AND isActive = 1
+       AND membershipDeletedAt IS NULL
+     LIMIT 1`,
+    [queueOrganizationUniqueId, userUniqueId],
+  );
+  return rows.length > 0;
+};
+
+// Member-management guard: platform admins (roles 3/6) can manage any org's
+// members; a QueueOrgAdmin (11) can only manage members of an org they belong
+// to as an active member.
+const assertCanManageMembers = async (queueOrganizationUniqueId, actingUserUniqueId) => {
+  if (await isPrivilegedActingUser(actingUserUniqueId)) return;
+  if (await isActiveQueueOrgAdminMember(queueOrganizationUniqueId, actingUserUniqueId)) {
+    return;
+  }
+  throw new AppError(
+    "You can only manage members of a queue organization you belong to",
+    AppError.FORBIDDEN,
+  );
+};
+
+// Lifecycle guard: fetches the active membership row and asserts it belongs to
+// the queue organization named in the route.
+const assertMembershipBelongsToOrg = async (queueOrganizationUniqueId, membershipUniqueId) => {
+  const [rows] = await db().query(
+    `SELECT queueOrganizationMembershipUniqueId, queueOrganizationUniqueId,
+            userUniqueId, roleId
+     FROM QueueOrganizationMembership
+     WHERE queueOrganizationMembershipUniqueId = ? AND membershipDeletedAt IS NULL`,
+    [membershipUniqueId],
+  );
+  if (rows.length === 0) {
+    throw new AppError("Membership not found", AppError.NOT_FOUND);
+  }
+  if (rows[0].queueOrganizationUniqueId !== queueOrganizationUniqueId) {
+    throw new AppError(
+      "Membership does not belong to this queue organization",
+      AppError.BAD_REQUEST,
+    );
+  }
+  return rows[0];
+};
+
 /**
  * Create a QueueOrganization and auto-assign the creator as its QueueOrgAdmin
  * (role 11), mirroring TransportCompany → owner.
@@ -426,6 +492,9 @@ exports.addMember = async (
     throw new AppError("Queue organization not found", AppError.NOT_FOUND);
   }
 
+  // Acting user must be an active member of the org (or a platform admin).
+  await assertCanManageMembers(queueOrganizationUniqueId, userId);
+
   const [user] = await getData({
     tableName: "Users",
     conditions: { userUniqueId },
@@ -476,17 +545,147 @@ exports.addMember = async (
 };
 
 /**
- * List active members of a queue organization.
+ * List queue organization members.
+ * @param {string} queueOrganizationUniqueId
+ * @param {object} [query] - Optional filters: roleId (1 shipper / 11 queueOrgAdmin),
+ *                           isActive (boolean)
+ * @param {object} [user] - Acting user. Platform admins (3/6) see any org;
+ *                          QueueOrgAdmin (11) must be an active member of the org.
  */
-exports.getMembers = async (queueOrganizationUniqueId) => {
+exports.getMembers = async (queueOrganizationUniqueId, query = {}, user = {}) => {
+  await assertCanManageMembers(queueOrganizationUniqueId, user.userUniqueId);
+
+  const filters = [];
+  const params = [queueOrganizationUniqueId];
+  if (typeof query.roleId !== "undefined" && query.roleId !== null) {
+    filters.push("qm.roleId = ?");
+    params.push(query.roleId);
+  }
+  if (typeof query.isActive !== "undefined" && query.isActive !== null) {
+    filters.push("qm.isActive = ?");
+    params.push(query.isActive ? 1 : 0);
+  }
+  const whereSql = [
+    "qm.queueOrganizationUniqueId = ?",
+    "qm.membershipDeletedAt IS NULL",
+    ...filters,
+  ].join(" AND ");
+
   const [rows] = await db().query(
-    `SELECT qm.queueOrganizationMembershipUniqueId, qm.userUniqueId, qm.roleId,
-            qm.isActive, qm.membershipStartDate, u.fullName, u.phoneNumber
+    `SELECT qm.queueOrganizationMembershipUniqueId, qm.queueOrganizationUniqueId,
+            qm.userUniqueId, qm.roleId, qm.isActive,
+            qm.membershipStartDate, qm.membershipEndDate,
+            u.fullName, u.phoneNumber, u.email
      FROM QueueOrganizationMembership qm
      JOIN Users u ON qm.userUniqueId = u.userUniqueId
-     WHERE qm.queueOrganizationUniqueId = ? AND qm.membershipDeletedAt IS NULL
+     WHERE ${whereSql}
      ORDER BY qm.membershipCreatedAt ASC`,
-    [queueOrganizationUniqueId],
+    params,
   );
   return { message: "Query results fetched", data: rows };
+};
+
+/**
+ * Reactivate a queue-org membership (customer or co-admin).
+ */
+exports.activateQueueMember = async (
+  queueOrganizationUniqueId,
+  queueOrganizationMembershipUniqueId,
+  updatedBy,
+) => {
+  const membership = await assertMembershipBelongsToOrg(
+    queueOrganizationUniqueId,
+    queueOrganizationMembershipUniqueId,
+  );
+  await assertCanManageMembers(queueOrganizationUniqueId, updatedBy);
+
+  await db().query(
+    `UPDATE QueueOrganizationMembership
+     SET isActive = 1, membershipEndDate = NULL,
+         membershipUpdatedBy = ?, membershipUpdatedAt = ?
+     WHERE queueOrganizationMembershipUniqueId = ?`,
+    [updatedBy, currentDate(), queueOrganizationMembershipUniqueId],
+  );
+
+  notifyQueueOrgAdmins({
+    queueOrganizationUniqueId,
+    messageType: "queue_member_activated",
+    message: {
+      queueOrganizationUniqueId,
+      userUniqueId: membership.userUniqueId,
+      roleId: membership.roleId,
+    },
+  });
+
+  return { message: "Member activated successfully", data: null };
+};
+
+/**
+ * Deactivate a queue-org membership (customer or co-admin). The membership is
+ * kept for history, so the user can be reactivated later.
+ */
+exports.deactivateQueueMember = async (
+  queueOrganizationUniqueId,
+  queueOrganizationMembershipUniqueId,
+  updatedBy,
+) => {
+  const membership = await assertMembershipBelongsToOrg(
+    queueOrganizationUniqueId,
+    queueOrganizationMembershipUniqueId,
+  );
+  await assertCanManageMembers(queueOrganizationUniqueId, updatedBy);
+
+  await db().query(
+    `UPDATE QueueOrganizationMembership
+     SET isActive = 0, membershipEndDate = ?,
+         membershipUpdatedBy = ?, membershipUpdatedAt = ?
+     WHERE queueOrganizationMembershipUniqueId = ?`,
+    [currentDate(), updatedBy, currentDate(), queueOrganizationMembershipUniqueId],
+  );
+
+  notifyQueueOrgAdmins({
+    queueOrganizationUniqueId,
+    messageType: "queue_member_deactivated",
+    message: {
+      queueOrganizationUniqueId,
+      userUniqueId: membership.userUniqueId,
+      roleId: membership.roleId,
+    },
+  });
+
+  return { message: "Member deactivated successfully", data: null };
+};
+
+/**
+ * Soft-delete a queue-org membership (removes customer / co-admin entirely).
+ */
+exports.deleteQueueMember = async (
+  queueOrganizationUniqueId,
+  queueOrganizationMembershipUniqueId,
+  deletedBy,
+) => {
+  const membership = await assertMembershipBelongsToOrg(
+    queueOrganizationUniqueId,
+    queueOrganizationMembershipUniqueId,
+  );
+  await assertCanManageMembers(queueOrganizationUniqueId, deletedBy);
+
+  await db().query(
+    `UPDATE QueueOrganizationMembership
+     SET isActive = 0, membershipDeletedAt = ?, membershipDeletedBy = ?
+     WHERE queueOrganizationMembershipUniqueId = ?`,
+    [currentDate(), deletedBy, queueOrganizationMembershipUniqueId],
+  );
+
+  notifyQueueOrgAdmins({
+    queueOrganizationUniqueId,
+    messageType: "queue_member_deleted",
+    message: {
+      queueOrganizationUniqueId,
+      userUniqueId: membership.userUniqueId,
+      roleId: membership.roleId,
+    },
+  });
+
+  return { message: "Member deleted successfully", data: null };
 };

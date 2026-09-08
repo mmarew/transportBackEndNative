@@ -35,7 +35,7 @@ line is corrected.
 | ------------------------------------------------------------------------------------- | -------------------------------------------------------- |
 | Driver rejects offer (pre-accept)                                                     | Order → next driver; driver keeps position; entry `notagreed`;`count += 1`  |
 | Driver cancels AFTER accepting (was `agreed`, then `cancelledByDriver` 12)             | Entry closed (soft-deleted, forfeits slot); `count += 1`; order advances FIFO — see [queue-order-cancellation.md](queue-order-cancellation.md) §3.5 |
-| Driver times out (3 min)                                                              | Order → next driver; driver keeps position; entry `notagreed`;`count += 1`  |
+| Driver times out (3 min) — no answer                                                   | Entry → `no_answer_from_driver`(16), **order retained** while nobody else takes it (late accept still honoured); `count += 1`; order advances to the next driver when one is available |
 | Shipper rejects the driver's quoted price (agreement rejection)                       | Order → next driver; driver keeps position; entry `notagreed`;`count += 1`  |
 | Job cancelled by shipper / platform admin /**queue org admin** / system (whole order) | Entry released to`waiting`, position kept; **no count**  |
 | `count` reaches N                                                                     | Driver moves to back of line;`count = 0`                 |
@@ -61,10 +61,12 @@ automatically on a refusal.
 
 ## 3. Mechanics (today, unchanged)
 
-Today's engine already implements the baseline. Refusals and timeouts go through
-the same exit: the `DriverQueue` entry returns to `waiting`, the order advances.
-The only change vs. today is **who increments the counter** (§4.1) — the advance
-mechanics stay exactly as they are.
+Today's engine already implements the baseline. Pre-accept refusals (reject /
+shipper price-reject) go through the same exit: the `DriverQueue` entry returns
+to `waiting` and the order advances. The timeout path is the one divergence: the
+entry moves to retained `no_answer`(16) instead of `waiting` (see §3.1). The only
+change vs. today is **who increments the counter** (§4.1) and **where a timeout
+leaves the entry** — the advance mechanics otherwise stay exactly as they are.
 
 ```
 Driver-side reject (POST /api/driverRequest/actionCancelDriverRequest)
@@ -87,8 +89,12 @@ Shipper-side price rejection (POST /api/shipperRequest/actionReject)
        offerToNextDriver(afterQueueNumber)  → offer to next driver, same vehicle type
 
 Background timeout scan  (QUEUE_OFFER_WINDOW_MINUTES = 3)
-  → expired offers: JourneyDecision → noAnswerFromDriver (16), entry → waiting,
-    applyRefusalPolicy → count += 1, advance
+  → expired offers: JourneyDecision → noAnswerFromDriver (16), entry → no_answer(16)
+    with the ORDER RETAINED, applyRefusalPolicy → count += 1
+    → offerToNextDriver(...): next driver found  → stale holder released (16 → 18,
+      order detached) — the first driver's late accept is then REJECTED (409)
+    → no next driver                    → order stays on the 16 entry — the first
+      driver's late accept is HONOURED (entry 16 → agreed)
 ```
 
 Whole-job cancellation is **not** a reject path: it goes to
@@ -102,7 +108,7 @@ Statuses in play (see `Utils/ListOfSeedData.js` `journeyStatusMap`):
 | 2   | requested          | offer currently held by a driver           |
 | 11  | rejectedByShipper  | shipper rejected the driver's quoted price |
 | 12  | cancelledByDriver  | driver cancelled AFTER accepting (`cancelled_after_accept`) |
-| 16  | noAnswerFromDriver | offer window expired (timeout)             |
+| 16  | noAnswerFromDriver | offer window expired; entry retained at front with the order while no next driver takes it (late accept still honoured) |
 | 18  | rejectedByDriver   | driver declined the incoming offer (pre-accept) |
 
 ## 4. New rule — move-to-back after N
@@ -120,8 +126,11 @@ not:
      the driver quoted their own price and did not close at the shipper's terms —
      the line had to move past them.
 2. The **timeout scan** (implicit reject) — same dispatch impact, counted the
-   same. Rationale: from the line's perspective a silent driver blocks the front
-   exactly like a declining one.
+   same, but the entry transitions to **`no_answer`(16) and keeps the order**
+   instead of returning to `waiting`. Rationale: from the line's perspective a
+   silent driver blocks the front exactly like a declining one, but the trade
+   must not strand the client's cargo — so the order rides on the retained 16
+   entry until the next driver takes it (or the first driver late-accepts).
 
 **Not counted:** whole-job cancellation (shipper / platform admin / **queue org
 admin** / system cancel — `releaseEntryOnOrderCancel`), and admin manual
@@ -177,27 +186,45 @@ driver, that day).
                  ┌──────────┐   offer (createQueueOffer)
                  │  waiting │ ─────────────────────────► ┌────────────┐
                  └──────────┘                            │  requested │
-                     ▲   ▲                               └────────────┘
-                     │   │                                    │
-   release on         │   │  reject/timeout/price-reject:     │  driver accepts
-   whole-job cancel   │   │    status → notagreed,            │  (markEntryAgreed)
-   (no count)         │   │    count += 1;                    │
+                     ▲   ▲                               └─────┬──────┘
+                     │   │                                     │
+   release on         │   │  reject / price-reject:           │★ timeout
+   whole-job cancel   │   │    status → notagreed,            │ (no answer,
+   (no count)         │   │    count += 1;                    │ order RETAINED)
                      │   │    count == N → queueNumber        │
-                     │   │    = MAX+1, count = 0              │
-                     │   └─────── (order advances)            ▼
-                     │                                    ┌────────────┐
-    re-check-in      │   notagreed ──offer──► requested  │   agreed   │ (left the
-    (revive,         └──────────(moved to back)─────────►│            │  line)
-    count = 0)                                           └────────────┘
+                     │   │    = MAX+1, count = 0              ▼
+                     │   └─────── (order advances)      ┌──────────────┐
+                     │                                │  no_answer(16) │
+     re-check-in      │   notagreed ──offer──► posted │   count += 1   │
+     (revive,         └──────────(moved to back)──── │ order rides     │
+     count = 0)                                       └──────┬─────────┘
+                                                            │ offerToNextDriver
+                                                            │  ┌──────────────────────┐
+                                                            │  │ next driver found:   │
+                                                            │  │ stale holder 16 → 18,│
+                                                            │  │ order detached, late │
+                                                            │  │ accept → 409 reject  │
+                                                            │  └──────────────────────┘
+                                                            │  next driver none:
+                                                            │  first driver's late
+                                                            ▼  accept → 16 → AGREED
+                                                       (driver accepts → agreed)
+                       ┌────────────┐
+                       │   agreed   │ (left the line; count moot)
+                       └────────────┘
 ```
 
 Rules:
 
-- Rejection / timeout / price-reject: `requested → notagreed`, `count += 1`; on
+- Rejection / price-reject: `requested → notagreed`, `count += 1`; on
   `count == N` also `queueNumber = MAX+1` and `count = 0`.
-- Whole-job cancel: `requested → waiting`, position and count untouched
+- Timeout (no answer): `requested → no_answer(16)`, `count += 1`, **order
+  retained**; advances only when a next driver takes it (also `count == N`
+  move-to-back applies).
+- Whole-job cancel: `requested/no_answer → waiting`, position and count untouched
   (see [queue-order-cancellation.md](queue-order-cancellation.md)).
-- Accept: `requested → agreed` (leaves the line; count is moot).
+- Accept: `requested` **or** retained `no_answer` → `agreed` (leaves the line;
+  count is moot). A stale accept (order already reassigned) → 409.
 - A `notagreed` entry is re-eligible: the next offer picks it back up
   (`notagreed → requested`).
 - Re-check-in revives a previous entry with `count = 0` and a new back position.
@@ -241,7 +268,7 @@ Queue dispatch writes:
 | #   | Check                                                                     | Pass criteria                                                                                                                   |
 | --- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | Driver rejects offer                                                      | `queueRefusalCount` increments; entry `notagreed` (position kept); order offered to next driver                                             |
-| 2   | Driver times out (3 min)                                                  | Same as#1 via `releaseExpiredOffers` scan                                                                                       |
+| 2   | Driver times out (3 min)                                                  | Entry → `no_answer`(16) with order retained; `count += 1`; order advances only when a next driver takes it (late accept honoured / rejected per the decision table in [queue-dispatch-design.md](queue-dispatch-design.md))                                                                                       |
 | 3   | Shipper rejects driver's price                                            | `JourneyDecision = rejectedByShipper(11)`; `queueRefusalCount` increments                                                        |
 | 4   | Whole-job cancel (shipper / platform admin /**queue org admin** / system) | Entry released to`waiting`, position kept, **count unchanged** — see [queue-order-cancellation.md](queue-order-cancellation.md) |
 | 5   | `count == N`                                                              | Entry moves to back (`queueNumber = MAX+1`), `count = 0`, admin notified `queue_refusal_moved_to_back`                          |

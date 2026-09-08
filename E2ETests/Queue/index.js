@@ -22,6 +22,7 @@ const { runLoadingStagesTests } = require("./verifyLoadingStages");
 const { runQueueHistoryTests } = require("./QueueHistory");
 const { runReceiptPodTests } = require("../ReceiptPod");
 const { runActiveTransferTests } = require("./ActiveTransfer");
+const { runTimeoutReofferTests } = require("./TimeoutReoffer");
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
@@ -96,6 +97,7 @@ const runQueueTests = async ({ reset = true, silent = false } = {}) => {
   await runQueueHistoryTests();
   await runReceiptPodTests();
   await runActiveTransferTests();
+  await runTimeoutReofferTests();
 
   await testTQ04SoftDelete();
   await cleanupFenceOrg();

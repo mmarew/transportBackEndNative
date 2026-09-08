@@ -102,14 +102,51 @@ router.post(
 
 /**
  * @route   GET /api/queueOrganization/:queueOrganizationUniqueId/members
- * @desc    List queue organization members
- * @access  Private (Admin / SuperAdmin / QueueOrgAdmin)
+ * @desc    List queue organization members (filter by roleId / isActive)
+ * @access  Private (Admin / SuperAdmin / QueueOrgAdmin of that org)
  */
 router.get(
   "/:queueOrganizationUniqueId/members",
   verifyIfUserIsQueueOrgAdmin,
   validator(schema.queueOrgParams, "params"),
+  validator(schema.getMembersQuery, "query"),
   controller.getMembers,
+);
+
+/**
+ * @route   PATCH /api/queueOrganization/:queueOrganizationUniqueId/members/:queueOrganizationMembershipUniqueId/reactivate
+ * @desc    Reactivate a deactivated member (shipper customer / co-admin)
+ * @access  Private (Admin / SuperAdmin / QueueOrgAdmin of that org)
+ */
+router.patch(
+  "/:queueOrganizationUniqueId/members/:queueOrganizationMembershipUniqueId/reactivate",
+  verifyIfUserIsQueueOrgAdmin,
+  validator(schema.memberLifecycleParams, "params"),
+  controller.activateMember,
+);
+
+/**
+ * @route   PATCH /api/queueOrganization/:queueOrganizationUniqueId/members/:queueOrganizationMembershipUniqueId/deactivate
+ * @desc    Deactivate a member (kept for history, re-activatable)
+ * @access  Private (Admin / SuperAdmin / QueueOrgAdmin of that org)
+ */
+router.patch(
+  "/:queueOrganizationUniqueId/members/:queueOrganizationMembershipUniqueId/deactivate",
+  verifyIfUserIsQueueOrgAdmin,
+  validator(schema.memberLifecycleParams, "params"),
+  controller.deactivateMember,
+);
+
+/**
+ * @route   DELETE /api/queueOrganization/:queueOrganizationUniqueId/members/:queueOrganizationMembershipUniqueId
+ * @desc    Soft-delete a member (removes them from the org entirely)
+ * @access  Private (Admin / SuperAdmin / QueueOrgAdmin of that org)
+ */
+router.delete(
+  "/:queueOrganizationUniqueId/members/:queueOrganizationMembershipUniqueId",
+  verifyIfUserIsQueueOrgAdmin,
+  validator(schema.memberLifecycleParams, "params"),
+  controller.deleteMember,
 );
 
 module.exports = router;

@@ -150,6 +150,21 @@ const acceptShipperRequest = async (body) => {
       );
     }
 
+    // QUEUE GATE (pre-journey): a queue order's offer must still be live for
+    // THIS driver before the Journey is created. If the offer window already
+    // expired (entry retained at no_answer/16) the FIRST (holding) driver may
+    // still late-accept while nobody else has taken the order — that is
+    // honoured here. If the order already moved to another driver (offer had
+    // been reassigned) or the entry is gone, this throws 409 BEFORE
+    // createJourney so no orphan Journey is ever produced.
+    if (isQueueOrder) {
+      const { assertQueueOfferAcceptable } = require("../DriverQueue.service");
+      await assertQueueOfferAcceptable({
+        shipperRequestUniqueId,
+        driverUserUniqueId: userUniqueId,
+      });
+    }
+
     // Validate current status allows accepting
     // Driver can only accept when JourneyDecisions status is 2 (requested)
     // If status is already 3 (acceptedByDriver) or higher, driver has already accepted or shipper has accepted

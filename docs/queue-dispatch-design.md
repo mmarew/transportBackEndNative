@@ -51,8 +51,11 @@ A **QueueOrganization record must exist first**; the queue is linked to it.
    Each row offered to FRONT driver of matching type only
      → JourneyDecision(requested) + notify that driver (entry `requested`)
    Accept → driver assigned (leave queue, marked agreed)
-   Reject/timeout (3 min) → order advances to next in line,
+   Reject (3 min) → order advances to next in line,
      rejected driver KEEPS position for the next order (entry `notagreed`)
+   Timeout (3 min) → order RETAINED on the silent driver's entry (16, `noAnswerFromDriver`)
+     → next driver found: holder released, order advances to him, late accept rejected
+     → no next driver:   order waits on the 16 entry; the first driver's late accept is HONOURED
 
 5. LOADING → JOURNEY
    Assigned driver travels to the site and loads
@@ -78,7 +81,7 @@ disputes (7).**
 | ------------------- | ------------------------------------------------------------------ |
 | Rejection behavior  | Driver **keeps position**; the _order_ advances to the next driver. Escalation: after **N** consecutive front-position refusals (default 3, `QUEUE_REFUSAL_LIMIT`) the driver moves to the back of the line — see [queue-refusal-policy.md](queue-refusal-policy.md) |
 | Queue scope / reset | Per**queue organization**, resets daily (`queueDate`)              |
-| Offer timeout       | **3 minutes** by default (`QUEUE_OFFER_WINDOW_MINUTES`, env-configurable), auto-advance the order on no response |
+| Offer timeout       | **3 minutes** by default (`QUEUE_OFFER_WINDOW_MINUTES`, env-configurable). On no response the entry is parked at `no_answer`(16) with the **order retained**; it advances only when the next driver takes it (late accept by the first driver is then rejected) or, if nobody takes it, the first driver's late accept is honoured |
 | On accept / load    | Driver is**removed from the queue** (marked `agreed`)              |
 | Order outlives the queue | Order created (or advanced to the end of the line) while no driver is waiting stays `waiting`; it is **auto-offered on the next driver check-in** (FIFO), not just via manual `POST /api/queue/dispatch` |
 
@@ -210,11 +213,13 @@ check-in inside a transaction: `COUNT(*) + 1` for that
 check-in ────────────────> waiting
 waiting ──offer──────────> requested   (ShipperRequest created + linked; 3-min timer starts)
 requested ──accept───────> agreed      (journey proceeds; entry removed from dispatch)
-requested ──reject───┐                  (keeps position; order advances — ShipperRequest goes to next driver)
-requested ──timeout──┴──> notagreed     (still in line, eligible for the next order)
+requested ──reject────────> notagreed  (keeps position; order advances — ShipperRequest goes to next driver)
+requested/no_answer ──timeout──> no_answer(16)   (order RETAINED on this entry entry; count += 1)
+no_answer ──next driver takes order──> notagreed (holder released 16→18, order detached; late accept → 409)
+no_answer ──no next driver──> stays 16            (first driver's late accept → 16→AGREED; honoured)
 notagreed ──offer───────> requested     (re-offered by a later order — same driver)
 waiting/notagreed ──checkout/override─> removed   (audit logged)
-requested ──whole-job cancel─────────> waiting    (keeps position; no refusal count)
+requested/no_answer/agreed/5/6/7/8 ──whole-job cancel──> waiting (pre-accept, no count) | closed (12, post-accept, no refusal count)
 agreed ──driver cancels job─────────> closed     (cancelledByDriver 12, soft-deleted, forfeits slot; refusal +1; order advances — §3.5)
 any ──accept... journey completes───> removed     (closeEntryOnJourneyCompletion)
 ```
@@ -230,13 +235,21 @@ any ──accept... journey completes───> removed     (closeEntryOnJourney
    (`requested`), and notify **only that driver** (driver contact via
    `VehicleDriver.driverUserUniqueId`).
 3. Start the offer timer (3 min). On:
-   - **accept** → entry `agreed` + journey proceeds normally;
+   - **accept** → guarded: the accept only lands if the entry is still in
+     `requested` **or** retained `no_answer`(16) **and** the caller is the entry's
+     holder (`markEntryAgreed` + a pre-journey gate in
+     `actionAcceptShipperRequest.service.js`). Otherwise 409 with no Journey side
+     effects. Accepted → entry `agreed`, journey proceeds normally.
    - **reject** → cancel that decision, **order advances** to the next-lowest
      number in that vehicle type's queue; the driver's entry stays `notagreed`
      (position kept, still eligible for the next order);
-   - **timeout** → treat as implicit reject (advance order, driver keeps
-     position, entry `notagreed`). Recommend notifying the silent driver that
-     they lost the order.
+   - **timeout** → decision `noAnswerFromDriver` (16), entry parked at
+     **`no_answer`(16) with the order retained** (NOT `waiting`), `count += 1`.
+     `offerToNextDriver` then moves the order only if a next matching driver is
+     available — at which point the stale 16 holder is released (16→18, order
+     detached) and any late accept from him is **rejected 409**. If no next
+     driver exists, the order stays on the 16 entry and the first driver's late
+     accept is **honoured** (16→`agreed`).
 4. The front driver always matches the order's vehicle type (each type has its own
    queue), so a mismatch can only occur if a driver's entry is stale — skip to the
    next matching driver in that type's queue.
@@ -254,7 +267,8 @@ any ──accept... journey completes───> removed     (closeEntryOnJourney
 A driver-side cancel is a **transfer**, not a kill (the job is still alive):
 
 - **Pre-accept reject** (`rejectedByDriver` 18) → `rejectOffer`: driver keeps
-  position, `count += 1`, order advances FIFO.
+  position, `count += 1`, order advances FIFO. Same path releases a **stale
+  `no_answer`(16) holder** the moment the order is passed to a next driver.
 - **Post-accept cancel** (`cancelledByDriver` 12) → `releaseQueueEntryAfterDriverCancel`:
   entry closed + soft-deleted (driver forfeits the slot and must re-check-in),
   refusal `count += 1`, order offered to the **next waiting driver** of the type;
@@ -262,6 +276,21 @@ A driver-side cancel is a **transfer**, not a kill (the job is still alive):
   waits for the next matching-type check-in.
 - **Non-queue (street / distance) orders** → nearest re-match via
   `handleWaitingRequest`; `DriverQueue` is never touched.
+
+### 7.2 Order released by the system — re-offer, not discard
+
+- **Checkout / driver release (`checkout`)** → if the released order is still
+  held by a queue entry (`requested` or retained `no_answer`), the order is
+  **re-offered to the next driver in line** (`offerToNextDriver`) instead of
+  being left to manual dispatch; the shipper is notified `queue_order_reoffered`,
+  and if the next driver takes it the stale holder is released (16→18). When no
+  driver is found the order goes to the first driver's retained queue order.
+- **Whole-job cancel (`releaseEntryOnOrderCancel`)** → pre-accept (`requested` /
+  `no_answer`) entries return to `waiting`, position kept, **no refusal count**;
+  post-accept entries (`agreed`/loading stages/journey started) are **closed** as
+  `cancelled_after_accept`(12) (no penalty — the shipper/admin cancelled the job),
+  and the driver is notified. See
+  [queue-order-cancellation.md](queue-order-cancellation.md).
 
 Full decision + verification: [queue-order-cancellation.md](queue-order-cancellation.md)
 §3.5 and [queue-refusal-policy.md](queue-refusal-policy.md).

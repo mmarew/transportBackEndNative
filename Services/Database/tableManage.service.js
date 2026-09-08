@@ -693,6 +693,9 @@ const SCHEMA_GAP_COLUMNS = {
     { name: "journeyCompletedByUser", ddl: "VARCHAR(36) NULL" },
     { name: "journeyProofOfLoading", ddl: "TEXT NULL" },
   ],
+  DriverQueueHistory: [
+    { name: "newValue", ddl: "VARCHAR(500) NULL" },
+  ],
 };
 
 const ensureSchemaColumnCompleteness = async (connection) => {

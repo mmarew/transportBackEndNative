@@ -75,6 +75,16 @@ exports.addMember = Joi.object({
   isActive: Joi.boolean().default(true).optional(),
 }).unknown(true);
 
+exports.getMembersQuery = Joi.object({
+  roleId: Joi.number().integer().valid(usersRoles.shipperRoleId, usersRoles.queueOrgAdminRoleId).optional(),
+  isActive: Joi.boolean().optional(),
+}).unknown(true);
+
+exports.memberLifecycleParams = Joi.object({
+  queueOrganizationUniqueId: uuidSchema.required(),
+  queueOrganizationMembershipUniqueId: uuidSchema.required(),
+});
+
 exports.memberParams = Joi.object({
   queueOrganizationUniqueId: uuidSchema.required(),
   userUniqueId: uuidSchema.required(),

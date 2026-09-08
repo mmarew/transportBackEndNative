@@ -289,6 +289,11 @@ const messageTypes = {
     details:
       "The front driver rejected or timed out; the order advances to the next driver in line.",
   },
+  queue_order_reoffered: {
+    message: "Queue order still open",
+    details:
+      "A driver left the line or the offer window expired; the order stays waiting for the next available driver (retained for the first driver's late accept when nobody else takes it).",
+  },
   queue_refusal_moved_to_back: {
     message: "Driver moved to back of queue",
     details:

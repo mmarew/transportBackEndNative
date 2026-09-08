@@ -101,8 +101,57 @@ exports.getMembers = async (req, res, next) => {
   try {
     ServerResponder(
       res,
-      await service.getMembers(req.params.queueOrganizationUniqueId),
+      await service.getMembers(
+        req.params.queueOrganizationUniqueId,
+        req.query,
+        req.user,
+      ),
     );
+  } catch (e) {
+    next(e);
+  }
+};
+
+exports.activateMember = async (req, res, next) => {
+  try {
+    const result = await executeInTransaction(() =>
+      service.activateQueueMember(
+        req.params.queueOrganizationUniqueId,
+        req.params.queueOrganizationMembershipUniqueId,
+        req.user.userUniqueId,
+      ),
+    );
+    ServerResponder(res, result);
+  } catch (e) {
+    next(e);
+  }
+};
+
+exports.deactivateMember = async (req, res, next) => {
+  try {
+    const result = await executeInTransaction(() =>
+      service.deactivateQueueMember(
+        req.params.queueOrganizationUniqueId,
+        req.params.queueOrganizationMembershipUniqueId,
+        req.user.userUniqueId,
+      ),
+    );
+    ServerResponder(res, result);
+  } catch (e) {
+    next(e);
+  }
+};
+
+exports.deleteMember = async (req, res, next) => {
+  try {
+    const result = await executeInTransaction(() =>
+      service.deleteQueueMember(
+        req.params.queueOrganizationUniqueId,
+        req.params.queueOrganizationMembershipUniqueId,
+        req.user.userUniqueId,
+      ),
+    );
+    ServerResponder(res, result);
   } catch (e) {
     next(e);
   }

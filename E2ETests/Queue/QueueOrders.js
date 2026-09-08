@@ -140,10 +140,10 @@ const testTQ16RepeatAcceptDenied = async () => {
     const ids = offerIds("queueDriver2");
     await expectStatus(
       rawAccept("queueDriver2", ids, 6000),
-      400,
+      409,
       "TQ-16 repeat accept",
     );
-    report.pass("TQ-16: repeat accept on accepted order denied (400)");
+    report.pass("TQ-16: repeat accept on accepted order denied (409 via offer gate)");
   } catch (error) {
     report.fail("TQ-16: repeat accept denied", error);
   }

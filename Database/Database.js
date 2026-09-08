@@ -2244,9 +2244,10 @@ CREATE TABLE IF NOT EXISTS QueueAuditLog (
 );
 
 -- DriverQueueHistory: column-level audit trail for DriverQueue mutations.
--- Each row records ONE column change on ONE queue entry. The current value
--- is always readable from DriverQueue itself; oldValue tells you what it was
--- BEFORE this change. Walk history backwards + read DriverQueue for full timeline.
+-- Each row records ONE column change on ONE queue entry. Storing both oldValue
+-- AND newValue makes every transition reconstructible — an action that touches
+-- two columns (e.g. status + shipperRequestUniqueId) writes two rows, so no
+-- change is ever hidden by a single-snapshot row.
 -- Columns tracked: queueNumber, status, targetedShipperUserUUID, shipperRequestUniqueId,
 -- requestedAt, agreedAt. Created by logQueueHistory() in DriverQueue.service.js.
 
@@ -2256,6 +2257,7 @@ CREATE TABLE IF NOT EXISTS DriverQueueHistory (
     queueUniqueId VARCHAR(36) NOT NULL,                         -- FK → DriverQueue (entry affected)
     columnName VARCHAR(50) NOT NULL,                            -- which column changed
     oldValue VARCHAR(500) NULL,                                 -- value BEFORE this change
+    newValue VARCHAR(500) NULL,                                 -- value AFTER this change
     performedBy VARCHAR(36) NOT NULL,                           -- FK → Users (who made the change)
     performedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_dqh_queue (queueUniqueId),

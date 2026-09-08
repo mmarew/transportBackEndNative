@@ -302,13 +302,19 @@ const testTQ37TargetedDispatch = async () => {
     // ── Reset d1 to a fresh targetable `waiting` entry through the proven
     // product flows (TQ-33 manual check-in + TQ-35 remove + admin cancel):
     //   1. admin-cancel O_M → the accepted journey ends cleanly
-    //   2. remove the stale `agreed` entry (queue-admin) 
+    //   2. remove the stale `agreed` entry (queue-admin) — best-effort: the
+    //      post-accept cancel already closes (12) + soft-deletes the agreed
+    //      entry, so removal is only needed when it somehow survives
     //   3. manual re-check-in → brand-new `waiting` entry with a clean waiting
     //      DriverRequest. No pending type-A order exists at this point, so the
     //      check-in auto-dispatch has nothing to steal.
     // ──
     await cancelOrder({ orderUniqueId: queueState.adminOps.oMUniqueId, cancelAs: "admin" });
-    await removeEntry(d1Entry.queueUniqueId, qadminToken());
+    try {
+      await removeEntry(d1Entry.queueUniqueId, qadminToken());
+    } catch (error) {
+      if (error?.response?.status !== 404) throw error;
+    }
     await manualCheckin(ORG(), "queueDriver1", qadminToken());
     const waitingEntry = await entryOf("queueDriver1");
     if (!waitingEntry || waitingEntry.status !== 1) {
