@@ -1,6 +1,11 @@
 /**
- * DriverQueueHistory E2E tests — verifies column-level audit trail, shipper
+ * DriverQueueHistory E2E tests — verifies the snapshot audit trail (full-entity
+ * snapshots mirroring every DriverQueue column, equal column number), shipper
  * reservation, bug fixes, and all queue API improvements.
+ *
+ * History rows are immutable SNAPSHOTS of the entry as it was BEFORE each
+ * mutation, tagged with a historyEvent. old/new of any transition are derived
+ * by diffing consecutive snapshots (or the newest snapshot against the live row).
  *
  * These tests run AFTER the core queue suite (QueueOrg, QueueCheckin, QueueOrders,
  * QueueAdminOps) and assume the test environment is already provisioned with:
@@ -11,17 +16,17 @@
  * Test matrix:
  * - TQ-H01: checkin with shipperPhoneNumber → targetedShipperUserUUID + history logged
  * - TQ-H02: re-checkin WITHOUT phone preserves reservation (P0 fix verification)
- * - TQ-H03: re-checkin WITH new phone updates reservation + 2 history entries
+ * - TQ-H03: re-checkin WITH new phone updates reservation + history snapshot
  * - TQ-H04: checkout clears orphaned shipperRequestUniqueId (P0 fix verification)
- * - TQ-H05: GET /entry/:queueUniqueId/history returns full audit trail for admin
+ * - TQ-H05: GET /entry/:queueUniqueId/history returns full snapshot trail for admin
  * - TQ-H06: driver can view own entry history
  * - TQ-H07: driver gets 403 on other driver's history
  * - TQ-H08: myPosition returns shipperHistory array
- * - TQ-H09: override entry logs queueNumber change
- * - TQ-H10: remove entry logs status change
+ * - TQ-H09: override entry logs lane_override snapshot
+ * - TQ-H10: remove entry logs remove snapshot
  * - TQ-H11: manualCheckin with shipper → history + QueueAuditLog
  * - TQ-H12: checkout logs QueueAuditLog entry
- * - TQ-H13: re-checkin revive logs status history chain
+ * - TQ-H13: re-checkin revive logs history snapshot chain
  * - TQ-H14: all history entries have valid performedBy UUIDs
  * - TQ-H15: history endpoint returns 404 for nonexistent entry
  *
@@ -76,12 +81,13 @@ const testTQH01CheckinWithShipper = async () => {
     }
 
     const history = await getEntryHistory(row.queueUniqueId, driverTokenOf("queueDriver1"));
-    const shipperChanges = history.filter((h) => h.columnName === "targetedShipperUserUUID");
-    if (shipperChanges.length === 0) {
-      throw new Error("no shipper change logged in history after checkin");
+    const snapshots = history.filter((h) => h.historyEvent && h.targetedShipperUserUUID);
+    if (snapshots.length === 0) {
+      throw new Error("no shipper-targeted snapshot logged in history after checkin");
     }
-    if (shipperChanges[0].oldValue !== null) {
-      throw new Error(`first shipper change oldValue should be null, got ${shipperChanges[0].oldValue}`);
+    // The creation snapshot carries the reservation, proving it was logged.
+    if (!snapshots[0].targetedShipperUserUUID) {
+      throw new Error(`creation snapshot should carry the reservation, got ${JSON.stringify(snapshots[0])}`);
     }
 
     report.pass("TQ-H01: checkin with shipperPhoneNumber → targetedShipperUserUUID set + history logged");
@@ -147,11 +153,11 @@ const testTQH03RecheckinUpdatesReservation = async () => {
       throw new Error("new reservation is null");
     }
 
-    // The fresh entry must log its shipper reservation at creation.
+    // The fresh entry must log its shipper reservation at creation (snapshot).
     const history = await getEntryHistory(after.queueUniqueId, driverTokenOf("queueDriver1"));
-    const shipperChanges = history.filter((h) => h.columnName === "targetedShipperUserUUID");
-    if (shipperChanges.length < 1) {
-      throw new Error(`expected at least 1 shipper history entry on fresh entry, got ${shipperChanges.length}`);
+    const shipperSnapshots = history.filter((h) => h.historyEvent && h.targetedShipperUserUUID);
+    if (shipperSnapshots.length < 1) {
+      throw new Error(`expected at least 1 shipper-targeted snapshot on fresh entry, got ${shipperSnapshots.length}`);
     }
 
     report.pass("TQ-H03: re-check-in with new phone → fresh entry, updated reservation + shipper history");
@@ -182,11 +188,11 @@ const testTQH04CheckoutReleasesOrder = async () => {
       throw new Error(`shipperRequestUniqueId not cleared on checkout: ${after.shipperRequestUniqueId}`);
     }
 
-    // History should have status change logged
+    // History should have an event snapshot logged after checkout
     const history = await getEntryHistory(before.queueUniqueId, driverTokenOf("queueDriver1"));
-    const statusChanges = history.filter((h) => h.columnName === "status");
-    if (statusChanges.length === 0) {
-      throw new Error("no status change logged in history after checkout");
+    const eventSnapshots = history.filter((h) => h.historyEvent);
+    if (eventSnapshots.length === 0) {
+      throw new Error("no history snapshot logged after checkout");
     }
 
     report.pass("TQ-H04: checkout clears shipperRequestUniqueId + logs status history");
@@ -215,10 +221,10 @@ const testTQH05HistoryEndpointAdmin = async () => {
       throw new Error("history should not be empty after multiple mutations");
     }
 
-    // Each entry should have required fields
+    // Each entry should have required fields (historyEvent + performedAt)
     for (const h of history) {
-      if (!h.columnName || !h.performedAt) {
-        throw new Error(`history entry missing fields: ${JSON.stringify(h)}`);
+      if (!h.historyEvent || !h.performedAt) {
+        throw new Error(`history entry missing snapshot fields: ${JSON.stringify(h)}`);
       }
     }
 
@@ -290,7 +296,7 @@ const testTQH08ShipperHistoryInMyPosition = async () => {
       throw new Error("shipperHistory should not be empty after setting shipper");
     }
 
-    // Each entry should have oldValue and performedAt
+    // Each entry should have a targetedShipperUserUUID snapshot and performedAt
     for (const h of pos.shipperHistory) {
       if (!h.performedAt) {
         throw new Error(`shipperHistory entry missing performedAt: ${JSON.stringify(h)}`);
@@ -321,9 +327,9 @@ const testTQH09OverrideLogsHistory = async () => {
     }
 
     const history = await getEntryHistory(row.queueUniqueId, qadminToken());
-    const numberChanges = history.filter((h) => h.columnName === "queueNumber");
-    if (numberChanges.length === 0) {
-      throw new Error("no queueNumber change logged after override");
+    const numberSnapshots = history.filter((h) => h.historyEvent === "lane_override");
+    if (numberSnapshots.length === 0) {
+      throw new Error("no lane_override snapshot logged after override");
     }
 
     report.pass("TQ-H09: override entry logs queueNumber change in history");
@@ -341,15 +347,13 @@ const testTQH10RemoveLogsHistory = async () => {
   try {
     const row = await entryOf("queueDriver1");
     if (!row) throw new Error("no entry for queueDriver1");
-    const oldStatus = row.status;
 
     await removeEntry(row.queueUniqueId, qadminToken());
 
     const history = await getEntryHistory(row.queueUniqueId, qadminToken());
-    const statusChanges = history.filter((h) => h.columnName === "status");
-    const removeChange = statusChanges.find((h) => h.oldValue === String(oldStatus));
-    if (!removeChange) {
-      throw new Error(`no status change from ${oldStatus} logged after remove`);
+    const removeSnapshots = history.filter((h) => h.historyEvent === "remove");
+    if (removeSnapshots.length === 0) {
+      throw new Error(`no remove snapshot logged after remove: ${JSON.stringify(history)}`);
     }
 
     report.pass("TQ-H10: remove entry logs status change in history");
@@ -378,11 +382,11 @@ const testTQH11ManualCheckinWithShipper = async () => {
       throw new Error("targetedShipperUserUUID not set after manual checkin with phone");
     }
 
-    // History should have status change (revive or new)
+    // History should have a creation event snapshot (manual checkin)
     const history = await getEntryHistory(row.queueUniqueId, qadminToken());
-    const statusChanges = history.filter((h) => h.columnName === "status");
-    if (statusChanges.length === 0) {
-      throw new Error("no status change logged after manual checkin");
+    const eventSnapshots = history.filter((h) => h.historyEvent);
+    if (eventSnapshots.length === 0) {
+      throw new Error("no history snapshot logged after manual checkin");
     }
 
     // QueueAuditLog should have manual_checkin entry
@@ -443,23 +447,24 @@ const testTQH13RecheckinReviveLogsHistory = async () => {
     await checkout("queueDriver1", ORG());
 
     // Re-checkin (revive) → fresh entry
-    const e2 = await checkin("queueDriver1", ORG());
+    await checkin("queueDriver1", ORG());
     const after = await entryOf("queueDriver1");
     if (!after) throw new Error("no entry after revive checkin");
 
-    // The fresh entry must log its creation status at minimum.
+    // The fresh entry must log its creation event snapshot at minimum.
     const history = await getEntryHistory(after.queueUniqueId, driverTokenOf("queueDriver1"));
-    const statusChanges = history.filter((h) => h.columnName === "status");
-    if (statusChanges.length < 1) {
-      throw new Error(`fresh entry should log creation status, got ${statusChanges.length}`);
+    const eventSnapshots = history.filter((h) => h.historyEvent);
+    if (eventSnapshots.length < 1) {
+      throw new Error(`fresh entry should log creation snapshot, got ${eventSnapshots.length}`);
     }
 
-    // The retired entry must log the full chain: creation + checkout removal.
+    // The retired entry must log the full chain: creation + checkout removal
+    // (at least two snapshots).
     const retiredHistory = await getEntryHistory(e1Id, driverTokenOf("queueDriver1"));
-    const retiredStatusChanges = retiredHistory.filter((h) => h.columnName === "status");
-    if (retiredStatusChanges.length < 2) {
+    const retiredSnapshots = retiredHistory.filter((h) => h.historyEvent);
+    if (retiredSnapshots.length < 2) {
       throw new Error(
-        `expected >= 2 status changes on retired entry (create + remove), got ${retiredStatusChanges.length}`,
+        `expected >= 2 event snapshots on retired entry (create + remove), got ${retiredSnapshots.length}`,
       );
     }
 

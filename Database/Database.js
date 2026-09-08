@@ -1,4 +1,52 @@
 /* eslint-disable max-lines */
+
+// DriverQueueHistory: immutable SNAPSHOT audit trail for DriverQueue.
+// Each row stores the FULL DriverQueue entry as it was BEFORE one mutation — a
+// literal mirror of every DriverQueue column (equal column number) — plus a
+// `historyEvent` naming the mutation and audit provenance (performedBy/At).
+// Reconstruct any transition by diffing a snapshot row with the next snapshot
+// (or with the live DriverQueue row for the newest event). INSERT events
+// ('checkin', 'manual_checkin') store the just-created row, since there is no
+// prior state to capture. Replaces the former columnName/oldValue/newValue
+// pivot so no column is ever hidden and every row is self-describing.
+const driverQueueHistoryDdl = `
+CREATE TABLE IF NOT EXISTS DriverQueueHistory (
+    historyId INT AUTO_INCREMENT PRIMARY KEY,
+    historyUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    historyEvent VARCHAR(50) NOT NULL,                        -- what happened (checkin/recheckin/checkout/offer/accept/...)
+    -- ── snapshot — mirrors every DriverQueue column (equal column number) ──
+    queueId INT NULL,
+    queueUniqueId VARCHAR(36) NOT NULL,                       -- FK → DriverQueue (entry affected)
+    queueOrganizationUniqueId VARCHAR(36) NULL,
+    queueDate DATE NULL,
+    queueNumber INT NULL,
+    queueRefusalCount INT NULL,
+    vehicleDriverUniqueId VARCHAR(36) NULL,
+    shipperRequestUniqueId VARCHAR(36) NULL,
+    targetedShipperUserUUID VARCHAR(36) NULL,
+    driverLatitude DECIMAL(10, 8) NULL,
+    driverLongitude DECIMAL(11, 8) NULL,
+    joinedAt DATETIME NULL,
+    status INT NULL,
+    requestedAt DATETIME NULL,
+    agreedAt DATETIME NULL,
+    queueCreatedAt DATETIME NULL,
+    queueCreatedBy VARCHAR(36) NULL,
+    queueUpdatedAt DATETIME NULL,
+    queueUpdatedBy VARCHAR(36) NULL,
+    queueDeletedAt DATETIME NULL,
+    queueDeletedBy VARCHAR(36) NULL,
+    -- ── audit provenance ──
+    performedBy VARCHAR(36) NULL,                             -- FK → Users (who made the change)
+    performedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_dqh_org_date (queueOrganizationUniqueId, queueDate),
+    INDEX idx_dqh_queue (queueUniqueId),
+    INDEX idx_dqh_event (historyEvent),
+    INDEX idx_dqh_performedAt (performedAt),
+    FOREIGN KEY (queueUniqueId) REFERENCES DriverQueue(queueUniqueId),
+    FOREIGN KEY (performedBy) REFERENCES Users(userUniqueId)
+);`;
+
 const sqlQuery = `
 
 -- Ensure session defaults use InnoDB and utf8mb4 for all created tables
@@ -2243,28 +2291,15 @@ CREATE TABLE IF NOT EXISTS QueueAuditLog (
     FOREIGN KEY (performedBy) REFERENCES Users(userUniqueId)
 );
 
--- DriverQueueHistory: column-level audit trail for DriverQueue mutations.
--- Each row records ONE column change on ONE queue entry. Storing both oldValue
--- AND newValue makes every transition reconstructible — an action that touches
--- two columns (e.g. status + shipperRequestUniqueId) writes two rows, so no
--- change is ever hidden by a single-snapshot row.
--- Columns tracked: queueNumber, status, targetedShipperUserUUID, shipperRequestUniqueId,
--- requestedAt, agreedAt. Created by logQueueHistory() in DriverQueue.service.js.
+-- DriverQueueHistory: immutable SNAPSHOT audit trail for DriverQueue. Each row
+-- stores the FULL DriverQueue entry as it was BEFORE one mutation — a literal
+-- mirror of every DriverQueue column (equal column number) — plus a
+-- historyEvent naming the mutation and audit provenance (performedBy/At).
+-- Reconstruct any transition by diffing a snapshot with the next one (or with
+-- the live DriverQueue row for the newest event). INSERT events store the
+-- just-created row (there is no prior state). See driverQueueHistoryDdl.
 
-CREATE TABLE IF NOT EXISTS DriverQueueHistory (
-    historyId INT AUTO_INCREMENT PRIMARY KEY,
-    historyUniqueId VARCHAR(36) UNIQUE NOT NULL,
-    queueUniqueId VARCHAR(36) NOT NULL,                         -- FK → DriverQueue (entry affected)
-    columnName VARCHAR(50) NOT NULL,                            -- which column changed
-    oldValue VARCHAR(500) NULL,                                 -- value BEFORE this change
-    newValue VARCHAR(500) NULL,                                 -- value AFTER this change
-    performedBy VARCHAR(36) NOT NULL,                           -- FK → Users (who made the change)
-    performedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_dqh_queue (queueUniqueId),
-    INDEX idx_dqh_column (columnName),
-    FOREIGN KEY (queueUniqueId) REFERENCES DriverQueue(queueUniqueId),
-    FOREIGN KEY (performedBy) REFERENCES Users(userUniqueId)
-);
+${driverQueueHistoryDdl}
 
 -- DeliveryConfirmations: confirms that goods were actually delivered once a
 -- journey is completed. One confirmation per journey (UNIQUE on journeyUniqueId).
@@ -2361,4 +2396,4 @@ CREATE TABLE IF NOT EXISTS DeliveryConfirmationPhotos (
 );
 `;
 
-module.exports = { sqlQuery };
+module.exports = { sqlQuery, driverQueueHistoryDdl };

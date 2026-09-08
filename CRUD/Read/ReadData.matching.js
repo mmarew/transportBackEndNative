@@ -52,7 +52,11 @@ const findNearbyDrivers = async ({ shipperRequest }) => {
                  WHERE qvd.driverUserUniqueId = Users.userUniqueId
                    AND dq.queueOrganizationUniqueId = ?
                    AND dq.queueDate = ?
-                   AND dq.status IN (${journeyStatusMap.waiting}, ${journeyStatusMap.requested}, ${journeyStatusMap.rejectedByDriver})
+                   -- 'Queued' for bid-priority = FREE to take a bid: waiting, or
+                   -- rejectedByDriver (driver refused THIS order, is free again, and
+                   -- can bid on other orders). 'requested' is excluded: the driver
+                   -- is reserved for their current decision and must resolve it first.
+                   AND dq.status IN (${journeyStatusMap.waiting}, ${journeyStatusMap.rejectedByDriver})
                    AND dq.queueDeletedAt IS NULL
                 ) AS isQueued,
                 `

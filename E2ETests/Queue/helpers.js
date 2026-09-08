@@ -391,12 +391,14 @@ const buildQueueOrderPayload = ({
   numberOfVehicles = 1,
   shippableItemName = "Queue test cargo",
   shippingCost = 6000,
+  isBiddingApproved,
+  origin,
 }) => {
   const shippingDate = new Date();
   shippingDate.setDate(shippingDate.getDate() + 1);
   const deliveryDate = new Date();
   deliveryDate.setDate(deliveryDate.getDate() + 3);
-  return {
+  const payload = {
     shipperRequestBatchUniqueId: uuidv4(),
     numberOfVehicles,
     shippingDate: shippingDate.toISOString(),
@@ -406,13 +408,19 @@ const buildQueueOrderPayload = ({
     shippableItemName,
     requestMode: "individual_target",
     queueOrganizationUniqueId,
-    originLocation: { latitude: 9.03, longitude: 38.74, description: "Addis Ababa" },
+    originLocation: origin || { latitude: 9.03, longitude: 38.74, description: "Addis Ababa" },
     destination: { latitude: 8.54, longitude: 39.27, description: "Adama" },
     vehicle: { vehicleTypeUniqueId },
   };
+  // Bid-base placement: TRUE => the queue order is distance-matched (bidding
+  // board) and never FIFO-offered.
+  if (isBiddingApproved !== undefined) {
+    payload.isBiddingApproved = isBiddingApproved;
+  }
+  return payload;
 };
 
-const createQueueOrder = async ({ queueOrganizationUniqueId, vehicleTypeUniqueId, numberOfVehicles = 1, shippableItemName, shippingCost }) => {
+const createQueueOrder = async ({ queueOrganizationUniqueId, vehicleTypeUniqueId, numberOfVehicles = 1, shippableItemName, shippingCost, isBiddingApproved, origin }) => {
   const res = await axios.post(
     backendURL + SHIPPER_REQUEST_ENDPOINTS.CREATE_REQUEST,
     buildQueueOrderPayload({
@@ -421,6 +429,8 @@ const createQueueOrder = async ({ queueOrganizationUniqueId, vehicleTypeUniqueId
       numberOfVehicles,
       shippableItemName,
       shippingCost,
+      isBiddingApproved,
+      origin,
     }),
     authConfig(shipperToken()),
   );

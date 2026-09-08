@@ -55,6 +55,27 @@ const QUEUE_STATUS = {
   NO_ANSWER_FROM_DRIVER: journeyStatusMap.noAnswerFromDriver, // 16 (no-answer timeout; order retained while no next driver takes it)
   CANCELLED_BEFORE_ACCEPT: journeyStatusMap.rejectedByDriver, // 18 (kept position, still line)
 };
+// DriverQueueHistory.historyEvent vocabulary — names the mutation whose
+// pre-image snapshots are stored in the audit trail (snapshot mirror of
+// DriverQueue, equal column number).
+const HISTORY_EVENT = {
+  CHECKIN: "checkin",
+  RECHECKIN: "recheckin",
+  MANUAL_CHECKIN: "manual_checkin",
+  CHECKOUT: "checkout",
+  REMOVE: "remove",
+  LANE_OVERRIDE: "lane_override",
+  OFFER: "offer",
+  OFFER_REJECTED: "offer_rejected",
+  OFFER_TIMEOUT: "offer_timeout",
+  ACCEPT: "accept",
+  ORDER_CANCELLED: "order_cancelled",
+  DRIVER_CANCEL_AFTER_ACCEPT: "driver_cancel_after_accept",
+  JOURNEY_PROGRESS: "journey_progress",
+  JOURNEY_COMPLETED: "journey_completed",
+  REFUSAL: "refusal",
+  ADVANCE_RELEASE: "advance_release",
+};
 // Terminal ids — an entry is active (in line + eligible) only while its status
 // is one of the open ids below; anything terminal is a closed/historical row.
 const CLOSED_QUEUE_STATUSES = [
@@ -203,26 +224,33 @@ const resolveShipperUserByPhone = async (phoneNumber, createdBy) => {
 };
 
 /**
- * Column-level audit trail for DriverQueue. Logs a single column change.
- * Only stores oldValue — current value is always in DriverQueue itself.
- * No-op if oldValue === newValue (no actual change).
+ * Snapshot audit trail for DriverQueue. Called BEFORE a mutation (or right
+ * AFTER a row INSERT), it reads the entry's CURRENT full row and stores it as
+ * an immutable snapshot in DriverQueueHistory — a literal mirror of every
+ * DriverQueue column (equal column number) — tagged with the `event` that is
+ * about to happen. `oldValue` of the transition = the snapshot fields; the
+ * `newValue` = the next snapshot (or the live row for the newest event).
+ * No-ops silently if the entry no longer exists.
  */
-const logQueueHistory = async (
-  executor,
-  { queueUniqueId, columnName, oldValue, newValue, performedBy },
-) => {
-  if (oldValue === newValue) return;
+const logQueueHistory = async (executor, { queueUniqueId, event, performedBy }) => {
+  if (!queueUniqueId) return;
+  const [snapshot] = await executor.query(
+    `SELECT queueId, queueUniqueId, queueOrganizationUniqueId, queueDate, queueNumber,
+            queueRefusalCount, vehicleDriverUniqueId, shipperRequestUniqueId,
+            targetedShipperUserUUID, driverLatitude, driverLongitude, joinedAt, status,
+            requestedAt, agreedAt, queueCreatedAt, queueCreatedBy, queueUpdatedAt,
+            queueUpdatedBy, queueDeletedAt, queueDeletedBy
+     FROM DriverQueue WHERE queueUniqueId = ?`,
+    [queueUniqueId],
+  );
+  if (snapshot.length === 0) return;
   await createData(
     {
       tableName: "DriverQueueHistory",
       insertValues: {
         historyUniqueId: uuidv4(),
-        queueUniqueId,
-        columnName,
-        oldValue:
-          oldValue !== null && oldValue !== undefined ? String(oldValue) : null,
-        newValue:
-          newValue !== null && newValue !== undefined ? String(newValue) : null,
+        historyEvent: event,
+        ...snapshot[0],
         performedBy,
       },
     },
@@ -742,9 +770,7 @@ exports.checkin = async (data) => {
   if (atOrg) {
     await logQueueHistory(executor, {
       queueUniqueId: atOrg.queueUniqueId,
-      columnName: "status",
-      oldValue: atOrg.status,
-      newValue: QUEUE_STATUS.CANCELLED_AFTER_ACCEPT,
+      event: HISTORY_EVENT.RECHECKIN,
       performedBy: user.userUniqueId,
     });
     await updateData({
@@ -797,25 +823,13 @@ exports.checkin = async (data) => {
     throw error;
   }
 
-  // Column-level audit for the fresh entry: creation status + any shipper
-  // reservation applied at check-in. Without these, a brand-new entry has no
-  // history rows and the reservation is invisible to the audit trail.
+  // Audit for the fresh entry: creation status + any shipper reservation applied
+  // at check-in. One snapshot holds the entire created row.
   await logQueueHistory(executor, {
     queueUniqueId,
-    columnName: "status",
-    oldValue: null,
-    newValue: QUEUE_STATUS.WAITING,
+    event: HISTORY_EVENT.CHECKIN,
     performedBy: user.userUniqueId,
   });
-  if (preserveTarget) {
-    await logQueueHistory(executor, {
-      queueUniqueId,
-      columnName: "targetedShipperUserUUID",
-      oldValue: null,
-      newValue: preserveTarget,
-      performedBy: user.userUniqueId,
-    });
-  }
 
   // Check-in auto-offer: pair the oldest pending queue order of this driver's
   // vehicle type with the FRONT waiting driver (FIFO, one order per check-in).
@@ -958,12 +972,12 @@ exports.myPosition = async (queueOrganizationUniqueId, user) => {
   }
 
   const [shipperHistory] = await executor.query(
-    `SELECT h.oldValue, h.performedAt
+    `SELECT h.targetedShipperUserUUID, h.performedAt
      FROM DriverQueueHistory h
      JOIN DriverQueue dq ON dq.queueUniqueId = h.queueUniqueId
      JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
      WHERE vd.driverUserUniqueId = ? AND dq.queueOrganizationUniqueId = ? AND dq.queueDate = ?
-       AND h.columnName = 'targetedShipperUserUUID'
+       AND h.targetedShipperUserUUID IS NOT NULL
      ORDER BY h.performedAt DESC LIMIT 10`,
     [rows[0].driverUserUniqueId, orgId, queueDate],
   );
@@ -1087,20 +1101,9 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
 
   await logQueueHistory(executor, {
     queueUniqueId: rows[0].queueUniqueId,
-    columnName: "status",
-    oldValue: rows[0].status,
-    newValue: QUEUE_STATUS.CANCELLED_AFTER_ACCEPT,
+    event: HISTORY_EVENT.CHECKOUT,
     performedBy: user.userUniqueId,
   });
-  if (holdsOrder) {
-    await logQueueHistory(executor, {
-      queueUniqueId: rows[0].queueUniqueId,
-      columnName: "shipperRequestUniqueId",
-      oldValue: rows[0].shipperRequestUniqueId,
-      newValue: null,
-      performedBy: user.userUniqueId,
-    });
-  }
   await updateData({
     tableName: "DriverQueue",
     updateValues: {
@@ -1382,9 +1385,7 @@ exports.manualCheckin = async (data) => {
   if (atOrg) {
     await logQueueHistory(executor, {
       queueUniqueId: atOrg.queueUniqueId,
-      columnName: "status",
-      oldValue: atOrg.status,
-      newValue: QUEUE_STATUS.CANCELLED_AFTER_ACCEPT,
+      event: HISTORY_EVENT.RECHECKIN,
       performedBy: user.userUniqueId,
     });
     await updateData({
@@ -1435,24 +1436,13 @@ exports.manualCheckin = async (data) => {
     throw error;
   }
 
-  // Column-level audit for the fresh entry: creation status + any shipper
-  // reservation applied at manual check-in (mirrors `checkin`).
+  // Audit for the fresh entry: creation status + any shipper reservation applied
+  // at manual check-in (mirrors `checkin`). One snapshot holds the created row.
   await logQueueHistory(executor, {
     queueUniqueId,
-    columnName: "status",
-    oldValue: null,
-    newValue: QUEUE_STATUS.WAITING,
+    event: HISTORY_EVENT.MANUAL_CHECKIN,
     performedBy: user.userUniqueId,
   });
-  if (targetedShipperUserUUID) {
-    await logQueueHistory(executor, {
-      queueUniqueId,
-      columnName: "targetedShipperUserUUID",
-      oldValue: null,
-      newValue: targetedShipperUserUUID,
-      performedBy: user.userUniqueId,
-    });
-  }
 
   await emitQueueSnapshot({ queueOrganizationUniqueId, queueDate });
   notifyQueueOrgAdmins({ queueOrganizationUniqueId });
@@ -1513,9 +1503,7 @@ exports.overrideEntry = async (queueUniqueId, body, user) => {
 
   await logQueueHistory(executor, {
     queueUniqueId: rows[0].queueUniqueId,
-    columnName: "queueNumber",
-    oldValue: rows[0].queueNumber,
-    newValue: queueNumber,
+    event: HISTORY_EVENT.LANE_OVERRIDE,
     performedBy: user.userUniqueId,
   });
 
@@ -1579,9 +1567,7 @@ exports.removeEntry = async (queueUniqueId, user) => {
 
   await logQueueHistory(executor, {
     queueUniqueId: entry.queueUniqueId,
-    columnName: "status",
-    oldValue: entry.status,
-    newValue: QUEUE_STATUS.QUEUE_ADMIN_CANCELED,
+    event: HISTORY_EVENT.REMOVE,
     performedBy: user.userUniqueId,
   });
   await updateData({
@@ -1664,15 +1650,8 @@ exports.removeEntry = async (queueUniqueId, user) => {
 const releaseRequestedOffer = async ({ executor, entry, user }) => {
   const now = currentDate();
 
-  if (entry.shipperRequestUniqueId) {
-    await logQueueHistory(executor, {
-      queueUniqueId: entry.queueUniqueId,
-      columnName: "shipperRequestUniqueId",
-      oldValue: entry.shipperRequestUniqueId,
-      newValue: null,
-      performedBy: user.userUniqueId,
-    });
-  }
+  // Audit is captured by the caller (removeEntry) as a single `remove` snapshot
+  // BEFORE this helper runs — the pre-image covers the shipperRequest clear too.
 
   // Terminalize any active DriverRequest + JourneyDecision for this driver and
   // the linked order. The driver may hold multiple historical offers, so we
@@ -2467,16 +2446,7 @@ const offerToDriver = async ({
     for (const stale of staleHolders) {
       await logQueueHistory(txExecutor, {
         queueUniqueId: stale.queueUniqueId,
-        columnName: "status",
-        oldValue: QUEUE_STATUS.NO_ANSWER_FROM_DRIVER,
-        newValue: QUEUE_STATUS.CANCELLED_BEFORE_ACCEPT,
-        performedBy: user.userUniqueId,
-      });
-      await logQueueHistory(txExecutor, {
-        queueUniqueId: stale.queueUniqueId,
-        columnName: "shipperRequestUniqueId",
-        oldValue: shipperRequestUniqueId,
-        newValue: null,
+        event: HISTORY_EVENT.ADVANCE_RELEASE,
         performedBy: user.userUniqueId,
       });
       await updateData({
@@ -2504,16 +2474,7 @@ const offerToDriver = async ({
 
     await logQueueHistory(txExecutor, {
       queueUniqueId: entry.queueUniqueId,
-      columnName: "status",
-      oldValue: entry.status,
-      newValue: QUEUE_STATUS.REQUESTED,
-      performedBy: user.userUniqueId,
-    });
-    await logQueueHistory(txExecutor, {
-      queueUniqueId: entry.queueUniqueId,
-      columnName: "shipperRequestUniqueId",
-      oldValue: entry.shipperRequestUniqueId,
-      newValue: shipperRequestUniqueId,
+      event: HISTORY_EVENT.OFFER,
       performedBy: user.userUniqueId,
     });
 
@@ -2928,16 +2889,7 @@ exports.rejectOffer = async (data) => {
   const entry = rows[0];
   await logQueueHistory(executor, {
     queueUniqueId: entry.queueUniqueId,
-    columnName: "status",
-    oldValue: entry.status,
-    newValue: QUEUE_STATUS.CANCELLED_BEFORE_ACCEPT,
-    performedBy: user.userUniqueId,
-  });
-  await logQueueHistory(executor, {
-    queueUniqueId: entry.queueUniqueId,
-    columnName: "shipperRequestUniqueId",
-    oldValue: entry.shipperRequestUniqueId,
-    newValue: null,
+    event: HISTORY_EVENT.OFFER_REJECTED,
     performedBy: user.userUniqueId,
   });
   await updateData({
@@ -3033,16 +2985,7 @@ exports.releaseQueueEntryAfterDriverCancel = async ({
   const entry = rows[0];
   await logQueueHistory(executor, {
     queueUniqueId: entry.queueUniqueId,
-    columnName: "status",
-    oldValue: entry.status,
-    newValue: QUEUE_STATUS.CANCELLED_AFTER_ACCEPT,
-    performedBy: user.userUniqueId,
-  });
-  await logQueueHistory(executor, {
-    queueUniqueId: entry.queueUniqueId,
-    columnName: "shipperRequestUniqueId",
-    oldValue: entry.shipperRequestUniqueId,
-    newValue: null,
+    event: HISTORY_EVENT.DRIVER_CANCEL_AFTER_ACCEPT,
     performedBy: user.userUniqueId,
   });
   await updateData({
@@ -3144,9 +3087,7 @@ exports.updateQueueEntryOnJourneyProgress = async ({
   const entry = rows[0];
   await logQueueHistory(executor, {
     queueUniqueId: entry.queueUniqueId,
-    columnName: "status",
-    oldValue: entry.status,
-    newValue: journeyStatusId,
+    event: HISTORY_EVENT.JOURNEY_PROGRESS,
     performedBy: userUniqueId || null,
   });
   await updateData({
@@ -3193,16 +3134,7 @@ exports.closeEntryOnJourneyCompletion = async ({
   const entry = rows[0];
   await logQueueHistory(executor, {
     queueUniqueId: entry.queueUniqueId,
-    columnName: "status",
-    oldValue: entry.status,
-    newValue: QUEUE_STATUS.JOURNEY_COMPLETED,
-    performedBy: userUniqueId || null,
-  });
-  await logQueueHistory(executor, {
-    queueUniqueId: entry.queueUniqueId,
-    columnName: "shipperRequestUniqueId",
-    oldValue: shipperRequestUniqueId,
-    newValue: null,
+    event: HISTORY_EVENT.JOURNEY_COMPLETED,
     performedBy: userUniqueId || null,
   });
   await updateData({
@@ -3298,16 +3230,7 @@ exports.releaseEntryOnOrderCancel = async ({
 
   await logQueueHistory(executor, {
     queueUniqueId: entry.queueUniqueId,
-    columnName: "status",
-    oldValue: entry.status,
-    newValue: closedStatus,
-    performedBy: user?.userUniqueId || null,
-  });
-  await logQueueHistory(executor, {
-    queueUniqueId: entry.queueUniqueId,
-    columnName: "shipperRequestUniqueId",
-    oldValue: entry.shipperRequestUniqueId,
-    newValue: null,
+    event: HISTORY_EVENT.ORDER_CANCELLED,
     performedBy: user?.userUniqueId || null,
   });
   await updateData({
@@ -3398,20 +3321,9 @@ const applyRefusalPolicy = async ({ executor, entry, user }) => {
 
   await logQueueHistory(executor, {
     queueUniqueId: entry.queueUniqueId,
-    columnName: "queueRefusalCount",
-    oldValue: entry.queueRefusalCount,
-    newValue: movedToBack ? 0 : refusalCount,
+    event: HISTORY_EVENT.REFUSAL,
     performedBy: user.userUniqueId,
   });
-  if (movedToBack) {
-    await logQueueHistory(executor, {
-      queueUniqueId: entry.queueUniqueId,
-      columnName: "queueNumber",
-      oldValue: entry.queueNumber,
-      newValue: updateValues.queueNumber,
-      performedBy: user.userUniqueId,
-    });
-  }
 
   await updateData({
     tableName: "DriverQueue",
@@ -3533,9 +3445,7 @@ exports.markEntryAgreed = async ({ shipperRequestUniqueId, userUniqueId }) => {
   }
   await logQueueHistory(executor, {
     queueUniqueId: rows[0].queueUniqueId,
-    columnName: "status",
-    oldValue: rows[0].status,
-    newValue: QUEUE_STATUS.AGREED,
+    event: HISTORY_EVENT.ACCEPT,
     performedBy: userUniqueId || null,
   });
   await updateData({
@@ -3644,9 +3554,7 @@ exports.releaseExpiredOffers = async ({
     // below ONLY when the order actually advances to another driver.
     await logQueueHistory(executor, {
       queueUniqueId: entry.queueUniqueId,
-      columnName: "status",
-      oldValue: QUEUE_STATUS.REQUESTED,
-      newValue: QUEUE_STATUS.NO_ANSWER_FROM_DRIVER,
+      event: HISTORY_EVENT.OFFER_TIMEOUT,
       performedBy: actor.userUniqueId,
     });
     await updateData({
@@ -3762,8 +3670,8 @@ exports.releaseExpiredOffers = async ({
 };
 
 /**
- * Get the column-level change history for a queue entry.
- * Returns DriverQueueHistory rows sorted by most recent first.
+ * Get the snapshot audit trail for a queue entry.
+ * Returns DriverQueueHistory rows (full entry snapshots) sorted by most recent first.
  * Driver can view own entry; QueueOrgAdmin can view any entry.
  */
 exports.getEntryHistory = async (queueUniqueId, user) => {
@@ -3794,7 +3702,13 @@ exports.getEntryHistory = async (queueUniqueId, user) => {
   }
 
   const [history] = await executor.query(
-    `SELECT historyUniqueId, columnName, oldValue, newValue, performedBy, performedAt
+    `SELECT historyUniqueId, historyEvent, performedBy, performedAt,
+            queueId, queueUniqueId, queueOrganizationUniqueId, queueDate, queueNumber,
+            queueRefusalCount, vehicleDriverUniqueId, shipperRequestUniqueId,
+            targetedShipperUserUUID, driverLatitude, driverLongitude, joinedAt,
+            status, requestedAt, agreedAt,
+            queueCreatedAt, queueCreatedBy, queueUpdatedAt, queueUpdatedBy,
+            queueDeletedAt, queueDeletedBy
      FROM DriverQueueHistory
      WHERE queueUniqueId = ?
      ORDER BY performedAt DESC`,

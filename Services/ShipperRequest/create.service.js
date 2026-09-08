@@ -269,9 +269,22 @@ const createShipperRequest = async (body, journeyStatusId) => {
      * QUEUE POSITION (FIFO) — the front waiting driver of the order's vehicle type
      * is offered the order (see DriverQueue.service.handleQueueDispatch).
      * These are NOT matched by distance, so they skip the handleWaitingRequest pass below.
+     * EXCEPTION: a queue order created with isBiddingApproved=TRUE is placed into
+     * BID-BASE mode (distance-matched, queued drivers first) and never FIFO-offered.
      */
     const queueRequests = waitingRequests.filter(
       (req) => req?.queueOrganizationUniqueId,
+    );
+
+    // Queue bid-base orders skip FIFO entirely and are distance-matched via
+    // handleWaitingRequest (queued drivers get bid priority first, ≤5, then nearest).
+    const bidQueueRequests = queueRequests.filter(
+      (req) => req?.isBiddingApproved === true,
+    );
+
+    // Remaining queue orders are normal FIFO placement.
+    const fifoQueueRequests = queueRequests.filter(
+      (req) => req?.isBiddingApproved !== true,
     );
 
     /**
@@ -282,7 +295,8 @@ const createShipperRequest = async (body, journeyStatusId) => {
       (req) => !req?.queueOrganizationUniqueId,
     );
 
-    // Step 2a: Auto-offer each queue order to the FRONT waiting driver of its type.
+    // Step 2a: Auto-offer each FIFO queue order to the FRONT waiting driver of its type.
+    // Bid-base queue orders are excluded (handled in Step 2c below).
     // An empty queue leaves the order waiting (offered:false) — the QueueOrgAdmin
     // can still dispatch it manually, or the order retries on the next driver check-in.
     // Sequential (NOT Promise.all): the create flow already runs inside an outer
@@ -290,8 +304,8 @@ const createShipperRequest = async (body, journeyStatusId) => {
     // FOR UPDATE locks would not serialize each other — both orders could be offered
     // to the SAME front driver. Dispatching one at a time lets each offer advance the
     // queue (offered drivers are skipped) so a batch of N orders fills N distinct slots.
-    if (queueRequests.length > 0) {
-      for (const createdRequest of queueRequests) {
+    if (fifoQueueRequests.length > 0) {
+      for (const createdRequest of fifoQueueRequests) {
         await handleQueueDispatch({
           queueOrganizationUniqueId: createdRequest.queueOrganizationUniqueId,
           vehicleTypeUniqueId: createdRequest.vehicleTypeUniqueId,
@@ -332,6 +346,33 @@ const createShipperRequest = async (body, journeyStatusId) => {
           });
         }),
       );
+    }
+    // Step 2c: Bid-base QUEUE orders (isBiddingApproved=TRUE) are distance-matched
+    // like non-queue orders, but with queued-driver bid priority (see
+    // findNearbyDrivers: ordering isQueued DESC then distanceKm ASC, ≤5 invites).
+    // Sequential over the shared Set to avoid duplicate invites to the same driver.
+    if (bidQueueRequests.length > 0) {
+      const notifiedDrivers = new Set();
+      for (const createdRequest of bidQueueRequests) {
+        const localDriversData = [];
+        const localDrivers = [];
+        const localDecisions = [];
+        await handleWaitingRequest({
+          shipperRequest: {
+            ...createdRequest,
+            isBiddingApproved: true,
+          },
+          shipperRequestId: createdRequest.shipperRequestId,
+          totalRecords: null,
+          pageSize: null,
+          page: null,
+          driversData: localDriversData,
+          drivers: localDrivers,
+          decisions: localDecisions,
+          notifiedDrivers,
+          userUniqueId,
+        });
+      }
     }
     if (shipperRequestCreatedByRoleId === usersRoles.driverRoleId) {
       return newRequests;

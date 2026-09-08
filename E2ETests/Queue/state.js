@@ -17,6 +17,7 @@ const queueState = {
   },
   shipper: { userUniqueId: null },
   adminOps: { d1QueueUniqueId: null, d1QueueNumberBefore: null, oMUniqueId: null, oMDriverKey: null },
+  bidBase: { orderUniqueId: null, orgUniqueId: null },
 };
 
 module.exports = { queueState };

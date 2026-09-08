@@ -1,10 +1,10 @@
 // Utils/logger.js
 const winston = require("winston");
-const { currentDate } = require("./CurrentDate");
 const path = require("path");
 const fs = require("fs");
 const { combine, timestamp, json, printf, colorize, errors } = winston.format;
 const Config = require("./Config");
+const { currentDate } = require("./CurrentDate");
 
 // Detect serverless environment (Vercel, AWS Lambda, etc.)
 const isServerless = Config.IS_SERVERLESS;
@@ -13,6 +13,7 @@ const isServerless = Config.IS_SERVERLESS;
 const logDir = path.join(__dirname, "../logs");
 if (!isServerless) {
   try {
+    //fs.existsSync(logDir) shows if there is no logs directory and ! will create it
     if (!fs.existsSync(logDir)) {
       fs.mkdirSync(logDir, { recursive: true });
     }
@@ -76,118 +77,123 @@ const logger = winston.createLogger({
   },
   transports: isServerless
     ? [
-      // In serverless environments, only use console transport
-      // Vercel and other platforms capture console output automatically
-      new winston.transports.Console({
-        format: combine(
-          colorize(),
-          timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
-          printf(({ timestamp, level, message, stack, ...meta }) => {
-            let log = `${timestamp} [${level}]: ${message}`;
-            if (stack) {
-              log += `\n${stack}`;
-            }
-            if (Object.keys(meta).length > 0) {
-              log += `\n${safeStringify(meta)}`;
-            }
-            return log;
-          }),
-        ),
-      }),
-    ]
+        // In serverless environments, only use console transport
+        // Vercel and other platforms capture console output automatically
+        new winston.transports.Console({
+          format: combine(
+            colorize(),
+            timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
+            printf(({ timestamp, level, message, stack, ...meta }) => {
+              let log = `${timestamp} [${level}]: ${message}`;
+              if (stack) {
+                log += `\n${stack}`;
+              }
+              if (Object.keys(meta).length > 0) {
+                log += `\n${safeStringify(meta)}`;
+              }
+              return log;
+            }),
+          ),
+        }),
+      ]
     : [
-      // Error logs (rotated daily)
-      new winston.transports.File({
-        filename: path.join(logDir, "error.log"),
-        level: "error",
-        maxsize: 5242880, // 5MB
-        maxFiles: 10,
-        tailable: true,
-      }),
+        // Error logs (rotated daily)
+        new winston.transports.File({
+          filename: path.join(logDir, "error.log"),
+          level: "error",
+          maxsize: 5242880, // 5MB
+          maxFiles: 10,
+          tailable: true,
+        }),
 
-      // Combined logs (all levels)
-      new winston.transports.File({
-        filename: path.join(logDir, "combined.log"),
-        level: "silly", // capture every level — inherits the logger default otherwise
-        maxsize: 5242880,
-        maxFiles: 10,
-        tailable: true,
-      }),
+        // Combined logs (all levels)
+        new winston.transports.File({
+          filename: path.join(logDir, "combined.log"),
+          level: "silly", // capture every level — inherits the logger default otherwise
+          maxsize: 5242880,
+          maxFiles: 10,
+          tailable: true,
+        }),
 
-      // Audit logs (for business events)
-      new winston.transports.File({
-        filename: path.join(logDir, "audit.log"),
-        level: "info",
-        maxsize: 5242880,
-        maxFiles: 10,
-        format: combine(
-          timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
-          printf(({ timestamp, level, message, ...meta }) => {
-            return safeStringify({
-              timestamp,
-              level,
-              message,
-              ...meta,
-            });
-          }),
-        ),
-      }),
-    ],
+        // Audit logs (for business events)
+        new winston.transports.File({
+          filename: path.join(logDir, "audit.log"),
+          level: "info",
+          maxsize: 5242880,
+          maxFiles: 10,
+          format: combine(
+            timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
+            printf(({ timestamp, level, message, ...meta }) => {
+              return safeStringify({
+                timestamp,
+                level,
+                message,
+                ...meta,
+              });
+            }),
+          ),
+        }),
+      ],
 
   // Handle uncaught exceptions
   exceptionHandlers: isServerless
     ? [
-      new winston.transports.Console({
-        format: combine(
-          colorize(),
-          timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
-          printf(({ timestamp, level, message, stack, ...meta }) => {
-            return `${timestamp} [${level}]: ${message}\n${
-              stack || ""
-            }\n${JSON.stringify(meta, null, 2)}`;
-          }),
-        ),
-      }),
-    ]
+        new winston.transports.Console({
+          format: combine(
+            colorize(),
+            timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
+            printf(({ timestamp, level, message, stack, ...meta }) => {
+              return `${timestamp} [${level}]: ${message}\n${
+                stack || ""
+              }\n${JSON.stringify(meta, null, 2)}`;
+            }),
+          ),
+        }),
+      ]
     : [
-      new winston.transports.File({
-        filename: path.join(logDir, "exceptions.log"),
-        maxsize: 5242880,
-        maxFiles: 5,
-      }),
-    ],
+        new winston.transports.File({
+          filename: path.join(logDir, "exceptions.log"),
+          maxsize: 5242880,
+          maxFiles: 5,
+        }),
+      ],
 
   // Handle unhandled rejections
   rejectionHandlers: isServerless
     ? [
-      new winston.transports.Console({
-        format: combine(
-          colorize(),
-          timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
-          printf(({ timestamp, level, message, stack, ...meta }) => {
-            return `${timestamp} [${level}]: ${message}\n${
-              stack || ""
-            }\n${JSON.stringify(meta, null, 2)}`;
-          }),
-        ),
-      }),
-    ]
+        new winston.transports.Console({
+          format: combine(
+            colorize(),
+            timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
+            printf(({ timestamp, level, message, stack, ...meta }) => {
+              return `${timestamp} [${level}]: ${message}\n${
+                stack || ""
+              }\n${JSON.stringify(meta, null, 2)}`;
+            }),
+          ),
+        }),
+      ]
     : [
-      new winston.transports.File({
-        filename: path.join(logDir, "rejections.log"),
-        maxsize: 5242880,
-        maxFiles: 5,
-      }),
-    ],
+        new winston.transports.File({
+          filename: path.join(logDir, "rejections.log"),
+          maxsize: 5242880,
+          maxFiles: 5,
+        }),
+      ],
 });
 
 // Add console transport for all environments to ensure visibility in Docker/VPS logs
 if (!isServerless) {
   logger.add(
     new winston.transports.Console({
-      format: Config.NODE_ENV === "production" 
-        ? combine(timestamp({ format: "YYYY-MM-DD HH:mm:ss" }), json())
-        : combine(colorize(), timestamp({ format: "HH:mm:ss" }), consoleFormat),
+      format:
+        Config.NODE_ENV === "production"
+          ? combine(timestamp({ format: "YYYY-MM-DD HH:mm:ss" }), json())
+          : combine(
+              colorize(),
+              timestamp({ format: "HH:mm:ss" }),
+              consoleFormat,
+            ),
       level: Config.NODE_ENV === "production" ? "error" : "info",
     }),
   );
@@ -337,7 +343,11 @@ class ApplicationLogger {
     const redactRecursive = (obj, depth = 0) => {
       if (depth > 5 || !obj || typeof obj !== "object") return;
       for (const key of Object.keys(obj)) {
-        if (sensitiveFields.some((f) => key.toLowerCase().includes(f.toLowerCase()))) {
+        if (
+          sensitiveFields.some((f) =>
+            key.toLowerCase().includes(f.toLowerCase()),
+          )
+        ) {
           obj[key] = "[REDACTED]";
         } else if (typeof obj[key] === "object" && obj[key] !== null) {
           redactRecursive(obj[key], depth + 1);

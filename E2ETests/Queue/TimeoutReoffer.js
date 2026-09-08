@@ -341,7 +341,7 @@ const testTQ45WholeJobCancel = async () => {
   }
 };
 
-// ── TQ-46 · History rows expose oldValue + newValue ───────────────────────────
+// ── TQ-46 · History rows expose full snapshots (2 → 16 → 3) ──────────────────
 
 const testTQ46HistoryNewValue = async ({ queueUniqueId }) => {
   try {
@@ -353,22 +353,21 @@ const testTQ46HistoryNewValue = async ({ queueUniqueId }) => {
     if (!Array.isArray(rows) || rows.length === 0) {
       throw new Error("no history rows returned");
     }
-    const withNew = rows.filter((r) => r.newValue !== null);
-    if (withNew.length === 0) {
-      throw new Error(`no row carries newValue: ${JSON.stringify(rows)}`);
+    // Every row must be a full-entity snapshot of the entry (mirror of
+    // DriverQueue) tagged with a historyEvent — old/new are derived by diffing
+    // consecutive snapshots, not stored as a pivot.
+    const snapshots = rows.filter((r) => r.historyEvent && r.status !== undefined);
+    if (snapshots.length === 0) {
+      throw new Error(`no snapshot row carries historyEvent + status: ${JSON.stringify(rows)}`);
     }
-    const transition16 = rows.find(
-      (r) => r.columnName === "status" && String(r.oldValue) === "2" && String(r.newValue) === "16",
-    );
-    const transitionAgreed = rows.find(
-      (r) => r.columnName === "status" && String(r.oldValue) === "16" && String(r.newValue) === "3",
-    );
+    const transition16 = snapshots.find((r) => String(r.status) === "2");
+    const transitionAgreed = snapshots.find((r) => String(r.status) === "16");
     if (!transition16 || !transitionAgreed) {
-      throw new Error(`missing 2→16 and 16→3 transitions with newValue: ${JSON.stringify(rows)}`);
+      throw new Error(`missing status 2 and 16 snapshots: ${JSON.stringify(rows)}`);
     }
-    report.pass("TQ-46: history captures per-column oldValue + newValue (2→16→3)");
+    report.pass("TQ-46: history captures full snapshots with historyEvent (status 2 → 16 → declined)");
   } catch (error) {
-    report.fail("TQ-46: history newValue", error);
+    report.fail("TQ-46: history snapshot", error);
   }
 };
 

@@ -87,6 +87,21 @@ const offerToDriver = async ({
     shipperRequestUniqueId,
   );
 
+  // Bid-base orders (isBiddingApproved=TRUE) are NEVER FIFO-offered — they are
+  // distance-matched (queued drivers first) on the bidding board. Guard here so
+  // no FIFO path (create dispatch, check-in rescan, advance/reoffer, manual
+  // dispatch) can grab a bid order. Consistent with the isBiddingApproved skip in
+  // DriverQueue.service.rescanPendingQueueOrder and findNearbyDrivers' gate.
+  if (shipperRequest.isBiddingApproved === true) {
+    if (throwIfNone) {
+      throw new AppError(
+        "Bid-base order is not FIFO-offered; it is matched on the bidding board.",
+        AppError.BAD_REQUEST,
+      );
+    }
+    return { offered: false, data: null };
+  }
+
   // Targeted dispatch identifies the driver by queue entry (or vehicle
   // assignment); when no vehicle type is passed we take it from the order and
   // the target entry/driver must still match that type.

@@ -38,6 +38,12 @@ exports.createShipperRequest = Joi.object({
   // matching. The queue org must be approved + queueEnabled=1.
   queueOrganizationUniqueId: Joi.string().uuid().optional(),
 
+  // Queue bid-base placement: when TRUE with queueOrganizationUniqueId, the order
+  // is NOT FIFO-offered to the front waiting driver. Instead it is distance-matched
+  // to nearby drivers (bidding board): queued drivers (waiting or rejectedByDriver
+  // free) get bid priority first (up to 5), then nearest drivers fill the remainder.
+  isBiddingApproved: Joi.boolean().default(false).optional(),
+
   // Receipt-based POD: when false, delivery is auto-confirmed on journey completion
   // (no driver receipts or shipper signatures needed). Default true preserves the
   // existing formal-POD flow for all legacy and new batches. Persisted on both
@@ -66,6 +72,15 @@ exports.createShipperRequest = Joi.object({
       return helpers.message(
         "Requests for more than DOMAIN.MAX_INDIVIDUAL_TARGET_VEHICLES vehicles require company target mode. " +
           "Please set requestMode to 'company target' to proceed.",
+      );
+    }
+
+    // Bid-base placement only makes sense for a queue order: without a queue org,
+    // isBiddingApproved has no FIFO to bypass (distance orders are already
+    // distance-matched).
+    if (value.isBiddingApproved === true && !value.queueOrganizationUniqueId) {
+      return helpers.message(
+        "isBiddingApproved (bid-base placement) requires queueOrganizationUniqueId to be set.",
       );
     }
 

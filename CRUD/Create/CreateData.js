@@ -112,6 +112,10 @@ const createNewShipperRequest = async (
     // Bidding mode: 'individual_target' (open to all drivers) or 'company_target'
     // Falls back to schema default ('individual_target') if not provided.
     ...(body?.requestMode && { requestMode: body.requestMode }),
+    // Bid-base gate for QUEUE orders: TRUE => distance-matched (bidding board,
+    // queued drivers first), never FIFO-offered; FALSE (default) => normal FIFO
+    // queue placement. Persisted per-order (canonical for matching).
+    isBiddingApproved: body?.isBiddingApproved === true,
     // The specific company this batch is targeting (only set when requestMode = 'company_target')
     ...(body?.targetCompanyUniqueId && {
       targetCompanyUniqueId: body.targetCompanyUniqueId,

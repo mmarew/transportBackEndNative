@@ -1,7 +1,7 @@
 "use strict";
 
 const Config = require("../../Utils/Config");
-const { sqlQuery } = require("../../Database/Database");
+const { sqlQuery, driverQueueHistoryDdl } = require("../../Database/Database");
 const { pool, config: dbConfig } = require("../../Middleware/Database.config");
 const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
@@ -693,9 +693,6 @@ const SCHEMA_GAP_COLUMNS = {
     { name: "journeyCompletedByUser", ddl: "VARCHAR(36) NULL" },
     { name: "journeyProofOfLoading", ddl: "TEXT NULL" },
   ],
-  DriverQueueHistory: [
-    { name: "newValue", ddl: "VARCHAR(500) NULL" },
-  ],
 };
 
 const ensureSchemaColumnCompleteness = async (connection) => {
@@ -728,6 +725,46 @@ const ensureSchemaColumnCompleteness = async (connection) => {
       logger.info(`Migration: added ${tableName}.${col.name} column`);
     }
   }
+};
+
+/**
+ * Rebuild DriverQueueHistory as a SNAPSHOT mirror of DriverQueue (equal column
+ * number) when the table still has the legacy columnName/oldValue/newValue
+ * pivot shape. The pivot layout is replaced wholesale because restructuring
+ * means a different column set — history is purely an audit trail, so dropping
+ * it is safe. Idempotent: no-op once the table has the 21 DriverQueue columns
+ * (i.e. no `columnName` and a `status` column present). Uses information_schema
+ * so it is a no-op on fresh DBs created by Database.js.
+ */
+const ensureDriverQueueHistorySnapshotShape = async (connection) => {
+  const dbName = dbConfig.database;
+
+  const [tableRows] = await connection.query(
+    `SELECT COUNT(*) AS cnt FROM information_schema.tables
+     WHERE table_schema = ? AND table_name = 'DriverQueueHistory'`,
+    [dbName],
+  );
+  if (tableRows[0].cnt === 0) return;
+
+  const [existingRows] = await connection.query(
+    `SELECT column_name FROM information_schema.columns
+     WHERE table_schema = ? AND table_name = 'DriverQueueHistory'`,
+    [dbName],
+  );
+  const existing = new Set(
+    existingRows.map((r) =>
+      String(r.column_name ?? r.COLUMN_NAME ?? "").toLowerCase(),
+    ),
+  );
+
+  const needsRebuild = existing.has("columnname") || !existing.has("status");
+  if (!needsRebuild) return;
+
+  await connection.query(`DROP TABLE IF EXISTS DriverQueueHistory`);
+  await connection.query(driverQueueHistoryDdl);
+  logger.info(
+    "Migration: rebuilt DriverQueueHistory as snapshot mirror of DriverQueue",
+  );
 };
 
 const createTable = async () => {
@@ -793,6 +830,10 @@ const createTable = async () => {
     // Idempotently add any Database.js schema columns missing from existing
     // tables (isPodRequired on ShipperRequest/Batch, Journey stage-columns).
     await ensureSchemaColumnCompleteness(adminConnection);
+
+    // Idempotently rebuild DriverQueueHistory as a snapshot mirror of
+    // DriverQueue when the legacy columnName/oldValue/newValue pivot is present.
+    await ensureDriverQueueHistorySnapshotShape(adminConnection);
 
     // Idempotently drop the legacy ShipperRequest.shipperRequestBatchId column
     // left over from before the shipperRequestBatchUniqueId rename.
@@ -1046,5 +1087,6 @@ module.exports = {
   ensureNoLegacyShipperRequestBatchId,
   ensureSchemaEnums,
   ensureDriverQueueStatusJourneyMapInt,
+  ensureDriverQueueHistorySnapshotShape,
   DELIVERY_CONFIRMATION_COLUMNS,
 };

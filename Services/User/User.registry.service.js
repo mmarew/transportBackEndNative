@@ -18,6 +18,11 @@ const {
   getPlaceholderEmail,
   isPlaceholderEmail,
 } = require("../../Utils/GetPlaceholderEmail");
+const {
+  normalizePhoneNumber,
+  phoneNumberVariants,
+  areSamePhone,
+} = require("../../Utils/PhoneNumber");
 const { sendRegistrationAlert } = require("../../Utils/TelegramNotifier");
 
 // Circular dependency handling
@@ -201,7 +206,10 @@ const registerNewUser = async ({
     const userCreatedByParam = createdBy || userUniqueId;
 
     // Use provided email if it exists (even if it's a placeholder we just carefully generated)
-    const cleanEmail = email ? email : getPlaceholderEmail(phoneNumber);
+    // Store the canonical (+251…, national, or 0… as given) normalized to +251… so
+    // future phone lookups agree on a single identity regardless of input format.
+    const canonicalPhone = normalizePhoneNumber(phoneNumber);
+    const cleanEmail = email ? email : getPlaceholderEmail(canonicalPhone);
 
     const executor = transactionStorage.getStore() || pool;
     const [userIns] = await executor.query(
@@ -209,7 +217,7 @@ const registerNewUser = async ({
       [
         userUniqueId,
         fullName,
-        phoneNumber,
+        canonicalPhone,
         cleanEmail,
         userCreatedAt,
         userCreatedByParam,
@@ -227,7 +235,7 @@ const registerNewUser = async ({
       userId: userIns.insertId,
       userUniqueId,
       fullName,
-      phoneNumber,
+      phoneNumber: canonicalPhone,
       email: cleanEmail,
       userCreatedAt,
       userCreatedBy: userCreatedByParam,
@@ -312,14 +320,17 @@ const createUser = async (body) => {
 
   /**
    * IDENTITY LOOKUP STRATEGY:
-   * 1. Always look up by Phone (Primary Identity).
+   * 1. Always look up by Phone (Primary Identity). The lookup matches ANY stored
+   *    format of the number (canonical +251…, national 251…, or local 0…) so an
+   *    already-existing user is found regardless of how they were stored — this
+   *    prevents duplicate rows and spurious "New user registered" alerts.
    * 2. Only look up by Email if it's NOT a system-generated placeholder.
    *    This avoids identifying different users who might happen to have
    *    placeholder emails (though placeholders are designed to be unique
    *    per phone, this is a safety measure).
    */
   const conditions = {
-    phoneNumber: cleanPhone,
+    phoneNumber: phoneNumberVariants(cleanPhone),
   };
   // if email is NOT a placeholder, add it to OR conditions for account lookup
   if (cleanEmail && !isPlaceholderEmail(cleanEmail)) {
@@ -366,7 +377,9 @@ const createUser = async (body) => {
       );
     }
     //phone dont have placeholder
-    if (user?.phoneNumber && user?.phoneNumber !== cleanPhone) {
+    // Compare numbers canonically so format differences (+251x vs 251x vs 0x)
+    // do not falsely flag the SAME person as a different phone number.
+    if (user?.phoneNumber && !areSamePhone(user?.phoneNumber, cleanPhone)) {
       throw new AppError(
         "This email address is already registered with a different phone number.",
         AppError.FORBIDDEN,
@@ -393,7 +406,7 @@ const createUser = async (body) => {
 
   return await registerNewUser({
     fullName,
-    phoneNumber,
+    phoneNumber: normalizePhoneNumber(phoneNumber),
     email,
     roleId,
     statusId,
@@ -465,7 +478,7 @@ const createUserByAdminOrSuperAdmin = async ({
       if (
         !isPlaceholderEmail(email) &&
         phoneNumber &&
-        userDataByEmail[0].phoneNumber !== phoneNumber
+        !areSamePhone(userDataByEmail[0].phoneNumber, phoneNumber)
       ) {
         throw new AppError("There is a difference in phone number", AppError.CONFLICT);
       }
@@ -479,7 +492,7 @@ const createUserByAdminOrSuperAdmin = async ({
       if (isPlaceholderEmail(email)) {
         // If we found a user by this placeholder email but their phone number doesn't match,
         // we generate a unique one for the NEW user we are about to create.
-        if (userDataByEmail[0].phoneNumber !== phoneNumber) {
+        if (!areSamePhone(userDataByEmail[0].phoneNumber, phoneNumber)) {
           email = getPlaceholderEmail(
             // eslint-disable-next-line no-magic-numbers -- random 6-digit suffix for placeholder
             phoneNumber + Math.floor(Math.random() * 1000000),
@@ -496,7 +509,7 @@ const createUserByAdminOrSuperAdmin = async ({
 
     const userDataByPhoneNumber = await getData({
       tableName: "Users",
-      conditions: { phoneNumber },
+      conditions: { phoneNumber: phoneNumberVariants(phoneNumber) },
     });
 
     if (userDataByPhoneNumber?.[0]) {
@@ -544,7 +557,7 @@ const createUserByAdminOrSuperAdmin = async ({
 
     return await registerNewUser({
       fullName,
-      phoneNumber,
+      phoneNumber: normalizePhoneNumber(phoneNumber),
       email,
       roleId,
       statusId,
