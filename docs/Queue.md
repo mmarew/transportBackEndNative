@@ -196,16 +196,21 @@ order (an offer can otherwise be re-issued to a free/re-armed driver).
   - **Distance / bid matching** — `handleWaitingRequest` candidate loop
     (non-queue street/batch orders, bid-base queue orders, bidding approval,
     driver-cancel re-find).
+  - **Check-in bid pull** — `pullPendingBidOrderForDriver` board scan (the
+    check-in auto-offer for bidding-board orders).
 - **Trigger statuses** (driver "said no"): `rejectedByDriver` (18),
   `cancelledByDriver` (12, AFTER accepting a batch job), `noAnswerFromDriver`
-  (16). A whole-order **admin** cancel (13) does **NOT** cool the batch — it is
-  not the driver's decision. A driver who **accepted** a batch job may still be
-  offered the next job.
+  (16), plus the legacy rejection set carried over from the existing batch
+  guard (`VerifyIfShipperRequestWasNotRejected`): `rejectedByShipper` (11),
+  `cancelledByAdmin` (13). One shared `REJECTED_STATUS_IDS` set
+  (`Utils/RejectedRequests.js`) drives every matcher so they all agree. A
+  driver who **accepted** a batch job may still be offered the next job.
 - **Exception — manual / targeted dispatch**: a queue org admin reconnecting
   the driver explicitly via `/api/queue/dispatch` (targeted by
   `queueUniqueId`/`vehicleDriverUniqueId`) BYPASSES the batch skip. Auto-retry
   paths (check-in rescan `rescanPendingQueueOrder`, order cancel advance,
-  `offerToNextDriver`, `handleWaitingRequest` re-matching) are NOT exemptions.
+  `offerToNextDriver`, `handleWaitingRequest` re-matching, check-in bid pull
+  `pullPendingBidOrderForDriver`) are NOT exemptions.
 - **Scope is per-batch**: declining an order in batch A never blocks offers
   from batch B, single (non-batch) orders, or a later brand-new batch.
 
@@ -225,7 +230,7 @@ order (an offer can otherwise be re-issued to a free/re-armed driver).
 | Shipper price-reject              | `Services/ShipperRequest/actionReject.service.js` (`rejectOffer`) |
 | Offer timeout scan                | `Services/JourneyStatus/automaticTimeout.service.js` (`releaseExpiredOffers`) |
 | Bid board matching                | `Services/ShipperRequest/statusVerification.service.js` (`pullPendingBidOrderForDriver`, `findNearbyDrivers`) |
-| Batch refusal skip (one decline cools the batch) | `Services/DriverQueue.service.js` (`offerToDriver` FIFO scan) + `Services/ShipperRequest/statusVerification.service.js` (`handleWaitingRequest`) |
+| Batch refusal skip (one decline cools the batch) | `Services/DriverQueue.service.js` (`offerToDriver` FIFO scan) + `Services/ShipperRequest/statusVerification.service.js` (`handleWaitingRequest`, `pullPendingBidOrderForDriver`), shared status set `Utils/RejectedRequests.js` (`REJECTED_STATUS_IDS`) |
 | Journey born at 5                 | `Services/DriverRequest/journeyManagement.service.js` |
 
 **Related detailed design docs:**

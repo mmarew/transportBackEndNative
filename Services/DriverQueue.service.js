@@ -59,14 +59,10 @@ const QUEUE_STATUS = {
 // BATCH-REFUSAL RULE statuses — a driver who reached any of these terminal
 // "said no" journey statuses against an order of a batch cools the WHOLE batch
 // for automatic re-offers. Applied by `offerToDriver` on FIFO scans ONLY
-// (targeted dispatch is exempt). cancelledByDriver (12) covers a driver
-// cancelling AFTER accepting one job of a batch; cancelledByAdmin (13) is
-// deliberately excluded — the admin cancels a whole order, not the driver.
-const BATCH_DECLINED_JOURNEY_STATUSES = [
-  journeyStatusMap.cancelledByDriver,
-  journeyStatusMap.noAnswerFromDriver,
-  journeyStatusMap.rejectedByDriver,
-];
+// (targeted dispatch is exempt). Carries over the legacy rejection set used by
+// `findNearbyDrivers` (VerifyIfShipperRequestWasNotRejected) so every matcher
+// agrees on which statuses cool a batch.
+const { REJECTED_STATUS_IDS: BATCH_DECLINED_JOURNEY_STATUSES } = require("../Utils/RejectedRequests");
 // DriverQueueHistory.historyEvent vocabulary — names the mutation whose
 // pre-image snapshots are stored in the audit trail (snapshot mirror of
 // DriverQueue, equal column number).
@@ -3603,8 +3599,11 @@ exports.assertQueueOfferAcceptable = assertQueueOfferAcceptable;
  * NO_ANSWER) + holder match — under a FOR UPDATE lock so a concurrent
  * advance/stale-holder-release cannot sneak an order onto another driver
  * between the pre-check and here. A REQUESTED holder that was already
- * reassigned (order on another driver's entry now) fails with a 409, and a
+ * reassigned (order on another driver's entry now) fails with a 409; a
  * NO_ANSWER holder whose order nobody else took successfully late-accepts.
+ * BID-BASE orders with neither a linked entry nor a live own entry (offer was
+ * surfaced by the creation/distance matcher while the driver was not in any
+ * line) are a no-op — nothing to mark, so the shipper's accept is not blocked.
  */
 exports.markEntryAgreed = async ({
   shipperRequestUniqueId,
@@ -3655,11 +3654,19 @@ exports.markEntryAgreed = async ({
     );
     entry = ownRows[0] || null;
   }
-  if (!entry) {
+  if (!entry && !bidOrder) {
     throw new AppError(
       "This queue offer is no longer available for acceptance. The offer window may have expired and the order moved to another driver.",
       AppError.CONFLICT,
     );
+  }
+  // BID-BASE order with NO linked entry AND no live waiting entry for the
+  // driver: the offer was surfaced by the creation/distance matcher while the
+  // driver was NOT in any line (or their line row is already terminal). There
+  // is nothing to mark agreed — entry bookkeeping is a no-op so the shipper's
+  // accept of the driver's bid is NOT blocked by a missing queue row.
+  if (entry === null) {
+    return { updated: false };
   }
   if (entry.driverUserUniqueId !== userUniqueId) {
     throw new AppError(

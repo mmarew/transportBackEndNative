@@ -169,9 +169,12 @@ Notify driver (queue_order_offered) + shipper
 - **Batch-refusal rule**: a driver who declined **any** order of a batch
   (`shipperRequestBatchUniqueId`) is no longer auto-offered the **other** orders
   of that same batch (trigger statuses: `rejectedByDriver / 18`,
-  `cancelledByDriver / 12`, `noAnswerFromDriver / 16`). A manual **targeted
-  dispatch** may still reconnect them. Applies to FIFO scans (`offerToDriver`)
-  and distance/bid matching (`handleWaitingRequest`).
+  `cancelledByDriver / 12`, `noAnswerFromDriver / 16`, plus the legacy
+  `rejectedByShipper / 11`, `cancelledByAdmin / 13` carried by the shared
+  `REJECTED_STATUS_IDS` set). A manual **targeted dispatch** may still reconnect
+  them. Applies to FIFO scans (`offerToDriver`), distance/bid matching
+  (`handleWaitingRequest`), and the check-in bid pull
+  (`pullPendingBidOrderForDriver`).
 - **Refusal policy**: after `QUEUE_REFUSAL_LIMIT` (default 3) refusals, the driver is moved to the **back of the line** and the counter resets.
 - **Offer window**: if a driver doesn't respond within `QUEUE_OFFER_WINDOW_MINUTES` (3 min), the offer is auto-released (`rejectedByDriver`), the entry goes `notagreed`, and the order advances to the next driver.
 - **Queue overlay actions** (Queue Org Admin): manual check-in, override an entry, remove an entry, manual dispatch (by type / by entry / by driver phone), view entry history. Each action writes a `QueueAuditLog`.

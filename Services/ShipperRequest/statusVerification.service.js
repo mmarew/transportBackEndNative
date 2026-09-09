@@ -31,15 +31,13 @@ const { transactionStorage } = require("../../Utils/TransactionContext");
 
 // BATCH-REFUSAL RULE statuses — a driver who reached any of these terminal
 // "said no" journey statuses against an order of a batch cools the WHOLE batch
-// for automatic re-offers (FIFO `offerToDriver` and distance/bid matching
-// `handleWaitingRequest`). cancelledByDriver (12) covers a driver cancelling
-// AFTER accepting one job of a batch; cancelledByAdmin (13) is deliberately NOT
-// included — the admin cancels a whole order, it is not the driver's decision.
-const BATCH_DECLINED_JOURNEY_STATUSES = [
-  journeyStatusMap.cancelledByDriver,
-  journeyStatusMap.noAnswerFromDriver,
-  journeyStatusMap.rejectedByDriver,
-];
+// for automatic re-offers (FIFO `offerToDriver`, distance/bid matching
+// `handleWaitingRequest`, and the check-in bid pull). cancelledByDriver (12)
+// covers a driver cancelling AFTER accepting one job of a batch; the set
+// carries over the legacy rejection set used by `findNearbyDrivers`
+// (VerifyIfShipperRequestWasNotRejected) so every matcher agrees on which
+// statuses cool a batch.
+const { REJECTED_STATUS_IDS: BATCH_DECLINED_JOURNEY_STATUSES } = require("../../Utils/RejectedRequests");
 
 /**
  * Gets the shipper's current journey status
@@ -958,6 +956,11 @@ const verifyShipperStatus = async ({
  * the driver stays in line and the queue waits for the timeout sweepers to clear
  * the foreign hold.
  *
+ * Batch-refusal rule: a driver who already reached a "said no" status on ANY
+ * order of the candidate's batch (BATCH_DECLINED_JOURNEY_STATUSES — rejected /
+ * cancelled / no-answer) is NOT pulled for the other batch jobs on re-check-in.
+ * Re-linking a cooled batch to the driver is a manual dispatch decision only.
+ *
  * @param {Object}   params
  * @param {string}   params.driverUserUniqueId - just-checked-in driver
  * @param {number}   params.driverLatitude     - driver's CURRENT position (lat)
@@ -1006,22 +1009,26 @@ const pullPendingBidOrderForDriver = async ({
     );
 
     for (const order of board) {
-      // BATCH-level guard: block ONLY while this driver still carries an ACTIVE
-      // (unresolved) decision on ANY order of the batch (requested/acceptedByDriver).
-      // A TERMINAL decision (rejected / timeout / not-selected / completed / ...)
-      // frees the driver — counting it here would permanently bar a re-checked-in
-      // driver from every batch they ever saw, breaking the check-in pull.
-      // Mirrors findNearbyDrivers' active-offer batch exclusion (matching.js:95-109).
+      // BATCH-level guard: block this driver on the ENTIRE batch when they carry
+      // an ACTIVE (requested/acceptedByDriver) decision on ANY order of it OR
+      // have reached a "said no" terminal status on ANY order of it
+      // (BATCH_DECLINED_JOURNEY_STATUSES). The declined set is the batch-refusal
+      // rule: once a driver rejects/cancels/times out on one job of a batch the
+      // other jobs must NOT be auto-pulled on re-check-in — re-linking is a
+      // manual dispatch decision only. Mirrors findNearbyDrivers'
+      // VerifyIfShipperRequestWasNotRejected exclusion (matching.js:95-109) plus
+      // the active-offer hold.
       const [existing] = await executor.query(
         `SELECT COUNT(*) AS count
          FROM JourneyDecisions jd
          JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
          JOIN ShipperRequest sr2 ON sr2.shipperRequestId = jd.shipperRequestId
          WHERE dr.userUniqueId = ? AND sr2.shipperRequestBatchUniqueId = ?
-           AND jd.journeyStatusId IN (?, ?)`,
+           AND jd.journeyStatusId IN (${[...BATCH_DECLINED_JOURNEY_STATUSES, journeyStatusMap.requested, journeyStatusMap.acceptedByDriver].map(() => "?").join(", ")})`,
         [
           driverUserUniqueId,
           order.shipperRequestBatchUniqueId,
+          ...BATCH_DECLINED_JOURNEY_STATUSES,
           journeyStatusMap.requested,
           journeyStatusMap.acceptedByDriver,
         ],

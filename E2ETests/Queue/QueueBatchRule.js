@@ -1,14 +1,19 @@
 "use strict";
 
 // Batch-refusal rule — TQ-BR1..TQ-BR3:
-//   A driver who declines ANY order of a batch (statuses 12/16/18) must not be
-//   AUTO-offered the batch's OTHER orders (FIFO scan or distance/bid matching),
-//   unless the reconnection is a targeted manual dispatch.
+//   A driver who declines ANY order of a batch (statuses 12/16/18, plus the
+//   legacy 11/13 carried by REJECTED_STATUS_IDS) must not be AUTO-offered the
+//   batch's OTHER orders (FIFO scan, distance/bid matching, or the check-in bid
+//   pull), unless the reconnection is a targeted manual dispatch.
 //
-// Runs AFTER QueueOrders (main org, typeA: d2+d3 agreed from TQ-29). The block
-// is self-normalizing: d2/d3 are re-checked-in, driven through the rule, then
-// both accept their final orders so they END AGREED — exactly the state
-// QueueAdminOps expects ("no typeA driver waiting" in TQ-36).
+// Runs AFTER QueueOrders (main org). At that point d2/d3/d4 are AGREED with
+// active journeys and d1 is REMOVED (TQ-32 cleanup) — the AdminOps suite will
+// re-check-in d1 fresh. This block uses d1 as the sole FIFO driver: checks him
+// in, declines one job of a 2-slot batch, asserts the batch stays cooled,
+// reconnects via targeted dispatch, proves per-batch scope with an unrelated
+// order, then cancels every created order and removes d1's entry so the
+// required TQ-33 pre-state (d1 free, no pending typeA order) is restored
+// exactly.
 
 const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
@@ -23,7 +28,8 @@ const {
   createQueueOrder,
   manualCheckin,
   manualDispatch,
-  acceptOrder,
+  removeEntry,
+  cancelOrder,
   getLatestOrders,
   getOrderByUniqueId,
   getJourneyDecisionCount,
@@ -44,7 +50,7 @@ const entryOf = (driverKey) =>
  * targets the driver's current active requested offer (priority-ordered), so
  * no client-side offer ids are needed.
  *
- * @param {string} driverKey - Driver key (e.g. "queueDriver2").
+ * @param {string} driverKey - Driver key (e.g. "queueDriver1").
  * @returns {Promise<Object>} Cancel/cancel-request API response data.
  */
 const rejectOrderByDriver = async (driverKey) => {
@@ -64,50 +70,59 @@ const br = {}; // shared state between the BR test steps
 
 const testBR1DeclineCoolsBatch = async () => {
   try {
-    // Normalize the main typeA line: re-check-in d2 (front) + d3 (back).
-    await manualCheckin(ORG(), "queueDriver2", qadminToken());
-    await manualCheckin(ORG(), "queueDriver3", qadminToken());
-    const e2 = await entryOf("queueDriver2");
-    const e3 = await entryOf("queueDriver3");
-    if (!e2 || !e3 || e2.status !== 1 || e3.status !== 1) {
-      throw new Error(`normalize check-in failed: ${JSON.stringify({ e2, e3 })}`);
+    // d1 is the only waiting driver in the main org line (d2/d3/d4 agreed)
+    // and has no active journey — a fresh manual check-in gives a LIVE waiting
+    // entry at the front of the line.
+    await manualCheckin(ORG(), "queueDriver1", qadminToken());
+    const e1 = await entryOf("queueDriver1");
+    if (!e1 || e1.status !== 1) {
+      throw new Error(`normalize check-in failed: ${JSON.stringify(e1)}`);
     }
     br.batchUniqueId = uuidv4();
 
-    // J1 — same batch id shared by every job we create in this block.
+    // J1 + J2 — one create call with 2 slots groups BOTH request rows under the
+    // same batch id (the create engine rejects a SECOND call that reuses a batch
+    // id with "All required requests have already been created for this batch",
+    // so a multi-row batch must be minted in a single numberOfVehicles>1 call).
     await createQueueOrder({
       queueOrganizationUniqueId: ORG(),
       vehicleTypeUniqueId: typeA(),
+      numberOfVehicles: 2,
       shipperRequestBatchUniqueId: br.batchUniqueId,
     });
-    br.j1 = (await getLatestOrders(1))[0].shipperRequestUniqueId;
 
-    // Front driver (d2) is offered J1, then declines it.
-    const holder = await entryOf("queueDriver2");
+    // Identify the two batch rows: the offered one (journeyStatusId 2, linked
+    // to d1's entry) becomes J1, the untouched one (waiting) becomes J2.
+    const [newest, oldest] = await getLatestOrders(2);
+    const oNew = await getOrderByUniqueId(newest.shipperRequestUniqueId);
+    const oOld = await getOrderByUniqueId(oldest.shipperRequestUniqueId);
+    const offered = oNew.journeyStatusId === 2 ? oNew : oOld;
+    const other = offered === oNew ? oOld : oNew;
+    br.j1 = offered.shipperRequestUniqueId;
+    br.j2 = other.shipperRequestUniqueId;
+    br.j1Order = offered;
+    br.j2Order = other;
+
+    // Front driver (d1) is auto-offered J1, then declines it.
+    const holder = await entryOf("queueDriver1");
     if (!holder || holder.status !== 2 || holder.shipperRequestUniqueId !== br.j1) {
-      throw new Error(`J1 should be offered to d2 first: ${JSON.stringify(holder)}`);
+      throw new Error(`J1 should be offered to d1 first: ${JSON.stringify(holder)}`);
     }
-    await rejectOrderByDriver("queueDriver2");
+    await rejectOrderByDriver("queueDriver1");
 
-    // d2 → notagreed(18); J1 advances to the next waiting driver (d3).
-    const d2AfterReject = await entryOf("queueDriver2");
-    if (!d2AfterReject || d2AfterReject.status !== 18) {
-      throw new Error(`d2 should be notagreed(18) after J1 reject: ${JSON.stringify(d2AfterReject)}`);
+    // d1 → notagreed(18); with no other waiting driver J1 returns to waiting.
+    const d1AfterReject = await entryOf("queueDriver1");
+    if (!d1AfterReject || d1AfterReject.status !== 18) {
+      throw new Error(`d1 should be notagreed(18) after J1 reject: ${JSON.stringify(d1AfterReject)}`);
     }
-    const d3Holder = await entryOf("queueDriver3");
-    if (!d3Holder || d3Holder.status !== 2 || d3Holder.shipperRequestUniqueId !== br.j1) {
-      throw new Error(`J1 should advance to d3: ${JSON.stringify(d3Holder)}`);
+    const j1After = await getOrderByUniqueId(br.j1);
+    if (j1After.journeyStatusId !== journeyStatusMap.waiting) {
+      throw new Error(`J1 should be back to waiting (no other driver), got ${j1After.journeyStatusId}`);
     }
 
-    // J2 (SAME batch): d2 is cooled (declined J1) and d3 is holding J1 → no
-    // candidate → the order must stay waiting with zero auto-offers, and d2's
-    // entry must keep the terminal 18 (never request J2).
-    await createQueueOrder({
-      queueOrganizationUniqueId: ORG(),
-      vehicleTypeUniqueId: typeA(),
-      shipperRequestBatchUniqueId: br.batchUniqueId,
-    });
-    br.j2 = (await getLatestOrders(1))[0].shipperRequestUniqueId;
+    // J2 (SAME batch): d1 is cooled (declined J1) → candidate skipped → the
+    // order must still be waiting with zero auto-offers, and d1's entry must
+    // keep the terminal 18 (never request J2).
     const j2Order = await getOrderByUniqueId(br.j2);
     if (j2Order.journeyStatusId !== journeyStatusMap.waiting) {
       throw new Error(`J2 (same batch) must stay waiting, got ${j2Order.journeyStatusId}`);
@@ -115,9 +130,9 @@ const testBR1DeclineCoolsBatch = async () => {
     if ((await getJourneyDecisionCount(br.j2)) !== 0) {
       throw new Error("J2 (same batch) must not be auto-offered to the cooled driver");
     }
-    const d2Row = await entryOf("queueDriver2");
-    if (d2Row.shipperRequestUniqueId === br.j2 || d2Row.status === 2) {
-      throw new Error(`d2 must NOT be auto-reconnected to J2: ${JSON.stringify(d2Row)}`);
+    const d1Row = await entryOf("queueDriver1");
+    if (d1Row.shipperRequestUniqueId === br.j2 || d1Row.status === 2) {
+      throw new Error(`d1 must NOT be auto-reconnected to J2: ${JSON.stringify(d1Row)}`);
     }
     report.pass("TQ-BR1: one decline cools the whole batch (FIFO keeps J2 waiting)");
   } catch (error) {
@@ -129,24 +144,24 @@ const testBR1DeclineCoolsBatch = async () => {
 
 const testBR2DispatchBypassesCooledBatch = async () => {
   try {
-    const d2Entry = await entryOf("queueDriver2");
-    if (!d2Entry?.queueUniqueId) {
-      throw new Error("d2 entry missing for targeted dispatch");
+    const d1Entry = await entryOf("queueDriver1");
+    if (!d1Entry?.queueUniqueId) {
+      throw new Error("d1 entry missing for targeted dispatch");
     }
 
-    // Queue org admin reconnects the cooled d2 to J2 on purpose → allowed.
+    // Queue org admin reconnects the cooled d1 to J2 on purpose → allowed.
     const viaEntry = await manualDispatch({
       queueOrganizationUniqueId: ORG(),
-      queueUniqueId: d2Entry.queueUniqueId,
+      queueUniqueId: d1Entry.queueUniqueId,
       shipperRequestUniqueId: br.j2,
       token: qadminToken(),
     });
     if (viaEntry?.offered !== true) {
       throw new Error(`targeted dispatch of cooled driver failed: ${JSON.stringify(viaEntry)}`);
     }
-    const d2After = await entryOf("queueDriver2");
-    if (!d2After || d2After.status !== 2 || d2After.shipperRequestUniqueId !== br.j2) {
-      throw new Error(`dispatch should reconnect d2 to J2: ${JSON.stringify(d2After)}`);
+    const d1After = await entryOf("queueDriver1");
+    if (!d1After || d1After.status !== 2 || d1After.shipperRequestUniqueId !== br.j2) {
+      throw new Error(`dispatch should reconnect d1 to J2: ${JSON.stringify(d1After)}`);
     }
     report.pass("TQ-BR2: targeted dispatch can reconnect the cooled driver");
   } catch (error) {
@@ -158,25 +173,24 @@ const testBR2DispatchBypassesCooledBatch = async () => {
 
 const testBR3CoolingIsPerBatch = async () => {
   try {
-    // d2 rejects the manually-dispatched J2 too → back to notagreed(18). J2 has
-    // no other candidate (d3 holds J1) → it reverts to waiting, exactly as a
-    // normal refused batch advance behaves.
-    await rejectOrderByDriver("queueDriver2");
-    const d2AfterReject = await entryOf("queueDriver2");
-    if (!d2AfterReject || d2AfterReject.status !== 18) {
-      throw new Error(`d2 should be notagreed(18) after J2 reject: ${JSON.stringify(d2AfterReject)}`);
+    // d1 declines the manually-dispatched J2 too → back to notagreed(18). J2
+    // has no other candidate → it reverts to waiting.
+    await rejectOrderByDriver("queueDriver1");
+    const d1AfterReject = await entryOf("queueDriver1");
+    if (!d1AfterReject || d1AfterReject.status !== 18) {
+      throw new Error(`d1 should be notagreed(18) after J2 reject: ${JSON.stringify(d1AfterReject)}`);
     }
 
-    // Unrelated single order (its own random batch id): cooled d2 must be
+    // Unrelated single order (its own random batch id): cooled d1 must be
     // auto-offered again — the cooling scope is the DECLINED batch only.
     await createQueueOrder({
       queueOrganizationUniqueId: ORG(),
       vehicleTypeUniqueId: typeA(),
     });
     br.c = (await getLatestOrders(1))[0].shipperRequestUniqueId;
-    const d2Row = await entryOf("queueDriver2");
-    if (!d2Row || d2Row.status !== 2 || d2Row.shipperRequestUniqueId !== br.c) {
-      throw new Error(`cooled d2 must still be offered a NEW single order: ${JSON.stringify(d2Row)}`);
+    const d1Row = await entryOf("queueDriver1");
+    if (!d1Row || d1Row.status !== 2 || d1Row.shipperRequestUniqueId !== br.c) {
+      throw new Error(`cooled d1 must still be offered a NEW single order: ${JSON.stringify(d1Row)}`);
     }
     report.pass("TQ-BR3: cooling is per-batch — a new single order is still offered");
   } catch (error) {
@@ -184,24 +198,32 @@ const testBR3CoolingIsPerBatch = async () => {
   }
 };
 
-// ── Wrap-up · restore drivers to AGREED state (as TQ-29 left them) ────────────
+// ── Cleanup · restore the exact Pre-AdminOps state ────────────────────────────
+//
+// AdminOps TQ-33 expects d1 FREE (no live entry, no journey) and NO pending
+// typeA order in the main org — otherwise its manual check-in either finds a
+// stale entry (idempotent return, wrong refusal/status) or the rescan hands it
+// a leftover order (status becomes 2). So end the block by canceling every
+// created order and removing d1's entry, one driver line untouched.
 
-const restoreDriversAgreed = async () => {
+const cleanup = async () => {
   try {
-    // d3 holds J1, d2 holds C → both accept → both entries agreed(3).
-    const a2 = await acceptOrder("queueDriver2");
-    const a3 = await acceptOrder("queueDriver3");
-    if (!a2 || !a3) {
-      throw new Error("wrap-up accepts failed");
+    // Release d1 from C (admin cancel → requested entry released to waiting),
+    // then retire the unheld J1/J2, then remove d1's entry entirely.
+    await cancelOrder({ orderUniqueId: br.c, cancelAs: "admin" });
+    await cancelOrder({ orderUniqueId: br.j1, cancelAs: "admin" });
+    await cancelOrder({ orderUniqueId: br.j2, cancelAs: "admin" });
+    const e1 = await entryOf("queueDriver1");
+    if (e1?.queueUniqueId) {
+      await removeEntry(e1.queueUniqueId, qadminToken());
     }
-    const e2 = await entryOf("queueDriver2");
-    const e3 = await entryOf("queueDriver3");
-    if (!e2 || e2.status !== 3 || !e3 || e3.status !== 3) {
-      throw new Error(`wrap-up should leave d2/d3 agreed: ${JSON.stringify({ e2, e3 })}`);
+    const after = await entryOf("queueDriver1");
+    if (after) {
+      throw new Error(`d1 should have no live entry after cleanup: ${JSON.stringify(after)}`);
     }
-    report.pass("wrap-up: d2/d3 restored to agreed (QueueAdminOps sees no waiting typeA driver)");
+    report.pass("cleanup: d1 free, no pending typeA order (TQ-33 pre-state restored)");
   } catch (error) {
-    report.fail("wrap-up: restore d2/d3 agreed", error);
+    report.fail("cleanup: restore pre-AdminOps state", error);
   }
 };
 
@@ -215,7 +237,7 @@ const runQueueBatchRuleTests = async () => {
   await testBR1DeclineCoolsBatch();
   await testBR2DispatchBypassesCooledBatch();
   await testBR3CoolingIsPerBatch();
-  await restoreDriversAgreed();
+  await cleanup();
 };
 
 module.exports = { runQueueBatchRuleTests };

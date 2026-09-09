@@ -3,13 +3,18 @@ const { journeyStatusMap } = require("./ListOfSeedData");
 // Statuses that make a shipper request ineligible to auto-match with a driver:
 // - rejectedByDriver (driver rejected the offer before accepting)
 // - cancelledByDriver (driver cancelled after accepting)
+// - noAnswerFromDriver (driver ignored the offer until it timed out)
 // - rejectedByShipper (shipper rejected the driver)
 // - cancelledByAdmin (admin cancelled the request)
+// Together these are the "driver said no" set that cools the WHOLE batch:
+// once a driver reaches any of them on one job of a batch, the rest of the
+// batch is no longer auto-offered to that driver (dispatch-only re-link).
 const REJECTED_STATUS_IDS = [
   journeyStatusMap.cancelledByDriver,
   journeyStatusMap.rejectedByShipper,
   journeyStatusMap.rejectedByDriver,
   journeyStatusMap.cancelledByAdmin,
+  journeyStatusMap.noAnswerFromDriver,
 ];
 
 /**
@@ -108,4 +113,5 @@ const VerifyIfDriverDidNotRejectShippersRequest = async ({
 module.exports = {
   VerifyIfShipperRequestWasNotRejected,
   VerifyIfDriverDidNotRejectShippersRequest,
+  REJECTED_STATUS_IDS,
 };

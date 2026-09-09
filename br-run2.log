@@ -1,5 +1,5 @@
-◇ injected env (41) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
-16:49:50 [[32minfo[39m]: MySQL pool created
+◇ injected env (41) from .env // tip: ⌘ suppress logs { quiet: true }
+17:16:53 [[32minfo[39m]: MySQL pool created
 {
   "service": "ride-hailing-api",
   "environment": "development",
@@ -9,14 +9,14 @@
   "socketPath": "/Applications/MAMP/tmp/mysql/mysql.sock"
 }
 ═══════════════════════════════════════════════════
-  QUEUE E2E SUITE — 2026-09-09T13:49:50.899Z
+  QUEUE E2E SUITE — 2026-09-09T14:16:53.447Z
 ═══════════════════════════════════════════════════
 
 
 ═══ PROVISIONING ALL CORE USERS (once per run) ═══
 
 ✅ ========== PROVISIONING USER (supperAdmin) ==========
-16:49:50 [[32minfo[39m]: MySQL connectivity check succeeded
+17:16:53 [[32minfo[39m]: MySQL connectivity check succeeded
 {
   "service": "ride-hailing-api",
   "environment": "development"
@@ -162,17 +162,17 @@ Server responded with: {
   QUEUE ADMIN OPS — TQ-33..TQ-37, TQ-39
 ═══════════════════════════════════════════════════
 
-  ❌ FAIL: TQ-33: manual check-in — manual check-in entry wrong: {"queueId":521,"queueUniqueId":"203fdaa5-2d25-434d-b447-88684784ac7d","queueOrganizationUniqueId":"11f8aa32-0053-40a1-a0ad-7975bf715b05","queueDate":"2026-09-08T21:00:00.000Z","queueNumber":4,"queueRefusalCount":0,"vehicleDriverUniqueId":"2c447507-b3ee-4774-843d-4ef5092c9f5d","shipperRequestUniqueId":"bc0b3f2c-2243-4467-9c68-678c100684cf","targetedShipperUserUUID":null,"driverLatitude":null,"driverLongitude":null,"joinedAt":"2026-09-09T13:50:22.000Z","status":2,"requestedAt":"2026-09-09T13:50:23.000Z","agreedAt":null,"queueCreatedAt":"2026-09-09T13:50:22.000Z","queueCreatedBy":"44f79a44-d7a0-4bee-8f11-853d9ca2f2d1","queueUpdatedAt":"2026-09-09T13:50:23.000Z","queueUpdatedBy":"44f79a44-d7a0-4bee-8f11-853d9ca2f2d1","queueDeletedAt":null,"queueDeletedBy":null}
+  ❌ FAIL: TQ-33: manual check-in — manual check-in entry wrong: {"queueId":549,"queueUniqueId":"605cdeef-d74d-4cdf-b1ad-6a3a7b67636c","queueOrganizationUniqueId":"8491beec-163d-445f-9871-84196961341d","queueDate":"2026-09-08T21:00:00.000Z","queueNumber":4,"queueRefusalCount":0,"vehicleDriverUniqueId":"6de47708-ca03-4b1f-8203-f4032426e0fc","shipperRequestUniqueId":"e7c5b870-898b-4c9c-8b18-f932010c9528","targetedShipperUserUUID":null,"driverLatitude":null,"driverLongitude":null,"joinedAt":"2026-09-09T14:17:27.000Z","status":2,"requestedAt":"2026-09-09T14:17:27.000Z","agreedAt":null,"queueCreatedAt":"2026-09-09T14:17:27.000Z","queueCreatedBy":"6d932072-6f43-46cd-8ff5-09e18e9b942e","queueUpdatedAt":"2026-09-09T14:17:27.000Z","queueUpdatedBy":"6d932072-6f43-46cd-8ff5-09e18e9b942e","queueDeletedAt":null,"queueDeletedBy":null}
   ❌ FAIL: TQ-34: override entry position — Request failed with status code 400
   ❌ FAIL: TQ-35: remove entry — Request failed with status code 400
   ❌ FAIL: TQ-36: manual dispatch — Request failed with status code 409
-  ❌ FAIL: TQ-37: targeted dispatch — expected d1 agreed on O_M: {"queueId":521,"queueUniqueId":"203fdaa5-2d25-434d-b447-88684784ac7d","queueOrganizationUniqueId":"11f8aa32-0053-40a1-a0ad-7975bf715b05","queueDate":"2026-09-08T21:00:00.000Z","queueNumber":4,"queueRefusalCount":0,"vehicleDriverUniqueId":"2c447507-b3ee-4774-843d-4ef5092c9f5d","shipperRequestUniqueId":"bc0b3f2c-2243-4467-9c68-678c100684cf","targetedShipperUserUUID":null,"driverLatitude":null,"driverLongitude":null,"joinedAt":"2026-09-09T13:50:22.000Z","status":2,"requestedAt":"2026-09-09T13:50:23.000Z","agreedAt":null,"queueCreatedAt":"2026-09-09T13:50:22.000Z","queueCreatedBy":"44f79a44-d7a0-4bee-8f11-853d9ca2f2d1","queueUpdatedAt":"2026-09-09T13:50:23.000Z","queueUpdatedBy":"44f79a44-d7a0-4bee-8f11-853d9ca2f2d1","queueDeletedAt":null,"queueDeletedBy":null}
+  ❌ FAIL: TQ-37: targeted dispatch — expected d1 agreed on O_M: {"queueId":549,"queueUniqueId":"605cdeef-d74d-4cdf-b1ad-6a3a7b67636c","queueOrganizationUniqueId":"8491beec-163d-445f-9871-84196961341d","queueDate":"2026-09-08T21:00:00.000Z","queueNumber":4,"queueRefusalCount":0,"vehicleDriverUniqueId":"6de47708-ca03-4b1f-8203-f4032426e0fc","shipperRequestUniqueId":"e7c5b870-898b-4c9c-8b18-f932010c9528","targetedShipperUserUUID":null,"driverLatitude":null,"driverLongitude":null,"joinedAt":"2026-09-09T14:17:27.000Z","status":2,"requestedAt":"2026-09-09T14:17:27.000Z","agreedAt":null,"queueCreatedAt":"2026-09-09T14:17:27.000Z","queueCreatedBy":"6d932072-6f43-46cd-8ff5-09e18e9b942e","queueUpdatedAt":"2026-09-09T14:17:27.000Z","queueUpdatedBy":"6d932072-6f43-46cd-8ff5-09e18e9b942e","queueDeletedAt":null,"queueDeletedBy":null}
   ✅ PASS: TQ-39: non-queue order bypasses queue engine (no DriverQueue rows)
-13:50:23 
+14:17:27 
 ===== TQ-40 · Loading stages (4 → 5 → 6 → 7) =====
-13:50:24 current driver status: 2 | queue: null
-13:50:24 === setting up an accepted queue journey (status 4) ===
-13:50:24 checkin note: fail
+14:17:28 current driver status: 2 | queue: null
+14:17:28 === setting up an accepted queue journey (status 4) ===
+14:17:28 checkin note: fail
   ⚠ TQ-40 loader skipped: Request failed with status code 500
   ✅ d1's O_M journey ended (admin) before History suite
 
@@ -180,9 +180,9 @@ Server responded with: {
   QUEUE HISTORY & IMPROVEMENTS — TQ-H01..TQ-H15
 ═══════════════════════════════════════════════════
 
-  ❌ FAIL: TQ-H01: checkin with shipper — checkin with shipper failed: {"alreadyInJourney":true,"journeyStatusId":2,"shipperRequestUniqueId":"bc0b3f2c-2243-4467-9c68-678c100684cf","queueOrganizationUniqueId":"11f8aa32-0053-40a1-a0ad-7975bf715b05","queueOrganizationName":"QA Dispatch Hub 1788961801193","journeyDecisionUniqueId":"b3807d84-f89d-4f1a-8cd2-eafb21173c65","driverRequestUniqueId":"2e55536b-1cf2-4a2d-b87b-c029bf162001","requestedAt":"2026-09-09T13:50:23.000Z"}
-  ❌ FAIL: TQ-H02: re-checkin preserves reservation — re-check-in while live must be idempotent (same entry), got 203fdaa5-2d25-434d-b447-88684784ac7d → undefined
-  ❌ FAIL: TQ-H03: re-checkin updates reservation — re-check-in while live must be idempotent (same entry), got 203fdaa5-2d25-434d-b447-88684784ac7d → undefined
+  ❌ FAIL: TQ-H01: checkin with shipper — checkin with shipper failed: {"alreadyInJourney":true,"journeyStatusId":2,"shipperRequestUniqueId":"e7c5b870-898b-4c9c-8b18-f932010c9528","queueOrganizationUniqueId":"8491beec-163d-445f-9871-84196961341d","queueOrganizationName":"QA Dispatch Hub 1788963423969","journeyDecisionUniqueId":"778a7b61-ff01-4597-b5ca-331692fdfa4c","driverRequestUniqueId":"122cba4c-a266-4ad6-bae1-b6640b0ad94a","requestedAt":"2026-09-09T14:17:27.000Z"}
+  ❌ FAIL: TQ-H02: re-checkin preserves reservation — re-check-in while live must be idempotent (same entry), got 605cdeef-d74d-4cdf-b1ad-6a3a7b67636c → undefined
+  ❌ FAIL: TQ-H03: re-checkin updates reservation — re-check-in while live must be idempotent (same entry), got 605cdeef-d74d-4cdf-b1ad-6a3a7b67636c → undefined
   ✅ PASS: TQ-H04: checkout clears shipperRequestUniqueId + logs status history
   ✅ PASS: TQ-H05: GET /entry/:queueUniqueId/history returns column-level audit trail
   ✅ PASS: TQ-H06: driver can view own entry history
@@ -313,31 +313,31 @@ Server responded with: {
 ✅ Driver journey status fetched. Status: null
 ✅ Driver journey status fetched. Status: 13
 ✅ Driver journey status fetched. Status: 13
-16:51:20 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
+17:18:27 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "queueOrganizationUniqueId": "5003c693-4d03-4a3c-a68f-ae04d42fd256",
+  "queueOrganizationUniqueId": "bed9ab7e-5b24-472d-91f5-4116cdb8afc0",
   "queueDate": "2026-09-08T21:00:00.000Z"
 }
-16:51:20 [[33mwarn[39m]: No active driver socket found for notification
+17:18:28 [[33mwarn[39m]: No active driver socket found for notification
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "phoneNumber": "251979078102"
+  "phoneNumber": "251941332002"
 }
-16:51:20 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
+17:18:28 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "queueOrganizationUniqueId": "5003c693-4d03-4a3c-a68f-ae04d42fd256",
+  "queueOrganizationUniqueId": "bed9ab7e-5b24-472d-91f5-4116cdb8afc0",
   "queueDate": "2026-09-08T21:00:00.000Z"
 }
-16:51:21 [[33mwarn[39m]: No active shipper socket found for notification
+17:18:28 [[33mwarn[39m]: No active shipper socket found for notification
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "phoneNumber": "251987907812"
+  "phoneNumber": "251984133202"
 }
   ✅ PASS: TQ-41: timeout → no_answer(16), order retained, count +1 (single driver)
 ✅ Driver journey status fetched. Status: 2
@@ -349,57 +349,57 @@ Server responded with: {
 ✅ Driver journey status fetched. Status: 13
 ✅ Driver journey status fetched. Status: null
 ✅ Driver journey status fetched. Status: 2
-16:51:28 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
+17:18:35 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "queueOrganizationUniqueId": "5003c693-4d03-4a3c-a68f-ae04d42fd256",
+  "queueOrganizationUniqueId": "bed9ab7e-5b24-472d-91f5-4116cdb8afc0",
   "queueDate": "2026-09-08T21:00:00.000Z"
 }
-16:51:28 [[33mwarn[39m]: No active driver socket found for notification
+17:18:35 [[33mwarn[39m]: No active driver socket found for notification
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "phoneNumber": "251979078102"
+  "phoneNumber": "251941332002"
 }
-16:51:28 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
+17:18:35 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "queueOrganizationUniqueId": "5003c693-4d03-4a3c-a68f-ae04d42fd256",
+  "queueOrganizationUniqueId": "bed9ab7e-5b24-472d-91f5-4116cdb8afc0",
   "queueDate": "2026-09-08T21:00:00.000Z"
 }
-16:51:28 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
+17:18:35 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "queueOrganizationUniqueId": "5003c693-4d03-4a3c-a68f-ae04d42fd256",
+  "queueOrganizationUniqueId": "bed9ab7e-5b24-472d-91f5-4116cdb8afc0",
   "queueDate": "2026-09-08T21:00:00.000Z"
 }
-16:51:28 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
+17:18:35 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "queueOrganizationUniqueId": "5003c693-4d03-4a3c-a68f-ae04d42fd256",
+  "queueOrganizationUniqueId": "bed9ab7e-5b24-472d-91f5-4116cdb8afc0",
   "queueDate": "2026-09-08T21:00:00.000Z"
 }
-16:51:28 [[33mwarn[39m]: No active driver socket found for notification
+17:18:36 [[33mwarn[39m]: No active driver socket found for notification
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "phoneNumber": "251979078103"
+  "phoneNumber": "251941332003"
 }
-16:51:29 [[33mwarn[39m]: No active shipper socket found for notification
+17:18:36 [[33mwarn[39m]: No active shipper socket found for notification
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "phoneNumber": "251987907812"
+  "phoneNumber": "251984133202"
 }
-16:51:29 [[33mwarn[39m]: No active shipper socket found for notification
+17:18:36 [[33mwarn[39m]: No active shipper socket found for notification
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "phoneNumber": "251987907812"
+  "phoneNumber": "251984133202"
 }
   ✅ PASS: TQ-43: late accept after advance → 409, order still on d3
 ✅ Driver journey status fetched. Status: 2
