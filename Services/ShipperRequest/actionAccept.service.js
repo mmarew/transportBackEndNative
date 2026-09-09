@@ -119,6 +119,21 @@ const acceptDriverRequest = async (body) => {
         };
         await updateJourneyStatus(updatePayload);
 
+        // Bid offer that was surfaced through the queue (check-in pull) has a
+        // LINKED DriverQueue entry (status REQUESTED). When the shipper accepts
+        // this driver, the entry must leave the dispatch line (marked AGREED).
+        // Creation-path bids that were never linked fall back to marking the
+        // driver's OWN active entry agreed. Lazy require avoids a require cycle
+        // with DriverQueue.service (which pulls from statusVerification).
+        if (isAccepted) {
+          const { markEntryAgreed } = require("../DriverQueue.service");
+          await markEntryAgreed({
+            shipperRequestUniqueId: driver.shipperRequestUniqueId,
+            userUniqueId: driver.driverUserUniqueId,
+            bidOrder: true,
+          });
+        }
+
         // Verification of driver journey status (lazy required/internal check)
         const driverStatus = await verifyDriverJourneyStatus({
           userUniqueId: driver?.driverUserUniqueId,

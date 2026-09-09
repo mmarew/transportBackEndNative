@@ -21,17 +21,19 @@ router.use(verifyTokenOfAxios);
  * @summary Check in to a queue (create or re-checkin)
  *
  * @description
- * Creates a new queue entry OR revives an existing one for the same
- * driver + org + day (idempotent).
+ * Creates a NEW queue entry on a clean day, or returns the existing live
+ * entry (idempotent). Re-check-in NEVER mutates an older row: it only ever
+ * INSERTs a fresh row once the prior entry is terminal (job completed /
+ * checked out). A driver may check in many times over a day — one new row per
+ * finished job.
  *
  * **Behavior by state:**
- *   1. **No active entry** — creates a new DriverQueue row with an
+ *   1. **No live entry** — creates a new DriverQueue row with an
  *      auto-assigned `queueNumber` (next FIFO position).
- *   2. **Existing entry in same org+day, status "waiting"** — returns the
- *      existing entry (`alreadyCheckedIn: true`). Does NOT create a
- *      duplicate.
- *   3. **Existing entry, status "deleted" (checkout)** — revives the entry,
- *      preserving the original `queueNumber`.
+ *   2. **Live entry in same org+day** (waiting/requested/no-answer/kept) —
+ *      returns the existing entry (`alreadyCheckedIn: true`). Does NOT create
+ *      a duplicate.
+ *   3. **Live entry in ANOTHER org today** — 409 "one queue per day".
  *   4. **Driver has an active journey (JourneyDecision status 2–8)** —
  *      returns the existing journey (`alreadyInJourney: true`). No new
  *      entry created.
@@ -43,9 +45,6 @@ router.use(verifyTokenOfAxios);
  *   This reserves the queue position exclusively for that shipper.
  *   Dispatch will only offer orders from that shipper to this driver;
  *   other orders skip this driver and advance to the next in FIFO.
- *
- * On re-checkin, `targetedShipperUserUUID` is updated if a new phone is
- * provided.
  *
  * @access  Private (driver)
  * @body    {string}  queueOrganizationUniqueId  UUID of the queue org (required)

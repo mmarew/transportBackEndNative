@@ -88,6 +88,7 @@ const getVehicleDrivers = async (filters = {}) => {
     vehicleDriverUniqueId,
     vehicleUniqueId,
     driverUserUniqueId,
+    phoneNumber,
     assignmentStatus,
     assignmentStartStart, // range for assignmentStartDate
     assignmentStartEnd,
@@ -117,6 +118,10 @@ const getVehicleDrivers = async (filters = {}) => {
   if (driverUserUniqueId) {
     where.push("vd.driverUserUniqueId = ?");
     params.push(driverUserUniqueId);
+  }
+  if (phoneNumber) {
+    where.push("dr.phoneNumber = ?");
+    params.push(phoneNumber);
   }
   if (assignmentStatus) {
     const allowed = ["active", "inactive"];
@@ -179,7 +184,8 @@ const getVehicleDrivers = async (filters = {}) => {
     SELECT 
       vd.*, 
       v.vehicleTypeUniqueId, v.licensePlate, v.color,
-      vt.*
+      vt.*,
+      dr.fullName, dr.phoneNumber
     FROM VehicleDriver vd
     LEFT JOIN   Vehicle v ON vd.vehicleUniqueId = v.vehicleUniqueId
     LEFT JOIN VehicleTypes vt ON v.   vehicleTypeUniqueId = vt.vehicleTypeUniqueId

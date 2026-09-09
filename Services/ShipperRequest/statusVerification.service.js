@@ -953,17 +953,25 @@ const pullPendingBidOrderForDriver = async ({
     );
 
     for (const order of board) {
-      // BATCH-level guard: never re-offer a job from a batch this driver has
-      // ALREADY engaged (offered, rejected, accepted, ...). A driver who
-      // rejected a batch before re-check-in must not be auto-invited to it
-      // again. Mirrors findNearbyDrivers' per-batch NOT EXISTS guard.
+      // BATCH-level guard: block ONLY while this driver still carries an ACTIVE
+      // (unresolved) decision on ANY order of the batch (requested/acceptedByDriver).
+      // A TERMINAL decision (rejected / timeout / not-selected / completed / ...)
+      // frees the driver — counting it here would permanently bar a re-checked-in
+      // driver from every batch they ever saw, breaking the check-in pull.
+      // Mirrors findNearbyDrivers' active-offer batch exclusion (matching.js:95-109).
       const [existing] = await executor.query(
         `SELECT COUNT(*) AS count
          FROM JourneyDecisions jd
          JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
          JOIN ShipperRequest sr2 ON sr2.shipperRequestId = jd.shipperRequestId
-         WHERE dr.userUniqueId = ? AND sr2.shipperRequestBatchUniqueId = ?`,
-        [driverUserUniqueId, order.shipperRequestBatchUniqueId],
+         WHERE dr.userUniqueId = ? AND sr2.shipperRequestBatchUniqueId = ?
+           AND jd.journeyStatusId IN (?, ?)`,
+        [
+          driverUserUniqueId,
+          order.shipperRequestBatchUniqueId,
+          journeyStatusMap.requested,
+          journeyStatusMap.acceptedByDriver,
+        ],
       );
       if (existing[0].count > 0) continue;
 
@@ -1057,7 +1065,6 @@ const pullPendingBidOrderForDriver = async ({
           });
         }
       }
-
       return {
         offered: true,
         data: {
