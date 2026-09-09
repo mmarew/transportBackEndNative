@@ -353,6 +353,26 @@ const createShipperRequest = async (body, journeyStatusId) => {
     // Sequential over the shared Set to avoid duplicate invites to the same driver.
     if (bidQueueRequests.length > 0) {
       const notifiedDrivers = new Set();
+      // Arm the org's currently-free queued drivers before the order-anchored
+      // matching runs: findNearbyDrivers only sees drivers holding an eligible
+      // request, so a driver already in line whose latest request is terminal
+      // would never be invited to the just-created board job. Best-effort, one
+      // pass per unique (org, vehicle type) — never blocks creation.
+      const { ensureQueuedDriversReadyForBid } = require("../DriverQueue.service");
+      const uniqueOrgTypes = new Set(
+        bidQueueRequests.map(
+          (req) => `${req.queueOrganizationUniqueId}::${req.vehicleTypeUniqueId}`,
+        ),
+      );
+      await Promise.all(
+        [...uniqueOrgTypes].map(async (key) => {
+          const [orgUniqueId, vehicleTypeId] = key.split("::");
+          await ensureQueuedDriversReadyForBid({
+            queueOrganizationUniqueId: orgUniqueId,
+            vehicleTypeUniqueId: vehicleTypeId,
+          });
+        }),
+      );
       for (const createdRequest of bidQueueRequests) {
         const localDriversData = [];
         const localDrivers = [];

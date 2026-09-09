@@ -6,9 +6,10 @@ const {
   getAttachedDocumentsByUserUniqueIdAndDocumentTypeId,
   checkActiveShipperRequest,
   findNearbyDrivers,
+  findNearbyShippers,
 } = require("../../CRUD/Read/ReadData");
 const { updateData } = require("../../CRUD/Update/Data.update");
-const { insertData } = require("../../CRUD/Create/CreateData");
+const { insertData, createData } = require("../../CRUD/Create/CreateData");
 const {
   sendSocketIONotificationToDriver,
   sendSocketIONotificationToShipper,
@@ -135,6 +136,130 @@ const seenByShipper = async (body) => {
 };
 
 /**
+ * Ensure the driver has a `DriverRequest` in `waiting` that can receive a new
+ * JourneyDecision. `JourneyDecisions.driverRequestId` is UNIQUE — one decision
+ * per driver request — so we reuse only a waiting request that has never been
+ * linked to a decision, and create a fresh one otherwise.
+ *
+ * `origin` (optional) supplies the origin for a freshly minted request (e.g.
+ * the driver's last-known position so the fresh request stays visible to
+ * nearby-distance scans); falls back to the queue organization's site.
+ *
+ * Returns `null` when the driver is already holding an active offer elsewhere
+ * (their latest request is `requested`) — the caller skips to the next driver.
+ * BID-BASE counterpart of DriverQueue.service's FIFO-side helper.
+ */
+const ensureWaitingDriverRequest = async (
+  executor,
+  driverUserUniqueId,
+  queueOrganizationUniqueId,
+  origin = null,
+) => {
+  // The unique index `uq_driver_active_request` means at most ONE non-terminal
+  // request exists per driver (activeRequestGuard = 1 for statuses 1-5). Branch
+  // on what that request is:
+  //   - no decision attached  → a reusable `waiting` request → return it
+  //   - `waiting` + decision   → stale leftover from the expired-offer release
+  //                              fix → fall through to release + fresh insert
+  //   - requested/accepted/… + decision → a REAL pending offer or in-flight
+  //                              journey → return null so the caller advances
+  //                              to the next waiting driver (never a second
+  //                              order while the driver holds an active one).
+  const [activeRows] = await executor.query(
+    `SELECT dr.driverRequestId, dr.driverRequestUniqueId, dr.journeyStatusId,
+            jd.driverRequestId AS decisionDriverRequestId
+     FROM DriverRequest dr
+     LEFT JOIN JourneyDecisions jd ON jd.driverRequestId = dr.driverRequestId
+     WHERE dr.userUniqueId = ? AND dr.activeRequestGuard = 1
+       AND dr.driverRequestDeletedAt IS NULL
+     ORDER BY dr.driverRequestId DESC LIMIT 1`,
+    [driverUserUniqueId],
+  );
+  if (activeRows.length > 0) {
+    const latest = activeRows[0];
+    if (latest.decisionDriverRequestId === null) {
+      return {
+        driverRequestId: latest.driverRequestId,
+        driverRequestUniqueId: latest.driverRequestUniqueId,
+      };
+    }
+    if (latest.journeyStatusId !== journeyStatusMap.waiting) {
+      return null;
+    }
+  }
+
+  const [rows] = await executor.query(
+    `SELECT dr.driverRequestId, dr.driverRequestUniqueId
+     FROM DriverRequest dr
+     LEFT JOIN JourneyDecisions jd ON jd.driverRequestId = dr.driverRequestId
+     WHERE dr.userUniqueId = ? AND dr.journeyStatusId = ?
+       AND dr.driverRequestDeletedAt IS NULL
+       AND jd.driverRequestId IS NULL
+     ORDER BY dr.driverRequestId DESC LIMIT 1`,
+    [driverUserUniqueId, journeyStatusMap.waiting],
+  );
+  if (rows.length > 0) {
+    return rows[0];
+  }
+
+  // Leftover state from before the expired-offer release fix: a `waiting`
+  // DriverRequest that already has a JourneyDecision attached. It can't be
+  // reused (JourneyDecisions.driverRequestId is UNIQUE) and the active-request
+  // unique index blocks inserting a fresh one, so every offer for this driver
+  // died with ER_DUP_ENTRY. Release it to a terminal status first, then create
+  // a clean waiting request below.
+  const [staleRows] = await executor.query(
+    `SELECT dr.driverRequestId
+     FROM DriverRequest dr
+     JOIN JourneyDecisions jd ON jd.driverRequestId = dr.driverRequestId
+     WHERE dr.userUniqueId = ? AND dr.journeyStatusId = ?
+       AND dr.driverRequestDeletedAt IS NULL
+     ORDER BY dr.driverRequestId DESC LIMIT 1`,
+    [driverUserUniqueId, journeyStatusMap.waiting],
+  );
+  if (staleRows.length > 0) {
+    await updateData({
+      tableName: "DriverRequest",
+      updateValues: {
+        journeyStatusId: journeyStatusMap.rejectedByDriver,
+        driverRequestUpdatedAt: currentDate(),
+      },
+      conditions: { driverRequestId: staleRows[0].driverRequestId },
+    });
+  }
+
+  const [orgRows] = await executor.query(
+    `SELECT queueOrganizationName, latitude, longitude
+     FROM QueueOrganization
+     WHERE queueOrganizationUniqueId = ? AND isDeleted = 0`,
+    [queueOrganizationUniqueId],
+  );
+  const org = orgRows[0] || {};
+  // Prefer the caller-supplied origin (e.g. the driver's last known position so
+  // the fresh request stays visible to nearby-distance scans); fall back to the
+  // queue organization's site.
+  const useOrigin = origin || {
+    latitude: org.latitude,
+    longitude: org.longitude,
+    place: org.queueOrganizationName || "Queue organization",
+  };
+  const driverRequestUniqueId = uuidv4();
+  const inserted = await createData({
+    tableName: "DriverRequest",
+    insertValues: {
+      driverRequestUniqueId,
+      userUniqueId: driverUserUniqueId,
+      originLatitude: useOrigin.latitude ?? 0,
+      originLongitude: useOrigin.longitude ?? 0,
+      originPlace: useOrigin.place || "Queue organization",
+      journeyStatusId: journeyStatusMap.waiting,
+      driverRequestCreatedAt: currentDate(),
+    },
+  });
+  return { driverRequestId: inserted.insertId, driverRequestUniqueId };
+};
+
+/**
  * Handles waiting request (status 1) - finds nearby drivers and creates journey decisions
  * @param {Object} params - Handler parameters
  * @param {Object} params.shipperRequest - Shipper request object
@@ -176,6 +301,50 @@ async function handleWaitingRequest({
   const driversDataLocal = [];
 
   for (const driverResult of driverResults) {
+    // CRITICAL TRANSACTION BLOCK - driver availability (race condition protection).
+    // Must run BEFORE `driver` is built from driverResult, because for a BIDDING
+    // order a candidate whose DriverRequest is terminal (rejectedByDriver — refused
+    // an EARLIER order, now free) is re-armed with a fresh waiting DriverRequest
+    // (JourneyDecisions.driverRequestId is UNIQUE, so the terminal row can never
+    // be reused). ensureWaitingDriverRequest returns null when the driver is
+    // already holding an active offer elsewhere — skip.
+    // DB rows return isBiddingApproved as 1 (tinyint); app objects use boolean
+    // true (CreateData normalizes). Accept both.
+    const bidFlag = shipperRequest?.isBiddingApproved;
+    const isBidOrder =
+      Boolean(shipperRequest?.queueOrganizationUniqueId) &&
+      (bidFlag === true || bidFlag === 1 || bidFlag === "1");
+
+    const executorAvailability = transactionStorage.getStore() || pool;
+
+    if (isBidOrder) {
+      const fresh = await ensureWaitingDriverRequest(
+        executorAvailability,
+        driverResult.driverUserUniqueId,
+        shipperRequest.queueOrganizationUniqueId,
+        {
+          latitude: driverResult.originLatitude,
+          longitude: driverResult.originLongitude,
+          place: driverResult.originPlace,
+        },
+      );
+      if (!fresh) {
+        continue; // Driver holds an active offer elsewhere, skip
+      }
+      driverResult.driverRequestId = fresh.driverRequestId;
+      driverResult.driverRequestUniqueId = fresh.driverRequestUniqueId;
+    } else {
+      const availabilityCheck = await executorAvailability.query(
+        `SELECT COUNT(*) as count FROM DriverRequest
+         WHERE driverRequestId = ? AND journeyStatusId = ?`,
+        [driverResult.driverRequestId, journeyStatusMap.waiting],
+      );
+
+      if (availabilityCheck[0][0].count === 0) {
+        continue; // Driver no longer available, skip
+      }
+    }
+
     // Pre-fetch profile photo outside critical transaction (READ-ONLY)
     const documents = await getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
       driverResult.driverUserUniqueId,
@@ -198,19 +367,6 @@ async function handleWaitingRequest({
       vehicleTypeName: driverResult.vehicleTypeName,
       vehicleTypeUniqueId: driverResult.vehicleTypeUniqueId,
     };
-
-    // CRITICAL TRANSACTION BLOCK - Only essential writes
-    // Check if driver is still available (race condition protection)
-    const executorAvailability = transactionStorage.getStore() || pool;
-    const availabilityCheck = await executorAvailability.query(
-      `SELECT COUNT(*) as count FROM DriverRequest
-       WHERE driverRequestId = ? AND journeyStatusId = ?`,
-      [driverResult.driverRequestId, journeyStatusMap.waiting],
-    );
-
-    if (availabilityCheck[0][0].count === 0) {
-      continue; // Driver no longer available, skip
-    }
 
     // Create journey decision
     const journeyDecisionUniqueId = uuidv4();
@@ -732,10 +888,205 @@ const verifyShipperStatus = async ({
   }
 };
 
+/**
+ * Driver-anchored bid-board pull, used at check-in.
+ *
+ * findNearbyDrivers is ORDER-anchored: it can only see drivers who already hold
+ * an eligible (waiting/rejectedByDriver) DriverRequest when it runs. A driver
+ * who checks in AFTER the bid order was created has only terminal history and
+ * is invisible to it. So the check-in matches in the reverse direction — search
+ * pending bid orders around the driver's CURRENT check-in coordinates
+ * (findNearbyShippers — no DriverRequest needed to search), scope to THIS org's
+ * open bidding board, and offer the nearest open board order.
+ *
+ * Contention policy: the driver's single active request (activeRequestGuard) is
+ * NEVER force-released here. If it is already engaged elsewhere,
+ * ensureWaitingDriverRequest returns null and the pull reports offered:false —
+ * the driver stays in line and the queue waits for the timeout sweepers to clear
+ * the foreign hold.
+ *
+ * @param {Object}   params
+ * @param {string}   params.driverUserUniqueId - just-checked-in driver
+ * @param {number}   params.driverLatitude     - driver's CURRENT position (lat)
+ * @param {number}   params.driverLongitude    - driver's CURRENT position (lng)
+ * @param {string}   params.queueOrganizationUniqueId - this org's board only
+ * @param {string}   params.vehicleTypeUniqueId
+ * @param {Object}   params.user - request actor (audit + notification)
+ * @returns {Promise<{ offered: boolean, data: Object|null }>}
+ */
+const pullPendingBidOrderForDriver = async ({
+  driverUserUniqueId,
+  driverLatitude,
+  driverLongitude,
+  queueOrganizationUniqueId,
+  vehicleTypeUniqueId,
+  user,
+}) => {
+  try {
+    if (!driverLatitude || !driverLongitude) {
+      logger.warn("pullPendingBidOrderForDriver: no check-in coordinates", {
+        driverUserUniqueId,
+      });
+      return { offered: false, data: null };
+    }
+    const executor = transactionStorage.getStore() || pool;
+
+    const nearByShippers = await findNearbyShippers({
+      originLatitude: driverLatitude,
+      originLongitude: driverLongitude,
+      vehicleTypeUniqueId,
+    });
+
+    // Scope to THIS org's open bidding board only. findNearbyShippers returns
+    // street orders (no org) plus any org's board; its lifecycle filter is
+    // (waiting, requested, acceptedByDriver) — accepted orders are no longer
+    // offerable, so keep waiting/requested. Already ordered distanceKm ASC.
+    const board = (nearByShippers || []).filter(
+      (r) =>
+        r.queueOrganizationUniqueId &&
+        r.queueOrganizationUniqueId === queueOrganizationUniqueId &&
+        (r.isBiddingApproved === true ||
+          r.isBiddingApproved === 1 ||
+          r.isBiddingApproved === "1") &&
+        (Number(r.journeyStatusId) === journeyStatusMap.waiting ||
+          Number(r.journeyStatusId) === journeyStatusMap.requested),
+    );
+
+    for (const order of board) {
+      // BATCH-level guard: never re-offer a job from a batch this driver has
+      // ALREADY engaged (offered, rejected, accepted, ...). A driver who
+      // rejected a batch before re-check-in must not be auto-invited to it
+      // again. Mirrors findNearbyDrivers' per-batch NOT EXISTS guard.
+      const [existing] = await executor.query(
+        `SELECT COUNT(*) AS count
+         FROM JourneyDecisions jd
+         JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+         JOIN ShipperRequest sr2 ON sr2.shipperRequestId = jd.shipperRequestId
+         WHERE dr.userUniqueId = ? AND sr2.shipperRequestBatchUniqueId = ?`,
+        [driverUserUniqueId, order.shipperRequestBatchUniqueId],
+      );
+      if (existing[0].count > 0) continue;
+
+      // Headroom guard: at most 5 invites per bid order.
+      const [cnt] = await executor.query(
+        `SELECT COUNT(*) AS count FROM JourneyDecisions WHERE shipperRequestId = ?`,
+        [order.shipperRequestId],
+      );
+      // eslint-disable-next-line no-magic-numbers -- max drivers to offer per request
+      if (cnt[0].count >= 5) continue;
+
+      // Arm the driver for THIS offer at their CURRENT check-in position so the
+      // distance used by the offer is their live position, never a finished job.
+      // Returns null when the driver holds an active engagement — skip (no
+      // reclaim). Returns an existing decisionless waiting request otherwise.
+      const fresh = await ensureWaitingDriverRequest(
+        executor,
+        driverUserUniqueId,
+        queueOrganizationUniqueId,
+        {
+          latitude: driverLatitude,
+          longitude: driverLongitude,
+          place: "Queue check-in",
+        },
+      );
+      if (!fresh) return { offered: false, data: null };
+
+      // Mint the JourneyDecision exactly like handleWaitingRequest (:370-422).
+      const journeyDecisionUniqueId = uuidv4();
+      const journeyDecisionPayload = {
+        journeyDecisionUniqueId,
+        shipperRequestId: order.shipperRequestId,
+        driverRequestId: fresh.driverRequestId,
+        journeyStatusId: journeyStatusMap.requested,
+        decisionTime: currentDate(),
+        decisionBy: "shipper",
+        journeyDecisionCreatedBy: user.userUniqueId,
+        journeyDecisionCreatedAt: currentDate(),
+      };
+      try {
+        await insertData({
+          tableName: "JourneyDecisions",
+          colAndVal: journeyDecisionPayload,
+        });
+      } catch (error) {
+        if (
+          error.code === "ER_DUP_ENTRY" ||
+          error.message?.includes("Duplicate entry") ||
+          error.message?.includes("driverRequestId")
+        ) {
+          logger.warn(
+            "pullPendingBidOrderForDriver: duplicate decision, skipping",
+            { driverUserUniqueId, shipperRequestId: order.shipperRequestId },
+          );
+          continue;
+        }
+        throw error;
+      }
+      await updateData({
+        tableName: "ShipperRequest",
+        conditions: { shipperRequestId: order.shipperRequestId },
+        updateValues: { journeyStatusId: journeyStatusMap.requested },
+      });
+      await updateData({
+        tableName: "DriverRequest",
+        conditions: { driverRequestId: fresh.driverRequestId },
+        updateValues: { journeyStatusId: journeyStatusMap.requested },
+      });
+
+      if (user?.phoneNumber) {
+        try {
+          await sendSocketIONotificationToDriver({
+            message: {
+              messageTypes: messageTypes.driver_found_shipper_request,
+              message: "Driver found for shipper request",
+              status: journeyStatusMap.requested,
+              shipper: order,
+              driver: { driver: { driverUserUniqueId } },
+              journey: null,
+              decisions: journeyDecisionPayload,
+              totalRecords: null,
+              pageSize: null,
+              page: null,
+            },
+            phoneNumber: user.phoneNumber,
+          });
+        } catch (error) {
+          logger.warn("pullPendingBidOrderForDriver: notification failed", {
+            error: error.message,
+            driverUserUniqueId,
+          });
+        }
+      }
+
+      return {
+        offered: true,
+        data: {
+          journeyDecisionUniqueId,
+          shipperRequestId: order.shipperRequestId,
+          shipperRequestUniqueId: order.shipperRequestUniqueId,
+          driverRequestId: fresh.driverRequestId,
+          journeyStatusId: journeyStatusMap.requested,
+        },
+      };
+    }
+    return { offered: false, data: null };
+  } catch (error) {
+    logger.error("Error in pullPendingBidOrderForDriver", {
+      error: error.message,
+      stack: error.stack,
+      driverUserUniqueId,
+      queueOrganizationUniqueId,
+    });
+    return { offered: false, data: null };
+  }
+};
+
 module.exports = {
   verifyShipperStatus,
   getShipperJourneyStatus,
   seenByShipper,
   sendShipperNotification,
   handleWaitingRequest,
+  ensureWaitingDriverRequest,
+  pullPendingBidOrderForDriver,
 };

@@ -38,6 +38,16 @@ const findNearbyDrivers = async ({ shipperRequest }) => {
   const isBiddingOrder = Boolean(shipperRequest?.queueOrganizationUniqueId);
   const queueDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD, same as DriverQueue.service.js
 
+  // A driver whose DriverRequest is `rejectedByDriver` refused an EARLIER order
+  // BEFORE accepting — they are free again (they keep their queue position and
+  // remain in line). The per-order guard (VerifyIfShipperRequestWasNotRejected)
+  // prevents re-offering the SAME order/batch; allowing them as CANDIDATES here
+  // lets them receive OTHER orders. Street (non-queue) matching is unchanged
+  // (waiting only) — this relaxation is scoped to bidding-board orders.
+  const driverRequestStatusFilter = isBiddingOrder
+    ? `DriverRequest.journeyStatusId IN (${journeyStatusMap.waiting}, ${journeyStatusMap.rejectedByDriver})`
+    : `DriverRequest.journeyStatusId = ${journeyStatusMap.waiting}`;
+
   // Bounding-box pre-filter (fast index scan) then exact Haversine check (≤ MAX_RADIUS_KM)
   // Haversine formula gives the great-circle distance in km between two lat/lng points.
   const sqlQuery = `
@@ -77,9 +87,28 @@ const findNearbyDrivers = async ({ shipperRequest }) => {
       WHERE
         DriverRequest.originLatitude  BETWEEN ? AND ?
         AND DriverRequest.originLongitude BETWEEN ? AND ?
-        AND DriverRequest.journeyStatusId = 1 -- Status 'Waiting'
+        AND ${driverRequestStatusFilter} -- Status 'Waiting' (or, for bid orders, also 'rejectedByDriver' — driver is free again)
         AND vd.assignmentStatus = 'active'
         AND Vehicle.vehicleTypeUniqueId = ?
+        ${
+          isBiddingOrder
+            ? `AND NOT EXISTS (
+               -- A driver may hold at most ONE ACTIVE offer per batch (e.g. 5
+               -- identical job rows share one batch). Once offered (requested /
+               -- acceptedByDriver) on ANY order of the batch, they are booked on
+               -- it until they accept or reject — never a second simultaneous
+               -- bid for the same cargo. Rejection statuses are NOT excluded
+               -- here (they terminate the offer and free the driver), which is
+               -- the batch guard VerifyIfShipperRequestWasNotRejected's job.
+               SELECT 1 FROM JourneyDecisions jd2
+               JOIN DriverRequest dr2 ON dr2.driverRequestId = jd2.driverRequestId
+               JOIN ShipperRequest sr2 ON sr2.shipperRequestId = jd2.shipperRequestId
+               WHERE dr2.userUniqueId = Users.userUniqueId
+                 AND sr2.shipperRequestBatchUniqueId = ?
+                 AND jd2.journeyStatusId IN (${journeyStatusMap.requested}, ${journeyStatusMap.acceptedByDriver})
+             )`
+            : ""
+        }
       HAVING distanceKm <= ?
       ORDER BY ${
         isBiddingOrder
@@ -104,6 +133,8 @@ const findNearbyDrivers = async ({ shipperRequest }) => {
     lng - DEGREE_BUFFER,
     lng + DEGREE_BUFFER,
     vehicleTypeUniqueId,
+    // Active-offer-per-batch exclusion (only for bidding orders)
+    ...(isBiddingOrder ? [shipperRequest.shipperRequestBatchUniqueId] : []),
     MAX_RADIUS_KM,
   ];
 
@@ -111,7 +142,14 @@ const findNearbyDrivers = async ({ shipperRequest }) => {
   const queryExecutor = transactionStorage.getStore() || pool;
   const [drivers] = await queryExecutor.query(sqlQuery, values);
   const listOfDrivers = [];
+  const seenDriverUserUniqueIds = new Set();
   for (const driver of drivers) {
+    // A driver may hold several TERMINAL DriverRequest rows (e.g. repeated
+    // rejectedByDriver history). Dedupe by driver so one driver is never
+    // offered the same order twice via a second stale row.
+    if (seenDriverUserUniqueIds.has(driver?.driverUserUniqueId)) {
+      continue;
+    }
     const { message } = await VerifyIfShipperRequestWasNotRejected({
       shipperRequestId,
       shipperRequestBatchUniqueId: shipperRequest?.shipperRequestBatchUniqueId,
@@ -124,6 +162,7 @@ const findNearbyDrivers = async ({ shipperRequest }) => {
         break;
       }
       // push driver to list of drivers
+      seenDriverUserUniqueIds.add(driver?.driverUserUniqueId);
       listOfDrivers?.push(driver);
     }
   }

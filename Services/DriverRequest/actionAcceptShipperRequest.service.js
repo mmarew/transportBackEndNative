@@ -86,8 +86,10 @@ const acceptShipperRequest = async (body) => {
       selectColumns: `
         DriverRequest.*,
         JourneyDecisions.journeyDecisionUniqueId,
+        ShipperRequest.shipperRequestId AS pr_shipperRequestId,
         ShipperRequest.shipperRequestUniqueId,
         ShipperRequest.requestMode,
+        ShipperRequest.isBiddingApproved,
         ShipperRequest.shipperRequestBatchUniqueId,
         ShipperRequest.shippingCost,
         ShipperRequestBatch.queueOrganizationUniqueId,
@@ -111,6 +113,16 @@ const acceptShipperRequest = async (body) => {
     // has the column — tableManage.service migration), so it is read from the
     // ShipperRequestBatch join above, never off ShipperRequest.*.
     const isQueueOrder = Boolean(requestData.queueOrganizationUniqueId);
+    // BID-BASE orders (isBiddingApproved=TRUE, PER-ORDER flag) are queue-org
+    // orders too, but they are matched on the BIDDING BOARD — the offer is a
+    // bare JourneyDecision (findNearbyDrivers + handleWaitingRequest), never a
+    // linked DriverQueue entry like a FIFO offer. The accept gate below is
+    // therefore FIFO-only; a bid offer's freshness is governed by the
+    // decision-status check (status must still be 2 = requested; if the order
+    // was reassigned, the release flow moves the decision past requested).
+    const bidFlag = requestData.isBiddingApproved;
+    const isBidOrder =
+      bidFlag === true || bidFlag === 1 || bidFlag === "1";
     if (!isQueueOrder && !shippingCostByDriver) {
       throw new AppError(
         "Shipping cost by driver is required",
@@ -150,14 +162,16 @@ const acceptShipperRequest = async (body) => {
       );
     }
 
-    // QUEUE GATE (pre-journey): a queue order's offer must still be live for
-    // THIS driver before the Journey is created. If the offer window already
+    // QUEUE GATE (pre-journey): a FIFO queue order's offer must still be live
+    // for THIS driver before the Journey is created. If the offer window already
     // expired (entry retained at no_answer/16) the FIRST (holding) driver may
     // still late-accept while nobody else has taken the order — that is
     // honoured here. If the order already moved to another driver (offer had
     // been reassigned) or the entry is gone, this throws 409 BEFORE
     // createJourney so no orphan Journey is ever produced.
-    if (isQueueOrder) {
+    // Skipped for BID-BASE orders: their offer lives on the JourneyDecision
+    // itself (no entry linkage), so the decision-status check below is the gate.
+    if (isQueueOrder && !isBidOrder) {
       const { assertQueueOfferAcceptable } = require("../DriverQueue.service");
       await assertQueueOfferAcceptable({
         shipperRequestUniqueId,
@@ -222,9 +236,15 @@ const acceptShipperRequest = async (body) => {
 
     // Queue-dispatch orders: driver accepted → the queue entry leaves the
     // dispatch line (marked agreed; journey progress follows journeyStatusId).
-    if (isQueueOrder) {
+    // For FIFO orders the entry is linked to the order; for BID orders there is
+    // no linkage, so we mark the accepting driver's OWN active entry agreed
+    // instead (they leave the line by taking a job either way).
+    if (isQueueOrder && !isBidOrder) {
       const { markEntryAgreed } = require("../DriverQueue.service");
       await markEntryAgreed({ shipperRequestUniqueId, userUniqueId });
+    } else if (isBidOrder && isQueueOrder) {
+      const { markEntryAgreed } = require("../DriverQueue.service");
+      await markEntryAgreed({ shipperRequestUniqueId, userUniqueId, bidOrder: true });
     }
 
     // Send notification directly to shipper without processing all requests
@@ -306,6 +326,19 @@ const acceptShipperRequest = async (body) => {
     // assignments so the driver isn't double-booked.
     await releaseConflictingOffers(userUniqueId, "individual");
 
+    // ── Phase 2: Not-selected release (queue orders) ──────────────────────
+    // A queue-order accept lands straight on acceptedByShipper (4) + Journey —
+    // the shipper never runs the separate accept that normally marks the other
+    // invited drivers as notSelectedInBid (17) (see ShipperRequest
+    // actionAccept.service). Release those stale same-order invites now, or a
+    // late accept of one would mint a second Journey on the same order.
+    if (isQueueOrder) {
+      await releaseNotSelectedBidInvitees({
+        shipperRequestUniqueId,
+        excludeJourneyDecisionUniqueId: journeyDecisionUniqueId,
+      });
+    }
+
     return response;
   } catch (error) {
     logger.error("Error accepting shipper request:", {
@@ -317,4 +350,54 @@ const acceptShipperRequest = async (body) => {
     );
   }
 };
+
+/**
+ * releaseNotSelectedBidInvitees
+ * ─────────────────────────────
+ * Queue-bid orders invite up to MAX_OFFERS_PER_SWEEP drivers per sweep. When
+ * the driver-side accept (`acceptShipperRequest`) finalises the order directly
+ * (acceptedByShipper + Journey), every OTHER open invitation on the same order
+ * is stale by design — mark those decisions (and their DriverRequests) as
+ * notSelectedInBid (17). Mirrors the loop ShipperRequest/actionAccept.service
+ * runs when the SHIPPER selects a driver, except this fires on the driver-side
+ * finalisation that queue orders use (no separate shipper accept step).
+ */
+const releaseNotSelectedBidInvitees = async ({
+  shipperRequestUniqueId,
+  excludeJourneyDecisionUniqueId,
+}) => {
+  const { pool } = require("../../Middleware/Database.config");
+  const [others] = await pool.query(
+    `SELECT jd.journeyDecisionUniqueId, jd.driverRequestId, dr.driverRequestUniqueId
+       FROM JourneyDecisions jd
+       INNER JOIN DriverRequest dr ON jd.driverRequestId = dr.driverRequestId
+       INNER JOIN ShipperRequest sr ON jd.shipperRequestId = sr.shipperRequestId
+      WHERE sr.shipperRequestUniqueId = ?
+        AND jd.journeyDecisionUniqueId <> ?
+        AND jd.journeyStatusId IN (?, ?)`,
+    [
+      shipperRequestUniqueId,
+      excludeJourneyDecisionUniqueId,
+      journeyStatusMap.requested,
+      journeyStatusMap.acceptedByDriver,
+    ],
+  );
+
+  for (const other of others) {
+    await updateJourneyStatus({
+      journeyStatusId: journeyStatusMap.notSelectedInBid,
+      journeyDecisionUniqueId: other.journeyDecisionUniqueId,
+      driverRequestUniqueId: other.driverRequestUniqueId,
+      shipperRequestUniqueId,
+    });
+  }
+  if (others.length > 0) {
+    logger.info("Released not-selected bid invitees", {
+      shipperRequestUniqueId,
+      excluded: excludeJourneyDecisionUniqueId,
+      released: others.map((o) => o.journeyDecisionUniqueId),
+    });
+  }
+};
+
 module.exports = { acceptShipperRequest };

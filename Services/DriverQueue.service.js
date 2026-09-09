@@ -841,6 +841,62 @@ exports.checkin = async (data) => {
     user,
   });
 
+  // Check-in auto-offer for BID-BASE orders (driver-anchored PULL). The FIFO
+  // rescan above only serves non-bidding orders. The just-joined driver is
+  // matched against THIS org's open bidding board from their CURRENT check-in
+  // position (findNearbyShippers — no pre-armed DriverRequest needed), so a
+  // driver who checks in AFTER the request was created is always found and the
+  // offer is anchored at their live position, never a finished job.
+  // A landed bid offer JOINS THE QUEUE: the driver's fresh entry is linked to
+  // the order exactly like a FIFO offer (status REQUESTED + order linkage), so
+  // the offer is rejectable/advanceable and markEntryAgreed resolves by order.
+  const { pullPendingBidOrderForDriver } = require(
+    "./ShipperRequest/statusVerification.service",
+  );
+  const bidOffer = await pullPendingBidOrderForDriver({
+    driverUserUniqueId: vehicleDriver.driverUserUniqueId,
+    driverLatitude: checkInLat,
+    driverLongitude: checkInLng,
+    queueOrganizationUniqueId,
+    vehicleTypeUniqueId: vehicleDriver.vehicleTypeUniqueId,
+    user,
+  });
+  if (bidOffer?.offered && bidOffer?.data?.shipperRequestUniqueId) {
+    const [entryRows] = await executor.query(
+      `SELECT dq.queueId, dq.queueUniqueId
+       FROM DriverQueue dq
+       WHERE dq.queueOrganizationUniqueId = ? AND dq.queueDate = ?
+         AND dq.vehicleDriverUniqueId = ?
+         AND dq.status = ${QUEUE_STATUS.WAITING}
+         AND dq.queueDeletedAt IS NULL
+       ORDER BY dq.queueId DESC LIMIT 1`,
+      [
+        queueOrganizationUniqueId,
+        queueDate,
+        vehicleDriver.vehicleDriverUniqueId,
+      ],
+    );
+    if (entryRows.length > 0) {
+      const joinedEntry = entryRows[0];
+      await logQueueHistory(executor, {
+        queueUniqueId: joinedEntry.queueUniqueId,
+        event: HISTORY_EVENT.OFFER,
+        performedBy: user.userUniqueId,
+      });
+      await updateData({
+        tableName: "DriverQueue",
+        conditions: { queueId: joinedEntry.queueId },
+        updateValues: {
+          status: QUEUE_STATUS.REQUESTED,
+          shipperRequestUniqueId: bidOffer.data.shipperRequestUniqueId,
+          requestedAt: currentDate(),
+          queueUpdatedAt: currentDate(),
+          queueUpdatedBy: user.userUniqueId,
+        },
+      });
+    }
+  }
+
   await emitQueueSnapshot({ queueOrganizationUniqueId, queueDate });
   notifyQueueOrgAdmins({
     queueOrganizationUniqueId,
@@ -2753,6 +2809,80 @@ const rescanPendingQueueOrder = async ({
   return { offered: false, data: null };
 };
 
+/**
+ * Arm the org's currently-FREE queued drivers for order-anchored bid matching.
+ *
+ * Used at BID ORDER CREATION (Step 2c): findNearbyDrivers only sees drivers who
+ * already hold an eligible (waiting/rejectedByDriver) DriverRequest, so a driver
+ * who is already in line but whose only request is terminal would never be
+ * invited to the just-created board job. This re-arms each free queued driver
+ * with a waiting request anchored at their CURRENT queue-entry coordinates, so
+ * findNearbyDrivers finds them and isQueued DESC offers them first.
+ *
+ * Contention policy (matches the check-in pull): a driver whose single active
+ * request is engaged elsewhere is SKIPPED — never force-released. The queue
+ * waits for the timeout sweepers to clear the foreign hold.
+ *
+ * Best-effort — a failure to arm one driver never blocks the creation flow.
+ *
+ * @returns {Promise<void>}
+ */
+const ensureQueuedDriversReadyForBid = async ({
+  queueOrganizationUniqueId,
+  vehicleTypeUniqueId,
+}) => {
+  try {
+    const executor = transactionStorage.getStore() || db();
+    const [rows] = await executor.query(
+      `SELECT dq.vehicleDriverUniqueId, vd.driverUserUniqueId,
+              dq.driverLatitude, dq.driverLongitude
+       FROM DriverQueue dq
+       JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+       JOIN Vehicle v ON v.vehicleUniqueId = vd.vehicleUniqueId
+       WHERE dq.queueOrganizationUniqueId = ?
+         AND dq.queueDate = ?
+         AND v.vehicleTypeUniqueId = ?
+         -- WAITING = in line, free; CANCELLED_BEFORE_ACCEPT = rejected last
+         -- offer but kept position, still eligible for the next one.
+         AND dq.status IN (${QUEUE_STATUS.WAITING}, ${QUEUE_STATUS.CANCELLED_BEFORE_ACCEPT})
+         AND dq.queueDeletedAt IS NULL`,
+      [queueOrganizationUniqueId, today(), vehicleTypeUniqueId],
+    );
+    if (rows.length === 0) return;
+
+    const { ensureWaitingDriverRequest } = require(
+      "./ShipperRequest/statusVerification.service",
+    );
+    for (const entry of rows) {
+      try {
+        await ensureWaitingDriverRequest(
+          executor,
+          entry.driverUserUniqueId,
+          queueOrganizationUniqueId,
+          {
+            latitude: entry.driverLatitude,
+            longitude: entry.driverLongitude,
+            place: "Queue check-in",
+          },
+        );
+      } catch (error) {
+        logger.warn("ensureQueuedDriversReadyForBid: arm failed", {
+          error: error.message,
+          driverUserUniqueId: entry.driverUserUniqueId,
+        });
+      }
+    }
+  } catch (error) {
+    logger.error("Error in ensureQueuedDriversReadyForBid", {
+      error: error.message,
+      stack: error.stack,
+      queueOrganizationUniqueId,
+      vehicleTypeUniqueId,
+    });
+  }
+};
+exports.ensureQueuedDriversReadyForBid = ensureQueuedDriversReadyForBid;
+
 // Safety cap per sweep so a pathological backlog can never loop forever.
 
 /**
@@ -3413,7 +3543,11 @@ exports.assertQueueOfferAcceptable = assertQueueOfferAcceptable;
  * reassigned (order on another driver's entry now) fails with a 409, and a
  * NO_ANSWER holder whose order nobody else took successfully late-accepts.
  */
-exports.markEntryAgreed = async ({ shipperRequestUniqueId, userUniqueId }) => {
+exports.markEntryAgreed = async ({
+  shipperRequestUniqueId,
+  userUniqueId,
+  bidOrder = false,
+}) => {
   const executor = db();
   const [rows] = await executor.query(
     `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate, dq.status,
@@ -3431,20 +3565,47 @@ exports.markEntryAgreed = async ({ shipperRequestUniqueId, userUniqueId }) => {
      FOR UPDATE`,
     [shipperRequestUniqueId],
   );
-  if (rows.length === 0) {
+  let entry = rows[0] || null;
+  if (!entry && bidOrder) {
+    // BID-BASE orders never link a DriverQueue row (the offer lives on the
+    // JourneyDecision, see findNearbyDrivers/handleWaitingRequest), so the
+    // linked-entry lookup above always misses. Fall back to the accepting
+    // driver's OWN active entry (they leave the line by taking a job either
+    // way). No order linkage is written — the bid offer's lifecycle follows
+    // the JourneyDecision, not the entry.
+    const [ownRows] = await executor.query(
+      `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate, dq.status,
+              vd.driverUserUniqueId, u.fullName AS driverName, u.phoneNumber AS driverPhoneNumber,
+              v.licensePlate, vt.vehicleTypeName
+       FROM DriverQueue dq
+       JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+       JOIN Users u            ON u.userUniqueId           = vd.driverUserUniqueId
+       JOIN Vehicle v          ON v.vehicleUniqueId         = vd.vehicleUniqueId
+       JOIN VehicleTypes vt    ON vt.vehicleTypeUniqueId    = v.vehicleTypeUniqueId
+       WHERE vd.driverUserUniqueId = ?
+         AND dq.queueDate = ?
+         AND dq.status = ${QUEUE_STATUS.WAITING}
+         AND dq.queueDeletedAt IS NULL
+       ORDER BY dq.queueNumber DESC LIMIT 1
+       FOR UPDATE`,
+      [userUniqueId, today()],
+    );
+    entry = ownRows[0] || null;
+  }
+  if (!entry) {
     throw new AppError(
       "This queue offer is no longer available for acceptance. The offer window may have expired and the order moved to another driver.",
       AppError.CONFLICT,
     );
   }
-  if (rows[0].driverUserUniqueId !== userUniqueId) {
+  if (entry.driverUserUniqueId !== userUniqueId) {
     throw new AppError(
       "This offer was no longer valid for your queue position; the order has already passed to another driver.",
       AppError.CONFLICT,
     );
   }
   await logQueueHistory(executor, {
-    queueUniqueId: rows[0].queueUniqueId,
+    queueUniqueId: entry.queueUniqueId,
     event: HISTORY_EVENT.ACCEPT,
     performedBy: userUniqueId || null,
   });
@@ -3456,14 +3617,14 @@ exports.markEntryAgreed = async ({ shipperRequestUniqueId, userUniqueId }) => {
       queueUpdatedAt: currentDate(),
       queueUpdatedBy: userUniqueId || null,
     },
-    conditions: { queueId: rows[0].queueId },
+    conditions: { queueId: entry.queueId },
   });
   await emitQueueSnapshot({
-    queueOrganizationUniqueId: rows[0].queueOrganizationUniqueId,
-    queueDate: rows[0].queueDate,
+    queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+    queueDate: entry.queueDate,
   });
   notifyQueueOrgAdmins({
-    queueOrganizationUniqueId: rows[0].queueOrganizationUniqueId,
+    queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
     messageType: "queue_order_assigned",
   });
   await notifyShipperOfQueueEvent({
@@ -3474,17 +3635,17 @@ exports.markEntryAgreed = async ({ shipperRequestUniqueId, userUniqueId }) => {
     data: {
       driver: {
         driver: {
-          driverName: rows[0].driverName,
-          driverPhoneNumber: rows[0].driverPhoneNumber,
+          driverName: entry.driverName,
+          driverPhoneNumber: entry.driverPhoneNumber,
         },
         vehicle: {
-          licensePlate: rows[0].licensePlate,
-          vehicleTypeName: rows[0].vehicleTypeName,
+          licensePlate: entry.licensePlate,
+          vehicleTypeName: entry.vehicleTypeName,
         },
       },
       queue: {
-        queueOrganizationUniqueId: rows[0].queueOrganizationUniqueId,
-        queueDate: rows[0].queueDate,
+        queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+        queueDate: entry.queueDate,
       },
     },
   });
