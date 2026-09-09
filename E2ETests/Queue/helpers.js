@@ -385,6 +385,26 @@ const manualDispatch = async ({ queueOrganizationUniqueId, vehicleTypeUniqueId, 
 
 // ── Order lifecycle API ────────────────────────────────────────────────────────
 
+/**
+ * Build an order-create payload for the queue.
+ *
+ * Normally each call gets its own random `shipperRequestBatchUniqueId` (a
+ * single-order "batch"). Pass a shared `shipperRequestBatchUniqueId` across
+ * several orders to group them into ONE batch (exercises the batch-refusal
+ * rule and single-offer-per-slot dispatch).
+ *
+ * @param {Object} params
+ * @param {string} params.queueOrganizationUniqueId - Queue org the order posts to.
+ * @param {string} params.vehicleTypeUniqueId - Requested vehicle type.
+ * @param {number} [params.numberOfVehicles] - Slots; a multi-slot order is itself a batch.
+ * @param {string} [params.shippableItemName] - Cargo label (default "Queue test cargo").
+ * @param {number} [params.shippingCost] - Fixed price (queue orders are fixed-price).
+ * @param {boolean} [params.isBiddingApproved] - TRUE → bid-base placement (distance-matched, never FIFO).
+ * @param {Object} [params.origin] - { latitude, longitude, description }.
+ * @param {string} [params.shipperRequestBatchUniqueId] - Batch shared by several orders
+ *   (defaults to a fresh uuid per call).
+ * @returns {Object} The POST payload for {@link SHIPPER_REQUEST_ENDPOINTS.CREATE_REQUEST}.
+ */
 const buildQueueOrderPayload = ({
   queueOrganizationUniqueId,
   vehicleTypeUniqueId,
@@ -393,13 +413,14 @@ const buildQueueOrderPayload = ({
   shippingCost = 6000,
   isBiddingApproved,
   origin,
+  shipperRequestBatchUniqueId,
 }) => {
   const shippingDate = new Date();
   shippingDate.setDate(shippingDate.getDate() + 1);
   const deliveryDate = new Date();
   deliveryDate.setDate(deliveryDate.getDate() + 3);
   const payload = {
-    shipperRequestBatchUniqueId: uuidv4(),
+    shipperRequestBatchUniqueId: shipperRequestBatchUniqueId || uuidv4(),
     numberOfVehicles,
     shippingDate: shippingDate.toISOString(),
     deliveryDate: deliveryDate.toISOString(),
@@ -420,7 +441,16 @@ const buildQueueOrderPayload = ({
   return payload;
 };
 
-const createQueueOrder = async ({ queueOrganizationUniqueId, vehicleTypeUniqueId, numberOfVehicles = 1, shippableItemName, shippingCost, isBiddingApproved, origin }) => {
+/**
+ * Create one (or several slot) queue order(s) via the shipper API.
+ *
+ * Pass a shared `shipperRequestBatchUniqueId` so consecutive orders belong to
+ * the same batch — the subject of the batch-refusal rule tests.
+ *
+ * @param {Object} params - Same shape as {@link buildQueueOrderPayload}.
+ * @returns {Promise<Object>} The create API response body.
+ */
+const createQueueOrder = async ({ queueOrganizationUniqueId, vehicleTypeUniqueId, numberOfVehicles = 1, shippableItemName, shippingCost, isBiddingApproved, origin, shipperRequestBatchUniqueId }) => {
   const res = await axios.post(
     backendURL + SHIPPER_REQUEST_ENDPOINTS.CREATE_REQUEST,
     buildQueueOrderPayload({
@@ -431,6 +461,7 @@ const createQueueOrder = async ({ queueOrganizationUniqueId, vehicleTypeUniqueId
       shippingCost,
       isBiddingApproved,
       origin,
+      shipperRequestBatchUniqueId,
     }),
     authConfig(shipperToken()),
   );

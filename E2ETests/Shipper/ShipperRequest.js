@@ -75,8 +75,8 @@ const testCreateShipperRequest = async (
     }
   }
 };
-//  SHIPPER_REQUEST_ENDPOINTS.ACCEPT_DRIVER_REQUEST
-const testAcceptDriverRequest = async ({ uniqueIds }) => {
+//  SHIPPER_REQUEST_ENDPOINTS.ACCEPT_DRIVER_OFFER
+const testAcceptDriverOffer = async ({ uniqueIds }) => {
   try {
     // return;
     let shipperToken = usersData.shipper.token;
@@ -90,7 +90,7 @@ const testAcceptDriverRequest = async ({ uniqueIds }) => {
     const config = { ...authConfig(shipperToken) };
     const payload = { ...uniqueIds };
     const resultOfAcceptDriverRequests = await axios.put(
-      backendURL + SHIPPER_REQUEST_ENDPOINTS.ACCEPT_DRIVER_REQUEST,
+      backendURL + SHIPPER_REQUEST_ENDPOINTS.ACCEPT_DRIVER_OFFER,
       payload,
       config,
     );
@@ -124,7 +124,7 @@ const testGetShipperRequests = async (token, journeyStatusId) => {
 //   CREATE_REQUEST: "/api/shipperRequest/createRequest", done via createShipperRequestFlow
 //   GET_SHIPPER_REQUEST_4_ALL_OR_SINGLE_USER:
 //     "/api/user/getShipperRequest4allOrSingleUser", done via testGetShipperRequests
-//   ACCEPT_DRIVER_REQUEST: "/api/shipper/acceptDriverRequest",done via testAcceptDriverRequest
+//   ACCEPT_DRIVER_OFFER: "/api/shipper/acceptDriverOffer",done via testAcceptDriverOffer
 //   REJECT_DRIVER_OFFER: "/api/user/rejectDriverOffer",
 //   GET_BY_ID_PUBLIC: "/api/shipperRequest/getById/:id",
 //   GET_BY_ID_PRIVATE: "/api/shipperRequest/getById/:id",
@@ -308,6 +308,6 @@ module.exports = {
   testVerifyShipperStatus,
   testGetAllActiveRequest,
   testGetShipperRequests,
-  testAcceptDriverRequest,
+  testAcceptDriverOffer,
   testCreateShipperRequest,
 };

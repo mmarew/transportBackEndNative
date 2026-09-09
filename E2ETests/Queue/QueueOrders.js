@@ -112,12 +112,14 @@ const testTQ15AcceptLeavesQueue = async () => {
   try {
     const accepted = await acceptOrder("queueDriver2", 6000);
     // Queue orders skip the 1→2→3→4→5 negotiation flow: price is already
-    // agreed, so accept lands on acceptedByShipper (4) and creates a Journey.
+    // agreed, so accept lands on acceptedByShipper (4). Statuses 1–4 are
+    // DECISION states only — the Journey row is born at goToLoadingPlace (5),
+    // never at accept (see docs/Queue.md "Journey Timing (ALL TYPES)").
     if (!accepted || accepted.status !== journeyStatusMap.acceptedByShipper) {
       throw new Error(`accept failed: ${JSON.stringify(accepted)}`);
     }
-    if (!accepted?.uniqueIds?.journeyUniqueId) {
-      throw new Error(`accept should create a Journey: ${JSON.stringify(accepted?.uniqueIds)}`);
+    if (accepted?.uniqueIds?.journeyUniqueId) {
+      throw new Error(`accept must not create a Journey yet: ${JSON.stringify(accepted?.uniqueIds)}`);
     }
     const e2 = await entryOf("queueDriver2");
     if (!e2 || e2.status !== 3) {
@@ -127,7 +129,7 @@ const testTQ15AcceptLeavesQueue = async () => {
     if (order.journeyStatusId !== journeyStatusMap.acceptedByShipper) {
       throw new Error(`O_A should be acceptedByShipper(4), got ${order.journeyStatusId}`);
     }
-    report.pass("TQ-15: driver accepts → entry agreed, order acceptedByShipper + Journey created");
+    report.pass("TQ-15: driver accepts → entry agreed, order acceptedByShipper (decision-only, no Journey yet)");
   } catch (error) {
     report.fail("TQ-15: driver accept leaves queue", error);
   }

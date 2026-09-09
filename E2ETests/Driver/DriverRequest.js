@@ -15,7 +15,7 @@ const {
 const { testVerifyUserByOTP } = require("../Auth/VerifyByOtp");
 const { testShipperOnboardingFlow } = require("../Shipper/Index");
 const {
-  testAcceptDriverRequest,
+  testAcceptDriverOffer,
   testGetShipperRequests,
 } = require("../Shipper/ShipperRequest");
 const { getDriversAccountData } = require("./RequirementOfDriver");
@@ -359,7 +359,7 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
       uniqueIds = driverStatus?.uniqueIds;
       return;
     } else if (status === journeyStatusMap.acceptedByDriver) {
-      await testAcceptDriverRequest({ token: null, uniqueIds });
+      await testAcceptDriverOffer({ token: null, uniqueIds });
     } else if (status === journeyStatusMap.acceptedByShipper) {
       await testStartJourney({ token, uniqueIds });
     } else if (status === journeyStatusMap.journeyStarted) {
@@ -379,7 +379,7 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
     await testAcceptShipperRequest({ token, uniqueIds });
   } else if (status === journeyStatusMap.acceptedByDriver) {
     //shipper accept drivers offer
-    await testAcceptDriverRequest({ token: null, uniqueIds });
+    await testAcceptDriverOffer({ token: null, uniqueIds });
   } else if (status === journeyStatusMap.acceptedByShipper) {
     //start journey
     await testStartJourney({ token, uniqueIds });

@@ -2,7 +2,7 @@ const SHIPPER_REQUEST_ENDPOINTS = {
   CREATE_REQUEST: "/api/shipperRequest/createRequest",
   GET_SHIPPER_REQUEST_4_ALL_OR_SINGLE_USER:
     "/api/user/getShipperRequest4allOrSingleUser",
-  ACCEPT_DRIVER_REQUEST: "/api/shipper/acceptDriverRequest",
+  ACCEPT_DRIVER_OFFER: "/api/shipper/acceptDriverOffer",
   REJECT_DRIVER_OFFER: "/api/user/rejectDriverOffer",
   GET_BY_ID_PUBLIC: "/api/shipperRequest/getById/:id",
   GET_BY_ID_PRIVATE: "/api/shipperRequest/getById/:id",

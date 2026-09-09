@@ -13,9 +13,7 @@ const { getData } = require("../../CRUD/Read/ReadData");
 const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
 
 const { sendFCMNotificationToUser } = require("../Firebase.service");
-const {
-  promoteToAcceptedByShipperAndCreateJourney,
-} = require("../Journey");
+const { updateJourneyStatus } = require("../JourneyStatus");
 
 const logger = require("../../Utils/logger");
 const messageTypes = require("../../Utils/MessageTypes");
@@ -586,11 +584,8 @@ exports.updateAssignmentStatus = async (
   ];
   const vals = [assignmentStatus, updatedBy, currentDate()];
 
-  // On driver confirmation → create JourneyDecision
+  // On driver confirmation → ensure the JourneyDecision is at status 4
   let journeyDecisionUniqueId = assignment.journeyDecisionUniqueId;
-  // Set by the shared promote helper when the driver confirms; surfaced in the
-  // response so the driver app can jump straight to the created Journey.
-  let promotedJourneyUniqueId = null;
 
   if (assignmentStatus === "confirmed_by_driver") {
     if (assignment.assignmentStatus === "completed") {
@@ -626,11 +621,9 @@ exports.updateAssignmentStatus = async (
 
     // ── Ensure the JourneyDecision exists ──────────────────────────────────
     // JourneyDecision is created at assignment time (status 2) by
-    // createJourneyDecisionForAssignment(). The shared helper below promotes
-    // it to status 4 (acceptedByShipper = all parties agreed) AND creates the
-    // Journey immediately — same as queue-dispatch accepts, because the price
-    // is already agreed. If the decision doesn't exist yet (legacy record),
-    // create it first.
+    // createJourneyDecisionForAssignment(). The promise below promotes it to
+    // status 4 (acceptedByShipper = all parties agreed). If the decision
+    // doesn't exist yet (legacy record), create it first.
     const [existingDecision] = await db().query(
       "SELECT journeyDecisionUniqueId FROM JourneyDecisions WHERE driverRequestId = ? LIMIT 1",
       [drRows[0].driverRequestId],
@@ -660,18 +653,18 @@ exports.updateAssignmentStatus = async (
       );
     }
 
-    // ── Promote to status 4 + create the Journey (shared with queue) ──────
-    // Price is agreed up front (company bid) → skip the 1→2→3→4→5
-    // negotiation flow; the Journey is born at acceptedByShipper.
-    const promotedJourney = await promoteToAcceptedByShipperAndCreateJourney({
+    // ── Decision promotion to status 4 (no Journey yet) ──────────────────
+    // Price is agreed up front (company bid) → skip the 1→2→3→4→5 negotiation
+    // flow and land straight on acceptedByShipper (4). No Journey is created at
+    // confirm: the Journey row is born only when the driver heads to the
+    // loading place (goToLoadingPlace = 5) — see journeyManagement
+    // transitionLoadingStage (same standard as queue/nearby/street).
+    await updateJourneyStatus({
       journeyDecisionUniqueId,
       driverRequestUniqueId: assignment.driverRequestUniqueId,
       shipperRequestUniqueId: assignment.shipperRequestUniqueId,
-      shippingCostByDriver: prRow.shippingCost || 0,
-      journeyCreatedBy: updatedBy,
+      journeyStatusId: journeyStatusMap.acceptedByShipper,
     });
-    promotedJourneyUniqueId =
-      promotedJourney?.data?.[0]?.journeyUniqueId || null;
 
     // Refresh decisionTime to the confirm instant (updateJourneyStatus does
     // not touch it) — preserves the pre-refactor behavior.
@@ -1080,12 +1073,12 @@ exports.updateAssignmentStatus = async (
       assignmentStatus,
       journeyDecisionUniqueId:
         journeyDecisionUniqueId || assignment.journeyDecisionUniqueId,
-      // When the driver confirms (price already agreed), the shared helper
-      // promotes to acceptedByShipper (4) and creates the Journey — surface
-      // both like the queue accept flow does.
+      // When the driver confirms (price already agreed), the decision is
+      // promoted to acceptedByShipper (4); the Journey is created later when
+      // the driver heads to the loading place (goToLoadingPlace = 5).
       ...(assignmentStatus === "confirmed_by_driver" && {
         status: journeyStatusMap.acceptedByShipper,
-        journeyUniqueId: promotedJourneyUniqueId,
+        journeyUniqueId: null,
       }),
     },
   };

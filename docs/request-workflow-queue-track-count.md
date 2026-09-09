@@ -139,6 +139,10 @@ SELECT front waiting entry FOR UPDATE
         - EXCLUDE drivers reserved for a DIFFERENT shipper
           (WHERE targetedShipperUserUUID IS NULL OR = T's shipper)
         - skip drivers who already refused this exact order
+        - skip drivers who declined ANY order of THIS order's batch
+          (batch-refusal rule — a driver who refused one job of a batch
+          is NOT auto-offered the batch's other jobs; bypassed only by a
+          targeted `/api/queue/dispatch`)
         - skip drivers holding an active offer elsewhere
         |
         v
@@ -162,13 +166,22 @@ Notify driver (queue_order_offered) + shipper
 ```
 
 - **`notagreed`**: driver keeps their queue position and stays eligible for the **next** order.
+- **Batch-refusal rule**: a driver who declined **any** order of a batch
+  (`shipperRequestBatchUniqueId`) is no longer auto-offered the **other** orders
+  of that same batch (trigger statuses: `rejectedByDriver / 18`,
+  `cancelledByDriver / 12`, `noAnswerFromDriver / 16`). A manual **targeted
+  dispatch** may still reconnect them. Applies to FIFO scans (`offerToDriver`)
+  and distance/bid matching (`handleWaitingRequest`).
 - **Refusal policy**: after `QUEUE_REFUSAL_LIMIT` (default 3) refusals, the driver is moved to the **back of the line** and the counter resets.
 - **Offer window**: if a driver doesn't respond within `QUEUE_OFFER_WINDOW_MINUTES` (3 min), the offer is auto-released (`rejectedByDriver`), the entry goes `notagreed`, and the order advances to the next driver.
 - **Queue overlay actions** (Queue Org Admin): manual check-in, override an entry, remove an entry, manual dispatch (by type / by entry / by driver phone), view entry history. Each action writes a `QueueAuditLog`.
 
 ### 3.3 Negotiation & acceptance
 
-**Queue orders are FIXED PRICE** — the driver accepting jumps straight to `acceptedByShipper (4)` and a `Journey` is created immediately (`promoteToAcceptedByShipperAndCreateJourney`).
+**Queue orders are FIXED PRICE** — acceptance is a **decision-only** transition and never creates a Journey:
+- **Select-from-queue (FIFO)**: driver accepts → `acceptedByShipper (4)` directly (the queue already picked the front driver).
+- **Bid-base queue**: driver accepts → `acceptedByDriver (3)`, then the shipper **selects** the winner → `acceptedByShipper (4)` (losers → `notSelectedInBid / 17` and their linked queue entry is released).
+- For **all** flows the `Journey` row is created only when the driver reaches `goToLoadingPlace (5)` — see `Services/DriverRequest/journeyManagement.service.js` (`transitionLoadingStage`). Same standard as nearby/street matching.
 
 **Distance orders are negotiable** — the driver must supply `shippingCostByDriver` (their bid):
 
@@ -423,6 +436,8 @@ findNearbyDrivers:
    - ORDER BY distanceKm ASC, driverRequestId ASC (FIFO tiebreaker)
    - HAVING distanceKm <= 10
    - skip drivers who already refused this request
+   - skip drivers who declined ANY order of THIS request's batch
+     (batch-refusal rule — one decline cools the whole batch; same as FIFO)
    - LIMIT → up to 5 drivers offered
    |
    v
@@ -618,9 +633,9 @@ This is how the core tables connect as a shipment moves through the platform. It
 | Request routing (queue vs distance vs company) | `Services/ShipperRequest/create.service.js` |
 | Status machine / status map | `Utils/ListOfSeedData.js` (lines 718–766) |
 | Multi-table status propagation | `Services/JourneyStatus/update.service.js` |
-| Driver accepts an order (queue/company short-circuit) | `Services/DriverRequest/actionAcceptShipperRequest.service.js` |
-| Shipper picks a driver | `Services/ShipperRequest/actionAccept.service.js` |
-| Journey born at accept (queue/company) | `Services/Journey/promoteAcceptedJourney.service.js` |
+| Driver accepts an order (FIFO→4, BID→3) | `Services/DriverRequest/actionAcceptShipperRequest.service.js` |
+| Shipper picks a bid winner (4 / losers 17 + release) | `Services/ShipperRequest/actionAccept.service.js` |
+| Journey born at goToLoadingPlace (5), all flows | `Services/DriverRequest/journeyManagement.service.js` (`transitionLoadingStage`) |
 | Loading stages (5/6/7) + start + complete | `Services/Journey/journeyManagement.service.js` |
 | Queue FIFO dispatch core | `Services/DriverQueue.service.js` (`offerToDriver`, `checkin`, `dispatch`, `applyRefusalPolicy`) |
 | Refusal / queue position policy | `Services/DriverQueue.service.js` (`applyRefusalPolicy`) |

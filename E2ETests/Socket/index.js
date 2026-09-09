@@ -296,7 +296,7 @@ const testSocketNotifications = async () => {
     }
 
     await axios.put(
-      backendURL + SHIPPER_REQUEST_ENDPOINTS.ACCEPT_DRIVER_REQUEST,
+      backendURL + SHIPPER_REQUEST_ENDPOINTS.ACCEPT_DRIVER_OFFER,
       acceptPayload,
       authConfig(shipper.token),
     );

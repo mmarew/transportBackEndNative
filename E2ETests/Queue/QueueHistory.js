@@ -106,15 +106,19 @@ const testTQH02RecheckinPreservesReservation = async () => {
     const before = await entryOf("queueDriver1");
     const beforeTarget = before.targetedShipperUserUUID;
 
-    // Re-checkin without shipperPhoneNumber
+    // Re-checkin without shipperPhoneNumber → IDEMPOTENT (docs/
+    // request-workflow-queue-track-count.md §7 "driver check-in"): the same
+    // live entry is returned and the reservation is preserved.
     const result = await checkin("queueDriver1", ORG());
-    if (result.queueUniqueId === before.queueUniqueId) {
-      throw new Error("re-check-in should retire the prior entry and create a fresh one");
+    if (result.queueUniqueId !== before.queueUniqueId) {
+      throw new Error(
+        `re-check-in while live must be idempotent (same entry), got ${before.queueUniqueId} → ${result.queueUniqueId}`,
+      );
     }
 
     const after = await entryOf("queueDriver1");
-    if (after.queueUniqueId === before.queueUniqueId) {
-      throw new Error("entry was not refreshed on re-check-in");
+    if (after.queueUniqueId !== before.queueUniqueId) {
+      throw new Error(`idempotent re-check-in must not create a fresh entry`);
     }
     if (after.targetedShipperUserUUID !== beforeTarget) {
       throw new Error(
@@ -122,45 +126,56 @@ const testTQH02RecheckinPreservesReservation = async () => {
       );
     }
 
-    report.pass("TQ-H02: re-check-in creates fresh entry and carries the reservation over");
+    report.pass("TQ-H02: re-check-in while live is idempotent and preserves the reservation");
   } catch (error) {
     report.fail("TQ-H02: re-checkin preserves reservation", error);
   }
 };
 
 /**
- * TQ-H03: Re-checkin WITH different phone updates reservation.
- * Verifies that re-checking in with a new shipper phone number updates the
- * targetedShipperUserUUID and creates a second history entry for the column.
+ * TQ-H03: Re-checkin WITH a different phone updates the reservation.
+ * Idempotent re-check-in keeps the same live entry but a provided
+ * shipperPhoneNumber (re)reserves the position for that shipper — the
+ * reservation is a property of the position and is re-affirmed each time the
+ * driver checks in, without retiring the row.
  */
 const testTQH03RecheckinUpdatesReservation = async () => {
   try {
     const before = await entryOf("queueDriver1");
     const beforeTarget = before.targetedShipperUserUUID;
 
-    // Re-checkin with a different phone (use admin phone as dummy) → fresh entry
+    // Re-checkin with a different phone (use admin phone as dummy) → same
+    // entry, reservation re-bound to the new shipper.
     const newPhone = usersData.admin.phoneNumber;
-    await checkinWithShipper("queueDriver1", ORG(), newPhone);
+    const result = await checkinWithShipper("queueDriver1", ORG(), newPhone);
 
     const after = await entryOf("queueDriver1");
-    if (after.queueUniqueId === before.queueUniqueId) {
-      throw new Error("re-check-in should retire the prior entry and create a fresh one");
+    if (result.queueUniqueId !== before.queueUniqueId) {
+      throw new Error(
+        `re-check-in while live must be idempotent (same entry), got ${before.queueUniqueId} → ${result.queueUniqueId}`,
+      );
     }
-    if (after.targetedShipperUserUUID === beforeTarget) {
-      throw new Error("reservation not updated after re-checkin with new phone");
+    if (after.queueUniqueId !== before.queueUniqueId) {
+      throw new Error(`live re-check-in must not create a fresh entry`);
+    }
+    if (!beforeTarget) {
+      throw new Error("expected a reservation before this test (see TQ-H01)");
     }
     if (!after.targetedShipperUserUUID) {
-      throw new Error("new reservation is null");
+      throw new Error("new reservation is null after re-checkin with phone");
+    }
+    if (after.targetedShipperUserUUID === beforeTarget) {
+      throw new Error("reservation was not updated after re-checkin with new phone");
     }
 
-    // The fresh entry must log its shipper reservation at creation (snapshot).
+    // The reservation update must be visible in the entry's snapshot trail.
     const history = await getEntryHistory(after.queueUniqueId, driverTokenOf("queueDriver1"));
     const shipperSnapshots = history.filter((h) => h.historyEvent && h.targetedShipperUserUUID);
     if (shipperSnapshots.length < 1) {
-      throw new Error(`expected at least 1 shipper-targeted snapshot on fresh entry, got ${shipperSnapshots.length}`);
+      throw new Error(`expected a shipper-targeted snapshot, got ${shipperSnapshots.length}`);
     }
 
-    report.pass("TQ-H03: re-check-in with new phone → fresh entry, updated reservation + shipper history");
+    report.pass("TQ-H03: re-check-in with new phone → same entry, reservation updated + shipper history");
   } catch (error) {
     report.fail("TQ-H03: re-checkin updates reservation", error);
   }

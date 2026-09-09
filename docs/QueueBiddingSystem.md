@@ -121,7 +121,7 @@ company deals never land on the individual bidding board.)
    4a. Bidding driver selection: queued drivers of the order's queue org first, then non-queued; at most 5 (see rule)
 5. findNearbyShippers → drivers see approved orders when they poll
 6. Driver accepts → acceptShipperRequest → status 3 (unchanged)
-7. Shipper accepts → acceptDriverRequest → status 4 + reject others (unchanged)
+7. Shipper accepts → acceptDriverOffer → status 4 + reject others (unchanged)
 ```
 
 ---
@@ -207,7 +207,7 @@ router.get("/bidding/order/:shipperRequestUniqueId/bids", validator(getBidsParam
 3. **Explicit opt-in** — only `approveBidding` opens a board; no auto-overflow at create.
 4. **First-class default** — `FALSE` keeps an order a normal FIFO queue order (unchanged behavior).
 5. **One bid per driver per order** — `UNIQUE(driverUserUniqueId, shipperRequestUniqueId)`.
-6. **No change to accept/reject flow** — `acceptShipperRequest` / `acceptDriverRequest` unchanged.
+6. **No change to accept/reject flow** — `acceptShipperRequest` / `acceptDriverOffer` unchanged.
 7. **No new discovery API** — both matching functions extended (flag gate).
 8. **Bidding driver cap is ≤ 5 (max, not exact)** — at most 5 drivers are distance-matched per order,
    independent of the order's vehicle quantity. Fewer if fewer eligible drivers exist.

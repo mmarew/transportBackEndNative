@@ -56,6 +56,17 @@ const QUEUE_STATUS = {
   NO_ANSWER_FROM_DRIVER: journeyStatusMap.noAnswerFromDriver, // 16 (no-answer timeout; order retained while no next driver takes it)
   CANCELLED_BEFORE_ACCEPT: journeyStatusMap.rejectedByDriver, // 18 (kept position, still line)
 };
+// BATCH-REFUSAL RULE statuses — a driver who reached any of these terminal
+// "said no" journey statuses against an order of a batch cools the WHOLE batch
+// for automatic re-offers. Applied by `offerToDriver` on FIFO scans ONLY
+// (targeted dispatch is exempt). cancelledByDriver (12) covers a driver
+// cancelling AFTER accepting one job of a batch; cancelledByAdmin (13) is
+// deliberately excluded — the admin cancels a whole order, not the driver.
+const BATCH_DECLINED_JOURNEY_STATUSES = [
+  journeyStatusMap.cancelledByDriver,
+  journeyStatusMap.noAnswerFromDriver,
+  journeyStatusMap.rejectedByDriver,
+];
 // DriverQueueHistory.historyEvent vocabulary — names the mutation whose
 // pre-image snapshots are stored in the audit trail (snapshot mirror of
 // DriverQueue, equal column number).
@@ -75,6 +86,8 @@ const HISTORY_EVENT = {
   JOURNEY_COMPLETED: "journey_completed",
   REFUSAL: "refusal",
   ADVANCE_RELEASE: "advance_release",
+  NOT_SELECTED: "not_selected",
+  SHIPPER_RESERVED: "shipper_reserved",
 };
 // Shared resolver: org → vehicle type via VehicleDriver → Vehicle
 /**
@@ -696,6 +709,29 @@ exports.checkin = async (data) => {
     // Same-org live entry — idempotent re-check-in: return it unchanged.
     // "Create new row" applies only after the prior entry is terminal, so a
     // driver may check in many times over a day (one row per finished job).
+    if (targetedShipperUserUUID) {
+      // A phone was provided on this re-check-in → (re)reserve the live
+      // position for that shipper. The reservation is a property of the
+      // position; re-affirming/updating it must not retire the row.
+      await executor.query(
+        `UPDATE DriverQueue
+         SET targetedShipperUserUUID = ?,
+             queueUpdatedAt = ?,
+             queueUpdatedBy = ?
+         WHERE queueUniqueId = ?`,
+        [
+          targetedShipperUserUUID,
+          currentDate(),
+          user.userUniqueId,
+          active.queueUniqueId,
+        ],
+      );
+      await logQueueHistory(executor, {
+        queueUniqueId: active.queueUniqueId,
+        event: HISTORY_EVENT.SHIPPER_RESERVED,
+        performedBy: user.userUniqueId,
+      });
+    }
     return {
       message: "success",
       data: {
@@ -703,6 +739,7 @@ exports.checkin = async (data) => {
         queueUniqueId: active.queueUniqueId,
         queueNumber: active.queueNumber,
         status: active.status,
+        targetedShipperUserUUID: targetedShipperUserUUID || active.targetedShipperUserUUID || null,
         queueOrganizationUniqueId: active.queueOrganizationUniqueId,
         queueOrganizationName: active.queueOrganizationName,
       },
@@ -2159,6 +2196,13 @@ const notifyShipperOfQueueReservation = async ({
  * targeted mode (2 or 3) the dispatch throws a 4xx explaining why the named
  * driver could not take the order.
  *
+ * BATCH-REFUSAL RULE (FIFO scans only): when the order belongs to a batch
+ * (`shipperRequest.shipperRequestBatchUniqueId`), a driver who declined ANY
+ * order of that batch ("said no" statuses — see
+ * BATCH_DECLINED_JOURNEY_STATUSES) is also skipped, so one decline cools the
+ * whole batch. Targeted dispatch (mode 2/3) is EXEMPT and can reconnect the
+ * batch to a cooled driver on purpose.
+ *
  * With `throwIfNone` (manual dispatch) an empty queue is a 404; with the auto
  * path (handleQueueDispatch / advance) an empty queue just means the order
  * stays waiting — the call returns `{ offered: false }` instead.
@@ -2303,6 +2347,29 @@ const offerToDriver = async ({
              AND jd.journeyStatusId IN (?, ?, ?, ?)
          )`);
     queryParams.push(...skipRejectedParams);
+
+    // BATCH-REFUSAL RULE — automatic FIFO scans only. A driver who declined ANY
+    // order of THIS order's batch (a JourneyDecision on any non-deleted order
+    // sharing shipperRequestBatchUniqueId with a "said no" status) is skipped,
+    // so one decline cools every job of the batch. Targeted manual dispatch
+    // (targetQueueUniqueId / targetVehicleDriverUniqueId) is EXEMPT — an admin
+    // can always reconnect a driver to a batch order. Orders without a batch
+    // (NULL) or with a different batch id never match.
+    if (!isTargeted && shipperRequest.shipperRequestBatchUniqueId) {
+      whereParts.push(`NOT EXISTS (
+           SELECT 1 FROM JourneyDecisions jd2
+           JOIN DriverRequest dr2 ON dr2.driverRequestId = jd2.driverRequestId
+           JOIN ShipperRequest sr2 ON sr2.shipperRequestId = jd2.shipperRequestId
+           WHERE sr2.shipperRequestBatchUniqueId = ?
+             AND sr2.shipperRequestDeletedAt IS NULL
+             AND dr2.userUniqueId = vd.driverUserUniqueId
+             AND jd2.journeyStatusId IN (?, ?, ?)
+         )`);
+      queryParams.push(
+        shipperRequest.shipperRequestBatchUniqueId,
+        ...BATCH_DECLINED_JOURNEY_STATUSES,
+      );
+    }
 
     // Requirement 2 (shipper's right, redirect): offer THIS shipper's reserved
     // drivers first, then general (unreserved) drivers, each group by
@@ -3646,6 +3713,65 @@ exports.markEntryAgreed = async ({
     },
   });
   return { updated: true };
+};
+
+/**
+ * releaseEntryForUnselectedBidder
+ * ─────────────────────────────
+ * A BID order that was surfaced through a driver's check-in pull has a LINKED
+ * DriverQueue entry (status REQUESTED). When the shipper selects a different
+ * driver, that entry must not keep holding the (now-lost) order: unlink it and
+ * return the driver to the WAITING pool so they stay in the queue for the next
+ * offer. No-op when the driver has no linked entry for the order (creation-path
+ * bids never link one).
+ *
+ * @param {Object} params
+ * @param {string} params.shipperRequestUniqueId - The order unique id
+ * @param {string} params.userUniqueId - The loser driver's user unique id
+ * @returns {Promise<{released: boolean}>}
+ */
+exports.releaseEntryForUnselectedBidder = async ({
+  shipperRequestUniqueId,
+  userUniqueId,
+}) => {
+  const executor = db();
+  const [rows] = await executor.query(
+    `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate,
+            vd.driverUserUniqueId
+       FROM DriverQueue dq
+       JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+      WHERE dq.shipperRequestUniqueId = ?
+        AND vd.driverUserUniqueId = ?
+        AND dq.status IN (${QUEUE_STATUS.REQUESTED}, ${QUEUE_STATUS.NO_ANSWER_FROM_DRIVER})
+        AND dq.queueDeletedAt IS NULL
+      LIMIT 1
+      FOR UPDATE`,
+    [shipperRequestUniqueId, userUniqueId],
+  );
+  const entry = rows[0] || null;
+  if (!entry) {
+    return { released: false };
+  }
+  await logQueueHistory(executor, {
+    queueUniqueId: entry.queueUniqueId,
+    event: HISTORY_EVENT.NOT_SELECTED,
+    performedBy: null,
+  });
+  await updateData({
+    tableName: "DriverQueue",
+    updateValues: {
+      status: QUEUE_STATUS.WAITING,
+      shipperRequestUniqueId: null,
+      queueUpdatedBy: null,
+      queueUpdatedAt: currentDate(),
+    },
+    conditions: { queueId: entry.queueId },
+  });
+  await emitQueueSnapshot({
+    queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+    queueDate: entry.queueDate,
+  });
+  return { released: true };
 };
 
 /**

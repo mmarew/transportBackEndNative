@@ -544,7 +544,7 @@ One driver, one shipper, one truck. Auto-matched by GPS.
       { driverRequestUniqueId, shipperRequestUniqueId, journeyDecisionUniqueId, shippingCostByDriver }
 
 5. testAcceptDriverRequest({ uniqueIds })  [status == 3]
-   └─ PUT /api/shipper/acceptDriverRequest
+   └─ PUT /api/shipper/acceptDriverOffer
       { driverRequestUniqueId, journeyDecisionUniqueId, shipperRequestUniqueId }
 
 6. startJourney()  [status == 4]
@@ -715,7 +715,7 @@ status: 1 (waiting)
                                       PUT acceptShipperRequest
                                       { shippingCostByDriver: 5000 }
                                       status: 3 (bid submitted)
-PUT acceptDriverRequest
+PUT acceptDriverOffer
 (shipper picks this driver)
 status: 4 (accepted by shipper)
                                       ↓
@@ -834,7 +834,7 @@ null
   ▼ PUT /api/driver/acceptShipperRequest
   3  acceptedByDriver (driver bid submitted, awaiting shipper)
   │
-  ▼ PUT /api/shipper/acceptDriverRequest
+  ▼ PUT /api/shipper/acceptDriverOffer
   4  acceptedByShipper (shipper picked this driver, ready to start)
   │
   ▼ PUT /api/driver/startJourney

@@ -2069,7 +2069,7 @@ CREATE TABLE IF NOT EXISTS CompanyRating (
 --      eligible drivers.
 --   3. Eligible drivers place a bid here (one bid per driver per order → UNIQUE below).
 --   4. Shipper selects a winning driver → bidStatus = 'selected'; the existing
---      acceptDriverRequest flow finalizes the journey; others → 'not_selected'.
+--      acceptDriverOffer flow finalizes the journey; others → 'not_selected'.
 --
 -- Kept separate from CompanyBidRequest because bidding is per-SHIPPER-REQUEST (one
 -- order/slot) by INDIVIDUAL drivers, whereas company bidding is per-BATCH by a company.

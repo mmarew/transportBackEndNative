@@ -17,6 +17,7 @@ const {
 const { runQueueOrgTests, testTQ04SoftDelete } = require("./QueueOrg");
 const { runQueueCheckinTests } = require("./QueueCheckin");
 const { runQueueOrderTests } = require("./QueueOrders");
+const { runQueueBatchRuleTests } = require("./QueueBatchRule");
 const { runQueueAdminTests } = require("./QueueAdminOps");
 const { runLoadingStagesTests } = require("./verifyLoadingStages");
 const { runQueueHistoryTests } = require("./QueueHistory");
@@ -73,6 +74,7 @@ const runQueueTests = async ({ reset = true, silent = false } = {}) => {
   await runQueueOrgTests();
   await runQueueCheckinTests();
   await runQueueOrderTests();
+  await runQueueBatchRuleTests();
   await runQueueAdminTests();
   try {
     await runLoadingStagesTests();

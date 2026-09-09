@@ -27,7 +27,7 @@ verify status via {{url}}/api/shipperRequest/verifyShipperStatus?page=1&pageSize
 get detailes {{url}}/api/user/getShipperRequest4allOrSingleUser?journeyStatusId=1  use 2 for requested 3 for accepted by driver 4 accepted by shipper, 5 journey started, 6 journey ended
 then create driver request in {{url}}/api/driver/request
 use {{url}}/api/driver/acceptShipperRequest to accept shipper request
-use {{url}}/api/shipper/acceptDriverRequest to accept driver request
+use {{url}}/api/shipper/acceptDriverOffer to accept driver offer
 
 use {{url}}/api/driver/startJourney to start journey
 use {{url}}/api/driver/completeJourney to complete journey

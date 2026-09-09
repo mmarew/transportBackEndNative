@@ -28,7 +28,7 @@ const {
   completeJourney,
 } = require("./Driver/DriverJourneyStatus");
 const {
-  testAcceptDriverRequest,
+  testAcceptDriverOffer,
 } = require("./Shipper/ShipperRequest");
 const { testCancelDriverRequest } = require("./Driver/DriverRequest");
 
@@ -591,7 +591,7 @@ const testBatchDriverRejection = async () => {
     report.pass("batchReject: explicitlyPickedJob2");
 
     // 9. Shipper accepts the driver offer → acceptedByShipper (4)
-    await testAcceptDriverRequest({ uniqueIds: status?.uniqueIds });
+    await testAcceptDriverOffer({ uniqueIds: status?.uniqueIds });
     status = await getDriverJourneyStatus({ userType: "driver" });
     if (status?.status !== 4) {
       throw new Error(`Expected status 4 (acceptedByShipper), got ${status?.status}`);

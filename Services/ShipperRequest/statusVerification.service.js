@@ -29,6 +29,18 @@ const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
 const { transactionStorage } = require("../../Utils/TransactionContext");
 
+// BATCH-REFUSAL RULE statuses — a driver who reached any of these terminal
+// "said no" journey statuses against an order of a batch cools the WHOLE batch
+// for automatic re-offers (FIFO `offerToDriver` and distance/bid matching
+// `handleWaitingRequest`). cancelledByDriver (12) covers a driver cancelling
+// AFTER accepting one job of a batch; cancelledByAdmin (13) is deliberately NOT
+// included — the admin cancels a whole order, it is not the driver's decision.
+const BATCH_DECLINED_JOURNEY_STATUSES = [
+  journeyStatusMap.cancelledByDriver,
+  journeyStatusMap.noAnswerFromDriver,
+  journeyStatusMap.rejectedByDriver,
+];
+
 /**
  * Gets the shipper's current journey status
  * @param {string} userUniqueId - Shipper's unique identifier
@@ -261,6 +273,14 @@ const ensureWaitingDriverRequest = async (
 
 /**
  * Handles waiting request (status 1) - finds nearby drivers and creates journey decisions
+ *
+ * Applies the BATCH-REFUSAL RULE: a candidate driver who declined ANY order of
+ * the current order's batch (a JourneyDecision with a "said no" status on any
+ * non-deleted order sharing `shipperRequestBatchUniqueId`) is skipped, so one
+ * decline cools the whole batch for auto-matching. Orders without a batch or
+ * with a different batch id are unaffected. Targeted manual dispatch never
+ * reaches here.
+ *
  * @param {Object} params - Handler parameters
  * @param {Object} params.shipperRequest - Shipper request object
  * @param {number} params.shipperRequestId - Shipper request ID
@@ -316,6 +336,39 @@ async function handleWaitingRequest({
       (bidFlag === true || bidFlag === 1 || bidFlag === "1");
 
     const executorAvailability = transactionStorage.getStore() || pool;
+
+    // BATCH-REFUSAL RULE (auto-matching only — a targeted dispatch never reaches
+    // handleWaitingRequest): once a driver declined ANY order of this order's
+    // batch ("said no" statuses above), they are not auto-offered another order
+    // of the SAME batch. The current order's batch id is resolved from DB rather
+    // than read off the caller-supplied object (callers pass different shapes),
+    // then any JourneyDecision against a non-deleted order sharing that batch id
+    // for this driver skips the candidate. Orders without a batch (subquery →
+    // NULL) or with a different batch id never match, so single orders and other
+    // batches are unaffected.
+    const [batchRefused] = await executorAvailability.query(
+      `SELECT 1
+       FROM JourneyDecisions jd2
+       JOIN DriverRequest dr2 ON dr2.driverRequestId = jd2.driverRequestId
+       JOIN ShipperRequest sr2 ON sr2.shipperRequestId = jd2.shipperRequestId
+       WHERE sr2.shipperRequestBatchUniqueId = (
+               SELECT sr0.shipperRequestBatchUniqueId
+               FROM ShipperRequest sr0
+               WHERE sr0.shipperRequestId = ?
+             )
+         AND sr2.shipperRequestDeletedAt IS NULL
+         AND dr2.userUniqueId = ?
+         AND jd2.journeyStatusId IN (?, ?, ?)
+       LIMIT 1`,
+      [
+        shipperRequestId,
+        driverResult.driverUserUniqueId,
+        ...BATCH_DECLINED_JOURNEY_STATUSES,
+      ],
+    );
+    if (batchRefused[0]?.[0]) {
+      continue; // Driver declined a job of this batch — never auto-offer another slot
+    }
 
     if (isBidOrder) {
       const fresh = await ensureWaitingDriverRequest(

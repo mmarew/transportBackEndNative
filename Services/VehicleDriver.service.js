@@ -197,6 +197,7 @@ const getVehicleDrivers = async (filters = {}) => {
   const countSql = `
     SELECT COUNT(*) as total
     FROM VehicleDriver vd
+    LEFT JOIN Users dr ON vd.driverUserUniqueId = dr.userUniqueId
      ${whereClause}
   `;
 

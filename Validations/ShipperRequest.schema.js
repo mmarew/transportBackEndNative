@@ -151,7 +151,7 @@ exports.getShipperRequestQuery = Joi.object({
     .optional(),
 }).unknown(true);
 
-exports.acceptDriverRequestBody = Joi.object({
+exports.acceptDriverOfferBody = Joi.object({
   driverRequestUniqueId: uuidSchema.required(),
   journeyDecisionUniqueId: uuidSchema.required(),
   shipperRequestUniqueId: uuidSchema.required(),

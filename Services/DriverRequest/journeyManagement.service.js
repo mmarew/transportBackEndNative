@@ -915,7 +915,9 @@ const transitionLoadingStage = (stage) => async (body) => {
           DriverRequest.driverRequestUniqueId,
           DriverRequest.userUniqueId,
           ShipperRequest.shipperRequestUniqueId,
+          ShipperRequest.shippingCost,
           ShipperRequest.isPodRequired,
+          ShipperRequestBatch.shippingCost AS batchShippingCost,
           Journey.journeyUniqueId,
           Journey.journeyProofOfLoading,
           Users.fullName,
@@ -924,6 +926,8 @@ const transitionLoadingStage = (stage) => async (body) => {
         FROM JourneyDecisions
         JOIN DriverRequest ON JourneyDecisions.driverRequestId = DriverRequest.driverRequestId
         JOIN ShipperRequest ON JourneyDecisions.shipperRequestId = ShipperRequest.shipperRequestId
+        LEFT JOIN ShipperRequestBatch
+          ON ShipperRequestBatch.batchUniqueId = ShipperRequest.shipperRequestBatchUniqueId
         JOIN Users ON DriverRequest.userUniqueId = Users.userUniqueId
         LEFT JOIN Journey ON Journey.journeyDecisionUniqueId = JourneyDecisions.journeyDecisionUniqueId
         WHERE JourneyDecisions.journeyDecisionUniqueId = ?
@@ -988,6 +992,11 @@ const transitionLoadingStage = (stage) => async (body) => {
           journeyDecisionUniqueId,
           journeyStatusId: config.targetStatus,
           ...stageUpdate,
+          fare:
+            combinedData.batchShippingCost ??
+            combinedData.shippingCost ??
+            combinedData.shippingCostByDriver ??
+            0,
           journeyCreatedBy: userUniqueId,
           journeyCreatedAt: currentDate(),
         };
@@ -1010,7 +1019,6 @@ const transitionLoadingStage = (stage) => async (body) => {
           // Overwrite the locally-generated UUID with the real persisted one.
           // This ensures updateJourneyStatus and the route-point write reference
           // the correct row even when our INSERT was the losing concurrent call.
-          // eslint-disable-next-line no-param-reassign
           journeyUniqueId = existingJourneyRows[0].journeyUniqueId;
         }
       }

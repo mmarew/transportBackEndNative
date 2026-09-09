@@ -88,12 +88,20 @@ const testTQ07IdempotentRecheckin = async () => {
   try {
     const before = await getActiveEntry("queueDriver1", queueOrganizationUniqueId);
     const again = await checkin("queueDriver1", queueOrganizationUniqueId);
-    if (again.queueUniqueId === before.queueUniqueId) {
-      throw new Error("Re-check-in should retire the prior entry and create a fresh one");
-    }
-    if (again.queueNumber <= before.queueNumber) {
+    // Already in THIS queue today → IDEMPOTENT re-check-in (see
+    // docs/request-workflow-queue-track-count.md §7 "driver check-in"): the
+    // same live entry is returned, no new row, position preserved. A BRAND-NEW
+    // row is only created once the prior entry is terminal
+    // (docs/queue-order-dispatch.md "Driver agreed may re-check-in → new
+    // number at the back").
+    if (again.queueUniqueId !== before.queueUniqueId) {
       throw new Error(
-        `Re-check-in should place driver01 at the back: ${before.queueNumber} → ${again.queueNumber}`,
+        `Re-check-in while live must be idempotent (same entry), got ${before.queueUniqueId} → ${again.queueUniqueId}`,
+      );
+    }
+    if (again.queueNumber !== before.queueNumber) {
+      throw new Error(
+        `Idempotent re-check-in must preserve position: ${before.queueNumber} → ${again.queueNumber}`,
       );
     }
     const activeCount = await getActiveQueueCountForDriver("queueDriver1");
@@ -101,10 +109,10 @@ const testTQ07IdempotentRecheckin = async () => {
       throw new Error(`Expected 1 active row for driver01, got ${activeCount}`);
     }
     report.pass(
-      "TQ-07: re-check-in retires prior entry & creates fresh back-of-line entry (single active row)",
+      "TQ-07: re-check-in while live is idempotent (same entry, one active row)",
     );
   } catch (error) {
-    report.fail("TQ-07: re-check-in fresh entry semantics", error);
+    report.fail("TQ-07: idempotent re-check-in", error);
   }
 };
 
@@ -148,8 +156,8 @@ const testTQ09MyPosition = async () => {
     if (Array.isArray(pos) || entry.queueNumber !== 2) {
       throw new Error(`driver02 myPosition expected queueNumber 2, got ${JSON.stringify(pos)}`);
     }
-    if (entry.waitingAhead !== 0) {
-      throw new Error(`driver02 waitingAhead expected 0, got ${entry.waitingAhead}`);
+    if (entry.waitingAhead !== 1) {
+      throw new Error(`driver02 waitingAhead expected 1 (d1 still ahead), got ${entry.waitingAhead}`);
     }
     if (!pos?.organization?.queueOrganizationUniqueId) {
       throw new Error(`driver02 myPosition missing organization, got ${JSON.stringify(pos)}`);

@@ -308,10 +308,10 @@ GET /api/user/getShipperRequest4allOrSingleUser?journeyStatusId=6          # Get
 
 **Note**: Admin/Super Admin can cancel any request using `/api/shipperRequest/cancelShipperRequest/:userUniqueId` where `:userUniqueId` is the target user's ID.
 
-### Accept Driver Request (Selection in Bid)
+### Accept Driver Offer (Selection in Bid)
 
-**Endpoint**: `PUT /api/shipper/acceptDriverRequest`
-**Description**: Allows a shipper to select and accept a driver's offer from multiple driver bids. Updates the selected driver's status to "accepted by shipper" and all other drivers' status to "not selected in bid".
+**Endpoint**: `PUT /api/shipper/acceptDriverOffer`
+**Description**: Allows a shipper (or a queue org admin of the order's queue org) to select and accept a driver's offer from multiple driver bids. Updates the selected driver's status to "accepted by shipper" and all other drivers' status to "not selected in bid".
 **Authentication**: Shipper token required
 
 **Request Body**:

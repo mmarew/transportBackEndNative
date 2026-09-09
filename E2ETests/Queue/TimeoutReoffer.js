@@ -6,7 +6,7 @@
 //   TQ-41  Offer timeout → entry parked at no_answer(16) with the ORDER
 //         RETAINED (single driver in line), refusal count += 1
 //   TQ-42  Late accept (no next driver) → HONOURED: entry 16 → agreed(3),
-//         journey created
+//         decision-only accept (no Journey until goToLoadingPlace 5)
 //   TQ-43  Timeout with a next driver → order advances to him (16-holder
 //         released →18, order detached); the FIRST driver's late accept after
 //         that is REJECTED 409; the next driver accepts normally
@@ -167,14 +167,16 @@ const testTQ41_42LateAcceptHonoured = async () => {
     if (!accepted || accepted.status !== journeyStatusMap.acceptedByShipper) {
       throw new Error(`late accept failed: ${JSON.stringify(accepted)}`);
     }
-    if (!accepted?.uniqueIds?.journeyUniqueId) {
-      throw new Error(`late accept should create a Journey: ${JSON.stringify(accepted?.uniqueIds)}`);
+    // Accept is decision-only (1–4 are DECISION states); the Journey row is
+    // born at goToLoadingPlace (5) — see docs/Queue.md "Journey Timing".
+    if (accepted?.uniqueIds?.journeyUniqueId) {
+      throw new Error(`late accept must not create a Journey yet: ${JSON.stringify(accepted?.uniqueIds)}`);
     }
     const agreed = await rawEntryByDriver("queueDriver2");
     if (!agreed || agreed.status !== 3) {
       throw new Error(`d2 entry should be agreed after late accept: ${JSON.stringify(agreed)}`);
     }
-    report.pass("TQ-42: late accept honoured (16 → agreed, journey created)");
+    report.pass("TQ-42: late accept honoured (16 → agreed, decision-only — Journey born at goToLoadingPlace 5)");
     return { orderUniqueId, queueUniqueId: agreed.queueUniqueId };
   } catch (error) {
     report.fail("TQ-41/42: late-accept honoured", error);
@@ -321,7 +323,7 @@ const testTQ45WholeJobCancel = async () => {
     const postOrder = await makeOrder({ queueOrganizationUniqueId: orgUniqueId });
     await getDriverJourneyStatus({ userType: "queueDriver2" });
     const accepted = await acceptOrder("queueDriver2", 6000);
-    if (!accepted?.uniqueIds?.journeyUniqueId) {
+    if (!accepted || accepted.status !== journeyStatusMap.acceptedByShipper) {
       throw new Error(`pre-accept cancel scenario left d2 unable to accept: ${JSON.stringify(accepted)}`);
     }
     await cancelOrder({ orderUniqueId: postOrder, cancelAs: "shipper" });

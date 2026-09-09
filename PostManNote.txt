@@ -1662,10 +1662,10 @@ If the response "status" is 1, no shipper/job is found. However, if the status i
     }
 }
 
-Once a driver accepts the shipper request as shown above, the shipper must approve it because this is bid-based pricing. The shipper can accept the driver's request via `{{url}}/api/shipper/acceptDriverRequest`. Note: The shipper receives driver acceptance notifications through WebSocket or by checking `{{url}}/api/user/getShipperRequest4allOrSingleUser?journeyStatusId=3`.
+Once a driver accepts the shipper request as shown above, the shipper must approve it because this is bid-based pricing. The shipper can accept the driver's request via `{{url}}/api/shipper/acceptDriverOffer`. Note: The shipper receives driver acceptance notifications through WebSocket or by checking `{{url}}/api/user/getShipperRequest4allOrSingleUser?journeyStatusId=3`.
 
-### 5. Accept Driver Request (Shipper/Shipper)
-**Endpoint**: `PUT /api/shipper/acceptDriverRequest`  
+### 5. Accept Driver Offer (Shipper/Shipper)
+**Endpoint**: `PUT /api/shipper/acceptDriverOffer`  
 **Description**: Shipper/Shipper accepts a driver's bid and confirms the transportation arrangement.  
 **Authentication**: Shipper token required  
 **Request Body**:

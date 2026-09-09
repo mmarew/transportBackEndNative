@@ -9,7 +9,6 @@ const { sendFCMNotificationToUser } = require("../Firebase.service");
 const { fetchJourneyNotificationData } = require("./helpers");
 const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
 const AppError = require("../../Utils/AppError");
-const { promoteToAcceptedByShipperAndCreateJourney } = require("../Journey");
 const {
   releaseConflictingOffers,
 } = require("./actionReleaseConflictingOffers.service");
@@ -106,9 +105,16 @@ const acceptShipperRequest = async (body) => {
 
     // Queue-dispatch orders are FIXED PRICE — the price is set by the queue
     // organization at order creation, so no driver counter-bid is required.
-    // They also SKIP the 1→2→3→4→5 negotiation flow: the price is already
-    // agreed, so accepting jumps straight to acceptedByShipper (4) and creates
-    // the Journey immediately. The 2→3→4→5 flow stays for nearby-matching only.
+    // Accepting is a DECISION transition only, never a Journey birth:
+    //   • FIFO queue order → acceptedByShipper (4) — the queue has already
+    //     selected the single front driver, so the driver accepting binds the
+    //     order.
+    //   • BID queue order → acceptedByDriver (3) — the driver agrees while the
+    //     shipper still has to SELECT the winner (see ShipperRequest
+    //     actionAccept.service: winner 4 / losers 17).
+    // The Journey row is created only when the driver heads to the loading
+    // place (goToLoadingPlace = 5) — see journeyManagement
+    // transitionLoadingStage. Same standard as nearby/street matching.
     // queueOrganizationUniqueId is BATCH-CANONICAL (ShipperRequest no longer
     // has the column — tableManage.service migration), so it is read from the
     // ShipperRequestBatch join above, never off ShipperRequest.*.
@@ -129,7 +135,7 @@ const acceptShipperRequest = async (body) => {
         AppError.BAD_REQUEST,
       );
     }
-    const targetStatusId = isQueueOrder
+    const targetStatusId = isQueueOrder && !isBidOrder
       ? journeyStatusMap.acceptedByShipper
       : journeyStatusMap.acceptedByDriver;
 
@@ -188,7 +194,6 @@ const acceptShipperRequest = async (body) => {
     // cannot both pass the `currentStatusId !== requested` check (check-then-act
     // race). The first accept's lock serialises the second until commit, and the
     // second then reads status 3 (acceptedByDriver) and is rejected.
-    let createdJourney = null;
     await executeInTransaction(
       async (connection) => {
         const [lockedDecision] = await connection.query(
@@ -208,43 +213,27 @@ const acceptShipperRequest = async (body) => {
           );
         }
 
-        // Queue orders: price is agreed up front, so accepting lands straight
-        // on acceptedByShipper (4) AND creates the Journey immediately (fare =
-        // the fixed queue price) — skipping the 1→2→3→4→5 negotiation flow
-        // used by nearby matching. Shared with the company assignment confirm
-        // flow — see promoteAcceptedJourney.service.js.
-        if (isQueueOrder) {
-          createdJourney = await promoteToAcceptedByShipperAndCreateJourney({
-            journeyDecisionUniqueId,
-            driverRequestUniqueId,
-            shipperRequestUniqueId,
-            shippingCostByDriver:
-              requestData.batchShippingCost ??
-              requestData.shippingCost ??
-              0,
-            journeyCreatedBy: userUniqueId,
-          });
-        } else {
-          await updateJourneyStatus({
-            ...body,
-            journeyStatusId: targetStatusId,
-          });
-        }
+        // Acceptance is a pure DECISION transition — no Journey is created
+        // here. FIFO queue orders land on acceptedByShipper (4), BID queue
+        // orders on acceptedByDriver (3); the Journey row is born only when the
+        // driver heads to the loading place (goToLoadingPlace = 5) — see
+        // journeyManagement transitionLoadingStage (which creates it on demand
+        // and stamps the agreed fare).
+        await updateJourneyStatus({
+          ...body,
+          journeyStatusId: targetStatusId,
+        });
       },
       { timeout: 10000, logging: true },
     );
 
-    // Queue-dispatch orders: driver accepted → the queue entry leaves the
-    // dispatch line (marked agreed; journey progress follows journeyStatusId).
-    // For FIFO orders the entry is linked to the order; for BID orders there is
-    // no linkage, so we mark the accepting driver's OWN active entry agreed
-    // instead (they leave the line by taking a job either way).
+    // FIFO queue orders: driver accepted → the queue entry leaves the dispatch
+    // line (marked agreed). BID orders are NOT finalised here — the entry stays
+    // REQUESTED-linked until the shipper selects (winner marked agreed there,
+    // losers released). See ShipperRequest/actionAccept.service.js.
     if (isQueueOrder && !isBidOrder) {
       const { markEntryAgreed } = require("../DriverQueue.service");
       await markEntryAgreed({ shipperRequestUniqueId, userUniqueId });
-    } else if (isBidOrder && isQueueOrder) {
-      const { markEntryAgreed } = require("../DriverQueue.service");
-      await markEntryAgreed({ shipperRequestUniqueId, userUniqueId, bidOrder: true });
     }
 
     // Send notification directly to shipper without processing all requests
@@ -276,7 +265,7 @@ const acceptShipperRequest = async (body) => {
       shipperRequest,
       journeyDecision: journeyDecisionData,
       driverInfo,
-      journeyData: createdJourney?.data?.[0] || journeyData,
+      journeyData,
       messageType: isQueueOrder
         ? messageTypes.queue_order_assigned
         : messageTypes.driver_accepted_shipper_request,
@@ -300,7 +289,7 @@ const acceptShipperRequest = async (body) => {
 
     // Build response structure matching verifyDriverJourneyStatus/handleExistingJourney format
     // Use data we already have instead of calling verifyDriverJourneyStatus
-    const journeyResponse = createdJourney?.data?.[0] || journeyData || null;
+    const journeyResponse = journeyData || null;
     const uniqueIds = {
       driverRequestUniqueId: driverInfo?.driver?.driverRequestUniqueId,
       shipperRequestUniqueId: shipperRequest?.shipperRequestUniqueId,
@@ -326,13 +315,15 @@ const acceptShipperRequest = async (body) => {
     // assignments so the driver isn't double-booked.
     await releaseConflictingOffers(userUniqueId, "individual");
 
-    // ── Phase 2: Not-selected release (queue orders) ──────────────────────
-    // A queue-order accept lands straight on acceptedByShipper (4) + Journey —
-    // the shipper never runs the separate accept that normally marks the other
+    // ── Phase 2: Not-selected release (FIFO queue orders) ──────────────────
+    // A FIFO queue-order accept lands straight on acceptedByShipper (4) — the
+    // shipper never runs the separate accept that normally marks the other
     // invited drivers as notSelectedInBid (17) (see ShipperRequest
     // actionAccept.service). Release those stale same-order invites now, or a
     // late accept of one would mint a second Journey on the same order.
-    if (isQueueOrder) {
+    // BID orders are NOT finalised here: their losers are released by the
+    // shipper's own selection step (actionAccept.service loops 2/3→17).
+    if (isQueueOrder && !isBidOrder) {
       await releaseNotSelectedBidInvitees({
         shipperRequestUniqueId,
         excludeJourneyDecisionUniqueId: journeyDecisionUniqueId,
@@ -354,13 +345,13 @@ const acceptShipperRequest = async (body) => {
 /**
  * releaseNotSelectedBidInvitees
  * ─────────────────────────────
- * Queue-bid orders invite up to MAX_OFFERS_PER_SWEEP drivers per sweep. When
- * the driver-side accept (`acceptShipperRequest`) finalises the order directly
- * (acceptedByShipper + Journey), every OTHER open invitation on the same order
- * is stale by design — mark those decisions (and their DriverRequests) as
- * notSelectedInBid (17). Mirrors the loop ShipperRequest/actionAccept.service
- * runs when the SHIPPER selects a driver, except this fires on the driver-side
- * finalisation that queue orders use (no separate shipper accept step).
+ * FIFO queue orders invite one driver at a time. When the driver-side accept
+ * (`acceptShipperRequest`) binds the order (acceptedByShipper), any OTHER open
+ * invitation on the same order (e.g. a previously offered driver still at
+ * requested, or a bid-driver offered in parallel) is stale by design — mark
+ * those decisions (and their DriverRequests) as notSelectedInBid (17). BID
+ * orders do NOT reach this path: their losers are released when the shipper
+ * selects, by ShipperRequest/actionAccept.service.
  */
 const releaseNotSelectedBidInvitees = async ({
   shipperRequestUniqueId,

@@ -9,7 +9,7 @@ const {
   startJourney,
   completeJourney,
 } = require("../Driver/DriverJourneyStatus");
-const { testAcceptDriverRequest } = require("../Shipper/ShipperRequest");
+const { testAcceptDriverOffer } = require("../Shipper/ShipperRequest");
 const { usersData } = require("../constants");
 const { pool } = require("../../Middleware/Database.config");
 
@@ -107,7 +107,7 @@ const runIndividualFlow = async () => {
     driverStatus = await getDriverJourneyStatus({ userType: "driver" });
   }
   if (driverStatus?.status === 3) {
-    await testAcceptDriverRequest({ uniqueIds: driverStatus?.uniqueIds });
+    await testAcceptDriverOffer({ uniqueIds: driverStatus?.uniqueIds });
     driverStatus = await getDriverJourneyStatus({ userType: "driver" });
   }
   if (driverStatus?.status === 4) {

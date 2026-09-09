@@ -20,7 +20,7 @@ const {
   markJourneyCompletionAsSeen,
   verifyShipperStatusQuery,
   getShipperRequestQuery,
-  acceptDriverRequestBody,
+  acceptDriverOfferBody,
   rejectDriverOfferBody,
   getAllActiveRequestsQuery,
 } = require("../Validations/ShipperRequest.schema");
@@ -441,7 +441,7 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  *
  * Differences from Other Endpoints:
  * - Unlike /api/driver/request: This endpoint creates shipper requests, not driver requests
- * - Unlike /api/shipper/acceptDriverRequest: This endpoint creates new requests, doesn't accept drivers
+ * - Unlike /api/shipper/acceptDriverOffer: This endpoint creates new requests, doesn't accept drivers
  * - Unlike /api/shipper/cancelShipperRequest: This endpoint creates requests, doesn't cancel them
  * - This endpoint is specifically for request creation (batch support)
  * - Other endpoints handle request actions (accept, cancel, verify status)
@@ -559,12 +559,13 @@ router.get(
   controller.getShipperRequest4allOrSingleUser,
 );
 /**
- * Accept Driver Request Endpoint
+ * Accept Driver Offer Endpoint
  *
- * Purpose: Allows a shipper to accept a driver's offer/request for a journey based on bid principles.
+ * Purpose: Allows a shipper (or a queue org admin of the order's queue org) to
+ * accept a driver's offer for a journey based on bid principles.
  *
  * How it works:
- * - Shipper selects one driver from multiple driver offers
+ * - Caller selects one driver from multiple driver offers
  * - Updates the selected driver's status to "accepted by shipper"
  * - Updates all other drivers' status to "not selected in bid"
  * - Sends notifications to all affected drivers (accepted/rejected)
@@ -580,10 +581,10 @@ router.get(
  * - Frontend can use this to update UI without additional API calls
  */
 router.put(
-  SHIPPER_REQUEST_ENDPOINTS.ACCEPT_DRIVER_REQUEST,
+  SHIPPER_REQUEST_ENDPOINTS.ACCEPT_DRIVER_OFFER,
   verifyTokenOfAxios,
-  validator(acceptDriverRequestBody),
-  controller.acceptDriverRequest,
+  validator(acceptDriverOfferBody),
+  controller.acceptDriverOffer,
 );
 
 /**
@@ -862,7 +863,7 @@ router.put(
  *    - PUT /api/shipperRequest/markJourneyCompletionAsSeen
  *    - PUT /api/shipperRequest/markCancellationAsSeen
  *    - PUT /api/shipperRequest/cancelShipperRequest/:userUniqueId
- *    - PUT /api/shipper/acceptDriverRequest
+ *    - PUT /api/shipper/acceptDriverOffer
  *    - PUT /api/user/rejectDriverOffer
  */
 router.get(

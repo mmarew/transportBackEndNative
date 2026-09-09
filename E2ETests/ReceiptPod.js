@@ -29,7 +29,7 @@ const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const { report } = require("./Reporter");
 const { queueState } = require("./Queue/state");
-const { usersData, backendURL } = require("./constants");
+const { usersData, backendURL, journeyStatusMap } = require("./constants");
 const { authConfig } = require("./Utils");
 const {
   getDriverJourneyStatus,
@@ -108,10 +108,16 @@ const fullJourneyLifecycle = async ({
     );
   }
 
-  // 4. Accept the order
+  // 4. Accept the order — decision-only (status 4). Statuses 1–4 are DECISION
+  // states; the Journey row is born only at goToLoadingPlace (5).
   const accepted = await acceptOrder(driverKey, 5500);
-  if (!accepted?.uniqueIds?.journeyUniqueId) {
+  if (!accepted || accepted.status !== journeyStatusMap.acceptedByShipper) {
     throw new Error(`Accept failed: ${JSON.stringify(accepted)}`);
+  }
+  if (accepted?.uniqueIds?.journeyUniqueId) {
+    throw new Error(
+      `Accept must not create a Journey yet (born at goToLoadingPlace 5): ${JSON.stringify(accepted?.uniqueIds)}`,
+    );
   }
 
   // 5. Start journey

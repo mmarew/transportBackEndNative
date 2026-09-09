@@ -114,15 +114,17 @@ const createShipperRequest = async (req, res, next) => {
     next(error);
   }
 };
-const acceptDriverRequest = async (req, res, next) => {
+const acceptDriverOffer = async (req, res, next) => {
   try {
+    req.body = req.body || {};
     req.body.journeyStatusId = journeyStatusMap.acceptedByShipper;
     req.body.previousStatusId = journeyStatusMap.acceptedByDriver;
     const user = req?.user;
     const userUniqueId = user.userUniqueId;
     req.body.userUniqueId = userUniqueId;
+    req.body.roleId = user.roleId;
     const result = await executeInTransaction(async () => {
-      return await ShipperService.acceptDriverRequest(req.body);
+      return await ShipperService.acceptDriverOffer(req.body);
     });
     ServerResponder(res, result);
   } catch (error) {
@@ -132,6 +134,7 @@ const acceptDriverRequest = async (req, res, next) => {
 
 const rejectDriverOffer = async (req, res, next) => {
   try {
+    req.body = req.body || {};
     req.body.journeyStatusId = journeyStatusMap.rejectedByShipper;
     req.body.previousStatusId = journeyStatusMap.acceptedByDriver;
     const user = req?.user;
@@ -410,7 +413,7 @@ const getAllActiveRequestsController = async (req, res, next) => {
 };
 
 module.exports = {
-  acceptDriverRequest,
+  acceptDriverOffer,
   getShipperRequestByShipperRequestUniqueId,
   getShipperRequest4allOrSingleUser,
   cancelShipperRequest,
