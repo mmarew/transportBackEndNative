@@ -747,8 +747,7 @@ exports.getQueueCountsBystatus = async (user) => {
     params.push(user.userUniqueId);
   }
 
-  const whereClause =
-    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const whereClause = `WHERE ${["q.isDeleted = 0", ...conditions].join(" AND ")}`;
 
   // Get total organizations
   const [total] = await db().query(
