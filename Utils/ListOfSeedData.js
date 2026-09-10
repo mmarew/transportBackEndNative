@@ -14,6 +14,7 @@ const usersRoles = {
   vehicleRoleId: 9, // entity role — for vehicle document requirements
   dispatcherRoleId: 10, // company dispatcher — manages fleet dispatch
   queueOrgAdminRoleId: 11, // queue organization admin — manages the dispatch queue
+  queueDispatcherRoleId: 12, // queue dispatcher — staff under the org admin, runs the queue
 };
 const usersRolesList = {
   shipper: { roleId: 1, roleName: "shipper" },
@@ -27,6 +28,7 @@ const usersRolesList = {
   vehicle: { roleId: 9, roleName: "vehicle" },
   dispatcher: { roleId: 10, roleName: "Dispatcher" },
   queueOrgAdmin: { roleId: 11, roleName: "Queue Organization Admin" },
+  queueDispatcher: { roleId: 12, roleName: "Queue Dispatcher" },
 };
 const roleList = [
   {
@@ -110,6 +112,14 @@ const roleList = [
     roleName: "Queue Organization Admin",
     roleDescription:
       "A queue organization admin who manages the dispatch queue for a queue organization: checks drivers in/out, views the queue, overrides positions (audit logged), and resolves disputes.",
+    roleCreatedAt: currentDate(),
+  },
+  {
+    roleId: 12,
+    roleUniqueId: uuidv4(),
+    roleName: "Queue Dispatcher",
+    roleDescription:
+      "Queue organization staff under the org admin: runs the dispatch queue (check-in/out, view, dispatch, disputes) but cannot add or remove staff or org members.",
     roleCreatedAt: currentDate(),
   },
 ];

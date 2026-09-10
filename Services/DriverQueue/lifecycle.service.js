@@ -555,16 +555,44 @@ exports.getEntryHistory = async (queueUniqueId, user) => {
     throw new AppError("Queue entry not found", AppError.NOT_FOUND);
   }
 
-  // Ownership check: driver can only view own entry's history; admins bypass
-  const isAdmin =
+  // Ownership check: driver can only view own entry's history; admins bypass.
+  // Org staff (11/12) must still hold an ACTIVE membership in the entry's org —
+  // a suspended dispatcher loses this too.
+  const isPlatformAdmin =
     user.roleId === usersRoles.adminRoleId ||
-    user.roleId === usersRoles.supperAdminRoleId ||
-    user.roleId === usersRoles.queueOrgAdminRoleId;
-  if (!isAdmin && entry[0].driverUserUniqueId !== user.userUniqueId) {
-    throw new AppError(
-      "Not authorized to view this entry's history",
-      AppError.FORBIDDEN,
+    user.roleId === usersRoles.supperAdminRoleId;
+  const isOrgStaff =
+    user.roleId === usersRoles.queueOrgAdminRoleId ||
+    user.roleId === usersRoles.queueDispatcherRoleId;
+  if (!isPlatformAdmin && !isOrgStaff) {
+    if (entry[0].driverUserUniqueId !== user.userUniqueId) {
+      throw new AppError(
+        "Not authorized to view this entry's history",
+        AppError.FORBIDDEN,
+      );
+    }
+  } else if (isOrgStaff) {
+    const [active] = await executor.query(
+      `SELECT 1 FROM QueueOrganizationMembership
+       WHERE queueOrganizationUniqueId = ?
+         AND userUniqueId = ?
+         AND roleId IN (?, ?)
+         AND isActive = 1
+         AND membershipDeletedAt IS NULL
+       LIMIT 1`,
+      [
+        entry[0].queueOrganizationUniqueId,
+        user.userUniqueId,
+        usersRoles.queueOrgAdminRoleId,
+        usersRoles.queueDispatcherRoleId,
+      ],
     );
+    if (active.length === 0) {
+      throw new AppError(
+        "Your access to this queue organization has been suspended or you are not an active staff member",
+        AppError.FORBIDDEN,
+      );
+    }
   }
 
   const [history] = await executor.query(

@@ -568,6 +568,38 @@ const createUserByAdminOrSuperAdmin = async ({
     });
   });
 };
+// A Queue Organization Admin (11) creates his own staff (Queue Dispatcher, 12).
+// Platform Admin (3) / SuperAdmin (6) may also do it; dispatchers cannot.
+const createUserByQueueAdmin = async ({ body, userUniqueId }) => {
+  if (body.roleId !== usersRoles.queueDispatcherRoleId) {
+    throw new AppError(
+      "A queue admin can only create queue dispatchers",
+      AppError.BAD_REQUEST,
+    );
+  }
+
+  const [adminRows] = await pool.query(
+    `SELECT q.roleId, q.isActive
+     FROM QueueOrganizationMembership q
+     WHERE q.userUniqueId = ? AND q.isActive = 1 AND q.membershipDeletedAt IS NULL
+       AND q.roleId = ?
+     LIMIT 1`,
+    [userUniqueId, usersRoles.queueOrgAdminRoleId],
+  );
+  const isPlatformAdmin = await getData({
+    tableName: "UserRole",
+    conditions: { userUniqueId, roleId: [usersRoles.adminRoleId, usersRoles.supperAdminRoleId] },
+  });
+  if (adminRows.length === 0 && isPlatformAdmin?.[0] === undefined) {
+    throw new AppError(
+      "Only a queue organization admin can create queue dispatchers",
+      AppError.FORBIDDEN,
+    );
+  }
+
+  return createUserByAdminOrSuperAdmin({ body, userUniqueId });
+};
+
 //some jobs can be done by system itself by written codes not by admin or supper admin or users
 const createUserSystem = async () => {
   const fullName = Config.SUPER_ADMIN.SYSTEM_FULL_NAME || "system";
@@ -609,6 +641,7 @@ module.exports = {
   createUser,
   createUserSystem,
   createUserByAdminOrSuperAdmin,
+  createUserByQueueAdmin,
   registerNewUser,
   ensureCredentialForUser,
   handleUserRoleStatus,

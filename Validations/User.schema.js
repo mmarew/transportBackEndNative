@@ -58,6 +58,19 @@ exports.createUserByAdmin = Joi.object({
   // ... other fields
 }).unknown(true);
 
+exports.createUserByQueueAdmin = Joi.object({
+  fullName: Joi.string().required(),
+  email: emailSchema.optional(),
+  phoneNumber: phoneNumberSchema.required(),
+  // A Queue Dispatcher (12) is created by a Queue Organization Admin (11).
+  roleId: Joi.number()
+    .integer()
+    .valid(usersRoles.queueDispatcherRoleId)
+    .required(),
+  statusId: Joi.number().integer().default(USER_STATUS.ACTIVE),
+  userRoleStatusDescription: Joi.string().optional(),
+}).unknown(true);
+
 exports.loginUser = Joi.object({
   phoneNumber: phoneNumberSchema.optional(),
   email: emailSchema,
@@ -72,6 +85,7 @@ exports.loginUser = Joi.object({
       usersRoles.systemRoleId,
       usersRoles.companyAdminRoleId,
       usersRoles.queueOrgAdminRoleId,
+      usersRoles.queueDispatcherRoleId,
     )
     .required(),
 }).or("phoneNumber", "email"); // Login still allows either since they are in the DB
@@ -91,6 +105,7 @@ exports.verifyUserByOTP = Joi.object({
       usersRoles.systemRoleId,
       usersRoles.companyAdminRoleId,
       usersRoles.queueOrgAdminRoleId,
+      usersRoles.queueDispatcherRoleId,
     )
     .optional(),
 })

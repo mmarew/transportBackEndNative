@@ -72,12 +72,12 @@ exports.getQueueOrganizationsQuery = Joi.object({
 
 exports.addMember = Joi.object({
   userUniqueId: uuidSchema.required(),
-  roleId: Joi.number().integer().valid(usersRoles.queueOrgAdminRoleId, usersRoles.shipperRoleId).required(),
+  roleId: Joi.number().integer().valid(usersRoles.queueOrgAdminRoleId, usersRoles.queueDispatcherRoleId).required(),
   isActive: Joi.boolean().default(true).optional(),
 }).unknown(true);
 
 exports.getMembersQuery = Joi.object({
-  roleId: Joi.number().integer().valid(usersRoles.shipperRoleId, usersRoles.queueOrgAdminRoleId).optional(),
+  roleId: Joi.number().integer().valid(usersRoles.queueOrgAdminRoleId, usersRoles.queueDispatcherRoleId).optional(),
   isActive: Joi.boolean().optional(),
 }).unknown(true);
 

@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const { getData } = require("../CRUD/Read/ReadData");
 const AppError = require("../Utils/AppError");
 const { usersRoles } = require("../Utils/ListOfSeedData");
+const { pool } = require("./Database.config");
 const Config = require("../Utils/Config");
 const secretKey = Config.SECRET_KEY;
 
@@ -205,10 +206,58 @@ const verifyIfUserIsQueueOrgAdmin = async (req, res, next) => {
     const roleId = data?.roleId;
     if (
       roleId !== usersRoles.queueOrgAdminRoleId &&
+      roleId !== usersRoles.queueDispatcherRoleId &&
       roleId !== usersRoles.adminRoleId &&
       roleId !== usersRoles.supperAdminRoleId
     ) {
       return next(new AppError("You are not allowed to do this action", AppError.UNAUTHORIZED));
+    }
+
+    // Suspension enforcement: platform admins (3/6) are always allowed; org
+    // staff (11/12) must hold an ACTIVE membership in the queue organization
+    // targeted by this request. A deactivated membership (isActive = 0) thus
+    // revokes queue power until reactivated.
+    if (roleId === usersRoles.adminRoleId || roleId === usersRoles.supperAdminRoleId) {
+      return next();
+    }
+
+    let queueOrganizationUniqueId =
+      req?.params?.queueOrganizationUniqueId ||
+      req?.body?.queueOrganizationUniqueId ||
+      req?.query?.queueOrganizationUniqueId;
+    if (!queueOrganizationUniqueId && req?.params?.queueUniqueId) {
+      const [entry] = await pool.query(
+        "SELECT queueOrganizationUniqueId FROM DriverQueue WHERE queueUniqueId = ?",
+        [req.params.queueUniqueId],
+      );
+      queueOrganizationUniqueId = entry?.[0]?.queueOrganizationUniqueId;
+    }
+    if (!queueOrganizationUniqueId) {
+      return next();
+    }
+
+    const [active] = await pool.query(
+      `SELECT 1 FROM QueueOrganizationMembership
+       WHERE queueOrganizationUniqueId = ?
+         AND userUniqueId = ?
+         AND roleId IN (?, ?)
+         AND isActive = 1
+         AND membershipDeletedAt IS NULL
+       LIMIT 1`,
+      [
+        queueOrganizationUniqueId,
+        data?.userUniqueId,
+        usersRoles.queueOrgAdminRoleId,
+        usersRoles.queueDispatcherRoleId,
+      ],
+    );
+    if (active.length === 0) {
+      return next(
+        new AppError(
+          "Your access to this queue organization has been suspended or you are not an active staff member",
+          AppError.FORBIDDEN,
+        ),
+      );
     }
     next();
   } catch {

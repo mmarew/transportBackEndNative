@@ -153,6 +153,67 @@ const createUserByAdminOrSuperAdmin = async (req, res, next) => {
   }
 };
 
+const createUserByQueueAdmin = async (req, res, next) => {
+  try {
+    const response = await executeInTransaction(async () => {
+      return await services.createUserByQueueAdmin({
+        body: req.body,
+        userUniqueId: req?.user?.userUniqueId
+      });
+    });
+
+    if (response?.deferredOTP) {
+      const { sendSms } = require("../../Utils/smsSender");
+      const { sendEmail } = require("../../Utils/emailSender");
+      const { phoneNumber, email, isEmailVerified } = response.data || {};
+      const { phoneVerificationOTP, emailVerificationToken } = response.deferredOTP;
+      const { OTP } = req.body;
+      const roleId = req.body.roleId;
+      const roleNameMap = {
+        [usersRoles.queueDispatcherRoleId]: "Queue Dispatcher"
+      };
+      const roleName = roleNameMap[roleId] || "Queue Staff";
+
+      if (phoneNumber && phoneVerificationOTP) {
+        const assignmentMsg = getAdminAssignmentMessage(phoneVerificationOTP, roleName);
+        sendSms(phoneNumber, null, assignmentMsg.sms).catch(err => {
+          logger.warn("Deferred Queue-Admin-Created SMS failed", {
+            phoneNumber,
+            error: err.message
+          });
+        });
+      }
+
+      if (email) {
+        if (isEmailVerified) {
+          const assignmentMsg = getAdminAssignmentMessage(phoneVerificationOTP, roleName);
+          sendEmail(email, assignmentMsg.emailSubject, assignmentMsg.sms, assignmentMsg.emailHtml).catch(err => {
+            logger.warn("Deferred Queue-Admin-Created Email OTP failed", {
+              email,
+              error: err.message
+            });
+          });
+        } else if (emailVerificationToken) {
+          const baseUrl = Config.APP_API_URL;
+          const link = `${baseUrl}/api/user/verify-email?token=${emailVerificationToken}`;
+          const linkMsg = getEmailVerificationLinkMessage(link);
+          sendEmail(email, linkMsg.emailSubject, "Verify your email", linkMsg.emailHtml).catch(err => {
+            logger.warn("Deferred Queue-Admin-Created Email Link failed", {
+              email,
+              error: err.message
+            });
+          });
+        }
+      }
+
+      delete response.deferredOTP;
+    }
+    ServerResponder(res, response);
+  } catch (error) {
+    next(error);
+  }
+};
+
 const loginUser = async (req, res, next) => {
   try {
     const payload = req.body && Object.keys(req.body).length ? req.body : req.query;
@@ -313,6 +374,7 @@ const getVerificationLinks = async (req, res, next) => {
 module.exports = {
   createUser,
   createUserByAdminOrSuperAdmin,
+  createUserByQueueAdmin,
   loginUser,
   verifyUserByOTP,
   verifyEmail,

@@ -15,6 +15,7 @@ module.exports = {
   createUser: registryService.createUser,
   createUserSystem: registryService.createUserSystem,
   createUserByAdminOrSuperAdmin: registryService.createUserByAdminOrSuperAdmin,
+  createUserByQueueAdmin: registryService.createUserByQueueAdmin,
   registerNewUser: registryService.registerNewUser,
   ensureCredentialForUser: registryService.ensureCredentialForUser,
   handleUserRoleStatus: registryService.handleUserRoleStatus,

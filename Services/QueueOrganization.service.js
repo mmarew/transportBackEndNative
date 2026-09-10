@@ -45,6 +45,33 @@ const isActiveQueueOrgAdminMember = async (
   return rows.length > 0;
 };
 
+// Staff administration guard: ONLY an active org-admin (role 11) — or a platform
+// admin (3/6) — may add/remove/activate/deactivate queue-org staff. A queue
+// dispatcher (12) runs the queue but cannot manage members.
+const assertCanAdministerMembers = async (
+  queueOrganizationUniqueId,
+  actingUserUniqueId,
+) => {
+  if (await isPrivilegedActingUser(actingUserUniqueId)) return;
+  const [rows] = await db().query(
+    `SELECT queueOrganizationMembershipUniqueId
+     FROM QueueOrganizationMembership
+     WHERE queueOrganizationUniqueId = ?
+       AND userUniqueId = ?
+       AND roleId = ?
+       AND isActive = 1
+       AND membershipDeletedAt IS NULL
+     LIMIT 1`,
+    [queueOrganizationUniqueId, actingUserUniqueId, usersRoles.queueOrgAdminRoleId],
+  );
+  if (rows.length === 0) {
+    throw new AppError(
+      "Only the queue organization admin can manage staff",
+      AppError.FORBIDDEN,
+    );
+  }
+};
+
 // Member-management guard: platform admins (roles 3/6) can manage any org's
 // members; a QueueOrgAdmin (11) can only manage members of an org they belong
 // to as an active member.
@@ -208,7 +235,7 @@ exports.getQueueOrganizations = async (query, user) => {
 
   let fromSql = `FROM QueueOrganization q
     LEFT JOIN Users u_creator ON u_creator.userUniqueId = q.queueOrganizationCreatedBy`;
-  if (user && user.roleId === usersRoles.queueOrgAdminRoleId) {
+  if (user && (user.roleId === usersRoles.queueOrgAdminRoleId || user.roleId === usersRoles.queueDispatcherRoleId)) {
     fromSql +=
       ` JOIN QueueOrganizationMembership qom` +
       ` ON qom.queueOrganizationUniqueId = q.queueOrganizationUniqueId`;
@@ -292,7 +319,7 @@ exports.getQueueOrganization = async (queueOrganizationUniqueId, user) => {
   let fromSql = `FROM QueueOrganization q
     LEFT JOIN Users u_creator ON u_creator.userUniqueId = q.queueOrganizationCreatedBy`;
 
-  if (user && user.roleId === usersRoles.queueOrgAdminRoleId) {
+  if (user && (user.roleId === usersRoles.queueOrgAdminRoleId || user.roleId === usersRoles.queueDispatcherRoleId)) {
     fromSql +=
       ` JOIN QueueOrganizationMembership qom` +
       ` ON qom.queueOrganizationUniqueId = q.queueOrganizationUniqueId`;
@@ -515,8 +542,8 @@ exports.addMember = async (
     throw new AppError("Queue organization not found", AppError.NOT_FOUND);
   }
 
-  // Acting user must be an active member of the org (or a platform admin).
-  await assertCanManageMembers(queueOrganizationUniqueId, userId);
+  // Acting user must be the org admin (11) — or a platform admin (3/6).
+  await assertCanAdministerMembers(queueOrganizationUniqueId, userId);
 
   const [user] = await getData({
     tableName: "Users",
@@ -624,7 +651,7 @@ exports.activateQueueMember = async (
     queueOrganizationUniqueId,
     queueOrganizationMembershipUniqueId,
   );
-  await assertCanManageMembers(queueOrganizationUniqueId, updatedBy);
+  await assertCanAdministerMembers(queueOrganizationUniqueId, updatedBy);
 
   await db().query(
     `UPDATE QueueOrganizationMembership
@@ -660,7 +687,7 @@ exports.deactivateQueueMember = async (
     queueOrganizationUniqueId,
     queueOrganizationMembershipUniqueId,
   );
-  await assertCanManageMembers(queueOrganizationUniqueId, updatedBy);
+  await assertCanAdministerMembers(queueOrganizationUniqueId, updatedBy);
 
   await db().query(
     `UPDATE QueueOrganizationMembership
@@ -700,7 +727,7 @@ exports.deleteQueueMember = async (
     queueOrganizationUniqueId,
     queueOrganizationMembershipUniqueId,
   );
-  await assertCanManageMembers(queueOrganizationUniqueId, deletedBy);
+  await assertCanAdministerMembers(queueOrganizationUniqueId, deletedBy);
 
   await db().query(
     `UPDATE QueueOrganizationMembership

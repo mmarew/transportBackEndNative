@@ -1,6 +1,7 @@
 const AUTH_ENDPOINTS = {
   CREATE_USER: `/api/user/createUser`,
   CREATE_USER_BY_ADMIN: `/api/admin/createUserByAdminOrSuperAdmin`,
+  CREATE_USER_BY_QUEUE_ADMIN: `/api/queueOrganization/createUserByQueueAdmin`,
   LOGIN_USER: `/api/user/loginUser`,
   VERIFY_USER_BY_OTP: `/api/user/verifyUserByOTP`,
   VERIFY_EMAIL: `/api/user/verify-email`,

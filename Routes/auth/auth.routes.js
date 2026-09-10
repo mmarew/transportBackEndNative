@@ -5,12 +5,16 @@ const { verifyTokenOfAxios } = require("../../Middleware/VerifyToken");
 const {
   verifyAdminsIdentity,
 } = require("../../Middleware/VerifyUsersIdentity");
+const {
+  verifyIfUserIsQueueOrgAdmin,
+} = require("../../Middleware/VerifyToken");
 
 const { validator } = require("../../Middleware/Validator");
 
 const {
   createUser,
   createUserByAdmin,
+  createUserByQueueAdmin,
   loginUser,
   verifyUserByOTP,
 } = require("../../Validations/User.schema");
@@ -49,6 +53,15 @@ router.post(
   verifyAdminsIdentity,
   validator(createUserByAdmin),
   controller.createUserByAdminOrSuperAdmin,
+);
+
+// A Queue Organization Admin (11) creates his staff (Queue Dispatcher, 12).
+router.post(
+  AUTH_ENDPOINTS.CREATE_USER_BY_QUEUE_ADMIN,
+  verifyTokenOfAxios,
+  verifyIfUserIsQueueOrgAdmin,
+  validator(createUserByQueueAdmin),
+  controller.createUserByQueueAdmin,
 );
 
 // Login
