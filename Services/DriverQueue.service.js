@@ -389,7 +389,7 @@ const buildDriverPhotoMap = async (executor, rows) => {
  * @param {Map<string, string|null>} photosByDriver - driverUserUniqueId → photo
  * @returns {object} { queue, shipperRequest, driverRequests, decisions, journey, proofOfDelivery }
  */
-const buildQueueEntry = (row, photosByDriver) => {
+const buildQueueEntry = (row, photosByDriver, podByDC = new Map()) => {
   const queue = {
     queueUniqueId: row.queueUniqueId,
     queueNumber: row.queueNumber,
@@ -480,13 +480,30 @@ const buildQueueEntry = (row, photosByDriver) => {
       }
     : {};
 
+  const proofOfDelivery = row.podUniqueId
+    ? {
+        deliveryConfirmationUniqueId: row.podUniqueId,
+        receiverFullName: row.podReceiverFullName ?? null,
+        receiverPhoneNumber: row.podReceiverPhoneNumber ?? null,
+        deliveredQuantity: row.podDeliveredQuantity ?? null,
+        quantityUnit: row.podQuantityUnit ?? null,
+        condition: row.podCondition ?? null,
+        deliveryConfirmationStatus: row.podStatus ?? null,
+        deliveryConfirmationSource: row.podSource ?? null,
+        shipperSignature: row.podShipperSignature ?? null,
+        notes: row.podNotes ?? null,
+        podSubmittedAt: row.podSubmittedAt ?? null,
+        photos: podByDC.get(row.podUniqueId) || [],
+      }
+    : null;
+
   return {
     queue,
     shipperRequest,
     driverRequests,
     decisions,
     journey,
-    proofOfDelivery: null,
+    proofOfDelivery,
   };
 };
 
@@ -1263,7 +1280,18 @@ exports.getQueueStatus = async (queueOrganizationUniqueId, query) => {
             jd.shippingDateByDriver, jd.deliveryDateByDriver, jd.shippingCostByDriver,
             j.journeyUniqueId, j.journeyStatusId AS journeyJourneyStatusId,
             j.fare AS journeyFare, j.journeyStartedAt AS journeyJourneyStartedAt,
-            j.journeyCompletedAt AS journeyJourneyCompletedAt
+            j.journeyCompletedAt AS journeyJourneyCompletedAt,
+            dc.deliveryConfirmationUniqueId AS podUniqueId,
+            u_recv.fullName AS podReceiverFullName,
+            u_recv.phoneNumber AS podReceiverPhoneNumber,
+            dc.deliveryConfirmationDeliveredQuantity AS podDeliveredQuantity,
+            dc.deliveryConfirmationQuantityUnit AS podQuantityUnit,
+            dc.deliveryConfirmationCondition AS podCondition,
+            dc.deliveryConfirmationStatus AS podStatus,
+            dc.deliveryConfirmationSource AS podSource,
+            dc.deliveryConfirmationShipperSignature AS podShipperSignature,
+            dc.deliveryConfirmationNotes AS podNotes,
+            dc.deliveryConfirmationConfirmedAt AS podSubmittedAt
      FROM DriverQueue dq
      JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
      JOIN Vehicle v          ON v.vehicleUniqueId        = vd.vehicleUniqueId
@@ -1291,6 +1319,10 @@ JOIN Users u            ON u.userUniqueId           = vd.driverUserUniqueId
      LEFT JOIN Users su ON su.userUniqueId = sr.userUniqueId
      LEFT JOIN VehicleTypes ordertt ON ordertt.vehicleTypeUniqueId = sr.vehicleTypeUniqueId
      LEFT JOIN Journey j ON j.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
+     LEFT JOIN DeliveryConfirmations dc
+       ON dc.journeyUniqueId = j.journeyUniqueId
+       AND dc.deliveryConfirmationDeletedAt IS NULL
+     LEFT JOIN Users u_recv ON u_recv.userUniqueId = dc.receiverUserUniqueId
      WHERE dq.queueOrganizationUniqueId = ? AND dq.queueDate = ?
        AND dq.queueDeletedAt IS NULL
      ORDER BY dq.queueNumber ASC`,
@@ -1299,12 +1331,59 @@ JOIN Users u            ON u.userUniqueId           = vd.driverUserUniqueId
 
   const photosByDriver = await buildDriverPhotoMap(executor, rows);
 
+  // POD photos for the linked delivery confirmation rows (same grouping used by
+  // the shipper-request read flow): all non-deleted photos per confirmation,
+  // ordered by photo id so the admin entry-detail can render them in order.
+  const podByDC = new Map();
+  const podIds = [
+    ...new Set(rows.map((r) => r.podUniqueId).filter(Boolean)),
+  ];
+  if (podIds.length > 0) {
+    const [podPhotos] = await executor.query(
+      `SELECT deliveryConfirmationUniqueId, deliveryConfirmationPhotoUrl
+       FROM DeliveryConfirmationPhotos
+       WHERE deliveryConfirmationUniqueId IN (?)
+         AND deliveryConfirmationPhotoDeletedAt IS NULL
+       ORDER BY deliveryConfirmationPhotoId ASC`,
+      [podIds],
+    );
+    for (const p of podPhotos) {
+      if (!podByDC.has(p.deliveryConfirmationUniqueId)) {
+        podByDC.set(p.deliveryConfirmationUniqueId, []);
+      }
+      podByDC.get(p.deliveryConfirmationUniqueId).push(p.deliveryConfirmationPhotoUrl);
+    }
+  }
+
+  // Removed counter: entries that have LEFT the line today (checked out /
+  // admin-removed / cancelled after accept / completed). The live `rows` query
+  // filters queueDeletedAt IS NULL, so these are counted in a dedicated query.
+  const [removedRows] = await executor.query(
+    `SELECT COUNT(*) AS total FROM DriverQueue
+     WHERE queueOrganizationUniqueId = ?
+       AND queueDate = ?
+       AND queueDeletedAt IS NOT NULL`,
+    [queueOrganizationUniqueId, queueDate],
+  );
+
+  const isWaiting = (s) =>
+    [QUEUE_STATUS.WAITING, QUEUE_STATUS.CANCELLED_BEFORE_ACCEPT].includes(s);
+  const isAgreed = (s) =>
+    [
+      QUEUE_STATUS.AGREED,
+      QUEUE_STATUS.GO_TO_LOADING_PLACE,
+      QUEUE_STATUS.LOADING,
+      QUEUE_STATUS.LOADED,
+      QUEUE_STATUS.JOURNEY_STARTED,
+      QUEUE_STATUS.JOURNEY_COMPLETED,
+    ].includes(s);
+
   const byType = {};
   for (const row of rows) {
     const typeName =
       row.vehicleTypeName || row.vehicleTypeUniqueId || "Unknown";
     if (!byType[typeName]) byType[typeName] = [];
-    byType[typeName].push(buildQueueEntry(row, photosByDriver));
+    byType[typeName].push(buildQueueEntry(row, photosByDriver, podByDC));
   }
 
   return {
@@ -1312,11 +1391,20 @@ JOIN Users u            ON u.userUniqueId           = vd.driverUserUniqueId
     data: {
       queueOrganization: org,
       queueDate,
-      totalWaiting: rows.filter((r) =>
-        [QUEUE_STATUS.WAITING, QUEUE_STATUS.CANCELLED_BEFORE_ACCEPT].includes(
-          r.status,
-        ),
-      ).length,
+      totalWaiting: rows.filter((r) => isWaiting(r.status)).length,
+      statistics: {
+        waiting: rows.filter((r) => isWaiting(r.status)).length,
+        requested: rows.filter(
+          (r) => r.status === QUEUE_STATUS.REQUESTED,
+        ).length,
+        agreed: rows.filter((r) => isAgreed(r.status)).length,
+        notAgreed: rows.filter(
+          (r) =>
+            r.status === QUEUE_STATUS.NO_ANSWER_FROM_DRIVER ||
+            r.status === QUEUE_STATUS.CANCELLED_BEFORE_ACCEPT,
+        ).length,
+        removed: Number(removedRows?.[0]?.total || 0),
+      },
       queues: byType,
     },
   };

@@ -7,7 +7,9 @@ const { usersRoles } = require("../Utils/ListOfSeedData");
 const { db, paginate, paginatedQuery } = require("./CompanyHelper.service");
 const { getData } = require("../CRUD/Read/ReadData");
 const { notifyQueueOrgAdmins } = require("../Utils/QueueSocket");
-const { sendQueueOrganizationCreatedAlert } = require("../Utils/TelegramNotifier");
+const {
+  sendQueueOrganizationCreatedAlert,
+} = require("../Utils/TelegramNotifier");
 
 const listActingUserRoles = async (userUniqueId) => {
   const [roles] = await db().query(
@@ -21,11 +23,15 @@ const isPrivilegedActingUser = async (userUniqueId) => {
   const roles = await listActingUserRoles(userUniqueId);
   return roles.some(
     (roleId) =>
-      roleId === usersRoles.adminRoleId || roleId === usersRoles.supperAdminRoleId,
+      roleId === usersRoles.adminRoleId ||
+      roleId === usersRoles.supperAdminRoleId,
   );
 };
 
-const isActiveQueueOrgAdminMember = async (queueOrganizationUniqueId, userUniqueId) => {
+const isActiveQueueOrgAdminMember = async (
+  queueOrganizationUniqueId,
+  userUniqueId,
+) => {
   const [rows] = await db().query(
     `SELECT queueOrganizationMembershipUniqueId
      FROM QueueOrganizationMembership
@@ -42,9 +48,17 @@ const isActiveQueueOrgAdminMember = async (queueOrganizationUniqueId, userUnique
 // Member-management guard: platform admins (roles 3/6) can manage any org's
 // members; a QueueOrgAdmin (11) can only manage members of an org they belong
 // to as an active member.
-const assertCanManageMembers = async (queueOrganizationUniqueId, actingUserUniqueId) => {
+const assertCanManageMembers = async (
+  queueOrganizationUniqueId,
+  actingUserUniqueId,
+) => {
   if (await isPrivilegedActingUser(actingUserUniqueId)) return;
-  if (await isActiveQueueOrgAdminMember(queueOrganizationUniqueId, actingUserUniqueId)) {
+  if (
+    await isActiveQueueOrgAdminMember(
+      queueOrganizationUniqueId,
+      actingUserUniqueId,
+    )
+  ) {
     return;
   }
   throw new AppError(
@@ -55,7 +69,10 @@ const assertCanManageMembers = async (queueOrganizationUniqueId, actingUserUniqu
 
 // Lifecycle guard: fetches the active membership row and asserts it belongs to
 // the queue organization named in the route.
-const assertMembershipBelongsToOrg = async (queueOrganizationUniqueId, membershipUniqueId) => {
+const assertMembershipBelongsToOrg = async (
+  queueOrganizationUniqueId,
+  membershipUniqueId,
+) => {
   const [rows] = await db().query(
     `SELECT queueOrganizationMembershipUniqueId, queueOrganizationUniqueId,
             userUniqueId, roleId
@@ -222,7 +239,10 @@ exports.getQueueOrganizations = async (query, user) => {
     u_creator.userUniqueId as creatorUserUniqueId,
     u_creator.fullName as creatorFullName,
     u_creator.phoneNumber as creatorPhoneNumber,
-    u_creator.email as creatorEmail
+    u_creator.email as creatorEmail,
+    (SELECT COUNT(*) FROM QueueOrganizationMembership qmc
+      WHERE qmc.queueOrganizationUniqueId = q.queueOrganizationUniqueId
+        AND qmc.membershipDeletedAt IS NULL) AS memberCount
     ${fromSql} ${where} GROUP BY q.queueOrganizationUniqueId ORDER BY q.queueOrganizationCreatedAt DESC`;
   const countSql = `SELECT COUNT(DISTINCT q.queueOrganizationUniqueId) AS total ${fromSql} ${where}`;
   const result = await paginatedQuery(
@@ -286,7 +306,10 @@ exports.getQueueOrganization = async (queueOrganizationUniqueId, user) => {
     u_creator.userUniqueId as creatorUserUniqueId,
     u_creator.fullName as creatorFullName,
     u_creator.phoneNumber as creatorPhoneNumber,
-    u_creator.email as creatorEmail
+    u_creator.email as creatorEmail,
+    (SELECT COUNT(*) FROM QueueOrganizationMembership qmc
+      WHERE qmc.queueOrganizationUniqueId = q.queueOrganizationUniqueId
+        AND qmc.membershipDeletedAt IS NULL) AS memberCount
     ${fromSql} ${where} LIMIT 1`;
 
   const [rows] = await executor.query(baseSql, params);
@@ -552,7 +575,11 @@ exports.addMember = async (
  * @param {object} [user] - Acting user. Platform admins (3/6) see any org;
  *                          QueueOrgAdmin (11) must be an active member of the org.
  */
-exports.getMembers = async (queueOrganizationUniqueId, query = {}, user = {}) => {
+exports.getMembers = async (
+  queueOrganizationUniqueId,
+  query = {},
+  user = {},
+) => {
   await assertCanManageMembers(queueOrganizationUniqueId, user.userUniqueId);
 
   const filters = [];
@@ -640,7 +667,12 @@ exports.deactivateQueueMember = async (
      SET isActive = 0, membershipEndDate = ?,
          membershipUpdatedBy = ?, membershipUpdatedAt = ?
      WHERE queueOrganizationMembershipUniqueId = ?`,
-    [currentDate(), updatedBy, currentDate(), queueOrganizationMembershipUniqueId],
+    [
+      currentDate(),
+      updatedBy,
+      currentDate(),
+      queueOrganizationMembershipUniqueId,
+    ],
   );
 
   notifyQueueOrgAdmins({
@@ -688,4 +720,74 @@ exports.deleteQueueMember = async (
   });
 
   return { message: "Member deleted successfully", data: null };
+};
+
+exports.getQueueCountsBystatus = async (user) => {
+  const actingUserRoles = await listActingUserRoles(user.userUniqueId);
+  let conditions = [];
+  let params = [];
+
+  // For Admin (3) and SuperAdmin (6), show ALL queue organizations
+  if (
+    actingUserRoles.includes(usersRoles.adminRoleId) ||
+    actingUserRoles.includes(usersRoles.supperAdminRoleId)
+  ) {
+    // Admin/SuperAdmin sees all organizations
+  } else {
+    // For QueueOrgAdmin (11), show ONLY organizations where they are an active member
+    conditions.push(
+      `q.queueOrganizationUniqueId IN (
+        SELECT queueOrganizationUniqueId
+        FROM QueueOrganizationMembership
+        WHERE userUniqueId = ?
+          AND isActive = 1
+          AND membershipDeletedAt IS NULL
+      )`,
+    );
+    params.push(user.userUniqueId);
+  }
+
+  const whereClause =
+    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  // Get total organizations
+  const [total] = await db().query(
+    `SELECT COUNT(*) as total FROM QueueOrganization q ${whereClause}`,
+    params,
+  );
+
+  // Get pending organizations
+  const [pending] = await db().query(
+    `SELECT COUNT(*) as pending FROM QueueOrganization q ${whereClause} AND q.approvalStatus = 'pending'`,
+    params,
+  );
+
+  // Get approved organizations
+  const [approved] = await db().query(
+    `SELECT COUNT(*) as approved FROM QueueOrganization q ${whereClause} AND q.approvalStatus = 'approved'`,
+    params,
+  );
+
+  // Get rejected organizations
+  const [rejected] = await db().query(
+    `SELECT COUNT(*) as rejected FROM QueueOrganization q ${whereClause} AND q.approvalStatus = 'rejected'`,
+    params,
+  );
+
+  // Get suspended organizations (using the correct status value from schema)
+  const [suspended] = await db().query(
+    `SELECT COUNT(*) as suspended FROM QueueOrganization q ${whereClause} AND q.approvalStatus = 'suspended'`,
+    params,
+  );
+
+  return {
+    message: "success",
+    data: {
+      total: total[0].total,
+      pending: pending[0].pending,
+      approved: approved[0].approved,
+      rejected: rejected[0].rejected,
+      suspended: suspended[0].suspended,
+    },
+  };
 };

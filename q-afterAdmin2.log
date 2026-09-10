@@ -1,0 +1,415 @@
+◇ injected env (39) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+16:54:56 [[32minfo[39m]: MySQL pool created
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "host": "31.97.179.144",
+  "database": "transport",
+  "port": 3306,
+  "socketPath": null
+}
+═══════════════════════════════════════════════════
+  QUEUE E2E SUITE — 2026-09-10T13:54:56.638Z
+═══════════════════════════════════════════════════
+
+
+═══ PROVISIONING ALL CORE USERS (once per run) ═══
+
+✅ ========== PROVISIONING USER (supperAdmin) ==========
+16:54:57 [[32minfo[39m]: MySQL connectivity check succeeded
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+
+✅ ========== PROVISIONING USER (systemAdmin) ==========
+
+✅ ========== PROVISIONING USER (admin) ==========
+❌ Failed to verify admin: { statusCode: 404, status: 'fail', isOperational: true }
+⚠️  admin login says user not found — registering then re-logging in
+
+✅ ========== PROVISIONING USER (companyAdmin) ==========
+❌ Failed to verify companyAdmin: { statusCode: 404, status: 'fail', isOperational: true }
+⚠️  companyAdmin login says user not found — registering then re-logging in
+
+✅ ========== PROVISIONING USER (queueOrgAdmin) ==========
+❌ Failed to verify queueOrgAdmin: { statusCode: 404, status: 'fail', isOperational: true }
+⚠️  queueOrgAdmin login says user not found — registering then re-logging in
+
+✅ ========== PROVISIONING USER (driver) ==========
+❌ Failed to verify driver: { statusCode: 404, status: 'fail', isOperational: true }
+⚠️  driver login says user not found — registering then re-logging in
+
+✅ ========== PROVISIONING USER (shipper) ==========
+❌ Failed to verify shipper: { statusCode: 404, status: 'fail', isOperational: true }
+⚠️  shipper login says user not found — registering then re-logging in
+═══ CORE USERS READY ═══
+
+
+✅ ========== PROVISIONING USER (queueDriver1) ==========
+❌ Failed to verify queueDriver1: { statusCode: 404, status: 'fail', isOperational: true }
+⚠️  queueDriver1 login says user not found — registering then re-logging in
+
+✅ ========== PROVISIONING USER (queueDriver2) ==========
+❌ Failed to verify queueDriver2: { statusCode: 404, status: 'fail', isOperational: true }
+⚠️  queueDriver2 login says user not found — registering then re-logging in
+
+✅ ========== PROVISIONING USER (queueDriver3) ==========
+❌ Failed to verify queueDriver3: { statusCode: 404, status: 'fail', isOperational: true }
+⚠️  queueDriver3 login says user not found — registering then re-logging in
+
+✅ ========== PROVISIONING USER (queueDriver4) ==========
+❌ Failed to verify queueDriver4: { statusCode: 404, status: 'fail', isOperational: true }
+⚠️  queueDriver4 login says user not found — registering then re-logging in
+
+═══════════════════════════════════════════════════
+  QUEUE ORG LIFECYCLE — TQ-01..TQ-04, TQ-08
+═══════════════════════════════════════════════════
+
+  ✅ PASS: TQ-01: create org returns pending state
+  ✅ PASS: TQ-01: creator auto-added as role-11 member
+  ✅ PASS: TQ-01: org visible to superadmin via GET
+  ✅ PASS: TQ-08: check-in blocked (403) while org pending
+  ✅ PASS: TQ-02: driver token denied (401/403) on approve
+  ✅ PASS: TQ-02: check-in blocked (403) while queueEnabled=0
+  ✅ PASS: TQ-02: org approved + enabled (DB reflects)
+  ✅ PASS: TQ-02: check-in succeeds after enable (driver01=1)
+  ✅ PASS: TQ-03: org suspended
+  ✅ PASS: TQ-03: new check-in blocked (403) while suspended
+
+═══════════════════════════════════════════════════
+  CHECK-IN / POSITION / CHECK-OUT — TQ-05..TQ-10
+═══════════════════════════════════════════════════
+
+  ✅ PASS: TQ-05: check-in stamps queue numbers (d1=1, d2=2, d3=3, d4=1 typeB)
+  ✅ PASS: TQ-05: DB rows waiting, refusalCount=0, per-type sequences
+  ✅ PASS: TQ-07: re-check-in while live is idempotent (same entry, one active row)
+  ✅ PASS: TQ-06: second-org check-in blocked (409) — one queue per day
+  ✅ PASS: TQ-06: no duplicate active row after blocked check-in
+  ✅ PASS: TQ-09: myPosition returns queue + organization
+  ✅ PASS: TQ-09: myPosition per-type (typeB driver sees 0 ahead)
+  ✅ PASS: TQ-10: checkout removes driver from queue + soft-deletes entry
+  ✅ PASS: TQ-10: myPosition empty after checkout
+  ✅ PASS: TQ-10: remaining drivers keep positions (gaps allowed)
+
+═══════════════════════════════════════════════════
+  ORDER LIFECYCLE — TQ-11..TQ-32
+═══════════════════════════════════════════════════
+
+✅ Driver journey status fetched. Status: 2
+  ✅ PASS: TQ-11: auto-dispatch offers front driver (d2 requested O_A)
+✅ Driver journey status fetched. Status: 2
+✅ Driver accepted shipper request. Status: 4
+  ✅ PASS: TQ-15: driver accepts → entry agreed, order acceptedByShipper (decision-only, no Journey yet)
+  ✅ PASS: TQ-16: repeat accept on accepted order denied (409 via offer gate)
+  ✅ PASS: TQ-17: non-offered driver accept denied (4xx)
+  ✅ PASS: TQ-33: check-in with active journey → alreadyInJourney (no queue mutation)
+✅ Driver journey status fetched. Status: 2
+  ✅ PASS: TQ-13: holding/agreed driver skipped — next driver requested
+  ✅ PASS: TQ-12: no matching vehicle type → order stays waiting
+  ✅ PASS: TQ-19: shipper price-reject → refusalCount 1, position kept, order waits
+  ✅ PASS: TQ-18: driver reject pre-accept → order advances, refusal +1, entry notagreed
+  ✅ PASS: TQ-21: empty queue after reject → order stays waiting, no offer
+  ✅ PASS: TQ-22: repeated reject → 4xx, no refusal/advance side effects
+  ✅ PASS: TQ-24: below limit (count 2) → stays at front, position kept
+  ✅ PASS: TQ-23: 3rd refusal → moved to back, counter reset, stays in queue
+  ✅ PASS: TQ-25: shipper cancel releases entry, no refusal count
+  ✅ PASS: TQ-26: queue admin (role 11) can cancel whole job
+  ✅ PASS: TQ-27: platform admin cancels whole job (roleId 3 recorded)
+✅ Driver journey status fetched. Status: 2
+✅ Driver accepted shipper request. Status: 4
+✅ Driver journey status fetched. Status: 2
+✅ Driver accepted shipper request. Status: 4
+  ✅ PASS: TQ-29: batch (n=2) → one offer per slot, both accept → both agreed
+  ✅ PASS: TQ-30: concurrent dispatch → exactly one offer, loser waits
+✅ Driver journey status fetched. Status: 2
+  ✅ PASS: TQ-31: concurrent accept → final state consistent (entry agreed once, status 4)
+  ✅ PASS: TQ-32: parallel check-in race → exactly one active row
+  ✅ PASS: TQ-28: non-queue order cancel → no DriverQueue effect
+
+═══════════════════════════════════════════════════
+  BATCH REFUSAL RULE — TQ-BR1..TQ-BR3
+═══════════════════════════════════════════════════
+
+  ✅ PASS: TQ-BR1: one decline cools the whole batch (FIFO keeps J2 waiting)
+  ✅ PASS: TQ-BR2: targeted dispatch can reconnect the cooled driver
+  ✅ PASS: TQ-BR3: cooling is per-batch — a new single order is still offered
+  ✅ PASS: cleanup: d1 free, no pending typeA order (TQ-33 pre-state restored)
+
+═══════════════════════════════════════════════════
+  QUEUE ADMIN OPS — TQ-33..TQ-37, TQ-39
+═══════════════════════════════════════════════════
+
+  ✅ PASS: TQ-33: manual check-in by queue admin → waiting entry (queueNumber 5)
+  ✅ PASS: TQ-34: override entry to #1, position updated + audit recorded
+  ✅ PASS: TQ-35: remove entry (no-show) → removed + audit recorded
+✅ Driver journey status fetched. Status: 2
+✅ Driver accepted shipper request. Status: 4
+  ✅ PASS: TQ-36: manual dispatch empty→404, then check-in dispatch → offer → accept
+  ✅ PASS: TQ-37: targeted dispatch by queueUniqueId + driverPhoneNumber (guards + positives)
+  ✅ PASS: TQ-39: non-queue order bypasses queue engine (no DriverQueue rows)
+14:00:04 
+===== TQ-40 · Loading stages (4 → 5 → 6 → 7) =====
+14:00:10 current driver status: 3 | queue: null
+14:00:10 === setting up an accepted queue journey (status 4) ===
+14:00:11 checkin note: fail
+  ⚠ TQ-40 loader skipped: Request failed with status code 500
+  ✅ d1's O_M journey ended (admin) before History suite
+
+═══════════════════════════════════════════════════
+  QUEUE HISTORY & IMPROVEMENTS — TQ-H01..TQ-H15
+═══════════════════════════════════════════════════
+
+  ✅ PASS: TQ-H01: checkin with shipperPhoneNumber → targetedShipperUserUUID set + history logged
+  ✅ PASS: TQ-H02: re-check-in while live is idempotent and preserves the reservation
+  ✅ PASS: TQ-H03: re-check-in with new phone → same entry, reservation updated + shipper history
+  ✅ PASS: TQ-H04: checkout clears shipperRequestUniqueId + logs status history
+  ✅ PASS: TQ-H05: GET /entry/:queueUniqueId/history returns column-level audit trail
+  ✅ PASS: TQ-H06: driver can view own entry history
+  ✅ PASS: TQ-H07: driver cannot view other driver's entry history (403)
+  ✅ PASS: TQ-H08: myPosition returns shipperHistory array with change timeline
+  ✅ PASS: TQ-H09: override entry logs queueNumber change in history
+  ✅ PASS: TQ-H10: remove entry logs status change in history
+  ✅ PASS: TQ-H11: manualCheckin with shipper → history + QueueAuditLog
+  ✅ PASS: TQ-H12: checkout logs QueueAuditLog entry
+  ✅ PASS: TQ-H13: re-check-in revive chain logged (create + remove, fresh entry logs creation)
+  ✅ PASS: TQ-H14: all history entries have valid performedBy UUIDs
+  ✅ PASS: TQ-H15: GET /entry/:queueUniqueId/history returns 404 for nonexistent entry
+
+───────────────────────────────────────────────────
+  RECEIPT-BASED POD TESTS (TRP-01..12)
+───────────────────────────────────────────────────
+
+  ✅ PASS: TRP-01: default isPodRequired is TRUE on batch + ShipperRequest
+✅ Driver journey status fetched. Status: 2
+✅ Driver journey status fetched. Status: 2
+✅ Driver accepted shipper request. Status: 4
+✅ Driver journey status fetched. Status: 4
+✅ Journey started. Status: 8
+✅ journeyStartingLat/Lng persisted (9.02050000, 38.80250000)
+✅ Driver journey status fetched. Status: 8
+✅ Journey completed. Status: 9
+✅ journeyCompletingLat/Lng persisted (8.54000000, 39.27000000)
+  ✅ PASS: TRP-02: isPodRequired=false → auto-confirm on journey completion
+✅ Driver journey status fetched. Status: 2
+✅ Driver journey status fetched. Status: 2
+✅ Driver accepted shipper request. Status: 4
+✅ Driver journey status fetched. Status: 4
+✅ Journey started. Status: 8
+✅ journeyStartingLat/Lng persisted (9.02050000, 38.80250000)
+✅ Driver journey status fetched. Status: 8
+✅ Journey completed. Status: 9
+✅ journeyCompletingLat/Lng persisted (8.54000000, 39.27000000)
+  ✅ PASS: TRP-03: isPodRequired=true → no auto-confirm on journey completion
+✅ Driver journey status fetched. Status: 2
+✅ Driver journey status fetched. Status: 2
+✅ Driver accepted shipper request. Status: 4
+✅ Driver journey status fetched. Status: 4
+✅ Journey started. Status: 8
+✅ journeyStartingLat/Lng persisted (9.02050000, 38.80250000)
+✅ Driver journey status fetched. Status: 8
+✅ Journey completed. Status: 9
+✅ journeyCompletingLat/Lng persisted (8.54000000, 39.27000000)
+  ✅ PASS: TRP-04: submit receipt photos → auto-confirm immediately
+✅ Driver journey status fetched. Status: 2
+✅ Driver journey status fetched. Status: 2
+✅ Driver accepted shipper request. Status: 4
+✅ Driver journey status fetched. Status: 4
+✅ Journey started. Status: 8
+✅ journeyStartingLat/Lng persisted (9.02050000, 38.80250000)
+✅ Driver journey status fetched. Status: 8
+✅ Journey completed. Status: 9
+✅ journeyCompletingLat/Lng persisted (8.54000000, 39.27000000)
+  ✅ PASS: TRP-05: idempotent receipt submission
+  ✅ PASS: TRP-06: receipt submission rejected when journey not completed
+✅ Driver journey status fetched. Status: 2
+✅ Driver journey status fetched. Status: 2
+✅ Driver accepted shipper request. Status: 4
+✅ Driver journey status fetched. Status: 4
+✅ Journey started. Status: 8
+✅ journeyStartingLat/Lng persisted (9.02050000, 38.80250000)
+✅ Driver journey status fetched. Status: 8
+✅ Journey completed. Status: 9
+✅ journeyCompletingLat/Lng persisted (8.54000000, 39.27000000)
+  ✅ PASS: TRP-07: receipt submission rejected when no photos
+✅ Driver journey status fetched. Status: 2
+✅ Driver journey status fetched. Status: 2
+✅ Driver accepted shipper request. Status: 4
+✅ Driver journey status fetched. Status: 4
+✅ Journey started. Status: 8
+✅ journeyStartingLat/Lng persisted (9.02050000, 38.80250000)
+✅ Driver journey status fetched. Status: 8
+✅ Journey completed. Status: 9
+✅ journeyCompletingLat/Lng persisted (8.54000000, 39.27000000)
+  ✅ PASS: TRP-08: receipt submission rejected when isPodRequired=false
+✅ Driver journey status fetched. Status: 2
+✅ Driver journey status fetched. Status: 2
+✅ Driver accepted shipper request. Status: 4
+✅ Driver journey status fetched. Status: 4
+✅ Journey started. Status: 8
+✅ journeyStartingLat/Lng persisted (9.02050000, 38.80250000)
+✅ Driver journey status fetched. Status: 8
+✅ Journey completed. Status: 9
+✅ journeyCompletingLat/Lng persisted (8.54000000, 39.27000000)
+  ✅ PASS: TRP-09: only the journey driver can submit receipts
+✅ Driver journey status fetched. Status: 2
+✅ Driver journey status fetched. Status: 2
+✅ Driver accepted shipper request. Status: 4
+✅ Driver journey status fetched. Status: 4
+✅ Journey started. Status: 8
+✅ journeyStartingLat/Lng persisted (9.02050000, 38.80250000)
+✅ Driver journey status fetched. Status: 8
+✅ Journey completed. Status: 9
+✅ journeyCompletingLat/Lng persisted (8.54000000, 39.27000000)
+  ✅ PASS: TRP-10: getJourneysWithPodStatus reflects auto-confirmed receipts (DB verified)
+✅ Driver journey status fetched. Status: 2
+✅ Driver journey status fetched. Status: 2
+✅ Driver accepted shipper request. Status: 4
+✅ Driver journey status fetched. Status: 4
+✅ Journey started. Status: 8
+✅ journeyStartingLat/Lng persisted (9.02050000, 38.80250000)
+✅ Driver journey status fetched. Status: 8
+✅ Journey completed. Status: 9
+✅ journeyCompletingLat/Lng persisted (8.54000000, 39.27000000)
+  ✅ PASS: TRP-11: multiple receipt photos stored correctly
+  ✅ PASS: TRP-12: backward compatibility — existing formal POD still works
+
+═══════════════════════════════════════════════════
+  ACTIVE TRANSFER — TQ-34..TQ-35
+═══════════════════════════════════════════════════
+
+✅ Driver journey status fetched. Status: 2
+✅ Driver journey status fetched. Status: 2
+✅ Driver accepted shipper request. Status: 4
+  ✅ PASS: TQ-34: queue cancel-after-accept → entry closed(12)+refusal+1, no next driver → order back to waiting
+✅ Driver journey status fetched. Status: 4
+✅ Driver journey status fetched. Status: 13
+✅ Driver journey status fetched. Status: 10
+✅ Driver journey status fetched. Status: null
+✅ Driver journey status fetched. Status: 2
+  ✅ PASS: TQ-35: non-queue reject → no other driver available → order back to waiting, DriverQueue untouched
+
+  ── TQ-41..TQ-46 · timeout / re-offer / cancellation ──
+✅ Driver journey status fetched. Status: null
+✅ Driver journey status fetched. Status: 4
+✅ Driver journey status fetched. Status: 13
+✅ Driver journey status fetched. Status: 13
+17:05:58 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "queueOrganizationUniqueId": "5ee28e12-d20d-4df2-8159-189f844d99d0",
+  "queueDate": "2026-09-09T21:00:00.000Z"
+}
+17:05:58 [[33mwarn[39m]: No active driver socket found for notification
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "phoneNumber": "251949632902"
+}
+17:05:58 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "queueOrganizationUniqueId": "5ee28e12-d20d-4df2-8159-189f844d99d0",
+  "queueDate": "2026-09-09T21:00:00.000Z"
+}
+17:05:59 [[33mwarn[39m]: No active shipper socket found for notification
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "phoneNumber": "251984963292"
+}
+  ✅ PASS: TQ-41: timeout → no_answer(16), order retained, count +1 (single driver)
+✅ Driver journey status fetched. Status: 2
+✅ Driver journey status fetched. Status: 2
+✅ Driver accepted shipper request. Status: 4
+  ✅ PASS: TQ-42: late accept honoured (16 → agreed, decision-only — Journey born at goToLoadingPlace 5)
+  ✅ PASS: TQ-46: history captures full snapshots with historyEvent (status 2 → 16 → declined)
+✅ Driver journey status fetched. Status: 4
+✅ Driver journey status fetched. Status: 13
+✅ Driver journey status fetched. Status: null
+✅ Driver journey status fetched. Status: 2
+17:06:29 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "queueOrganizationUniqueId": "5ee28e12-d20d-4df2-8159-189f844d99d0",
+  "queueDate": "2026-09-09T21:00:00.000Z"
+}
+17:06:29 [[33mwarn[39m]: No active driver socket found for notification
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "phoneNumber": "251949632902"
+}
+17:06:29 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "queueOrganizationUniqueId": "5ee28e12-d20d-4df2-8159-189f844d99d0",
+  "queueDate": "2026-09-09T21:00:00.000Z"
+}
+17:06:30 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "queueOrganizationUniqueId": "5ee28e12-d20d-4df2-8159-189f844d99d0",
+  "queueDate": "2026-09-09T21:00:00.000Z"
+}
+17:06:31 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "queueOrganizationUniqueId": "5ee28e12-d20d-4df2-8159-189f844d99d0",
+  "queueDate": "2026-09-09T21:00:00.000Z"
+}
+17:06:32 [[33mwarn[39m]: No active driver socket found for notification
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "phoneNumber": "251949632903"
+}
+17:06:32 [[33mwarn[39m]: No active shipper socket found for notification
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "phoneNumber": "251984963292"
+}
+17:06:33 [[33mwarn[39m]: No active shipper socket found for notification
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "phoneNumber": "251984963292"
+}
+  ✅ PASS: TQ-43: late accept after advance → 409, order still on d3
+✅ Driver journey status fetched. Status: 2
+✅ Driver accepted shipper request. Status: 4
+  ✅ PASS: TQ-43: next driver d3 accepts normally
+✅ Driver journey status fetched. Status: 13
+✅ Driver journey status fetched. Status: 4
+✅ Driver journey status fetched. Status: 13
+  ✅ PASS: TQ-44: checkout releases the order to the next driver (not discarded)
+✅ Driver journey status fetched. Status: 13
+  ✅ PASS: TQ-45: pre-accept whole-job cancel → entry waiting, no refusal count
+✅ Driver journey status fetched. Status: 2
+✅ Driver journey status fetched. Status: 2
+✅ Driver accepted shipper request. Status: 4
+  ✅ PASS: TQ-45: post-accept whole-job cancel → entry closed (12), order detached
+───── Bid-base placement (QBB) ─────
+  ✅ PASS: QBB-01: bid-base order persisted with isBiddingApproved=TRUE
+  ✅ PASS: QBB-02: bid-base order NOT FIFO-offered (stays waiting, front driver untouched)
+  ✅ PASS: QBB-03: isBiddingApproved without queueOrganizationUniqueId rejected (400)
+  ✅ PASS: QBB-04: normal queue order still FIFO-offered (requested)
+  ✅ QBB throwaway org cleaned up
+  ✅ PASS: TQ-04: driver token denied (401/403) on delete
+  ✅ PASS: TQ-04: org soft-deleted; check-in now fails
+  ✅ PASS: TQ-04: soft-deleted org no longer listed
+  ✅ Fence org cleaned up
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Results:  ✅ 95 passed  |  ❌ 0 failed  |  ⏩ 0 skipped
+  Total:    95 tests
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✅ Queue suite completed — all green

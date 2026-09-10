@@ -21,7 +21,10 @@ exports.createQueueOrganization = async (req, res, next) => {
 
 exports.getQueueOrganizations = async (req, res, next) => {
   try {
-    ServerResponder(res, await service.getQueueOrganizations(req.query, req.user));
+    ServerResponder(
+      res,
+      await service.getQueueOrganizations(req.query, req.user),
+    );
   } catch (e) {
     next(e);
   }
@@ -29,7 +32,13 @@ exports.getQueueOrganizations = async (req, res, next) => {
 
 exports.getQueueOrganization = async (req, res, next) => {
   try {
-    ServerResponder(res, await service.getQueueOrganization(req.params.queueOrganizationUniqueId, req.user));
+    ServerResponder(
+      res,
+      await service.getQueueOrganization(
+        req.params.queueOrganizationUniqueId,
+        req.user,
+      ),
+    );
   } catch (e) {
     next(e);
   }
@@ -152,6 +161,14 @@ exports.deleteMember = async (req, res, next) => {
       ),
     );
     ServerResponder(res, result);
+  } catch (e) {
+    next(e);
+  }
+};
+
+exports.getQueueCountsBystatus = async (req, res, next) => {
+  try {
+    ServerResponder(res, await service.getQueueCountsBystatus(req.user));
   } catch (e) {
     next(e);
   }

@@ -25,7 +25,22 @@ router.post(
   validator(schema.createQueueOrganization),
   controller.createQueueOrganization,
 );
-
+// Dashboard Cards
+//  Total Organizations
+//  Pending Organizations
+//  Approved Organizations
+//  Rejected Organizations
+//  Suspended Organizations
+/**
+ * @route   GET /api/queueOrganization/getQueueCountsByStatus
+ * @desc    Get queue counts by status
+ * @access  Private
+ */
+router.get(
+  "/getQueueCountsByStatus",
+  // verifyIfUserIsAdminOrSupperAdmin,
+  controller.getQueueCountsBystatus,
+);
 /**
  * @route   GET /api/queueOrganization
  * @desc    List queue organizations (filter by type / status / enabled, paginated)
