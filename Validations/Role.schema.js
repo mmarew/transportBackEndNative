@@ -35,5 +35,5 @@ exports.getAllRolesQuery = Joi.object({
     .try(Joi.date().iso(), nullTokenSchema)
     .optional(),
   page: Joi.number().integer().min(1).default(1).optional(),
-  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(PAGINATION.DEFAULT_PAGE_SIZE).optional(),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(30).optional(),
 }).unknown(true);
