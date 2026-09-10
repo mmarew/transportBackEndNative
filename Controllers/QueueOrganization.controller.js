@@ -95,7 +95,7 @@ exports.addMember = async (req, res, next) => {
     const result = await executeInTransaction(() =>
       service.addMember(
         req.params.queueOrganizationUniqueId,
-        req.params.userUniqueId,
+        req.body.userUniqueId,
         req.body,
         req.user.userUniqueId,
       ),

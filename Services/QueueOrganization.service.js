@@ -522,7 +522,7 @@ exports.addMember = async (
     tableName: "Users",
     conditions: { userUniqueId },
   });
-  if (user.length === 0) {
+  if (!user) {
     throw new AppError("User not found", AppError.NOT_FOUND);
   }
 

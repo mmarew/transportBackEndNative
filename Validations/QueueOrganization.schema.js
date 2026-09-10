@@ -71,6 +71,7 @@ exports.getQueueOrganizationsQuery = Joi.object({
 }).unknown(true);
 
 exports.addMember = Joi.object({
+  userUniqueId: uuidSchema.required(),
   roleId: Joi.number().integer().valid(usersRoles.queueOrgAdminRoleId, usersRoles.shipperRoleId).required(),
   isActive: Joi.boolean().default(true).optional(),
 }).unknown(true);

@@ -103,14 +103,14 @@ router.delete(
 );
 
 /**
- * @route   POST /api/queueOrganization/:queueOrganizationUniqueId/members/:userUniqueId
+ * @route   POST /api/queueOrganization/:queueOrganizationUniqueId/members
  * @desc    Add a member (role 11 QueueOrgAdmin, or 1 shipper) to the queue org
  * @access  Private (Admin / SuperAdmin / QueueOrgAdmin)
  */
 router.post(
-  "/:queueOrganizationUniqueId/members/:userUniqueId",
+  "/:queueOrganizationUniqueId/members",
   verifyIfUserIsQueueOrgAdmin,
-  validator(schema.memberParams, "params"),
+  validator(schema.queueOrgParams, "params"),
   validator(schema.addMember),
   controller.addMember,
 );
