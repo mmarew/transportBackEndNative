@@ -76,6 +76,19 @@ Allow a queue organization to be run by **many staff members**, not one person
    - Entry-history `isAdmin` bypass: also allow role **12** (dispatchers review any
      entry's history in their org).
 
+10. **Suspension enforcement (active-membership gate)** — deactivating a staff
+    membership actually revokes power:
+    - `Middleware/VerifyToken.js` `verifyIfUserIsQueueOrgAdmin`: for roles 11/12,
+      resolves the target org (params → body → query → via the queue entry for
+      entry-based routes) and requires an **active** membership row
+      (`roleId IN (11,12)`, `isActive = 1`, `membershipDeletedAt IS NULL`). Platform
+      admins 3/6 always pass.
+    - `Services/DriverQueue.service.js` `getEntryHistory`: same active-membership
+      check in the entry-history route (drivers keep their own-entry access; that
+      route is not middleware-gated).
+    - Verified: active dispatcher → 200; `PATCH .../members/:membershipId/deactivate`
+      → same call 403 "suspended or not active staff member"; reactivate → 200.
+
 ## Power Matrix
 | Action | 11 (Org Admin) | 12 (Dispatcher) | 3/6 (Platform) |
 |--------|:---:|:---:|:---:|

@@ -629,9 +629,11 @@ exports.getMembers = async (
     `SELECT qm.queueOrganizationMembershipUniqueId, qm.queueOrganizationUniqueId,
             qm.userUniqueId, qm.roleId, qm.isActive,
             qm.membershipStartDate, qm.membershipEndDate,
-            u.fullName, u.phoneNumber, u.email
+            u.fullName, u.phoneNumber, u.email,
+            r.roleName
      FROM QueueOrganizationMembership qm
      JOIN Users u ON qm.userUniqueId = u.userUniqueId
+     LEFT JOIN Roles r ON r.roleId = qm.roleId
      WHERE ${whereSql}
      ORDER BY qm.membershipCreatedAt ASC`,
     params,

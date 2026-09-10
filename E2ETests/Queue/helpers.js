@@ -180,7 +180,51 @@ const createQueueOrganization = async (name, token = superAdminToken()) => {
     },
     authConfig(token),
   );
-  return res.data?.data || res.data;
+  const org = res.data?.data || res.data;
+  if (org?.queueOrganizationUniqueId) {
+    await ensureQueueOrgAdminMembership(org.queueOrganizationUniqueId);
+  }
+  return org;
+};
+
+/**
+ * The queue-day admin endpoints require an ACTIVE staff membership
+ * (roleId 11/12, isActive = 1) in the org being operated — enforced since the
+ * Queue Dispatcher (role 12) + suspension work. Orgs here are created by the
+ * super admin, so the suite's role-11 queueOrgAdmin must be granted that
+ * membership to act as a real org admin over its own organization.
+ */
+const ensureQueueOrgAdminMembership = async (queueOrganizationUniqueId) => {
+  await ensureUser({ userType: "queueOrgAdmin", options: { fetchAccount: false } });
+  const [admins] = await pool.query(
+    `SELECT u.userUniqueId FROM Users u WHERE u.phoneNumber = ?`,
+    [usersData.queueOrgAdmin.phoneNumber],
+  );
+  if (!admins[0]) return;
+  const userUniqueId = admins[0].userUniqueId;
+  const [existing] = await pool.query(
+    `SELECT 1 FROM QueueOrganizationMembership
+     WHERE queueOrganizationUniqueId = ? AND userUniqueId = ?
+       AND roleId = ? AND membershipDeletedAt IS NULL
+     LIMIT 1`,
+    [queueOrganizationUniqueId, userUniqueId, usersRoles.queueOrgAdminRoleId],
+  );
+  if (existing.length === 0) {
+    await pool.query(
+      `INSERT INTO QueueOrganizationMembership
+        (queueOrganizationMembershipUniqueId, queueOrganizationUniqueId, userUniqueId,
+         roleId, isActive, membershipStartDate, membershipCreatedBy)
+       VALUES (?, ?, ?, ?, 1, ?, ?)`,
+      [
+        uuidv4(),
+        queueOrganizationUniqueId,
+        userUniqueId,
+        usersRoles.queueOrgAdminRoleId,
+        new Date().toISOString().slice(0, 10),
+        userUniqueId,
+      ],
+    );
+  }
 };
 
 const approveQueueOrganization = async ({

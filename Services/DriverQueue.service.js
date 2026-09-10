@@ -4055,7 +4055,7 @@ exports.releaseExpiredOffers = async ({
  * Returns DriverQueueHistory rows (full entry snapshots) sorted by most recent first.
  * Driver can view own entry; QueueOrgAdmin can view any entry.
  */
-exports.getEntryHistory = async (queueUniqueId, user) => {
+exports.getEntryHistory = async (queueUniqueId, user, view) => {
   const executor = db();
 
   const [entry] = await executor.query(
@@ -4123,6 +4123,49 @@ exports.getEntryHistory = async (queueUniqueId, user) => {
      ORDER BY performedAt DESC`,
     [queueUniqueId],
   );
+
+  // Columnar diff view: `?view=diff` returns one row per CHANGED column per
+  // event (newest first). Each history row is the PRE-IMAGE of its event, so:
+  //   oldValue = this snapshot's field, newValue = the next-older snapshot's
+  //   field (state right after the event), or the live DriverQueue row for the
+  //   oldest event.
+  if (view === "diff") {
+    const [live] = await executor.query(
+      `SELECT queueId, queueUniqueId, queueOrganizationUniqueId, queueDate, queueNumber,
+              queueRefusalCount, vehicleDriverUniqueId, shipperRequestUniqueId,
+              targetedShipperUserUUID, driverLatitude, driverLongitude, joinedAt,
+              status, requestedAt, agreedAt,
+              queueCreatedAt, queueCreatedBy, queueUpdatedAt, queueUpdatedBy,
+              queueDeletedAt, queueDeletedBy
+       FROM DriverQueue
+       WHERE queueUniqueId = ?`,
+      [queueUniqueId],
+    );
+    const meta = new Set(["historyUniqueId", "historyEvent", "performedBy", "performedAt"]);
+    const value = (v) =>
+      v === undefined || v === null ? "" : v instanceof Date ? v.toISOString() : String(v);
+    const diffs = [];
+    for (let i = 0; i < history.length; i++) {
+      const before = history[i];
+      const after = history[i + 1] || live[0] || {};
+      for (const key of Object.keys(before)) {
+        if (meta.has(key)) continue;
+        const oldValue = before[key];
+        const newValue = after[key];
+        if (value(oldValue) !== value(newValue)) {
+          diffs.push({
+            historyEvent: before.historyEvent,
+            columnName: key,
+            oldValue: oldValue == null ? null : oldValue,
+            newValue: newValue == null ? null : newValue,
+            performedBy: before.performedBy,
+            performedAt: before.performedAt,
+          });
+        }
+      }
+    }
+    return { message: "success", data: diffs, view: "diff" };
+  }
 
   return { message: "success", data: history };
 };

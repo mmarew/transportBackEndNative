@@ -1,5 +1,5 @@
-◇ injected env (39) from .env // tip: ⌘ enable debugging { debug: true }
-20:56:43 [[32minfo[39m]: MySQL pool created
+◇ injected env (39) from .env // tip: ⌘ override existing { override: true }
+21:09:21 [[32minfo[39m]: MySQL pool created
 {
   "service": "ride-hailing-api",
   "environment": "development",
@@ -9,14 +9,14 @@
   "socketPath": null
 }
 ═══════════════════════════════════════════════════
-  QUEUE E2E SUITE — 2026-09-10T17:56:43.327Z
+  QUEUE E2E SUITE — 2026-09-10T18:09:21.665Z
 ═══════════════════════════════════════════════════
 
 
 ═══ PROVISIONING ALL CORE USERS (once per run) ═══
 
 ✅ ========== PROVISIONING USER (supperAdmin) ==========
-20:56:43 [[32minfo[39m]: MySQL connectivity check succeeded
+21:09:22 [[32minfo[39m]: MySQL connectivity check succeeded
 {
   "service": "ride-hailing-api",
   "environment": "development"
@@ -124,33 +124,35 @@
   ✅ PASS: TQ-30: concurrent dispatch → exactly one offer, loser waits
 ✅ Driver journey status fetched. Status: 2
   ✅ PASS: TQ-31: concurrent accept → final state consistent (entry agreed once, status 4)
-  ❌ FAIL: TQ-32: check-in race — Request failed with status code 403
+  ✅ PASS: TQ-32: parallel check-in race → exactly one active row
   ✅ PASS: TQ-28: non-queue order cancel → no DriverQueue effect
 
 ═══════════════════════════════════════════════════
   BATCH REFUSAL RULE — TQ-BR1..TQ-BR3
 ═══════════════════════════════════════════════════
 
-  ❌ FAIL: TQ-BR1: decline cools whole batch — Request failed with status code 403
-  ❌ FAIL: TQ-BR2: dispatch bypasses cooled batch — Request failed with status code 403
-  ❌ FAIL: TQ-BR3: cooling per-batch only — d1 should be notagreed(18) after J2 reject: {"queueId":78,"queueUniqueId":"bda14a92-73ab-4c01-b697-46542c220b02","queueOrganizationUniqueId":"c42a6922-9822-4800-9def-7deb3760dc2a","queueDate":"2026-09-09T21:00:00.000Z","queueNumber":5,"queueRefusalCount":0,"vehicleDriverUniqueId":"c369411d-5043-4304-9aa4-9e27b93944ad","shipperRequestUniqueId":null,"targetedShipperUserUUID":null,"driverLatitude":"9.03000000","driverLongitude":"38.74000000","joinedAt":"2026-09-10T18:00:25.000Z","status":1,"requestedAt":null,"agreedAt":null,"queueCreatedAt":"2026-09-10T15:00:25.000Z","queueCreatedBy":"ee0652b6-d9a0-41f7-be5f-fc830b2d20c9","queueUpdatedAt":null,"queueUpdatedBy":null,"queueDeletedAt":null,"queueDeletedBy":null}
-  ❌ FAIL: cleanup: restore pre-AdminOps state — Request failed with status code 400
+  ✅ PASS: TQ-BR1: one decline cools the whole batch (FIFO keeps J2 waiting)
+  ✅ PASS: TQ-BR2: targeted dispatch can reconnect the cooled driver
+  ✅ PASS: TQ-BR3: cooling is per-batch — a new single order is still offered
+  ✅ PASS: cleanup: d1 free, no pending typeA order (TQ-33 pre-state restored)
 
 ═══════════════════════════════════════════════════
   QUEUE ADMIN OPS — TQ-33..TQ-37, TQ-39
 ═══════════════════════════════════════════════════
 
-  ❌ FAIL: TQ-33: manual check-in — Request failed with status code 403
-  ❌ FAIL: TQ-34: override entry position — Request failed with status code 400
-  ❌ FAIL: TQ-35: remove entry — Request failed with status code 400
-  ❌ FAIL: TQ-36: manual dispatch — O_M should wait (no waiting driver), got 2
-  ❌ FAIL: TQ-37: targeted dispatch — expected d1 agreed on O_M: {"queueId":78,"queueUniqueId":"bda14a92-73ab-4c01-b697-46542c220b02","queueOrganizationUniqueId":"c42a6922-9822-4800-9def-7deb3760dc2a","queueDate":"2026-09-09T21:00:00.000Z","queueNumber":5,"queueRefusalCount":0,"vehicleDriverUniqueId":"c369411d-5043-4304-9aa4-9e27b93944ad","shipperRequestUniqueId":"f39e7f6b-33ee-4a4f-9b1c-1e2d19a44f31","targetedShipperUserUUID":null,"driverLatitude":"9.03000000","driverLongitude":"38.74000000","joinedAt":"2026-09-10T18:00:25.000Z","status":2,"requestedAt":"2026-09-10T18:00:35.000Z","agreedAt":null,"queueCreatedAt":"2026-09-10T15:00:25.000Z","queueCreatedBy":"ee0652b6-d9a0-41f7-be5f-fc830b2d20c9","queueUpdatedAt":"2026-09-10T18:00:35.000Z","queueUpdatedBy":"d26fe18d-1e5c-4efe-abcd-b6f3515fd83e","queueDeletedAt":null,"queueDeletedBy":null}
+  ✅ PASS: TQ-33: manual check-in by queue admin → waiting entry (queueNumber 5)
+  ✅ PASS: TQ-34: override entry to #1, position updated + audit recorded
+  ✅ PASS: TQ-35: remove entry (no-show) → removed + audit recorded
+✅ Driver journey status fetched. Status: 2
+✅ Driver accepted shipper request. Status: 4
+  ✅ PASS: TQ-36: manual dispatch empty→404, then check-in dispatch → offer → accept
+  ✅ PASS: TQ-37: targeted dispatch by queueUniqueId + driverPhoneNumber (guards + positives)
   ✅ PASS: TQ-39: non-queue order bypasses queue engine (no DriverQueue rows)
-18:00:39 
+18:14:36 
 ===== TQ-40 · Loading stages (4 → 5 → 6 → 7) =====
-18:00:45 current driver status: 3 | queue: null
-18:00:45 === setting up an accepted queue journey (status 4) ===
-18:00:45 checkin note: fail
+18:14:42 current driver status: 3 | queue: null
+18:14:42 === setting up an accepted queue journey (status 4) ===
+18:14:43 checkin note: fail
   ⚠ TQ-40 loader skipped: Request failed with status code 500
   ✅ d1's O_M journey ended (admin) before History suite
 
@@ -162,16 +164,16 @@
   ✅ PASS: TQ-H02: re-check-in while live is idempotent and preserves the reservation
   ✅ PASS: TQ-H03: re-check-in with new phone → same entry, reservation updated + shipper history
   ✅ PASS: TQ-H04: checkout clears shipperRequestUniqueId + logs status history
-  ❌ FAIL: TQ-H05: history endpoint admin — Request failed with status code 403
+  ✅ PASS: TQ-H05: GET /entry/:queueUniqueId/history returns column-level audit trail
   ✅ PASS: TQ-H06: driver can view own entry history
   ✅ PASS: TQ-H07: driver cannot view other driver's entry history (403)
   ✅ PASS: TQ-H08: myPosition returns shipperHistory array with change timeline
-  ❌ FAIL: TQ-H09: override logs history — Request failed with status code 403
-  ❌ FAIL: TQ-H10: remove logs history — Request failed with status code 403
-  ❌ FAIL: TQ-H11: manualCheckin with shipper — Request failed with status code 403
+  ✅ PASS: TQ-H09: override entry logs queueNumber change in history
+  ✅ PASS: TQ-H10: remove entry logs status change in history
+  ✅ PASS: TQ-H11: manualCheckin with shipper → history + QueueAuditLog
   ✅ PASS: TQ-H12: checkout logs QueueAuditLog entry
   ✅ PASS: TQ-H13: re-check-in revive chain logged (create + remove, fresh entry logs creation)
-  ❌ FAIL: TQ-H14: history performedBy — Request failed with status code 403
+  ✅ PASS: TQ-H14: all history entries have valid performedBy UUIDs
   ✅ PASS: TQ-H15: GET /entry/:queueUniqueId/history returns 404 for nonexistent entry
 
 ───────────────────────────────────────────────────
@@ -292,31 +294,31 @@
 ✅ Driver journey status fetched. Status: 4
 ✅ Driver journey status fetched. Status: 13
 ✅ Driver journey status fetched. Status: 13
-21:06:36 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
+21:20:36 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "queueOrganizationUniqueId": "ca918518-6ef4-4de2-92aa-b181d608280d",
+  "queueOrganizationUniqueId": "06de2c54-e440-4b11-a988-f97930eb625f",
   "queueDate": "2026-09-09T21:00:00.000Z"
 }
-21:06:36 [[33mwarn[39m]: No active driver socket found for notification
+21:20:37 [[33mwarn[39m]: No active driver socket found for notification
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "phoneNumber": "251900310002"
+  "phoneNumber": "251976154102"
 }
-21:06:37 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
+21:20:37 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "queueOrganizationUniqueId": "ca918518-6ef4-4de2-92aa-b181d608280d",
+  "queueOrganizationUniqueId": "06de2c54-e440-4b11-a988-f97930eb625f",
   "queueDate": "2026-09-09T21:00:00.000Z"
 }
-21:06:38 [[33mwarn[39m]: No active shipper socket found for notification
+21:20:38 [[33mwarn[39m]: No active shipper socket found for notification
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "phoneNumber": "251980031002"
+  "phoneNumber": "251987615412"
 }
   ✅ PASS: TQ-41: timeout → no_answer(16), order retained, count +1 (single driver)
 ✅ Driver journey status fetched. Status: 2
@@ -328,57 +330,57 @@
 ✅ Driver journey status fetched. Status: 13
 ✅ Driver journey status fetched. Status: null
 ✅ Driver journey status fetched. Status: 2
-21:07:07 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
+21:21:08 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "queueOrganizationUniqueId": "ca918518-6ef4-4de2-92aa-b181d608280d",
+  "queueOrganizationUniqueId": "06de2c54-e440-4b11-a988-f97930eb625f",
   "queueDate": "2026-09-09T21:00:00.000Z"
 }
-21:07:08 [[33mwarn[39m]: No active driver socket found for notification
+21:21:08 [[33mwarn[39m]: No active driver socket found for notification
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "phoneNumber": "251900310002"
+  "phoneNumber": "251976154102"
 }
-21:07:08 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
+21:21:08 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "queueOrganizationUniqueId": "ca918518-6ef4-4de2-92aa-b181d608280d",
+  "queueOrganizationUniqueId": "06de2c54-e440-4b11-a988-f97930eb625f",
   "queueDate": "2026-09-09T21:00:00.000Z"
 }
-21:07:09 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
+21:21:10 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "queueOrganizationUniqueId": "ca918518-6ef4-4de2-92aa-b181d608280d",
+  "queueOrganizationUniqueId": "06de2c54-e440-4b11-a988-f97930eb625f",
   "queueDate": "2026-09-09T21:00:00.000Z"
 }
-21:07:10 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
+21:21:10 [[33mwarn[39m]: Socket.io not initialized — skipping queue room emit
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "queueOrganizationUniqueId": "ca918518-6ef4-4de2-92aa-b181d608280d",
+  "queueOrganizationUniqueId": "06de2c54-e440-4b11-a988-f97930eb625f",
   "queueDate": "2026-09-09T21:00:00.000Z"
 }
-21:07:10 [[33mwarn[39m]: No active driver socket found for notification
+21:21:11 [[33mwarn[39m]: No active driver socket found for notification
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "phoneNumber": "251900310003"
+  "phoneNumber": "251976154103"
 }
-21:07:11 [[33mwarn[39m]: No active shipper socket found for notification
+21:21:11 [[33mwarn[39m]: No active shipper socket found for notification
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "phoneNumber": "251980031002"
+  "phoneNumber": "251987615412"
 }
-21:07:11 [[33mwarn[39m]: No active shipper socket found for notification
+21:21:12 [[33mwarn[39m]: No active shipper socket found for notification
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "phoneNumber": "251980031002"
+  "phoneNumber": "251987615412"
 }
   ✅ PASS: TQ-43: late accept after advance → 409, order still on d3
 ✅ Driver journey status fetched. Status: 2
@@ -406,8 +408,8 @@
   ✅ Fence org cleaned up
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Results:  ✅ 80 passed  |  ❌ 15 failed  |  ⏩ 0 skipped
+  Results:  ✅ 95 passed  |  ❌ 0 failed  |  ⏩ 0 skipped
   Total:    95 tests
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  ❌ Queue suite completed with failures
+  ✅ Queue suite completed — all green

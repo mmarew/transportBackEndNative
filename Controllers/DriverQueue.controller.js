@@ -133,7 +133,11 @@ exports.getEntryHistory = async (req, res, next) => {
   try {
     ServerResponder(
       res,
-      await service.getEntryHistory(req.params.queueUniqueId, req.user),
+      await service.getEntryHistory(
+        req.params.queueUniqueId,
+        req.user,
+        req.query.view,
+      ),
     );
   } catch (e) {
     next(e);

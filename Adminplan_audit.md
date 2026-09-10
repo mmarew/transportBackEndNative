@@ -213,7 +213,7 @@ Payload: any subset of the create fields:
       "queueOrganizationUniqueId": "...",
       "userUniqueId": "...",
       "roleId": 11,
-      "roleName": "queue_org_admin",
+      "roleName": "Queue Organization Admin",
       "isActive": 1,
       "membershipStartDate": "2026-08-20T...",
       "membershipEndDate": null,
@@ -229,26 +229,28 @@ Covers Full Name, Phone Number, Role, Active, Membership Start Date.
 
 ### 10. Add Member
 
-**EXISTS** — `POST /api/queueOrganization/:queueOrganizationUniqueId/members/:userUniqueId`
+**EXISTS** — `POST /api/queueOrganization/:queueOrganizationUniqueId/members` (role 11 org admin or 3/6 platform only)
 
 ```json
 {
+  "userUniqueId": "uuid of the staff user",
   "roleId": 11,
   "isActive": true
 }
 ```
 
-- `roleId` limited to `11` (QueueOrgAdmin) or `1` (Shipper).
-- Lifecycle endpoints also exist:
+- `roleId` limited to `11` (QueueOrgAdmin) or `12` (Queue Dispatcher) — memberships are **staff-only**; shippers/drivers are not members (`roleId: 1` → 400 "must be one of [11, 12]").
+- Lifecycle endpoints also exist (org admin / platform only):
   - `PATCH /api/queueOrganization/:id/members/:membershipId/reactivate`
   - `PATCH /api/queueOrganization/:id/members/:membershipId/deactivate`
   - `DELETE /api/queueOrganization/:id/members/:membershipId`
+- **Deactivating a staff membership revokes queue power**: `verifyIfUserIsQueueOrgAdmin` (and entry history) now require an active membership (`isActive = 1`, not deleted) for roles 11/12 — deactivated dispatchers get 403 on all queue endpoints until reactivated.
 
 ---
 
 ## Phase 5 — Queue Monitoring (Read Only)
 
-Core endpoint: **`GET /api/queue/status?queueOrganizationUniqueId=…&queueDate=YYYY-MM-DD`** (QueueOrgAdmin / Admin / SuperAdmin).
+Core endpoint: **`GET /api/queue/status?queueOrganizationUniqueId=…&queueDate=YYYY-MM-DD`** (QueueOrgAdmin / Queue Dispatcher (12) with **active membership** / Admin / SuperAdmin).
 
 ```json
 {
@@ -370,9 +372,9 @@ Status reference (numeric): `waiting=1, requested=2, agreed=3, goToLoadingPlace=
 
 ### 17. Queue History (column changed, old value, performed by, performed date)
 
-**EXISTS (shape differs)** — `GET /api/queue/entry/:queueUniqueId/history`
+**DONE** — `GET /api/queue/entry/:queueUniqueId/history`
 
-Returns full pre-mutation snapshots, newest first:
+- **Default view** (no `view` param) keeps returning full pre-mutation snapshots, newest first:
 
 ```json
 {
@@ -384,9 +386,6 @@ Returns full pre-mutation snapshots, newest first:
       "performedAt": "2026-09-10T03:00:26.000Z",
       "queueNumber": 1,
       "status": 18,
-      "joinedAt": "...",
-      "requestedAt": "...",
-      "agreedAt": null,
       "shipperRequestUniqueId": "...",
       "queueRefusalCount": 1,
       "... (all DriverQueue columns)": null
@@ -395,8 +394,25 @@ Returns full pre-mutation snapshots, newest first:
 }
 ```
 
+- **`?view=diff`** returns exactly the requested columnar diff — one row per **changed column** per event, newest first, `oldValue` = the event's pre-image snapshot, `newValue` = the next-older snapshot (or the live `DriverQueue` row for the oldest event):
+
+```json
+{
+  "data": [
+    {
+      "historyEvent": "driver_cancel_after_accept",
+      "columnName": "status",
+      "oldValue": 3,
+      "newValue": 12,
+      "performedBy": "uuid",
+      "performedAt": "2026-09-10T03:00:26.000Z"
+    }
+  ],
+  "view": "diff"
+}
+```
+
 - Event vocabulary: `checkin, manual_checkin, checkout, remove, lane_override, offer, offer_rejected, offer_timeout, accept, order_cancelled, driver_cancel_after_accept, journey_progress, journey_completed, refusal, advance_release, not_selected, shipper_reserved`.
-- Snapshot is a superset of `columnChanged/oldValue` — a UI can compute diffs by pairing consecutive rows with the current `DriverQueue` value. A strict columnar-diff format would require modification.
 
 ---
 
@@ -417,4 +433,7 @@ Returns full pre-mutation snapshots, newest first:
 | 2   | `GET /api/queue/status`     | **DONE**               | `data.statistics = { waiting, requested, agreed, notAgreed, removed }` added in `getQueueStatus`.           |
 | 3   | Queue entry POD             | **DONE**               | `proofOfDelivery` object (incl. photos) restored in `buildQueueEntry` (`Services/DriverQueue.service.js:392`). |
 | 4   | Org member count            | **DONE**               | `memberCount` added to org list + detail (`Services/QueueOrganization.service.js`).                         |
-| 5   | Queue history diff view     | **EXISTS (shape differs)** | Frontend diffs snapshot rows; true columnar diff requires modification.                                  |
+| 5   | Queue history diff view     | **DONE**               | `GET /api/queue/entry/:id/history?view=diff` → `[{ historyEvent, columnName, oldValue, newValue, performedBy, performedAt }]` (diff per changed column, latest first). |
+| 6   | Add member (staff-only)     | **DONE**               | Endpoint now `POST .../members` (userUniqueId in body); roles `[11, 12]` only; deactivation now revokes queue access. |
+
+Also since this audit: **Queue Dispatcher role (12)** added — see `QueueDispatcher_Role12_plan.md` for the full power matrix (org admin 11 creates dispatchers, manages staff; dispatchers run the queue but cannot manage members).
