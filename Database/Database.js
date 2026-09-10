@@ -9,6 +9,7 @@
 // ('checkin', 'manual_checkin') store the just-created row, since there is no
 // prior state to capture. Replaces the former columnName/oldValue/newValue
 // pivot so no column is ever hidden and every row is self-describing.
+
 const driverQueueHistoryDdl = `
 CREATE TABLE IF NOT EXISTS DriverQueueHistory (
     historyId INT AUTO_INCREMENT PRIMARY KEY,
@@ -91,8 +92,6 @@ CREATE TABLE IF NOT EXISTS Roles (
     roleDeletedAt DATETIME  -- When the role was deleted
  ) ;
 
- 
- 
 
 -- Create the vehicleTypes table
 

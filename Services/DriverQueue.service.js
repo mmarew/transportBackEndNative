@@ -62,7 +62,9 @@ const QUEUE_STATUS = {
 // (targeted dispatch is exempt). Carries over the legacy rejection set used by
 // `findNearbyDrivers` (VerifyIfShipperRequestWasNotRejected) so every matcher
 // agrees on which statuses cool a batch.
-const { REJECTED_STATUS_IDS: BATCH_DECLINED_JOURNEY_STATUSES } = require("../Utils/RejectedRequests");
+const {
+  REJECTED_STATUS_IDS: BATCH_DECLINED_JOURNEY_STATUSES,
+} = require("../Utils/RejectedRequests");
 // DriverQueueHistory.historyEvent vocabulary — names the mutation whose
 // pre-image snapshots are stored in the audit trail (snapshot mirror of
 // DriverQueue, equal column number).
@@ -735,7 +737,8 @@ exports.checkin = async (data) => {
         queueUniqueId: active.queueUniqueId,
         queueNumber: active.queueNumber,
         status: active.status,
-        targetedShipperUserUUID: targetedShipperUserUUID || active.targetedShipperUserUUID || null,
+        targetedShipperUserUUID:
+          targetedShipperUserUUID || active.targetedShipperUserUUID || null,
         queueOrganizationUniqueId: active.queueOrganizationUniqueId,
         queueOrganizationName: active.queueOrganizationName,
       },
