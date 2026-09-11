@@ -17,6 +17,7 @@ const { pool } = require("../../Middleware/Database.config");
 const {
   SHIPPER_REQUEST_ENDPOINTS,
 } = require("../../Routes/EndPoints/shipperRequest.endpoints");
+const { expectGuardRejection } = require("../Expect");
 
 const CREATE_URL = SHIPPER_REQUEST_ENDPOINTS.CREATE_REQUEST;
 
@@ -53,25 +54,17 @@ const buildPayload = async ({ numberOfVehicles, requestMode = "individual_target
   vehicle: { vehicleTypeUniqueId: await getVehicleTypeUniqueId() },
 });
 
-// Assert the request is rejected with HTTP 400 (Joi BAD_REQUEST). Any other
-// status (401/404/500) is surfaced as a hard failure — validation caps must
-// never be silently swallowed.
-const expectRejected = async (loader, label) => {
-  let response = null;
-  try {
-    const res = await loader();
-    response = res;
-  } catch (e) {
-    if (e.response?.status === 400) {
-      console.log(`✅ ${label} rejected`, "(HTTP 400)");
-      return;
-    }
-    throw new Error(
-      `${label}: expected HTTP 400 from Joi, got ${e.response?.status ?? e.message}`,
-    );
-  }
-  throw new Error(`${label}: expected HTTP 400 from Joi, got 2xx success (${response.status})`);
-};
+// Assert the request is rejected with HTTP 400 (Joi BAD_REQUEST) as a DECLARED
+// guard probe — the log renders the outcome as 🛡 EXPECTED and counts it as a
+// pass. Any other status (401/404/500) or an accidental 2xx success is a hard
+// failure: validation caps must never be silently swallowed.
+const expectRejected = (loader, label) =>
+  expectGuardRejection({
+    label,
+    allowed: [400],
+    urlIncludes: "createRequest",
+    run: loader,
+  });
 
 // ── Test: numberOfVehicles > 100 rejected ────────────────────────────────────
 const testMaxVehicleCap = async () => {

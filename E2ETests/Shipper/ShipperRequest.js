@@ -6,6 +6,8 @@ const {
   SHIPPER_REQUEST_ENDPOINTS,
 } = require("../../Routes/EndPoints/shipperRequest.endpoints");
 const { testVerifyUserByOTP } = require("../Auth/VerifyByOtp");
+const { report } = require("../Reporter");
+const { armExpect, disarmExpect } = require("../Expect");
 
 const testCreateShipperRequest = async (
   token,
@@ -250,27 +252,31 @@ const testGetCancellationNotification = async () => {
 };
 
 const testMarkCancellationAsSeen = async (payload = {}) => {
+  const token = usersData.shipper.token;
+  const auth = authConfig(token);
+  const url = backendURL + SHIPPER_REQUEST_ENDPOINTS.MARK_CANCELLATION_AS_SEEN;
+
+  // The probed journey decision may belong to a different shipper, in which case
+  // the ownership guard MUST reject with 403. Both outcomes are correct, so the
+  // 403 is declared up-front (logged as 🛡 EXPECTED, counted as a guard probe)
+  // instead of being silently tolerated. Any other status is a genuine failure.
+  armExpect([403], "markCancellationAsSeen ownership guard");
   try {
-    const token = usersData.shipper.token;
-    const auth = authConfig(token);
-    const url =
-      backendURL + SHIPPER_REQUEST_ENDPOINTS.MARK_CANCELLATION_AS_SEEN;
     const result = await axios.put(url, payload, auth);
-    console.log("✅ Mark cancellation as seen:", result.data);
+    console.log("✅ Mark cancellation as seen:", result.data?.message || "ok");
+    report.pass("markCancellationAsSeen (owner marked their cancellation seen)");
     return result.data;
   } catch (error) {
-    // A 403 means the cancellation belongs to a different shipper — the
-    // ownership guard worked as designed (this is an expected outcome whenever
-    // the probed journey decision's cancellation was created by another user).
     if (error.response?.status === 403) {
-      console.log("✅ markCancellationAsSeen: ownership enforced (403 as expected)");
+      report.guard(
+        "markCancellationAsSeen — cancellation belongs to another shipper",
+        403,
+      );
       return { status: "forbidden", expected: true };
     }
-    console.error(
-      "Mark cancellation as seen failed:",
-      error.response?.data || error.message,
-    );
     throw error;
+  } finally {
+    disarmExpect();
   }
 };
 

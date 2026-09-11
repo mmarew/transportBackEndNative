@@ -19,6 +19,12 @@ const path = require("path");
 const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
 const { pool } = require("../../Middleware/Database.config");
+const { report } = require("../Reporter");
+const {
+  expectGuardRejection,
+  armExpect,
+  disarmExpect,
+} = require("../Expect");
 
 const BASE_URL = "/api/deliveryConfirmations";
 const PHOTO_PATH = path.join(__dirname, "..", "dummy.png");
@@ -50,7 +56,7 @@ const testSettleWithoutSignature = async () => {
 
   const journeyUniqueId = resolveJourney();
   if (!journeyUniqueId) {
-    console.warn("⏩ skip — no completed journey for settle-without-signature test");
+    report.skip("Rule 1: settle without signature", "no completed journey available");
     return { skipped: true };
   }
 
@@ -86,28 +92,24 @@ const testSettleWithoutSignature = async () => {
     }
   }
 
-  // Try to settle WITHOUT signature → should fail. Settle attempts are performed
-  // by an admin (the only non-receiver actor allowed to settle) so the rule
-  // under test is the signature requirement, not the settle-authorization guard.
-  try {
-    const settleForm = new FormData();
-    settleForm.append("status", "CONFIRMED");
-    // No shipperSignature appended
-    await axios.put(
-      `${backendURL}${BASE_URL}/${dcId}`,
-      settleForm,
-      authConfig(usersData.admin?.token || token),
-    );
-    throw new Error("Expected 400 for settle without signature, but got success");
-  } catch (e) {
-    if (e.response?.status === 400 || e.response?.status === 422) {
-      console.log("✅ Rule 1 passed: settle without signature rejected (400)");
-    } else if (e.message.includes("Expected 400")) {
-      throw e;
-    } else {
-      console.warn("⚠️  Rule 1: unexpected error:", e.response?.status, e.response?.data?.error || e.message);
-    }
-  }
+  // Try to settle WITHOUT signature → must be rejected. Settle attempts are
+  // performed by an admin (the only non-receiver actor allowed to settle) so the
+  // rule under test is the signature requirement, not the settle-authorization
+  // guard. Declared as a deliberate probe: a 400/422 here is the guard WORKING.
+  await expectGuardRejection({
+    label: "Rule 1: settle without a shipper signature is rejected",
+    allowed: [400, 422],
+    run: () => {
+      const settleForm = new FormData();
+      settleForm.append("status", "CONFIRMED");
+      // No shipperSignature appended — that is the point of the probe.
+      return axios.put(
+        `${backendURL}${BASE_URL}/${dcId}`,
+        settleForm,
+        authConfig(usersData.admin?.token || token),
+      );
+    },
+  });
 
   // Cleanup: delete the DC
   try {
@@ -124,7 +126,7 @@ const testDuplicateCreate = async () => {
 
   const journeyUniqueId = resolveJourney();
   if (!journeyUniqueId) {
-    console.warn("⏩ skip — no completed journey for duplicate-create test");
+    report.skip("Rule 2: duplicate create", "no completed journey available");
     return { skipped: true };
   }
 
@@ -143,6 +145,9 @@ const testDuplicateCreate = async () => {
   };
 
   let dcId;
+  // A POD may already exist for this journey from an earlier phase; a 409 here
+  // is expected, so declare it and reuse the existing row.
+  armExpect([409], "Rule 2: create POD (journey may already have one)");
   try {
     const res = await axios.post(backendURL + BASE_URL, makeForm(), authConfig(token));
     dcId = res.data?.data?.deliveryConfirmationUniqueId;
@@ -158,19 +163,25 @@ const testDuplicateCreate = async () => {
     } else {
       throw e;
     }
+  } finally {
+    disarmExpect();
   }
 
-  // Create again for same journey → should get 409
+  // Create again for the same journey → either 409 (duplicate rejected) or an
+  // idempotent 200 returning the existing DC. Both are correct behaviour; any
+  // other status is a genuine failure and must propagate.
+  armExpect([409], "Rule 2: duplicate create for the same journey");
   try {
     await axios.post(backendURL + BASE_URL, makeForm(), authConfig(token));
-    // If it succeeds, check if it's idempotent (returns existing)
-    console.log("✅ Rule 2 passed: duplicate create is idempotent (returns existing DC)");
+    report.pass("Rule 2: duplicate create is idempotent (returns existing DC)");
   } catch (e) {
     if (e.response?.status === 409) {
-      console.log("✅ Rule 2 passed: duplicate create rejected (409)");
+      report.guard("Rule 2: duplicate create rejected", 409);
     } else {
       throw e;
     }
+  } finally {
+    disarmExpect();
   }
 
   // Cleanup
@@ -190,7 +201,7 @@ const testDriverCantSelfConfirm = async () => {
 
   const journeyUniqueId = resolveJourney();
   if (!journeyUniqueId) {
-    console.warn("⏩ skip — no completed journey for driver-self-confirm test");
+    report.skip("Rule 3: driver cannot self-confirm", "no completed journey available");
     return { skipped: true };
   }
 
@@ -223,25 +234,28 @@ const testDriverCantSelfConfirm = async () => {
   }
 
   if (!dcId) {
-    console.warn("⏩ skip — could not create DC for driver-self-confirm test");
+    report.skip("Rule 3: driver cannot self-confirm", "could not create the PENDING confirmation");
     return { skipped: true };
   }
 
-  // Try to settle with CONFIRMED status from driver (not shipper) → 403
-  try {
-    const settleForm = new FormData();
-    settleForm.append("status", "CONFIRMED");
-    settleForm.append("shipperSignature", "driver-sig");
-    await axios.put(`${backendURL}${BASE_URL}/${dcId}`, settleForm, authConfig(token));
-    // If driver can self-confirm, that's a rule violation
-    console.warn("⚠️  Rule 3: driver was able to self-confirm (may need rule enforcement)");
-  } catch (e) {
-    if (e.response?.status === 403 || e.response?.status === 400) {
-      console.log("✅ Rule 3 passed: driver cannot self-confirm (blocked)");
-    } else {
-      console.warn("⚠️  Rule 3: unexpected error:", e.response?.status, e.response?.data?.error || e.message);
-    }
-  }
+  // Driver (not the receiver, not an admin) tries to settle → must be blocked.
+  // Declared probe: 403/400 proves the settle-authorization guard works. If the
+  // driver CAN self-confirm, expectGuardRejection throws → counted as ❌ FAIL,
+  // never downgraded to a warning.
+  await expectGuardRejection({
+    label: "Rule 3: driver cannot self-confirm a delivery",
+    allowed: [403, 400],
+    run: () => {
+      const settleForm = new FormData();
+      settleForm.append("status", "CONFIRMED");
+      settleForm.append("shipperSignature", "driver-sig");
+      return axios.put(
+        `${backendURL}${BASE_URL}/${dcId}`,
+        settleForm,
+        authConfig(token),
+      );
+    },
+  });
 
   // Cleanup
   try {
@@ -258,7 +272,7 @@ const testNonAdminCantDeleteConfirmed = async () => {
 
   const journeyUniqueId = resolveJourney();
   if (!journeyUniqueId) {
-    console.warn("⏩ skip — no completed journey for non-admin-delete test");
+    report.skip("Rule 4: non-admin cannot delete CONFIRMED", "no completed journey available");
     return { skipped: true };
   }
 
@@ -291,7 +305,7 @@ const testNonAdminCantDeleteConfirmed = async () => {
   }
 
   if (!dcId) {
-    console.warn("⏩ skip — could not create DC for non-admin-delete test");
+    report.skip("Rule 4: non-admin cannot delete CONFIRMED", "could not create the confirmation");
     return { skipped: true };
   }
 
@@ -306,26 +320,26 @@ const testNonAdminCantDeleteConfirmed = async () => {
       settleForm,
       authConfig(usersData.admin?.token || token),
     );
-  } catch {
-    // Settlement may fail — that's OK, just skip the delete test
-    console.warn("⏩ Rule 4: could not settle DC, skipping delete test");
+  } catch (error) {
+    // Settling is the PRECONDITION for this rule, not the probe itself: an admin
+    // settle must always succeed. If it does not, that is a genuine failure —
+    // never downgrade it to a skip.
     try {
       await axios.delete(`${backendURL}${BASE_URL}/${dcId}`, authConfig(usersData.admin?.token || token));
-    } catch { /* ignore */ }
-    return { skipped: true };
+    } catch { /* best-effort cleanup only */ }
+    throw new Error(
+      `Rule 4 precondition failed — admin could not settle the DC: ${error?.response?.status || ""} ${error?.message || error}`,
+    );
   }
 
-  // Non-admin tries to delete CONFIRMED → should fail (403)
-  try {
-    await axios.delete(`${backendURL}${BASE_URL}/${dcId}`, authConfig(token));
-    console.warn("⚠️  Rule 4: driver was able to delete CONFIRMED record (may need enforcement)");
-  } catch (e) {
-    if (e.response?.status === 403 || e.response?.status === 400) {
-      console.log("✅ Rule 4 passed: non-admin cannot delete CONFIRMED record");
-    } else {
-      console.warn("⚠️  Rule 4: unexpected error:", e.response?.status);
-    }
-  }
+  // Non-admin (driver) tries to delete a CONFIRMED record → must be blocked.
+  // Declared probe: 403/400 is the guard working; anything else is a real fail.
+  await expectGuardRejection({
+    label: "Rule 4: non-admin cannot delete a CONFIRMED record",
+    allowed: [403, 400],
+    run: () =>
+      axios.delete(`${backendURL}${BASE_URL}/${dcId}`, authConfig(token)),
+  });
 
   // Cleanup with admin
   try {
@@ -340,19 +354,23 @@ const testGetUnknownConfirmation = async () => {
   const token = usersData.admin?.token || usersData.driver?.token;
   if (!token) throw new Error("no token found");
 
+  // An unknown id must either 404 or come back as an empty filter result — both
+  // are correct. Anything else (5xx, 403, …) is a genuine failure.
+  armExpect([404], "Rule 5: fetch an unknown confirmation id");
   try {
     await axios.get(
       backendURL + `${BASE_URL}?deliveryConfirmationUniqueId=00000000-0000-4000-8000-000000000000`,
       authConfig(token),
     );
-    // Getting empty list is OK for filter-based GET
-    console.log("✅ Rule 5 passed: unknown confirmation returns empty list (not error)");
+    report.pass("Rule 5: unknown confirmation returns an empty list (not an error)");
   } catch (e) {
     if (e.response?.status === 404) {
-      console.log("✅ Rule 5 passed: unknown confirmation returns 404");
+      report.guard("Rule 5: unknown confirmation returns 404", 404);
     } else {
       throw e;
     }
+  } finally {
+    disarmExpect();
   }
 };
 

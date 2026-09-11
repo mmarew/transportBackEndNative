@@ -9,6 +9,7 @@ const { backendURL, usersData, usersRoles, journeyStatusMap, cancellationReasons
 const { authConfig } = require("../Utils");
 const { pool } = require("../../Middleware/Database.config");
 const { report } = require("../Reporter");
+const { armExpect, disarmExpect } = require("../Expect");
 const { queueState } = require("./state");
 const {
   getDriverJourneyStatus,
@@ -708,10 +709,23 @@ const testTQ31ConcurrentAccept = async () => {
       throw new Error("d4 has no active offer for concurrent accept");
     }
 
-    const [r1, r2] = await Promise.allSettled([
-      rawAccept("queueDriver4", ids, 6000),
-      rawAccept("queueDriver4", ids, 6000),
-    ]);
+    // Exactly one of the two concurrent accepts may win; the loser MUST be
+    // rejected. Declare that 400 up-front so the race's losing request is
+    // rendered as a 🛡 guard-probe, not a scary backend failure.
+    armExpect(
+      [400],
+      "TQ-31: loser of the concurrent accept is rejected (agreed exactly once)",
+      { urlIncludes: "acceptShipperRequest" },
+    );
+    let r1, r2;
+    try {
+      [r1, r2] = await Promise.allSettled([
+        rawAccept("queueDriver4", ids, 6000),
+        rawAccept("queueDriver4", ids, 6000),
+      ]);
+    } finally {
+      disarmExpect();
+    }
     const ok = [r1, r2].filter(
       (r) => r.status === "fulfilled" && r.value.status === 200,
     ).length;

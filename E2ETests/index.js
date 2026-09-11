@@ -1,6 +1,6 @@
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
-const { initLogCapture } = require("./logCapture");
+const { initLogCapture, probeStats } = require("./logCapture");
 initLogCapture();
 const { testDriverOnboardingFlow } = require("./Driver");
 const { testCreateAdminFlow } = require("./Admin");
@@ -357,6 +357,13 @@ const initiateTest = async () => {
     await safe("runQueueTests", () => runQueueTests({ reset: false, silent: true }))();
 
     const passed = report.summary();
+    // Negative-traffic accounting: 🛡 = a test declared the rejection up-front
+    // (guard working as designed); 🟡 = a 4xx nobody declared (either a probe
+    // still to convert, or an unexpected rejection a test must explain);
+    // 🔴 = a real server fault. Only ❌ failed gates the exit code.
+    console.log(
+      `  Probes:   🛡 ${probeStats.expected} declared  |  🟡 ${probeStats.undeclared4xx} undeclared 4xx  |  🔴 ${probeStats.server5xx} server 5xx\n`,
+    );
     if (passed) {
       console.log(
         "\n✅ ========== E2E TEST COMPLETED SUCCESSFULLY ==========\n",

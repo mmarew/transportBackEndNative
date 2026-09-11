@@ -21,6 +21,7 @@ const {
   getDriverJourneyStatus,
   acceptShipperRequest,
 } = require("../Driver/DriverJourneyStatus");
+const { armExpect, disarmExpect } = require("../Expect");
 
 // ── Auth tokens ────────────────────────────────────────────────────────────────
 
@@ -655,6 +656,10 @@ const expectStatus = async (promise, expectedStatuses, label) => {
   const expected = Array.isArray(expectedStatuses)
     ? expectedStatuses
     : [expectedStatuses];
+  // Declare the expectation up-front so logCapture renders a matching 4xx as
+  // "🛡 EXPECTED" (a guard working as designed) instead of a backend failure.
+  // Callers keep ownership of the pass/fail report — this only labels traffic.
+  armExpect(expected, label);
   try {
     const res = await promise;
     if (!expected.includes(res.status)) {
@@ -673,6 +678,8 @@ const expectStatus = async (promise, expectedStatuses, label) => {
       );
     }
     throw error;
+  } finally {
+    disarmExpect();
   }
 };
 

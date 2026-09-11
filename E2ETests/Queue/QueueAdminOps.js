@@ -7,6 +7,7 @@ const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
 const { pool } = require("../../Middleware/Database.config");
 const { report } = require("../Reporter");
+const { armExpect, disarmExpect } = require("../Expect");
 const { queueState } = require("./state");
 const {
   SHIPPER_REQUEST_ENDPOINTS,
@@ -310,10 +311,27 @@ const testTQ37TargetedDispatch = async () => {
     //      check-in auto-dispatch has nothing to steal.
     // ──
     await cancelOrder({ orderUniqueId: queueState.adminOps.oMUniqueId, cancelAs: "admin" });
+    // Best-effort stale-entry removal: after the admin cancel the agreed entry
+    // is already closed (12) + soft-deleted, so removeEntry may 404. Declare it.
+    armExpect(
+      [404],
+      "TQ-37: stale agreed entry already removed by post-accept cancel (404)",
+      { urlIncludes: "queue/entry" },
+    );
     try {
       await removeEntry(d1Entry.queueUniqueId, qadminToken());
     } catch (error) {
-      if (error?.response?.status !== 404) throw error;
+      if (error?.response?.status === 404) {
+        // Expected: interceptor already labelled it 🛡 EXPECTED; count the pass.
+        report.guard(
+          "TQ-37: stale agreed entry already removed by post-accept cancel (404)",
+          404,
+        );
+      } else {
+        throw error;
+      }
+    } finally {
+      disarmExpect();
     }
     await manualCheckin(ORG(), "queueDriver1", qadminToken());
     const waitingEntry = await entryOf("queueDriver1");

@@ -11,6 +11,8 @@ const axios = require("axios");
 const { backendURL, usersData, runId } = require("../constants");
 const { authConfig } = require("../Utils");
 const { pool } = require("../../Middleware/Database.config");
+const { report } = require("../Reporter");
+const { armExpect, disarmExpect } = require("../Expect");
 
 const BASE_URL = "/api/deliveryConfirmations";
 const cache = { data: null };
@@ -220,6 +222,10 @@ const testDeliveryConfirmationWorkflow = async ({ user = usersData.driver } = {}
   // Deleting a CONFIRMED confirmation requires an admin, so switch actors.
   const admin = usersData.admin;
   await testDeleteDeliveryConfirmation({ user: admin, id: confirmationId });
+  // Soft-delete proof: a strict id GET on a soft-deleted confirmation may 404
+  // (the filter GET may also return an empty list). The 404 is therefore a
+  // DECLARED guard probe — evidence the row is really gone, never a red line.
+  armExpect([404], "confirmation gone after soft delete (strict id GET 404)");
   try {
     const afterDelete = await testGetDeliveryConfirmations({
       user: admin,
@@ -229,17 +235,21 @@ const testDeliveryConfirmationWorkflow = async ({ user = usersData.driver } = {}
     const data = afterDelete?.data;
     const count = Array.isArray(data) ? data.length : data ? 1 : 0;
     if (count === 0) {
-      console.log("✅ Confirmation gone after soft delete (filtered out)");
+      report.pass("DeliveryConfirmation filtered out after soft delete");
     } else {
-      console.warn("⚠️  Confirmation still fetchable after soft delete");
+      throw new Error("DeliveryConfirmation still fetchable after soft delete");
     }
   } catch (error) {
-    const status = error?.response?.status;
-    if (status === 404) {
-      console.log("✅ Confirmation gone after soft delete (404 as expected)");
+    if (error?.response?.status === 404) {
+      report.guard(
+        "DeliveryConfirmation gone after soft delete (strict id GET 404)",
+        404,
+      );
     } else {
       throw error;
     }
+  } finally {
+    disarmExpect();
   }
 
   console.log("── DeliveryConfirmation Workflow complete ──\n");
