@@ -158,7 +158,6 @@ const runPostJourneyCRUD = async () => {
   }
 
   // Company supplementary tests
-  await testDriversAssignmentWorkflow({ userType: "companyAdmin" });
   await testBidCRUDWorkflow({ userType: "companyAdmin" });
 
   console.log("\n✅ Post-journey CRUD complete\n");

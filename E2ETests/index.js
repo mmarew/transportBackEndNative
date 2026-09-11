@@ -52,6 +52,7 @@ const {
 } = require("./FCMToken");
 const { runJourneyCountsTests } = require("./Journey");
 const { testGetCompanyAssignments, testGetCompanyBids } = require("./Company");
+const { testDriversAssignmentWorkflow } = require("./Company/DriversAssignment");
 const {
   testCreateUserBalanceTransfer,
   testGetUserBalanceTransfers,
@@ -266,6 +267,12 @@ const initiateTest = async () => {
     await safe("runCompanyFlow", runCompanyFlow)();
     await safe("runCompanyEndpointTests", runCompanyEndpointTests)();
     await safe("testCompanyTargetLazyCreationWorkflow", testCompanyTargetLazyCreationWorkflow)();
+    // Driver/vehicle assignment must run BEFORE the cancel-rules phase: the
+    // shipper-accepted bid it needs is cancelled there, so scheduling it after
+    // would make the create legitimately skip.
+    await safe("runDriversAssignmentWorkflow", () =>
+      testDriversAssignmentWorkflow({ userType: "companyAdmin" }),
+    )();
     await safe("runCancelRulesTests", runCancelRulesTests)();
     await safe("runPostJourneyCRUD", runPostJourneyCRUD)();
     await safe("testShipperRequestJourneyWorkflow", testShipperRequestJourneyWorkflow)();
