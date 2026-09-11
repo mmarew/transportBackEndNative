@@ -23,11 +23,12 @@ const apiCreateUser = async (userType) => {
       roleId: user.roleId,
       ...(user.statusId !== undefined ? { statusId: user.statusId } : {}),
     });
+    return true;
   } catch (error) {
     const status = error?.response?.status;
     if (status === 409) {
       console.log(`  ⚠ ${userType} already exists — reusing`);
-      return;
+      return false;
     }
     console.error(
       `❌ Failed to create ${userType}:`,
@@ -45,11 +46,12 @@ const apiCreateUserByAdmin = async (userType, adminToken) => {
       user,
       authConfig(adminToken),
     );
+    return true;
   } catch (error) {
     const status = error?.response?.status;
     if (status === 409) {
       console.log(`  ⚠ ${userType} already exists — reusing`);
-      return;
+      return false;
     }
     console.error(
       `❌ Failed to create ${userType} via admin:`,

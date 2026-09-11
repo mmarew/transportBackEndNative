@@ -2,6 +2,7 @@ const axios = require("axios");
 const { usersData, backendURL } = require("../../constants");
 const {
   createDriverDeposit,
+  approveDriversDeposit,
 } = require("./DriverDeposit");
 const {
   createDriverTransfer,
@@ -57,12 +58,21 @@ const testDriverWalletFlow = async ({ userType = "driver" } = {}) => {
   // }
 
   // await createDriverBalance({ amount: 1000, userType });
-  if (accountUniqueId)
-    await createDriverDeposit({
+  if (accountUniqueId) {
+    const depositPayload = await createDriverDeposit({
       accountUniqueId,
       depositAmount: 250,
       userType,
     });
+    const userDepositUniqueId =
+      depositPayload?.data?.userDepositUniqueId ||
+      depositPayload?.userDepositUniqueId;
+    if (userDepositUniqueId) {
+      // A deposit only raises the wallet balance after ADMIN approval — without
+      // this step the balance stays 0 and any transfer/refund below fails.
+      await approveDriversDeposit({ userDepositUniqueId });
+    }
+  }
   const transferResult = await createDriverTransfer({
     transferredAmount: 50,
     userType,

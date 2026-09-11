@@ -3,25 +3,46 @@
 //   queue offer → accept (4) → goToLoadingPlace (5) → startLoading (6) → loadCompleted (7)
 // Verifies the driver GPS is recorded on the Journey row at each stage (like startJourney)
 // and that route points are created. Registered in the Queue E2E suite.
+//
+// The test is fully self-contained: it provisions its own dedicated queue driver
+// (queueDriver5), registers + activates a vehicle, creates and approves a fresh
+// queue organization, checks the driver in, places an order, and walks the
+// loading stages end-to-end. No hardcoded org/vehicle/driver UUIDs — every id is
+// read from fresh state, so DB-reset runs (and re-runs) always succeed.
+//
 // Standalone: node E2ETests/Queue/verifyLoadingStages.js  (backend must run on :3000)
 
 const axios = require("axios");
 const FormData = require("form-data");
-const { v4: uuidv4 } = require("uuid");
+const { backendURL, usersData, journeyStatusMap } = require("../constants");
 const { pool } = require("../../Middleware/Database.config");
+const {
+  DRIVER_REQUEST_ENDPOINTS,
+} = require("../../Routes/EndPoints/driverRequest.endpoints");
+const { ensureQueueDrivers } = require("../Auth/bootstrap");
+const { ensureUser } = require("../Auth/ensureUser");
+const {
+  superAdminToken,
+  driverToken,
+  ensureAdminTokens,
+  ensureShipper,
+  onboardQueueDriver,
+  activateQueueDriver,
+  createQueueOrganization,
+  approveQueueOrganization,
+  checkin,
+  createQueueOrder,
+  acceptOrder,
+} = require("./helpers");
+const { queueState } = require("./state");
 
-const BASE = "http://127.0.0.1:3000";
-const DRIVER_PHONE = "+251922112480";
-const DRIVER_ROLE = 2;
-const OTP = 101010;
-const SHIPPER_PHONE = "+251922112481";
-const QUEUE_ORG_UNIQUE_ID = "01afb03a-c67f-425b-b4c9-7a5d4aac11c9";
-const VEHICLE_TYPE_UNIQUE_ID = "55060ed0-88e8-42ba-b29a-fe4b3d713b84";
-const VEHICLE_DRIVER_UNIQUE_ID = "07c4105c-d889-442e-8a01-062765892796";
+// Dedicated driver: d1..d4 belong to the main queue fixtures, so TQ-40 uses a
+// fifth driver that never touches those fixtures and is free at dispatch time.
+const LOADING_DRIVER = "queueDriver5";
 
 const log = (...args) => console.log(new Date().toISOString().slice(11, 19), ...args);
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
-const api = axios.create({ baseURL: BASE, timeout: 20000 });
+const api = axios.create({ baseURL: backendURL, timeout: 20000 });
 
 // Minimal 1x1 PNG for file upload tests
 const TEST_IMAGE_BUFFER = Buffer.from(
@@ -34,48 +55,68 @@ const makeTestFile = (name) => ({
   contentType: "image/png",
 });
 
-const loginUser = async (phone, role) => {
-  await api.post("/api/user/loginUser", { phoneNumber: phone, roleId: role }).catch(() => {});
-  const res = await api.post("/api/user/verifyUserByOTP", { phoneNumber: phone, OTP, roleId: role });
-  return res.data.token;
-};
+// ── Fresh context: dedicated driver + its own queue org ────────────────────────
 
-const verify = async token => {
-  const res = await api.get("/api/driver/verifyDriverJourneyStatus", {
-    headers: { Authorization: `Bearer ${token}` },
+const prepareEnvironment = async () => {
+  await ensureAdminTokens();
+  await ensureUser({ userType: "queueOrgAdmin", options: { fetchAccount: false } });
+  await ensureQueueDrivers({ count: 5 });
+  await onboardQueueDriver({ driverKey: LOADING_DRIVER, vehicleTypeIndex: 0 });
+  await activateQueueDriver(LOADING_DRIVER);
+  await ensureShipper();
+
+  const org = await createQueueOrganization(`TQ-40 Loading Stages ${Date.now()}`);
+  await approveQueueOrganization({
+    queueOrganizationUniqueId: org.queueOrganizationUniqueId,
+    approvalStatus: "approved",
+    queueEnabled: true,
+    token: superAdminToken(),
   });
-  const d = res.data;
-  return {
-    status: d?.status,
-    driverRequestUniqueId: d?.driver?.driver?.driverRequestUniqueId,
-    shipperRequestUniqueId: d?.shipper?.shipperRequestUniqueId,
-    journeyDecisionUniqueId: d?.decision?.journeyDecisionUniqueId ?? d?.decisions?.journeyDecisionUniqueId,
-    journeyUniqueId: d?.journey?.journeyUniqueId ?? null,
-    queue: d?.queue ?? null,
-  };
+  log("ready: org", org.queueOrganizationUniqueId, "| driver", LOADING_DRIVER);
+  return org.queueOrganizationUniqueId;
 };
 
-const acceptOrder = async token => {
-  const ids = await verify(token);
-  const acc = await api.put(
-    "/api/driver/acceptShipperRequest",
-    {
-      driverRequestUniqueId: ids.driverRequestUniqueId,
-      shipperRequestUniqueId: ids.shipperRequestUniqueId,
-      journeyDecisionUniqueId: ids.journeyDecisionUniqueId,
-      shippingCostByDriver: 5000000,
-    },
-    { headers: { Authorization: `Bearer ${token}` } },
-  ).catch(e => {
-    log("accept error:", JSON.stringify(e?.response?.data)?.slice(0, 600));
-    throw e;
-  });
-  log("accept → status", acc.data?.status, "(expect 4)");
-  return acc.data;
+// ── Driver journey status ──────────────────────────────────────────────────────
+
+const fetchStatus = async () => {
+  const token = driverToken(LOADING_DRIVER);
+  if (!token) return null;
+  try {
+    const res = await api.get(DRIVER_REQUEST_ENDPOINTS.VERIFY_DRIVER_JOURNEY_STATUS, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+  } catch (error) {
+    log("verifyDriverJourneyStatus note:", error?.response?.data?.error?.message || error?.message);
+    return null;
+  }
 };
 
-const transition = async (token, apiPath, lat, lng, proofFiles) => {
-  const ids = await verify(token);
+const stateFrom = (s) => ({
+  status: s?.status,
+  driverRequestUniqueId: s?.uniqueIds?.driverRequestUniqueId,
+  shipperRequestUniqueId: s?.uniqueIds?.shipperRequestUniqueId,
+  journeyDecisionUniqueId: s?.uniqueIds?.journeyDecisionUniqueId,
+  journeyUniqueId: s?.uniqueIds?.journeyUniqueId ?? null,
+});
+
+const pollForStatus = async (target, timeoutMs = 20000, label = `status ${target}`) => {
+  const deadline = Date.now() + timeoutMs;
+  let last = null;
+  while (Date.now() < deadline) {
+    last = stateFrom(await fetchStatus());
+    if (last.status === target) return last;
+    await wait(1000);
+  }
+  throw new Error(`driver never reached ${label} within ${timeoutMs}ms (last=${JSON.stringify(last)})`);
+};
+
+const transition = async (apiPath, lat, lng, proofFiles) => {
+  const ids = stateFrom(await fetchStatus());
+  const token = driverToken(LOADING_DRIVER);
+  if (!ids.journeyDecisionUniqueId) {
+    throw new Error(`no journeyDecisionUniqueId for ${apiPath} (status ${ids.status})`);
+  }
   const headers = { Authorization: `Bearer ${token}` };
 
   if (proofFiles && proofFiles.length > 0) {
@@ -135,133 +176,80 @@ const routePointCount = async journeyDecisionUniqueId => {
   return rows[0]?.c ?? 0;
 };
 
-// Reset a mid-flow loading journey back to accepted (4) so the script is re-runnable.
-const resetToAccepted = async () => {
-  const [dr] = await pool.query(
-    "SELECT driverRequestId FROM DriverRequest WHERE userUniqueId = ? ORDER BY driverRequestId DESC LIMIT 1",
-    ["2d2e22ef-5504-4aed-bc42-9b899ad97d3b"],
-  );
-  const driverRequestId = dr[0]?.driverRequestId;
-  if (!driverRequestId) return;
-  const [jd] = await pool.query(
-    "SELECT journeyDecisionUniqueId, shipperRequestId FROM JourneyDecisions WHERE driverRequestId = ? ORDER BY journeyDecisionId DESC LIMIT 1",
-    [driverRequestId],
-  );
-  const journeyDecision = jd[0];
-  if (!journeyDecision) return;
-  await pool.query("UPDATE JourneyDecisions SET journeyStatusId = 4 WHERE journeyDecisionUniqueId = ?", [journeyDecision.journeyDecisionUniqueId]);
-  await pool.query("UPDATE DriverRequest SET journeyStatusId = 4 WHERE driverRequestId = ?", [driverRequestId]);
-  if (journeyDecision.shipperRequestId) {
-    await pool.query("UPDATE ShipperRequest SET journeyStatusId = 4 WHERE shipperRequestId = ?", [journeyDecision.shipperRequestId]);
+const assertServerProofPaths = (journeyProofOfLoading) => {
+  const proof = JSON.parse(journeyProofOfLoading || "[]");
+  if (proof.length > 0) {
+    for (const p of proof) {
+      if (p.startsWith("file://")) {
+        throw new Error("proofOfLoading must be server path (/uploads/...), got: " + p);
+      }
+      if (!p.startsWith("/uploads/")) {
+        throw new Error("proofOfLoading path must start with /uploads/, got: " + p);
+      }
+    }
+    log("  ✅ all proof paths are /uploads/... (server-side)");
   }
-  await pool.query(
-    `UPDATE Journey SET journeyStatusId = 4, journeyGoingToLoadingLat = NULL, journeyGoingToLoadingLng = NULL,
-       journeyLoadingStartedLat = NULL, journeyLoadingStartedLng = NULL,
-       journeyLoadingCompletedLat = NULL, journeyLoadingCompletedLng = NULL,
-       loadingStartedAt = NULL, loadingCompletedAt = NULL, journeyProofOfLoading = NULL
-     WHERE journeyDecisionUniqueId = ?`,
-    [journeyDecision.journeyDecisionUniqueId],
-  );
-  log("reset journey to accepted (4) for re-run");
+  return proof;
 };
+
+// ── TQ-40 · Loading stages (4 → 5 → 6 → 7) ────────────────────────────────────
 
 const runLoadingStagesTests = async () => {
   log("\n===== TQ-40 · Loading stages (4 → 5 → 6 → 7) =====");
-  const token = await loginUser(DRIVER_PHONE, DRIVER_ROLE);
-  const shipperToken = await loginUser(SHIPPER_PHONE, 1);
 
-  let state = await verify(token);
-  log("current driver status:", state.status, "| queue:", state.queue?.status ?? null);
+  const orgUniqueId = await prepareEnvironment();
+  const vehicleTypeUniqueId = queueState.drivers[LOADING_DRIVER].vehicleTypeUniqueId;
 
-  if ([5, 6, 7, 8].includes(state.status)) {
-    await resetToAccepted();
-    state = await verify(token);
-    log("after reset → status:", state.status);
+  log("\n=== checking in dedicated driver to a fresh queue org ===");
+  await checkin(LOADING_DRIVER, orgUniqueId);
+
+  log("\n=== placing a queue order (future dates, current vehicle type) ===");
+  await createQueueOrder({
+    queueOrganizationUniqueId: orgUniqueId,
+    vehicleTypeUniqueId,
+    shippableItemName: "Loading Stages Verify",
+    shippingCost: 5000000,
+  });
+  log("order posted → polling for the dispatch offer (status 2)");
+
+  await pollForStatus(journeyStatusMap.requested, 30000, "2 (offered)");
+  const accepted = await acceptOrder(LOADING_DRIVER, 6000);
+  if (!accepted || accepted.status !== journeyStatusMap.acceptedByShipper) {
+    throw new Error(`accept failed: ${JSON.stringify(accepted)}`);
   }
+  log("accept → status", accepted.status, "(expect 4)");
 
-  if (state.status !== 4 && state.status !== 5 && state.status !== 6 && state.status !== 7) {
-    log("=== setting up an accepted queue journey (status 4) ===");
-    await api.post(
-      "/api/queue/driver/checkin",
-      {
-        queueOrganizationUniqueId: QUEUE_ORG_UNIQUE_ID,
-        vehicleDriverUniqueId: VEHICLE_DRIVER_UNIQUE_ID,
-        latitude: 9.03,
-        longitude: 38.74,
-      },
-      { headers: { Authorization: `Bearer ${token}` } },
-    ).catch(e => log("checkin note:", e?.response?.data?.message || e?.message));
-
-    const orderRes = await api.post(
-      "/api/shipperRequest/createRequest",
-      {
-        queueOrganizationUniqueId: QUEUE_ORG_UNIQUE_ID,
-        shipperPhoneNumber: SHIPPER_PHONE,
-        shipperRequestBatchUniqueId: uuidv4(),
-        requestMode: "individual_target",
-        numberOfVehicles: 1,
-        deliveryDate: "2025-04-20T10:54:26.077Z",
-        requestType: "shipper",
-        destination: { latitude: 35.4218, longitude: 7.1973, description: "Dessie, Ethiopia" },
-        vehicle: { vehicleTypeUniqueId: VEHICLE_TYPE_UNIQUE_ID },
-        shippableItemName: "Loading Stages Verify",
-        shippableItemQtyInQuintal: 500,
-        shippingCost: 5000000,
-        shippingDate: "2025-04-20T10:54:26.077Z",
-        originLocation: { latitude: 9.0204683, longitude: 38.80246, description: "Kombolcha, Ethiopia" },
-      },
-      { headers: { Authorization: `Bearer ${shipperToken}` } },
-    );
-    log("createRequest:", orderRes.data?.status, orderRes.data?.message);
-
-    // wait for the dispatch sweep to offer the front driver (up to ~10s)
-    await wait(8000);
-    state = await verify(token);
-    log("after order → status:", state.status, "(expect 2 = offered)");
-    await acceptOrder(token);
-  }
-
-  const ids = await verify(token);
+  const ids = stateFrom(await fetchStatus());
   const jd = ids.journeyDecisionUniqueId;
   log("journeyDecisionUniqueId:", jd);
 
   log("\n=== 4.1 goToLoadingPlace → 5 ===");
-  await transition(token, "/api/driver/goToLoadingPlace", 9.031, 38.741);
+  await transition(DRIVER_REQUEST_ENDPOINTS.GO_TO_LOADING_PLACE, 9.031, 38.741);
   let row = await journeyRow(jd);
   log("journey row: status", row?.journeyStatusId, "| goingToLoading lat/lng:", row?.journeyGoingToLoadingLat, row?.journeyGoingToLoadingLng);
   log("route points after 5:", await routePointCount(jd));
 
   log("\n=== 4.2 startLoading → 6 ===");
-  await transition(token, "/api/driver/startLoading", 9.032, 38.742);
+  await transition(DRIVER_REQUEST_ENDPOINTS.START_LOADING, 9.032, 38.742);
   row = await journeyRow(jd);
   log("journey row: status", row?.journeyStatusId, "| loadingStarted lat/lng:", row?.journeyLoadingStartedLat, row?.journeyLoadingStartedLng, "| at:", row?.loadingStartedAt);
   log("proof:", row?.journeyProofOfLoading);
   log("route points after 6:", await routePointCount(jd));
 
   log("\n=== 4.3 loadCompleted → 7 (proof appended) ===");
-  await transition(token, "/api/driver/loadCompleted", 9.033, 38.743, [makeTestFile("signed_doc_2.png")]);
+  await transition(DRIVER_REQUEST_ENDPOINTS.LOAD_COMPLETED, 9.033, 38.743, [makeTestFile("signed_doc_2.png")]);
   row = await journeyRow(jd);
   log("journey row: status", row?.journeyStatusId, "| loadingCompleted lat/lng:", row?.journeyLoadingCompletedLat, row?.journeyLoadingCompletedLng, "| at:", row?.loadingCompletedAt);
   log("proof (merged):", row?.journeyProofOfLoading);
   // Verify proof paths are server-relative (/uploads/...), NOT local device paths
-  const proof = JSON.parse(row?.journeyProofOfLoading || "[]");
-  if (proof.length > 0) {
-    for (const p of proof) {
-      if (p.startsWith("file://")) {
-        log("  ❌ FAIL: proof contains local device path:", p);
-        throw new Error("proofOfLoading must be server path (/uploads/...), got: " + p);
-      }
-      if (!p.startsWith("/uploads/")) {
-        log("  ❌ FAIL: proof path not /uploads/...:", p);
-        throw new Error("proofOfLoading path must start with /uploads/, got: " + p);
-      }
-    }
-    log("  ✅ all proof paths are /uploads/... (server-side)");
-  }
+  assertServerProofPaths(row?.journeyProofOfLoading);
   log("route points after 7:", await routePointCount(jd));
 
-  const final = await verify(token);
-  log("\n=== final driver status:", final.status, "(expect 7 = loaded) ===");
+  const final = await fetchStatus();
+  log("\n=== final driver status:", final?.status, "(expect 7 = loaded) ===");
+  if (final?.status !== journeyStatusMap.loaded) {
+    throw new Error(`expected status 7 (loaded), got ${final?.status}`);
+  }
   log("✅ TQ-40 passed — driver is at 'loaded'; can now call startJourney (→ 8 journeyStarted).");
 };
 

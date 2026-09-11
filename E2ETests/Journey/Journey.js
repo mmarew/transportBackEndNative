@@ -172,28 +172,33 @@ const testJourneyWorkflow = async ({ user = usersData.driver } = {}) => {
     console.log("📋 Found journey to test with:", journeyUniqueId);
     if (journeyUniqueId) {
       await testGetJourneyById({ user, journeyUniqueId });
-      // Note: completed journeys may not be updatable depending on business rules.
-      // Wrap in try-catch so a failed update doesn't block the rest of the workflow.
-      try {
-        await testUpdateJourney({
-          user: usersData.admin,
-          journeyUniqueId,
-          payload: { fare: 9999 },
-        });
-      } catch {
-        console.warn(
-          "⚠️  Journey update skipped — journey may be in a terminal state",
-        );
-      }
+      // Production allows updating any journey (no terminal-state guard), so a
+      // failed update is a REAL failure — fail loudly instead of swallowing it.
+      await testUpdateJourney({
+        user: usersData.admin,
+        journeyUniqueId,
+        payload: { fare: 9999 },
+      });
       await testGetJourneys({ user });
-      // DELETE the test journey (cleanup) — non-fatal if backend rejects due to state
-      try {
-        await testDeleteJourney({ user: usersData.admin, journeyUniqueId });
+      // Journey delete is FK-safe (children removed in deleteJourney), so a
+      // failed delete is a REAL failure — fail loudly, never warn-swallow.
+      // But never delete the driver's CURRENT/last completed journey — the POD
+      // and confirmation suites reference it afterwards. Pick a disposable
+      // (older) journey instead.
+      const protectedJourneyId = usersData?.driver?.lastJourneyUniqueId;
+      const deletable = cache.data.find(
+        (row) =>
+          (row?.journey?.journeyUniqueId || row?.journeyUniqueId) !==
+          protectedJourneyId,
+      );
+      const deletableJourneyId =
+        deletable?.journey?.journeyUniqueId || deletable?.journeyUniqueId;
+      if (deletableJourneyId) {
+        await testDeleteJourney({ user: usersData.admin, journeyUniqueId: deletableJourneyId });
         console.log("🗑️  Journey deleted during workflow test");
-      } catch (e) {
-        console.warn(
-          "⚠️  Journey delete skipped (state/FK constraint):",
-          e.response?.data?.message || e.message,
+      } else {
+        console.log(
+          "⏩  No disposable journey to delete — only the driver's active journey remains",
         );
       }
     } else {

@@ -126,9 +126,11 @@ const updateDriverDeposit = async ({
     throw new Error("userDepositUniqueId is required to update a deposit.");
   }
 
-  const token = usersData[userType]?.token;
+  // Deposit updates (approve/reject) are admin-gated — a driver token can no
+  // longer settle their own deposit.
+  const token = usersData.admin?.token || usersData.supperAdmin?.token || usersData[userType]?.token;
   if (!token) {
-    throw new Error("Driver token is required to update a deposit.");
+    throw new Error("Admin or driver token is required to update a deposit.");
   }
 
   const res = await axios.put(
@@ -148,9 +150,10 @@ const deleteDriverDeposit = async ({
     throw new Error("userDepositUniqueId is required to delete a deposit.");
   }
 
-  const token = usersData[userType]?.token;
+  // Deposit deletes (balance reversal) are admin-gated.
+  const token = usersData.admin?.token || usersData.supperAdmin?.token || usersData[userType]?.token;
   if (!token) {
-    throw new Error("Driver token is required to delete a deposit.");
+    throw new Error("Admin or driver token is required to delete a deposit.");
   }
 
   const res = await axios.delete(

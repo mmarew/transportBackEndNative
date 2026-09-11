@@ -686,6 +686,7 @@ module.exports = {
   registerQueueDrivers,
   registerQueueOrgAdmin,
   ensureShipper,
+  onboardQueueDriver,
   activateQueueDriver,
   createQueueOrganization,
   approveQueueOrganization,

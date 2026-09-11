@@ -48,7 +48,7 @@ const createExpiredFreeSubUser = async () => {
 
   // Create user
   const createRes = await axios.post(backendURL + "/api/user/createUser", {
-    phoneNumber: phone.replace("+", ""),
+    phoneNumber: phone,
     fullName: "Grace Period Test Driver",
     email,
     roleId: 2,
@@ -60,7 +60,7 @@ const createExpiredFreeSubUser = async () => {
   const verifyRes = await axios.post(
     backendURL + "/api/user/verifyUserByOTP",
     {
-      phoneNumber: phone.replace("+", ""),
+      phoneNumber: phone,
       OTP: 101010,
       roleId: 2,
     },
@@ -168,9 +168,8 @@ const testAdminAccountStatusGracePeriod = async () => {
   try {
     const { phone } = await createExpiredFreeSubUser();
 
-    // Phone is stored without + prefix, so strip it for the lookup
     const statusData = await getAccountStatus({
-      phoneNumber: phone.replace("+", ""),
+      phoneNumber: phone,
       roleId: 2,
     });
 

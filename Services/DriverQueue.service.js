@@ -3913,6 +3913,8 @@ exports.releaseExpiredOffers = async ({
      JOIN JourneyDecisions jd ON jd.driverRequestId = dr.driverRequestId
        AND jd.shipperRequestId = sr.shipperRequestId
      JOIN Users u ON u.userUniqueId = vd.driverUserUniqueId
+     JOIN QueueOrganization o ON o.queueOrganizationUniqueId = dq.queueOrganizationUniqueId
+       AND o.isDeleted = 0
      WHERE dq.status = ${QUEUE_STATUS.REQUESTED} AND dq.queueDeletedAt IS NULL
        AND dq.requestedAt IS NOT NULL AND dq.requestedAt < ?
        AND sr.journeyStatusId = ?

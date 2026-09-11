@@ -24,8 +24,10 @@ const deleteUserDepositByUniqueId = async (
   const depositData = await fetchDepositData(userDepositUniqueId);
   const { depositAmount, driverUniqueId, depositStatus } = depositData;
   const oldDepositAmount = Number(depositAmount);
-  //use soft delete to delete the deposit
-  const sql = `update UserDeposit SET userDepositDeletedAt = ?, userDepositDeletedBy = ?  WHERE userDepositUniqueId = ?`;
+  //use soft delete to delete the deposit. The `IS NULL` guard makes the delete
+  // idempotent: a second call cannot re-run the balance reversal (same pattern
+  // as Commission delete).
+  const sql = `update UserDeposit SET userDepositDeletedAt = ?, userDepositDeletedBy = ?  WHERE userDepositUniqueId = ? AND userDepositDeletedAt IS NULL`;
   const executor = transactionStorage.getStore() || pool;
   const [result] = await executor.query(sql, [
     currentDate(),
@@ -37,6 +39,11 @@ const deleteUserDepositByUniqueId = async (
   }
   //update the balance, by deduct the deposit amount if the deposit is approved before like depositStatus === "approved"
   if (depositStatus === "approved") {
+    // transactionUniqueId stays = userDepositUniqueId — the SAME key the approve
+    // credit uses (update.service.js) — so every balance row of this deposit
+    // (creation + reversal) links back to it in both directions. The debit is no
+    // longer swallowed: createUserBalance only dedupes "creation" rows; a
+    // "reversal" row is always appended to the deposit's ledger lineage.
     await prepareAndCreateNewBalance({
       addOrDeduct: "deduct",
       amount: oldDepositAmount,

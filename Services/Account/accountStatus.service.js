@@ -13,6 +13,7 @@ const {
 const {
   getUserByFilterDetailed
 } = require("../User.service");
+const { phoneNumberVariants } = require("../../Utils/PhoneNumber");
 const {
   getDriverCompanies
 } = require("../CompanyVehicle.service");
@@ -131,7 +132,10 @@ const accountStatus = async ({
         exactMatch: true
       };
       if (phoneNumber) {
-        userFilters.phoneNumber = phoneNumber;
+        // Format-tolerant: resolve any registered format (+251…/251…/0…) to the
+        // same canonical identity.
+        const variants = phoneNumberVariants(phoneNumber);
+        userFilters.phoneNumber = variants.length > 1 ? variants : phoneNumber;
       }
       if (email) {
         userFilters.email = email;

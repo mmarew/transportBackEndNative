@@ -88,21 +88,29 @@ const createUserBalance = async (data, connection = null) => {
     WHERE transactionUniqueId = ? AND transactionType = ?
   `;
   const targetedTransactionType = data?.transactionType;
+  // transactionUniqueId is the business transaction's OWN unique id (deposit,
+  // commission, transfer, subscription, refund). A transaction may legitimately
+  // produce several balance rows sharing that id: a "creation" row plus any
+  // "reversal"/"adjustment" rows (e.g. deposit amount edits, delete reversals,
+  // commission corrections). Only "creation" rows are deduped for idempotency
+  // (double-approve, double-commission, double-refund must not double-write);
+  // reversal/adjustment rows are always appended so the ledger keeps the full,
+  // traceable lineage of that transaction.
   const [existingRecords] = await executor.query(sqlToGetData, [
     data.transactionUniqueId,
     targetedTransactionType,
   ]);
 
+  const adjustmentType = data?.userBalanceAdjustmentType || "creation";
   if (targetedTransactionType === "Transfer") {
     // eslint-disable-next-line no-magic-numbers -- transfer matching requires both records
     if (existingRecords.length >= 2) {
       return existingRecords[0];
     }
-  } else if (existingRecords.length > 0) {
+  } else if (adjustmentType === "creation" && existingRecords.length > 0) {
     return existingRecords[0];
   }
 
-  const adjustmentType = data?.userBalanceAdjustmentType || "creation";
   const sqlInsert = `
     INSERT INTO UserBalance (
       userBalanceUniqueId, userUniqueId, transactionType, 

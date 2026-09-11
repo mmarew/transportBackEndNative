@@ -20,7 +20,7 @@ const testCreateAssignment = async ({ userType = "companyAdmin" } = {}) => {
     || usersData?.companyAdmin?.bids?.submitted?.[0];
   const companyBidRequestUniqueId = bid?.companyBidRequestUniqueId;
   const vehicleUniqueId = usersData?.driver?.accountData?.vehicle?.vehicleUniqueId;
-  const driverUserUniqueId = usersData?.driver?.userUniqueId;
+  const driverUserUniqueId = usersData?.driver?.accountData?.userData?.userUniqueId;
 
   if (!companyBidRequestUniqueId || !vehicleUniqueId || !driverUserUniqueId) {
     logError("Missing required IDs for assignment creation");
@@ -48,7 +48,7 @@ const testBulkAssign = async ({ userType = "companyAdmin" } = {}) => {
     || usersData?.companyAdmin?.bids?.submitted?.[0];
   const companyBidRequestUniqueId = bid?.companyBidRequestUniqueId;
   const vehicleUniqueId = usersData?.driver?.accountData?.vehicle?.vehicleUniqueId;
-  const driverUserUniqueId = usersData?.driver?.userUniqueId;
+  const driverUserUniqueId = usersData?.driver?.accountData?.userData?.userUniqueId;
 
   if (!companyBidRequestUniqueId || !vehicleUniqueId || !driverUserUniqueId) {
     logError("Missing required IDs for bulk assign");

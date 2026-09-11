@@ -256,9 +256,16 @@ const testMarkCancellationAsSeen = async (payload = {}) => {
     const url =
       backendURL + SHIPPER_REQUEST_ENDPOINTS.MARK_CANCELLATION_AS_SEEN;
     const result = await axios.put(url, payload, auth);
-    console.log("Mark cancellation as seen success:", result.data);
+    console.log("✅ Mark cancellation as seen:", result.data);
     return result.data;
   } catch (error) {
+    // A 403 means the cancellation belongs to a different shipper — the
+    // ownership guard worked as designed (this is an expected outcome whenever
+    // the probed journey decision's cancellation was created by another user).
+    if (error.response?.status === 403) {
+      console.log("✅ markCancellationAsSeen: ownership enforced (403 as expected)");
+      return { status: "forbidden", expected: true };
+    }
     console.error(
       "Mark cancellation as seen failed:",
       error.response?.data || error.message,

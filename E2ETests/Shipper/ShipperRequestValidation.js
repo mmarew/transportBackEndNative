@@ -1,49 +1,88 @@
 // ShipperRequest Validation — E2E Tests
 // Converted from __tests__/shipperRequestValidation.test.js unit tests.
-// Tests validation rules by hitting the actual batch creation endpoint:
-//   1. numberOfVehicles > 100 → rejected
-//   2. individual_target with 10+ vehicles → rejected
-//   3. company_target with 10+ vehicles → accepted
-//   4. individual_target with ≤ 9 vehicles → accepted
+// Tests validation rules by hitting the ACTUAL create endpoint
+// (SHIPPER_REQUEST_ENDPOINTS.CREATE_REQUEST, Joi-validated):
+//   1. numberOfVehicles > 100 → rejected (400)
+//   2. individual_target with 10+ vehicles → rejected (400)
+//
+// Joi fails BEFORE the service is called, so the two seed rows below (a valid
+// batch uuid + a real vehicle type uuid) are enough to exercise the intended
+// rules deterministically — no DB writes happen on the rejected paths.
 
 const axios = require("axios");
+const { v4: uuidv4 } = require("uuid");
 const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
+const { pool } = require("../../Middleware/Database.config");
+const {
+  SHIPPER_REQUEST_ENDPOINTS,
+} = require("../../Routes/EndPoints/shipperRequest.endpoints");
 
-const BASE_URL = "/api/shipper/requestBatch";
+const CREATE_URL = SHIPPER_REQUEST_ENDPOINTS.CREATE_REQUEST;
+
+const futureDate = (daysFromNow) => {
+  const d = new Date();
+  d.setDate(d.getDate() + daysFromNow);
+  return d.toISOString();
+};
+
+// Fetch the first real seeded vehicle type so the request passes the nested
+// `vehicle.vehicleTypeUniqueId` uuid rule before reaching the cap validation.
+let vehicleTypeUniqueIdCache = null;
+const getVehicleTypeUniqueId = async () => {
+  if (vehicleTypeUniqueIdCache) return vehicleTypeUniqueIdCache;
+  const [rows] = await pool.query(
+    "SELECT vehicleTypeUniqueId FROM VehicleTypes LIMIT 1",
+  );
+  if (!rows[0]) throw new Error("No VehicleTypes found — seed DB first");
+  vehicleTypeUniqueIdCache = rows[0].vehicleTypeUniqueId;
+  return vehicleTypeUniqueIdCache;
+};
+
+const buildPayload = async ({ numberOfVehicles, requestMode = "individual_target" }) => ({
+  shipperRequestBatchUniqueId: uuidv4(),
+  numberOfVehicles,
+  requestMode,
+  shippingDate: futureDate(1),
+  deliveryDate: futureDate(3),
+  shippingCost: 15000,
+  shippableItemQtyInQuintal: 100,
+  shippableItemName: "Coffee",
+  originLocation: { latitude: 9.0, longitude: 38.7, description: "Addis" },
+  destination: { latitude: 7.0, longitude: 38.5, description: "Hawassa" },
+  vehicle: { vehicleTypeUniqueId: await getVehicleTypeUniqueId() },
+});
+
+// Assert the request is rejected with HTTP 400 (Joi BAD_REQUEST). Any other
+// status (401/404/500) is surfaced as a hard failure — validation caps must
+// never be silently swallowed.
+const expectRejected = async (loader, label) => {
+  let response = null;
+  try {
+    const res = await loader();
+    response = res;
+  } catch (e) {
+    if (e.response?.status === 400) {
+      console.log(`✅ ${label} rejected`, "(HTTP 400)");
+      return;
+    }
+    throw new Error(
+      `${label}: expected HTTP 400 from Joi, got ${e.response?.status ?? e.message}`,
+    );
+  }
+  throw new Error(`${label}: expected HTTP 400 from Joi, got 2xx success (${response.status})`);
+};
 
 // ── Test: numberOfVehicles > 100 rejected ────────────────────────────────────
 const testMaxVehicleCap = async () => {
   const token = usersData.shipper?.token || usersData.admin?.token;
   if (!token) throw new Error("shipper token not found");
 
-  try {
-    await axios.post(
-      backendURL + BASE_URL,
-      {
-        numberOfVehicles: 101,
-        shippingDate: "2026-12-01",
-        deliveryDate: "2026-12-05",
-        shippingCost: 15000,
-        shippableItemQtyInQuintal: 100,
-        shippableItemName: "Coffee",
-        originLocation: { latitude: 9.0, longitude: 38.7, description: "Addis" },
-        destination: { latitude: 7.0, longitude: 38.5, description: "Hawassa" },
-        vehicleTypeUniqueId: "test",
-      },
-      authConfig(token),
-    );
-    throw new Error("Expected 400 for numberOfVehicles > 100, but got success");
-  } catch (e) {
-    if (e.response?.status === 400 || e.response?.status === 422) {
-      console.log("✅ Validation: numberOfVehicles > 100 rejected");
-    } else if (e.message.includes("Expected 400")) {
-      throw e;
-    } else {
-      // Other errors (401, 500) are also acceptable for this validation test
-      console.log(`✅ Validation: numberOfVehicles > 100 rejected (status ${e.response?.status})`);
-    }
-  }
+  const payload = await buildPayload({ numberOfVehicles: 101 });
+  await expectRejected(
+    () => axios.post(backendURL + CREATE_URL, payload, authConfig(token)),
+    "numberOfVehicles > 100",
+  );
 };
 
 // ── Test: individual_target with 10+ vehicles rejected ───────────────────────
@@ -51,33 +90,11 @@ const testIndividualTargetCap = async () => {
   const token = usersData.shipper?.token || usersData.admin?.token;
   if (!token) throw new Error("shipper token not found");
 
-  try {
-    await axios.post(
-      backendURL + BASE_URL,
-      {
-        numberOfVehicles: 10,
-        requestMode: "individual_target",
-        shippingDate: "2026-12-01",
-        deliveryDate: "2026-12-05",
-        shippingCost: 15000,
-        shippableItemQtyInQuintal: 100,
-        shippableItemName: "Coffee",
-        originLocation: { latitude: 9.0, longitude: 38.7, description: "Addis" },
-        destination: { latitude: 7.0, longitude: 38.5, description: "Hawassa" },
-        vehicleTypeUniqueId: "test",
-      },
-      authConfig(token),
-    );
-    throw new Error("Expected 400 for individual_target with 10+ vehicles, but got success");
-  } catch (e) {
-    if (e.response?.status === 400 || e.response?.status === 422) {
-      console.log("✅ Validation: individual_target with 10+ vehicles rejected");
-    } else if (e.message.includes("Expected 400")) {
-      throw e;
-    } else {
-      console.log(`✅ Validation: individual_target with 10+ vehicles rejected (status ${e.response?.status})`);
-    }
-  }
+  const payload = await buildPayload({ numberOfVehicles: 10, requestMode: "individual_target" });
+  await expectRejected(
+    () => axios.post(backendURL + CREATE_URL, payload, authConfig(token)),
+    "individual_target with 10+ vehicles",
+  );
 };
 
 // ── Full workflow ────────────────────────────────────────────────────────────

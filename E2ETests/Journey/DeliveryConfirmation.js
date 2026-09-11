@@ -209,8 +209,10 @@ const testDeliveryConfirmationWorkflow = async ({ user = usersData.driver } = {}
     }
   }
 
-  // Settle the confirmation (PENDING → CONFIRMED) with photo + verify confirmedAt
-  await testUpdateDeliveryConfirmation({ user, id: confirmationId });
+  // Settle the confirmation (PENDING → CONFIRMED) with photo + verify confirmedAt.
+  // Only an admin or the receiver may settle — the driver cannot self-confirm —
+  // so switch actors just like the delete below does.
+  await testUpdateDeliveryConfirmation({ user: usersData.admin, id: confirmationId });
   await testGetDeliveryConfirmations({ user, filters: { deliveryConfirmationUniqueId: confirmationId } });
 
   // Soft delete + verify the row is filtered out (filter GET returns an empty

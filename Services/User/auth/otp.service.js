@@ -12,6 +12,7 @@ const {
 } = require("../../../Utils/Notifications");
 const { getData, performJoinSelect } = require("../../../CRUD/Read/ReadData");
 const { updateData } = require("../../../CRUD/Update/Data.update");
+const { phoneNumberVariants, areSamePhone } = require("../../../Utils/PhoneNumber");
 
 const {
   driversDocumentVehicleRequirement,
@@ -47,7 +48,10 @@ const verifyUserByOTP = async (req) => {
   }
   const conditions = {};
   if (phoneNumber) {
-    conditions.phoneNumber = phoneNumber;
+    // Same format-tolerance as registration: +251…, 251… and 0… must all
+    // resolve to the single canonical +251… identity stored in Users.
+    const variants = phoneNumberVariants(phoneNumber);
+    conditions.phoneNumber = variants.length > 1 ? variants : phoneNumber;
   }
   if (email) {
     conditions.email = email;
@@ -71,8 +75,8 @@ const verifyUserByOTP = async (req) => {
     throw new AppError("Account has been deleted", AppError.FORBIDDEN);
   }
 
-  //check if phone from user and phone from database is same
-  if (phoneNumber && userRow?.phoneNumber !== phoneNumber) {
+  //check if phone from user and phone from database is same (format-agnostic)
+  if (phoneNumber && !areSamePhone(userRow?.phoneNumber, phoneNumber)) {
     throw new AppError("Phone number does not match", AppError.UNAUTHORIZED);
   }
 

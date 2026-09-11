@@ -1327,6 +1327,18 @@ exports.updateDeliveryConfirmation = async (
     );
   }
 
+  // ── Settle authorization (PENDING → CONFIRMED) ────────────────────────────
+  // Only an admin OR the actual receiver (the party who received the goods)
+  // may settle a PENDING confirmation. The journey driver cannot self-confirm
+  // their own delivery — the carrier attesting to delivery without the
+  // receiver's agreement would defeat the proof-of-delivery guarantee.
+  if (isSettling && currentStatus === "PENDING" && !isAdmin && current.receiverUserUniqueId !== updatedBy) {
+    throw new AppError(
+      "Only an admin or the receiver can confirm delivery",
+      AppError.FORBIDDEN,
+    );
+  }
+
   // ── Settle-time evidence validation (PENDING/DISPUTED → CONFIRMED) ───────
   let finalShipperSignature = shipperSignature ?? current.deliveryConfirmationShipperSignature;
   let finalStatement = null;

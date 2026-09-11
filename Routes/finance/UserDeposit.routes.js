@@ -3,6 +3,7 @@ const router = express.Router();
 const controller = require("../../Controllers/UserDeposit.controller");
 const {
   verifyTokenOfAxios,
+  verifyIfUserIsAdminOrSupperAdmin,
 } = require("../../Middleware/VerifyToken");
 
 const { validator } = require("../../Middleware/Validator");
@@ -28,21 +29,21 @@ router.get(
   validator(getDepositQuery, "query"),
   controller.getUserDeposit,
 );
-// Update deposit
+// Update deposit — admin only (approve/reject affects the wallet balance)
 router.put(
   "/:userDepositUniqueId",
   verifyTokenOfAxios,
-  // verifyIfUserIsAdminOrSupperAdmin,
+  verifyIfUserIsAdminOrSupperAdmin,
   validator(depositParams, "params"),
   validator(updateUserDeposit),
   controller.updateUserDepositByUniqueId,
 );
 
-// Delete deposit
+// Delete deposit — admin only (reversal affects the wallet balance)
 router.delete(
   "/:userDepositUniqueId",
   verifyTokenOfAxios,
-  // verifyIfUserIsAdminOrSupperAdmin,
+  verifyIfUserIsAdminOrSupperAdmin,
   validator(depositParams, "params"),
   controller.deleteUserDepositByUniqueId,
 );

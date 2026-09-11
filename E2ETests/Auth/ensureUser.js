@@ -45,24 +45,43 @@ const provisioning = { created: 0, verified: 0, loggedIn: 0, reused: 0 };
  */
 const ensureCreate = async (userType) => {
   if (SEED_ONLY_ROLES.has(userType)) {
-    return; // Pre-seeded by the backend — never create via API.
+    return false; // Pre-seeded by the backend — never create via API.
   }
   if (PUBLIC_CREATE_ROLES.has(userType) || userType.startsWith("queueDriver")) {
-    await apiCreateUser(userType);
-    provisioning.created++;
-  } else if (ADMIN_CREATE_ROLES.has(userType)) {
-    const superAdmin = await ensureUser({ userType: "supperAdmin" });
-    await apiCreateUserByAdmin(userType, superAdmin.token);
-    provisioning.created++;
+    const created = await apiCreateUser(userType);
+    if (created) provisioning.created++;
+    return created;
   }
+  if (ADMIN_CREATE_ROLES.has(userType)) {
+    const superAdmin = await ensureUser({ userType: "supperAdmin" });
+    const created = await apiCreateUserByAdmin(userType, superAdmin.token);
+    if (created) provisioning.created++;
+    return created;
+  }
+  return false;
 };
 
-// Provisioning ordering: try the OTP LOGIN (verifyUserByOTP issues the token)
-// FIRST — the idempotent fast path for re-runs. If it fails because the user
-// does not exist or was deleted, (re)register the user, verify again (login),
-// then re-login. Never skip silently. LOGIN_USER only dispatches the OTP and
-// issues no token, so it runs as a side-effect after a successful verify.
+// Provisioning ordering — REGISTER BEFORE LOGIN:
+// 1. Create the user FIRST (idempotent — existing users are simply reused).
+// 2. Verify the OTP (issues the token) — always succeeds now that the user
+//    exists, so fresh runs never produce a 404 "user not found".
+// 3. Re-login as an OTP-dispatch side-effect (no token, matches legacy flow).
+// Seed-only roles (supperAdmin, systemAdmin) skip creation entirely.
 const ensureLoginWithRegisterFallback = async (userType, skipCreate) => {
+  const canCreate = !skipCreate && !SEED_ONLY_ROLES.has(userType);
+  if (canCreate) {
+    try {
+      await ensureCreate(userType);
+    } catch (error) {
+      // Creation failed for a non-duplicate reason — don't abort yet, the user
+      // may already exist and OTP verification may still succeed.
+      console.warn(
+        `  ⚠ ${userType} pre-create failed, attempting verify anyway:`,
+        error?.response?.status || error?.message,
+      );
+    }
+  }
+
   try {
     await apiVerifyUserByOTP(userType);
     provisioning.verified++;
@@ -71,17 +90,19 @@ const ensureLoginWithRegisterFallback = async (userType, skipCreate) => {
     return;
   } catch (error) {
     if (!isUserMissingError(error)) throw error;
-    console.warn(
-      `⚠️  ${userType} login says user not found — registering then re-logging in`,
-    );
   }
 
-  if (skipCreate) {
+  // Extremely unlikely after the create-first path above — retained only as a
+  // safety net for seed-only roles or external deletes mid-run.
+  if (skipCreate || SEED_ONLY_ROLES.has(userType)) {
     throw new Error(
       `Login failed for "${userType}" and it cannot be (re)created (seed-only role)`,
     );
   }
 
+  console.warn(
+    `⚠️  ${userType} register-then-verify did not resolve — re-creating and re-verifying once`,
+  );
   await ensureCreate(userType);
   await apiVerifyUserByOTP(userType);
   provisioning.verified++;

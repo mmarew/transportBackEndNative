@@ -86,12 +86,18 @@ const testSettleWithoutSignature = async () => {
     }
   }
 
-  // Try to settle WITHOUT signature → should fail
+  // Try to settle WITHOUT signature → should fail. Settle attempts are performed
+  // by an admin (the only non-receiver actor allowed to settle) so the rule
+  // under test is the signature requirement, not the settle-authorization guard.
   try {
     const settleForm = new FormData();
     settleForm.append("status", "CONFIRMED");
     // No shipperSignature appended
-    await axios.put(`${backendURL}${BASE_URL}/${dcId}`, settleForm, authConfig(token));
+    await axios.put(
+      `${backendURL}${BASE_URL}/${dcId}`,
+      settleForm,
+      authConfig(usersData.admin?.token || token),
+    );
     throw new Error("Expected 400 for settle without signature, but got success");
   } catch (e) {
     if (e.response?.status === 400 || e.response?.status === 422) {
@@ -289,12 +295,17 @@ const testNonAdminCantDeleteConfirmed = async () => {
     return { skipped: true };
   }
 
-  // Settle it (driver with signature)
+  // Settle it with an admin's signature (admin is an allowed settler; the
+  // driver cannot self-confirm). Then the driver tries to delete CONFIRMED.
   try {
     const settleForm = new FormData();
     settleForm.append("status", "CONFIRMED");
     settleForm.append("shipperSignature", "test-sig");
-    await axios.put(`${backendURL}${BASE_URL}/${dcId}`, settleForm, authConfig(token));
+    await axios.put(
+      `${backendURL}${BASE_URL}/${dcId}`,
+      settleForm,
+      authConfig(usersData.admin?.token || token),
+    );
   } catch {
     // Settlement may fail — that's OK, just skip the delete test
     console.warn("⏩ Rule 4: could not settle DC, skipping delete test");

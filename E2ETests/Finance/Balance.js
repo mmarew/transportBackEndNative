@@ -400,15 +400,15 @@ const testGetUserDeposits = async () => {
 };
 
 const testUpdateUserDeposit = async () => {
-  const token = usersData?.driver?.token;
+  const token = usersData.admin?.token || usersData.supperAdmin?.token;
   if (!token)
-    return report.skip("PUT /api/finance/userDeposit/:id", "no driver token");
+    return report.skip("PUT /api/finance/userDeposit/:id", "no admin token");
   let did = createdDepositId;
   if (!did) {
     try {
       const list = await axios.get(
         backendURL + "/api/finance/userDeposit",
-        authConfig(token),
+        authConfig(usersData.driver?.token),
       );
       did = firstIdFromList(list, "userDepositUniqueId");
     } catch {
@@ -434,18 +434,15 @@ const testUpdateUserDeposit = async () => {
 };
 
 const testDeleteUserDeposit = async () => {
-  const token = usersData?.driver?.token;
+  const token = usersData.admin?.token || usersData.supperAdmin?.token;
   if (!token)
-    return report.skip(
-      "DELETE /api/finance/userDeposit/:id",
-      "no driver token",
-    );
+    return report.skip("DELETE /api/finance/userDeposit/:id", "no admin token");
   let did = createdDepositId;
   if (!did) {
     try {
       const list = await axios.get(
         backendURL + "/api/finance/userDeposit",
-        authConfig(token),
+        authConfig(usersData.driver?.token),
       );
       did = firstIdFromList(list, "userDepositUniqueId");
     } catch {

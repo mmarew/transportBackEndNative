@@ -12,6 +12,7 @@ const { getData, performJoinSelect } = require("../../../CRUD/Read/ReadData");
 const { updateData } = require("../../../CRUD/Update/Data.update");
 const { insertData } = require("../../../CRUD/Create/CreateData");
 const { v4: uuidv4 } = require("uuid");
+const { phoneNumberVariants } = require("../../../Utils/PhoneNumber");
 
 let manageService;
 let registryService;
@@ -198,7 +199,12 @@ const loginUser = async (phoneNumber, roleId, email = null) => {
     ],
     conditions: phoneNumber
       ? {
-          "Users.phoneNumber": phoneNumber,
+          // Same format-tolerance as registration: +251…, 251… and 0… all
+          // resolve to the single canonical +251… identity stored in Users.
+          "Users.phoneNumber": (() => {
+            const variants = phoneNumberVariants(phoneNumber);
+            return variants.length > 1 ? variants : phoneNumber;
+          })(),
           "UserRole.roleId": roleId,
         }
       : {

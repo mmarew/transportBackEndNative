@@ -113,12 +113,17 @@ const getUserByFilterDetailed = async (filters = {}, page = 1, limit = 10, conne
     params.push(filters.userUniqueId);
   }
   if (filters.phoneNumber) {
+    const phones = Array.isArray(filters.phoneNumber)
+      ? filters.phoneNumber
+      : [filters.phoneNumber];
     if (exactMatch) {
-      whereParts.push(`Users.phoneNumber = ?`);
-      params.push(filters.phoneNumber);
+      // Format-tolerant: callers may pass the canonical +251… variants so a
+      // phone registered in any format still resolves to the same identity.
+      whereParts.push(`Users.phoneNumber IN (${phones.map(() => "?").join(", ")})`);
+      params.push(...phones);
     } else {
       whereParts.push(`Users.phoneNumber LIKE ?`);
-      params.push(`%${filters.phoneNumber}%`);
+      params.push(`%${phones[0]}%`);
     }
   }
   if (filters.email) {

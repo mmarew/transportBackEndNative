@@ -10,13 +10,10 @@
 //   7. individual_target with 9 vehicles accepted
 
 const axios = require("axios");
-const { backendURL, usersData } = require("../constants");
+const { backendURL, usersData, journeyStatusMap } = require("../constants");
 const { authConfig } = require("../Utils");
 const { pool } = require("../../Middleware/Database.config");
-const { journeyStatusMap } = require("../../Utils/ListOfSeedData");
 const uuid = () => require("uuid").v4();
-
-const BASE_URL = "/api/shipper/requestBatch";
 
 // Track test data for cleanup
 const testBatchIds = [];

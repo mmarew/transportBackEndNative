@@ -24,6 +24,29 @@ const deleteJourney = async (journeyUniqueId) => {
     journeyUniqueId,
   ]);
 
+  // DeliveryConfirmations reference Journey (FK) and DeliveryConfirmationPhotos
+  // reference DeliveryConfirmations (FK). Even soft-deleted confirmation rows
+  // still hold their FKs, so they must be removed BEFORE the Journey delete,
+  // in FK order: photos -> confirmations -> journey.
+  const confirmationRows = await query(
+    "SELECT deliveryConfirmationUniqueId FROM DeliveryConfirmations WHERE journeyUniqueId = ?",
+    [journeyUniqueId],
+  );
+  if (confirmationRows && confirmationRows.length > 0) {
+    const confirmationIds = confirmationRows.map(
+      (row) => row.deliveryConfirmationUniqueId,
+    );
+    const placeholders = confirmationIds.map(() => "?").join(", ");
+    await query(
+      `DELETE FROM DeliveryConfirmationPhotos WHERE deliveryConfirmationUniqueId IN (${placeholders})`,
+      confirmationIds,
+    );
+    await query(
+      "DELETE FROM DeliveryConfirmations WHERE journeyUniqueId = ?",
+      [journeyUniqueId],
+    );
+  }
+
   const result = await query(
     "DELETE FROM Journey WHERE journeyUniqueId = ?",
     [journeyUniqueId],
