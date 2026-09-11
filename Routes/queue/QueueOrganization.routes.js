@@ -33,13 +33,14 @@ router.post(
 //  Suspended Organizations
 /**
  * @route   GET /api/queueOrganization/getQueueCountsByStatus
- * @desc    Get queue counts by status
- * @access  Private
+ * @desc    Get queue counts by status — role-scoped: Admin/SuperAdmin see all
+ *          orgs; QueueOrgAdmin/Dispatcher see only their active-membership orgs.
+ * @access  Private (Admin / SuperAdmin / QueueOrgAdmin / QueueDispatcher)
  */
 router.get(
   "/getQueueCountsByStatus",
-  // verifyIfUserIsAdminOrSupperAdmin,
-  controller.getQueueCountsBystatus,
+  verifyIfUserIsQueueOrgAdmin,
+  controller.getQueueCountsByStatus,
 );
 /**
  * @route   GET /api/queueOrganization

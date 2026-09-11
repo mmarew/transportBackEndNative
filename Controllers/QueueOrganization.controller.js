@@ -166,9 +166,9 @@ exports.deleteMember = async (req, res, next) => {
   }
 };
 
-exports.getQueueCountsBystatus = async (req, res, next) => {
+exports.getQueueCountsByStatus = async (req, res, next) => {
   try {
-    ServerResponder(res, await service.getQueueCountsBystatus(req.user));
+    ServerResponder(res, await service.getQueueCountsByStatus(req.user));
   } catch (e) {
     next(e);
   }

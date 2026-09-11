@@ -3,29 +3,14 @@ const express = require("express");
 const router = express.Router();
 const { verifyAdminsIdentity } = require("../Middleware/VerifyUsersIdentity");
 const attachedDocumentsController = require("../Controllers/AttachedDocuments.controller");
-const multer = require("multer");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
+// Single reusable multer instance (Config/MulterConfig) used across the whole
+// project — memory storage, 10MB/file, JPEG/PNG/PDF/SVG, fieldArrayIndexLimit 0.
+const upload = require("../Config/MulterConfig");
 const checkDuplicateDocuments = require("../Middleware/CheckDuplicateDocuments");
 const {
   authorizeDocumentAccess,
 } = require("../Middleware/AuthorizeDocumentAccess");
-
-const MAX_FILE_SIZE_BYTES = 10485760; // 10 * 1024 * 1024
-
-const storage = multer.memoryStorage();
-const fileFilter = (req, file, cb) => {
-  const allowedMimes = ["image/jpeg", "image/png", "application/pdf"];
-  if (allowedMimes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error("Only JPEG, PNG, and PDF files are allowed!"), false);
-  }
-};
-const upload = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: MAX_FILE_SIZE_BYTES },
-});
 
 const { validator } = require("../Middleware/Validator");
 const {

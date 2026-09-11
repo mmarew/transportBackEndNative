@@ -751,7 +751,7 @@ exports.deleteQueueMember = async (
   return { message: "Member deleted successfully", data: null };
 };
 
-exports.getQueueCountsBystatus = async (user) => {
+exports.getQueueCountsByStatus = async (user) => {
   const actingUserRoles = await listActingUserRoles(user.userUniqueId);
   let conditions = [];
   let params = [];
@@ -778,44 +778,33 @@ exports.getQueueCountsBystatus = async (user) => {
 
   const whereClause = `WHERE ${["q.isDeleted = 0", ...conditions].join(" AND ")}`;
 
-  // Get total organizations
-  const [total] = await db().query(
-    `SELECT COUNT(*) as total FROM QueueOrganization q ${whereClause}`,
+  const [rows] = await db().query(
+    `SELECT approvalStatus, COUNT(*) AS c
+     FROM QueueOrganization q
+     ${whereClause}
+     GROUP BY approvalStatus`,
     params,
   );
 
-  // Get pending organizations
-  const [pending] = await db().query(
-    `SELECT COUNT(*) as pending FROM QueueOrganization q ${whereClause} AND q.approvalStatus = 'pending'`,
-    params,
-  );
-
-  // Get approved organizations
-  const [approved] = await db().query(
-    `SELECT COUNT(*) as approved FROM QueueOrganization q ${whereClause} AND q.approvalStatus = 'approved'`,
-    params,
-  );
-
-  // Get rejected organizations
-  const [rejected] = await db().query(
-    `SELECT COUNT(*) as rejected FROM QueueOrganization q ${whereClause} AND q.approvalStatus = 'rejected'`,
-    params,
-  );
-
-  // Get suspended organizations (using the correct status value from schema)
-  const [suspended] = await db().query(
-    `SELECT COUNT(*) as suspended FROM QueueOrganization q ${whereClause} AND q.approvalStatus = 'suspended'`,
-    params,
-  );
+  const byStatus = { pending: 0, approved: 0, rejected: 0, suspended: 0 };
+  let total = 0;
+  for (const row of rows) {
+    total += Number(row.c || 0);
+    if (Object.prototype.hasOwnProperty.call(byStatus, row.approvalStatus)) {
+      byStatus[row.approvalStatus] += Number(row.c || 0);
+    }
+  }
 
   return {
     message: "success",
     data: {
-      total: total[0].total,
-      pending: pending[0].pending,
-      approved: approved[0].approved,
-      rejected: rejected[0].rejected,
-      suspended: suspended[0].suspended,
+      queueOrganizations: {
+        total,
+        pending: byStatus.pending,
+        approved: byStatus.approved,
+        rejected: byStatus.rejected,
+        suspended: byStatus.suspended,
+      },
     },
   };
 };

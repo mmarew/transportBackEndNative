@@ -451,7 +451,7 @@ flowchart LR
         direction TB
         AR_LOGIN["POST /api/user/loginUser<br/>Phone + roleId=3"]:::api
         AR_OTP["POST /api/user/verifyUserByOTP<br/>OTP → JWT"]:::api
-        AR_DASHBOARD["GET /api/admin/dashboard<br/>Aggregate KPIs & stats"]:::api
+        AR_DASHBOARD["GET /api/admin/dashboard/organizationCounts<br/>Aggregate KPIs & stats"]:::api
         AR_ONLINE_DRIVERS["GET /api/admin/getOnlineDrivers<br/>Online drivers"]:::api
         AR_OFFLINE_DRIVERS["GET /api/admin/getOfflineDrivers<br/>Offline drivers"]:::api
         AR_UNAUTH_DRIVERS["GET /api/admin/getUnAuthorizedDriver<br/>Unauthorized drivers"]:::api
@@ -465,7 +465,7 @@ flowchart LR
         AR_DELINQUENCY["POST /api/admin/userDelinquency<br/>Create delinquency"]:::api
         AR_DELINQUENCY_DECISIONS["POST /api/admin/userDelinquencyDecisions<br/>Admin decisions"]:::api
         AR_SHIpperS["GET /api/shipperRequest/verifyShipperStatus<br/>Shipper status"]:::api
-        AR_CANCELLED["GET /api/admin/dashboard<br/>Cancelled journeys"]:::api
+        AR_CANCELLED["GET /api/admin/dashboard/organizationCounts<br/>Cancelled journeys"]:::api
         AR_SETTINGS["CRUD /api/admin/*<br/>Roles, statuses, vehicle types, etc."]:::api
         AR_SYSTEM_LOGS["GET /api/admin/system/logs?secret=<key><br/>View server logs"]:::api
         AR_BAN_COMPANY["POST /api/company/admin/delinquency/bans<br/>Ban company"]:::api

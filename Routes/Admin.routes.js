@@ -80,15 +80,15 @@ Router.get(
 );
 
 /**
- * GET /api/admin/dashboard
+ * GET /api/admin/dashboard/organizationCounts
  * @desc    Aggregate statistics for the admin dashboard cards
  * @access  Private (Admin / SuperAdmin only)
  */
 Router.get(
-  ADMIN_ENDPOINTS.DASHBOARD,
+  ADMIN_ENDPOINTS.DASHBOARD_ORGANIZATION_COUNTS,
   verifyTokenOfAxios,
   verifyIfUserIsAdminOrSupperAdmin,
-  AdminController.getDashboardStats,
+  AdminController.getOrganizationCounts,
 );
 
 module.exports = Router;

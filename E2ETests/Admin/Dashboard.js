@@ -19,7 +19,7 @@ const testAdminDashboardFlow = async () => {
 
   // ── Test 1: 401 without token ─────────────────────────────────
   try {
-    const res = await axios.get(backendURL + "/api/admin/dashboard", {
+    const res = await axios.get(backendURL + "/api/admin/dashboard/organizationCounts", {
       validateStatus: () => true,
     });
     if (res.status === 401) {
@@ -37,7 +37,7 @@ const testAdminDashboardFlow = async () => {
   // ── Test 2: 200 with valid token ────────────────────────────
   try {
     const res = await axios.get(
-      backendURL + "/api/admin/dashboard",
+      backendURL + "/api/admin/dashboard/organizationCounts",
       config,
     );
     if (res.status !== 200) {
@@ -60,30 +60,48 @@ const testAdminDashboardFlow = async () => {
   // ── Test 3: response shape ──────────────────────────────────
   try {
     const res = await axios.get(
-      backendURL + "/api/admin/dashboard",
+      backendURL + "/api/admin/dashboard/organizationCounts",
       config,
     );
     const d = res.data.data;
 
-    const required = [
+    const { queueOrganizations, transportCompanies } = d ?? {};
+    const companyCounts = transportCompanies?.numberOfCompanies ?? {};
+
+    const qoRequired = ["total", "pending", "approved", "rejected", "suspended"];
+    const coRequired = [
+      "totalCompanies",
       "pendingCompanies",
       "approvedCompanies",
       "suspendedCompanies",
+      "rejectedCompanies",
+    ];
+    const missingQo = qoRequired.filter(
+      (k) => typeof queueOrganizations?.[k] !== "number",
+    );
+    const missingCo = coRequired.filter(
+      (k) => typeof companyCounts[k] !== "number",
+    );
+    const required = [
       "totalCompanyVehicles",
       "totalCompanyDrivers",
       "activeCompanyBids",
     ];
-    const missing = required.filter((k) => typeof d?.[k] !== "number");
+    const missing = required.filter(
+      (k) => typeof transportCompanies?.[k] !== "number",
+    );
 
-    if (missing.length > 0) {
+    const allMissing = [...missingQo, ...missingCo, ...missing];
+
+    if (allMissing.length > 0) {
       report.fail(
         "Dashboard — response shape",
-        `Missing or non-numeric fields: ${missing.join(", ")}`,
+        `Missing or non-numeric fields: ${allMissing.join(", ")}`,
       );
     } else if (
-      d.pendingCompanies < 0 ||
-      d.approvedCompanies < 0 ||
-      d.suspendedCompanies < 0
+      companyCounts.pendingCompanies < 0 ||
+      companyCounts.approvedCompanies < 0 ||
+      companyCounts.suspendedCompanies < 0
     ) {
       report.fail(
         "Dashboard — response shape",
@@ -99,10 +117,10 @@ const testAdminDashboardFlow = async () => {
   // ── Test 4: averageRating ───────────────────────────────────
   try {
     const res = await axios.get(
-      backendURL + "/api/admin/dashboard",
+      backendURL + "/api/admin/dashboard/organizationCounts",
       config,
     );
-    const r = res.data.data?.averageRating;
+    const r = res.data.data?.transportCompanies?.averageRating;
     if (r === null || typeof r === "number") {
       if (typeof r === "number" && (r < 0 || r > 5)) {
         report.fail("Dashboard — averageRating", "Out of range 0-5");

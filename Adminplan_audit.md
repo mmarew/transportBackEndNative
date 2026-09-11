@@ -10,23 +10,38 @@ Audit of `Adminplan.md` against the existing backend. Every item is tagged:
 
 ## Phase 1 — Dashboard Cards (Total / Pending / Approved / Rejected / Suspended Organizations)
 
-**DONE** — `GET /api/admin/dashboard` (Admin/SuperAdmin token) now aggregates **QueueOrganization** counts:
+**DONE** — `GET /api/admin/dashboard/organizationCounts` (Admin/SuperAdmin token) now aggregates **QueueOrganization** counts, nested with the company stats:
 
 ```json
 {
   "data": {
-    "organizations": {
+    "queueOrganizations": {
       "total": 7,
       "pending": 3,
       "approved": 4,
       "rejected": 0,
       "suspended": 0
+    },
+    "transportCompanies": {
+      "numberOfCompanies": {
+        "totalCompanies": 0,
+        "pendingCompanies": 0,
+        "approvedCompanies": 0,
+        "suspendedCompanies": 0,
+        "rejectedCompanies": 0
+      },
+      "totalCompanyVehicles": 0,
+      "totalCompanyDrivers": 0,
+      "activeCompanyBids": 0,
+      "averageRating": null
     }
   }
 }
 ```
 
-Legacy `TransportCompany` fields (`pendingCompanies`, `approvedCompanies`, …) remain in the response for backward compatibility; the admin dashboard cards should read the `organizations` block.
+The **admin dashboard count cards** read `data.queueOrganizations`. Legacy flat keys (`pendingCompanies`, …) were replaced by the nested `transportCompanies.numberOfCompanies` block.
+
+**Count cards can also use** `GET /api/queueOrganization/getQueueCountsByStatus` — same `queueOrganizations` block shape (`{ total, pending, approved, rejected, suspended }`), but role-scoped: Admin/SuperAdmin see all orgs; QueueOrgAdmin/Dispatcher see only their active-membership orgs (guarded by `verifyIfUserIsQueueOrgAdmin`; drivers/shippers are rejected). With an admin token both endpoints return identical numbers.
 
 ---
 
@@ -427,13 +442,13 @@ Status reference (numeric): `waiting=1, requested=2, agreed=3, goToLoadingPlace=
 
 ## Summary of required code work
 
-| #   | Endpoint                    | Assessment             | Work                                                                                                       |
-| --- | --------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------- |
-| 1   | Dashboard org status counts | **DONE**               | `GET /api/admin/dashboard` → `data.organizations = { total, pending, approved, rejected, suspended }` (queue orgs only). |
-| 2   | `GET /api/queue/status`     | **DONE**               | `data.statistics = { waiting, requested, agreed, notAgreed, removed }` added in `getQueueStatus`.           |
-| 3   | Queue entry POD             | **DONE**               | `proofOfDelivery` object (incl. photos) restored in `buildQueueEntry` (`Services/DriverQueue.service.js:392`). |
-| 4   | Org member count            | **DONE**               | `memberCount` added to org list + detail (`Services/QueueOrganization.service.js`).                         |
-| 5   | Queue history diff view     | **DONE**               | `GET /api/queue/entry/:id/history?view=diff` → `[{ historyEvent, columnName, oldValue, newValue, performedBy, performedAt }]` (diff per changed column, latest first). |
-| 6   | Add member (staff-only)     | **DONE**               | Endpoint now `POST .../members` (userUniqueId in body); roles `[11, 12]` only; deactivation now revokes queue access. |
+| #   | Endpoint                    | Assessment | Work                                                                                                                                                                   |
+| --- | --------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Dashboard org status counts | **DONE**               | `GET /api/admin/dashboard/organizationCounts` → `data.queueOrganizations = { total, pending, approved, rejected, suspended }` + nested `transportCompanies.numberOfCompanies{ total, pending, approved, suspended, rejected }` (queue orgs only). `GET /api/queueOrganization/getQueueCountsByStatus` returns the same `queueOrganizations` block, role-scoped (3/6 → all, 11/12 → own orgs). |
+| 2   | `GET /api/queue/status`     | **DONE**   | `data.statistics = { waiting, requested, agreed, notAgreed, removed }` added in `getQueueStatus`.                                                                      |
+| 3   | Queue entry POD             | **DONE**   | `proofOfDelivery` object (incl. photos) restored in `buildQueueEntry` (`Services/DriverQueue.service.js:392`).                                                         |
+| 4   | Org member count            | **DONE**   | `memberCount` added to org list + detail (`Services/QueueOrganization.service.js`).                                                                                    |
+| 5   | Queue history diff view     | **DONE**   | `GET /api/queue/entry/:id/history?view=diff` → `[{ historyEvent, columnName, oldValue, newValue, performedBy, performedAt }]` (diff per changed column, latest first). |
+| 6   | Add member (staff-only)     | **DONE**   | Endpoint now`POST .../members` (userUniqueId in body); roles `[11, 12]` only; deactivation now revokes queue access.                                                   |
 
 Also since this audit: **Queue Dispatcher role (12)** added — see `QueueDispatcher_Role12_plan.md` for the full power matrix (org admin 11 creates dispatchers, manages staff; dispatchers run the queue but cannot manage members).

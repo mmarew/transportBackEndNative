@@ -1,5 +1,5 @@
-◇ injected env (39) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
-21:42:11 [[32minfo[39m]: MySQL pool created
+◇ injected env (39) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+08:22:04 [[32minfo[39m]: MySQL pool created
 {
   "service": "ride-hailing-api",
   "environment": "development",
@@ -8,42 +8,42 @@
   "port": 3306,
   "socketPath": null
 }
-21:42:11 [[32minfo[39m]: Server running at:
+08:22:05 [[32minfo[39m]: Server running at:
 {
   "service": "ride-hailing-api",
   "environment": "development"
 }
-21:42:11 [[32minfo[39m]:    Local:   http://localhost:3000
+08:22:05 [[32minfo[39m]:    Local:   http://localhost:3000
 {
   "service": "ride-hailing-api",
   "environment": "development"
 }
-21:42:11 [[32minfo[39m]:    Network: http://192.168.101.4:3000
+08:22:05 [[32minfo[39m]:    Network: http://192.168.101.4:3000
 {
   "service": "ride-hailing-api",
   "environment": "development"
 }
-21:42:11 [[32minfo[39m]:    Env:     development
+08:22:05 [[32minfo[39m]:    Env:     development
 {
   "service": "ride-hailing-api",
   "environment": "development"
 }
-21:42:11 [[32minfo[39m]: Server is running on http://192.168.101.4:3000
+08:22:05 [[32minfo[39m]: Server is running on http://192.168.101.4:3000
 {
   "service": "ride-hailing-api",
   "environment": "development",
   "port": 3000,
   "nodeEnv": "development",
-  "pid": 6579
+  "pid": 21691
 }
-21:42:11 [[32minfo[39m]: Query performance monitoring initialized
+08:22:05 [[32minfo[39m]: Query performance monitoring initialized
 {
   "service": "ride-hailing-api",
   "environment": "development",
   "slowQueryThreshold": "100ms",
   "queryLoggingEnabled": true
 }
-21:42:11 [[32minfo[39m]: Starting Automatic Timeout Detection Service
+08:22:05 [[32minfo[39m]: Starting Automatic Timeout Detection Service
 {
   "service": "ride-hailing-api",
   "environment": "development",
@@ -51,40 +51,112 @@
   "timeoutMinutes": 5,
   "runImmediately": true
 }
-21:42:11 [[32minfo[39m]: Starting automatic timeout check
+08:22:05 [[32minfo[39m]: Starting automatic timeout check
 {
   "service": "ride-hailing-api",
   "environment": "development",
   "timeoutMinutes": 5
 }
-21:42:11 [[32minfo[39m]: Automatic Timeout Detection Service started
+08:22:05 [[32minfo[39m]: Automatic Timeout Detection Service started
 {
   "service": "ride-hailing-api",
   "environment": "development",
   "intervalSeconds": 120,
   "timeoutMinutes": 5
 }
-21:42:11 [[32minfo[39m]: Telegram bot polling started (callback-query approvals)
+08:22:05 [[32minfo[39m]: Telegram bot polling started (callback-query approvals)
 {
   "service": "ride-hailing-api",
   "environment": "development"
 }
-21:42:12 [[32minfo[39m]: MySQL connectivity check succeeded
+08:22:05 [[32minfo[39m]: MySQL connectivity check succeeded
 {
   "service": "ride-hailing-api",
   "environment": "development"
 }
-21:42:12 [[32minfo[39m]: DeliveryConfirmations schema migration ensured
+08:22:05 [[32minfo[39m]: DeliveryConfirmations schema migration ensured
 {
   "service": "ride-hailing-api",
   "environment": "development"
 }
-21:42:12 [[32minfo[39m]: No timed-out driver requests found
+08:22:05 [[32minfo[39m]: No timed-out driver requests found
 {
   "service": "ride-hailing-api",
   "environment": "development"
 }
-21:42:15 [[32minfo[39m]: API Request
+08:22:09 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/admin/dashboard",
+  "statusCode": 404,
+  "responseTime": "7ms",
+  "ip": "127.0.0.1",
+  "userAgent": "curl/8.7.1"
+}
+08:22:09 [[33mwarn[39m]: Client Error HTTP 404
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "CLIENT_ERROR",
+  "statusCode": 404,
+  "path": "/api/admin/dashboard",
+  "method": "GET",
+  "ip": "127.0.0.1",
+  "requestId": "6459359c-8767-4539-95ba-2be951e7354d"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/admin/dashboard/organizationCounts',
+  hasAuth: false
+}
+[VerifyToken] No auth header
+08:22:09 [[33mwarn[39m]: API Error Authorization header missing
+Error: Authorization header missing
+    at verifyTokenOfAxios (/Users/zewedu/Desktop/Projects/transportBackEndNative/Middleware/VerifyToken.js:15:17)
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:117:3)
+    at handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at /Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:295:15
+    at processParams (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:582:12)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:291:5)
+    at router.handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:186:3)
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_ERROR",
+  "statusCode": 401,
+  "path": "/api/admin/dashboard/organizationCounts",
+  "method": "GET",
+  "ip": "127.0.0.1",
+  "requestId": "87aa5b7f-8f40-44eb-8894-a972db1195e7",
+  "params": {},
+  "query": {}
+}
+08:22:09 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/admin/dashboard/organizationCounts",
+  "statusCode": 401,
+  "responseTime": "7ms",
+  "ip": "127.0.0.1",
+  "userAgent": "curl/8.7.1"
+}
+08:22:10 [[33mwarn[39m]: Redis adapter initialization skipped - Redis unavailable (continuing in single-server mode)
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "error": "Pub client connection timeout",
+  "name": "Error"
+}
+08:22:33 [[32minfo[39m]: API Request
 {
   "service": "ride-hailing-api",
   "environment": "development",
@@ -92,18 +164,18 @@
   "method": "POST",
   "url": "/api/user/loginUser",
   "statusCode": 200,
-  "responseTime": "553ms",
+  "responseTime": "599ms",
   "ip": "127.0.0.1",
-  "userAgent": "curl/8.7.1"
+  "userAgent": "axios/1.20.0"
 }
-21:42:16 [[32minfo[39m]: Transaction committed
+08:22:34 [[32minfo[39m]: Transaction committed
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "transactionId": "txn_2026-09-10 21:42:15_o93chg5zn",
-  "duration": "706ms"
+  "transactionId": "txn_2026-09-11 08:22:33_a42tn6594",
+  "duration": "770ms"
 }
-21:42:16 [[32minfo[39m]: API Request
+08:22:34 [[32minfo[39m]: API Request
 {
   "service": "ride-hailing-api",
   "environment": "development",
@@ -111,54 +183,763 @@
   "method": "POST",
   "url": "/api/user/verifyUserByOTP",
   "statusCode": 200,
-  "responseTime": "714ms",
+  "responseTime": "777ms",
   "ip": "127.0.0.1",
-  "userAgent": "curl/8.7.1"
+  "userAgent": "axios/1.20.0"
 }
 [VerifyToken] Request: {
   method: 'GET',
-  url: '/entry/059d7a2c-8012-4cfa-a467-bf69a0f6a422/history?view=diff',
+  url: '/api/admin/dashboard/organizationCounts',
+  hasAuth: true
+}
+[VerifyToken] Error: JsonWebTokenError jwt must be provided
+08:22:34 [[33mwarn[39m]: API Error Invalid token
+Error: Invalid token
+    at verifyTokenOfAxios (/Users/zewedu/Desktop/Projects/transportBackEndNative/Middleware/VerifyToken.js:56:19)
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:117:3)
+    at handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at /Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:295:15
+    at processParams (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:582:12)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:291:5)
+    at router.handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:186:3)
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_ERROR",
+  "statusCode": 401,
+  "path": "/api/admin/dashboard/organizationCounts",
+  "method": "GET",
+  "ip": "127.0.0.1",
+  "requestId": "62fa339e-35c2-4afb-a447-30c08193924d",
+  "params": {},
+  "query": {}
+}
+08:22:34 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/admin/dashboard/organizationCounts",
+  "statusCode": 401,
+  "responseTime": "2ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+08:22:46 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/loginUser",
+  "statusCode": 200,
+  "responseTime": "548ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+08:22:46 [[32minfo[39m]: Transaction committed
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "transactionId": "txn_2026-09-11 08:22:46_wld4q1na4",
+  "duration": "734ms"
+}
+08:22:46 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/verifyUserByOTP",
+  "statusCode": 200,
+  "responseTime": "738ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+08:23:26 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/loginUser",
+  "statusCode": 200,
+  "responseTime": "527ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+08:23:27 [[32minfo[39m]: Transaction committed
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "transactionId": "txn_2026-09-11 08:23:26_j6ne69dwd",
+  "duration": "726ms"
+}
+08:23:27 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/verifyUserByOTP",
+  "statusCode": 200,
+  "responseTime": "729ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/admin/dashboard/organizationCounts',
+  hasAuth: true
+}
+[VerifyToken] Error: JsonWebTokenError jwt must be provided
+08:23:27 [[33mwarn[39m]: API Error Invalid token
+Error: Invalid token
+    at verifyTokenOfAxios (/Users/zewedu/Desktop/Projects/transportBackEndNative/Middleware/VerifyToken.js:56:19)
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:117:3)
+    at handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at /Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:295:15
+    at processParams (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:582:12)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:291:5)
+    at router.handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:186:3)
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_ERROR",
+  "statusCode": 401,
+  "path": "/api/admin/dashboard/organizationCounts",
+  "method": "GET",
+  "ip": "127.0.0.1",
+  "requestId": "749d2a37-4661-44f9-b850-3b163bc14110",
+  "params": {},
+  "query": {}
+}
+08:23:27 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/admin/dashboard/organizationCounts",
+  "statusCode": 401,
+  "responseTime": "2ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/admin/dashboard/organizationCounts',
+  hasAuth: true
+}
+[VerifyToken] Error: JsonWebTokenError jwt must be provided
+08:23:49 [[33mwarn[39m]: API Error Invalid token
+Error: Invalid token
+    at verifyTokenOfAxios (/Users/zewedu/Desktop/Projects/transportBackEndNative/Middleware/VerifyToken.js:56:19)
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:117:3)
+    at handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at /Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:295:15
+    at processParams (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:582:12)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:291:5)
+    at router.handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:186:3)
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_ERROR",
+  "statusCode": 401,
+  "path": "/api/admin/dashboard/organizationCounts",
+  "method": "GET",
+  "ip": "127.0.0.1",
+  "requestId": "60378f22-6180-45c9-bbdd-09070ad2754c",
+  "params": {},
+  "query": {}
+}
+08:23:49 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/admin/dashboard/organizationCounts",
+  "statusCode": 401,
+  "responseTime": "0ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+08:24:05 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+08:24:05 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+08:24:26 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/loginUser",
+  "statusCode": 200,
+  "responseTime": "534ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+08:24:26 [[32minfo[39m]: Transaction committed
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "transactionId": "txn_2026-09-11 08:24:26_cfiqzwraa",
+  "duration": "725ms"
+}
+08:24:26 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/verifyUserByOTP",
+  "statusCode": 200,
+  "responseTime": "727ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/admin/dashboard/organizationCounts',
+  hasAuth: true
+}
+[VerifyToken] Error: JsonWebTokenError jwt must be provided
+08:24:26 [[33mwarn[39m]: API Error Invalid token
+Error: Invalid token
+    at verifyTokenOfAxios (/Users/zewedu/Desktop/Projects/transportBackEndNative/Middleware/VerifyToken.js:56:19)
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:117:3)
+    at handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at /Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:295:15
+    at processParams (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:582:12)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:291:5)
+    at router.handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:186:3)
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_ERROR",
+  "statusCode": 401,
+  "path": "/api/admin/dashboard/organizationCounts",
+  "method": "GET",
+  "ip": "127.0.0.1",
+  "requestId": "efefe4bd-8939-46de-a5ee-fe41d6bcfd68",
+  "params": {},
+  "query": {}
+}
+08:24:26 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/admin/dashboard/organizationCounts",
+  "statusCode": 401,
+  "responseTime": "1ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+08:24:41 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/loginUser",
+  "statusCode": 200,
+  "responseTime": "518ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+08:24:41 [[32minfo[39m]: Transaction committed
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "transactionId": "txn_2026-09-11 08:24:41_uj6qx52xb",
+  "duration": "728ms"
+}
+08:24:41 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/verifyUserByOTP",
+  "statusCode": 200,
+  "responseTime": "730ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/admin/dashboard/organizationCounts',
+  hasAuth: true
+}
+[VerifyToken] Error: JsonWebTokenError jwt must be provided
+08:24:41 [[33mwarn[39m]: API Error Invalid token
+Error: Invalid token
+    at verifyTokenOfAxios (/Users/zewedu/Desktop/Projects/transportBackEndNative/Middleware/VerifyToken.js:56:19)
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:117:3)
+    at handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at /Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:295:15
+    at processParams (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:582:12)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:291:5)
+    at router.handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:186:3)
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_ERROR",
+  "statusCode": 401,
+  "path": "/api/admin/dashboard/organizationCounts",
+  "method": "GET",
+  "ip": "127.0.0.1",
+  "requestId": "76861a1b-622a-4629-ba4f-85258caef566",
+  "params": {},
+  "query": {}
+}
+08:24:41 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/admin/dashboard/organizationCounts",
+  "statusCode": 401,
+  "responseTime": "2ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+08:25:08 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/loginUser",
+  "statusCode": 200,
+  "responseTime": "522ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+08:25:09 [[32minfo[39m]: Transaction committed
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "transactionId": "txn_2026-09-11 08:25:08_o0v00xykg",
+  "duration": "719ms"
+}
+08:25:09 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/verifyUserByOTP",
+  "statusCode": 200,
+  "responseTime": "720ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/admin/dashboard/organizationCounts',
   hasAuth: true
 }
 [VerifyToken] Token decoded: {
   userUniqueId: 'ad817141-7a8e-4f72-85ea-7a888ee18e69',
   phoneNumber: '+251983222221',
   roleId: 6,
-  iat: 1789065736
-}
-21:42:16 [[33mwarn[39m]: Redis adapter initialization skipped - Redis unavailable (continuing in single-server mode)
-{
-  "service": "ride-hailing-api",
-  "environment": "development",
-  "error": "Pub client connection timeout",
-  "name": "Error"
+  iat: 1789104309
 }
 [VerifyToken] User authenticated: {
   userUniqueId: 'ad817141-7a8e-4f72-85ea-7a888ee18e69',
   phoneNumber: '+251983222221',
   roleId: undefined
 }
-21:42:17 [[32minfo[39m]: API Request
+08:25:09 [[32minfo[39m]: API Request
 {
   "service": "ride-hailing-api",
   "environment": "development",
   "type": "API_REQUEST",
   "method": "GET",
-  "url": "/api/queue/entry/059d7a2c-8012-4cfa-a467-bf69a0f6a422/history?view=diff",
+  "url": "/api/admin/dashboard/organizationCounts",
   "statusCode": 200,
-  "responseTime": "401ms",
+  "responseTime": "532ms",
   "ip": "127.0.0.1",
-  "userAgent": "curl/8.7.1",
+  "userAgent": "axios/1.20.0",
   "userId": 1,
   "userUniqueId": "ad817141-7a8e-4f72-85ea-7a888ee18e69"
 }
-21:44:11 [[32minfo[39m]: Starting automatic timeout check
+08:25:09 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/upload/pics",
+  "statusCode": 404,
+  "responseTime": "2ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+08:25:09 [[33mwarn[39m]: Client Error HTTP 404
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "CLIENT_ERROR",
+  "statusCode": 404,
+  "path": "/api/user/upload/pics",
+  "method": "POST",
+  "ip": "127.0.0.1",
+  "requestId": "432640cb-7845-4fae-8666-f4cdf871ea66"
+}
+08:25:52 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/loginUser",
+  "statusCode": 200,
+  "responseTime": "532ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+08:25:53 [[32minfo[39m]: Transaction committed
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "transactionId": "txn_2026-09-11 08:25:52_zn929z0dn",
+  "duration": "695ms"
+}
+08:25:53 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/verifyUserByOTP",
+  "statusCode": 200,
+  "responseTime": "697ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/admin/dashboard/organizationCounts',
+  hasAuth: false
+}
+[VerifyToken] No auth header
+08:25:53 [[33mwarn[39m]: API Error Authorization header missing
+Error: Authorization header missing
+    at verifyTokenOfAxios (/Users/zewedu/Desktop/Projects/transportBackEndNative/Middleware/VerifyToken.js:15:17)
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:117:3)
+    at handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at /Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:295:15
+    at processParams (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:582:12)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:291:5)
+    at router.handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:186:3)
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_ERROR",
+  "statusCode": 401,
+  "path": "/api/admin/dashboard/organizationCounts",
+  "method": "GET",
+  "ip": "127.0.0.1",
+  "requestId": "6e79e87b-4056-40a6-b334-a53a5cdc8d54",
+  "params": {},
+  "query": {}
+}
+08:25:53 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/admin/dashboard/organizationCounts",
+  "statusCode": 401,
+  "responseTime": "1ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/admin/dashboard/organizationCounts',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: 'ad817141-7a8e-4f72-85ea-7a888ee18e69',
+  phoneNumber: '+251983222221',
+  roleId: 6,
+  iat: 1789104353
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: 'ad817141-7a8e-4f72-85ea-7a888ee18e69',
+  phoneNumber: '+251983222221',
+  roleId: undefined
+}
+08:25:53 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/admin/dashboard/organizationCounts",
+  "statusCode": 200,
+  "responseTime": "530ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0",
+  "userId": 1,
+  "userUniqueId": "ad817141-7a8e-4f72-85ea-7a888ee18e69"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/admin/dashboard/organizationCounts',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: 'ad817141-7a8e-4f72-85ea-7a888ee18e69',
+  phoneNumber: '+251983222221',
+  roleId: 6,
+  iat: 1789104353
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: 'ad817141-7a8e-4f72-85ea-7a888ee18e69',
+  phoneNumber: '+251983222221',
+  roleId: undefined
+}
+08:25:54 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/admin/dashboard/organizationCounts",
+  "statusCode": 200,
+  "responseTime": "212ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0",
+  "userId": 1,
+  "userUniqueId": "ad817141-7a8e-4f72-85ea-7a888ee18e69"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/admin/dashboard/organizationCounts',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: 'ad817141-7a8e-4f72-85ea-7a888ee18e69',
+  phoneNumber: '+251983222221',
+  roleId: 6,
+  iat: 1789104353
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: 'ad817141-7a8e-4f72-85ea-7a888ee18e69',
+  phoneNumber: '+251983222221',
+  roleId: undefined
+}
+08:25:54 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/admin/dashboard/organizationCounts",
+  "statusCode": 200,
+  "responseTime": "524ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0",
+  "userId": 1,
+  "userUniqueId": "ad817141-7a8e-4f72-85ea-7a888ee18e69"
+}
+08:26:05 [[32minfo[39m]: Starting automatic timeout check
 {
   "service": "ride-hailing-api",
   "environment": "development",
   "timeoutMinutes": 5
 }
-21:44:12 [[32minfo[39m]: No timed-out driver requests found
+08:26:05 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+08:26:10 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/loginUser",
+  "statusCode": 200,
+  "responseTime": "554ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+08:26:10 [[32minfo[39m]: Transaction committed
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "transactionId": "txn_2026-09-11 08:26:10_ycx7z1ew7",
+  "duration": "738ms"
+}
+08:26:10 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/verifyUserByOTP",
+  "statusCode": 200,
+  "responseTime": "740ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+08:26:10 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/ad817141-7a8e-4f72-85ea-7a888ee18e69/documents",
+  "statusCode": 404,
+  "responseTime": "2ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+08:26:10 [[33mwarn[39m]: Client Error HTTP 404
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "CLIENT_ERROR",
+  "statusCode": 404,
+  "path": "/api/user/ad817141-7a8e-4f72-85ea-7a888ee18e69/documents",
+  "method": "POST",
+  "ip": "127.0.0.1",
+  "requestId": "9b2b397b-59c0-4290-9135-2d305f3caf73"
+}
+08:26:23 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/loginUser",
+  "statusCode": 200,
+  "responseTime": "527ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+08:26:24 [[32minfo[39m]: Transaction committed
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "transactionId": "txn_2026-09-11 08:26:23_otl8xix3c",
+  "duration": "722ms"
+}
+08:26:24 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/verifyUserByOTP",
+  "statusCode": 200,
+  "responseTime": "725ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0"
+}
+[VerifyToken] Request: {
+  method: 'POST',
+  url: '/api/user/attachDocuments/ad817141-7a8e-4f72-85ea-7a888ee18e69',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: 'ad817141-7a8e-4f72-85ea-7a888ee18e69',
+  phoneNumber: '+251983222221',
+  roleId: 6,
+  iat: 1789104384
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: 'ad817141-7a8e-4f72-85ea-7a888ee18e69',
+  phoneNumber: '+251983222221',
+  roleId: undefined
+}
+08:26:24 [[31merror[39m]: API Error Field name array index too large
+MulterError: Field name array index too large
+    at abortWithCode (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/multer/lib/make-middleware.js:171:22)
+    at Multipart.<anonymous> (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/multer/lib/make-middleware.js:226:18)
+    at Multipart.emit (node:events:507:28)
+    at SBMH.ssCb [as _cb] (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/busboy/lib/types/multipart.js:537:16)
+    at feed (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/streamsearch/lib/sbmh.js:219:14)
+    at SBMH.push (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/streamsearch/lib/sbmh.js:104:16)
+    at Multipart._write (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/busboy/lib/types/multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:570:12)
+    at _write (node:internal/streams/writable:499:10)
+    at Writable.write (node:internal/streams/writable:508:10)
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_ERROR",
+  "code": "LIMIT_FIELD_ARRAY_INDEX",
+  "statusCode": 500,
+  "path": "/api/user/attachDocuments/ad817141-7a8e-4f72-85ea-7a888ee18e69",
+  "method": "POST",
+  "ip": "127.0.0.1",
+  "requestId": "33c897b3-aac5-4fcb-bc82-878fe6924b94",
+  "userId": 1,
+  "userUniqueId": "ad817141-7a8e-4f72-85ea-7a888ee18e69",
+  "body": {},
+  "params": {},
+  "query": {}
+}
+08:26:24 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/attachDocuments/ad817141-7a8e-4f72-85ea-7a888ee18e69",
+  "statusCode": 500,
+  "responseTime": "118ms",
+  "ip": "127.0.0.1",
+  "userAgent": "axios/1.20.0",
+  "userId": 1,
+  "userUniqueId": "ad817141-7a8e-4f72-85ea-7a888ee18e69"
+}
+08:28:05 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+08:28:05 [[32minfo[39m]: No timed-out driver requests found
 {
   "service": "ride-hailing-api",
   "environment": "development"

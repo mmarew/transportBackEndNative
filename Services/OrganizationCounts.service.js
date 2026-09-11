@@ -3,14 +3,12 @@
 const { pool } = require("../Middleware/Database.config");
 const { usersRoles } = require("../Utils/ListOfSeedData");
 
-exports.getDashboardStats = async () => {
+exports.getOrganizationCounts = async () => {
   const exec = pool;
 
   const [
     [orgStatsRow],
-    [pendingCompanyRow],
-    [approvedCompanyRow],
-    [suspendedCompanyRow],
+    [companyStatsRow],
     [vehicleRow],
     [driverRow],
     [bidRow],
@@ -27,16 +25,10 @@ exports.getDashboardStats = async () => {
        WHERE qo.isDeleted = 0`,
     ),
     exec.query(
-      `SELECT COUNT(*) AS total FROM TransportCompany
-       WHERE approvalStatus = 'pending' AND isDeleted = 0`,
-    ),
-    exec.query(
-      `SELECT COUNT(*) AS total FROM TransportCompany
-       WHERE approvalStatus = 'approved' AND isDeleted = 0`,
-    ),
-    exec.query(
-      `SELECT COUNT(*) AS total FROM TransportCompany
-       WHERE approvalStatus = 'suspended' AND isDeleted = 0`,
+      `SELECT approvalStatus, COUNT(*) AS c
+       FROM TransportCompany
+       WHERE isDeleted = 0
+       GROUP BY approvalStatus`,
     ),
     exec.query(
       `SELECT COUNT(*) AS total FROM CompanyVehicle
@@ -64,24 +56,38 @@ exports.getDashboardStats = async () => {
     ? Number(Number(ratingRow[0].averageRating).toFixed(1))
     : null;
   const n = (v) => Number(v || 0);
+  const companyByStatus = { pending: 0, approved: 0, rejected: 0, suspended: 0 };
+  let totalCompanies = 0;
+  for (const row of companyStatsRow || []) {
+    totalCompanies += n(row.c);
+    if (Object.prototype.hasOwnProperty.call(companyByStatus, row.approvalStatus)) {
+      companyByStatus[row.approvalStatus] += n(row.c);
+    }
+  }
 
   return {
     message: "Dashboard stats fetched successfully",
     data: {
-      organizations: {
+      queueOrganizations: {
         total: n(orgStatsRow?.[0]?.total),
         pending: n(orgStatsRow?.[0]?.pending),
         approved: n(orgStatsRow?.[0]?.approved),
         rejected: n(orgStatsRow?.[0]?.rejected),
         suspended: n(orgStatsRow?.[0]?.suspended),
       },
-      pendingCompanies: n(pendingCompanyRow[0]?.total),
-      approvedCompanies: n(approvedCompanyRow[0]?.total),
-      suspendedCompanies: n(suspendedCompanyRow[0]?.total),
-      totalCompanyVehicles: n(vehicleRow[0]?.total),
-      totalCompanyDrivers: n(driverRow[0]?.total),
-      activeCompanyBids: n(bidRow[0]?.total),
-      averageRating,
+      transportCompanies: {
+        numberOfCompanies: {
+          totalCompanies,
+          pendingCompanies: companyByStatus.pending,
+          approvedCompanies: companyByStatus.approved,
+          suspendedCompanies: companyByStatus.suspended,
+          rejectedCompanies: companyByStatus.rejected,
+        },
+        totalCompanyVehicles: n(vehicleRow[0]?.total),
+        totalCompanyDrivers: n(driverRow[0]?.total),
+        activeCompanyBids: n(bidRow[0]?.total),
+        averageRating,
+      },
     },
   };
 };

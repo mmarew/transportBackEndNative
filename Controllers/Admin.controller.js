@@ -1,5 +1,5 @@
 const adminServices = require("../Services/Admin");
-const dashboardService = require("../Services/AdminDashboard.service");
+const organizationCountsService = require("../Services/OrganizationCounts.service");
 const ServerResponder = require("../Utils/ServerResponder");
 const { DOMAIN } = require("../Utils/Constants");
 const fs = require("fs");
@@ -10,9 +10,12 @@ const Config = require("../Utils/Config");
 const { HTTP_STATUS } = require("../Utils/Constants");
 
 const AdminController = {
-  getDashboardStats: async (req, res, next) => {
+  getOrganizationCounts: async (req, res, next) => {
     try {
-      ServerResponder(res, await dashboardService.getDashboardStats());
+      ServerResponder(
+        res,
+        await organizationCountsService.getOrganizationCounts(),
+      );
     } catch (error) {
       next(error);
     }
