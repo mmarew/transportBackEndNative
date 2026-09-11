@@ -944,3 +944,36 @@ MulterError: Field name array index too large
   "service": "ride-hailing-api",
   "environment": "development"
 }
+08:30:05 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+08:30:05 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+08:32:05 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+08:32:05 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+08:34:05 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+08:34:05 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
