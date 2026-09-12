@@ -2139,10 +2139,10 @@ CREATE TABLE IF NOT EXISTS QueueOrganization (
     latitude DECIMAL(10, 8) NULL,                                -- site reference / order pickup point (NOT a check-in gate)
     longitude DECIMAL(11, 8) NULL,
     -- max distance (km) a driver can be from the org's lat/lng to check in.
-    -- NULL = no distance limit (any driver can check in regardless of location).
+    -- NOT NULL, default 15 km. A value of 0 (or missing coords) disables the check.
     -- Validated by Haversine formula in validateCheckinDistance(). Manual admin
     -- checkins (manualCheckin) skip this distance check.
-    checkinRadiusKm INT NULL,
+    checkinRadiusKm INT NOT NULL DEFAULT 15,
     approvalStatus ENUM('pending','approved','rejected','suspended') NOT NULL DEFAULT 'pending',
     approvalReason VARCHAR(500) NULL,                            -- Admin note when approving or rejecting
     queueEnabled BOOLEAN NOT NULL DEFAULT FALSE,                 -- opts into queue dispatch

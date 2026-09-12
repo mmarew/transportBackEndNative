@@ -8,12 +8,13 @@ const { uuidSchema } = require("../Middleware/Validator");
  * Schema for POST /api/queueOrganization (create).
  *
  * checkinRadiusKm controls the maximum distance (in km) a driver can be from
- * the organization's latitude/longitude to successfully check in.
- * - null (or omitted) → no distance check (any driver from anywhere)
+ * the organization's latitude/longitude to successfully check in. It is NOT
+ * NULLable and defaults to 15 km.
+ * - omitted → default 15
  * - integer 1–1000  → driver must be within this many km of the org
  *
- * Requires latitude/longitude to be meaningful — if both are null and
- * checkinRadiusKm is set, the radius check is effectively skipped at runtime.
+ * Requires latitude/longitude to be meaningful — if both are null the radius
+ * check is effectively skipped at runtime.
  */
 exports.createQueueOrganization = Joi.object({
   queueOrganizationName: Joi.string().max(DOMAIN.MAX_VARCHAR_LENGTH).required(),
@@ -24,14 +25,14 @@ exports.createQueueOrganization = Joi.object({
   queueOrganizationAddress: Joi.string().max(DOMAIN.MAX_COMMENT_LENGTH).optional().allow("", null),
   latitude: Joi.number().min(DOMAIN.LATITUDE_MIN).max(DOMAIN.LATITUDE_MAX).optional().allow(null),
   longitude: Joi.number().min(DOMAIN.LONGITUDE_MIN).max(DOMAIN.LONGITUDE_MAX).optional().allow(null),
-  checkinRadiusKm: Joi.number().integer().min(1).max(1000).optional().allow(null),
+  checkinRadiusKm: Joi.number().integer().min(1).max(1000).default(15), // eslint-disable-line no-magic-numbers -- default check-in radius (km)
 }).unknown(true);
 
 /**
  * Schema for PATCH /api/queueOrganization/:id (update).
  *
- * checkinRadiusKm can be set, updated, or cleared (set to null) at any time.
- * Setting to null disables the distance check for this org.
+ * checkinRadiusKm can be set or updated at any time (min 1 km). It cannot be
+ * nulled — the column is NOT NULL and defaults to 15 km.
  */
 exports.updateQueueOrganization = Joi.object({
   queueOrganizationName: Joi.string().max(DOMAIN.MAX_VARCHAR_LENGTH).optional(),
@@ -42,7 +43,7 @@ exports.updateQueueOrganization = Joi.object({
   queueOrganizationAddress: Joi.string().max(DOMAIN.MAX_COMMENT_LENGTH).optional().allow("", null),
   latitude: Joi.number().min(DOMAIN.LATITUDE_MIN).max(DOMAIN.LATITUDE_MAX).optional().allow(null),
   longitude: Joi.number().min(DOMAIN.LONGITUDE_MIN).max(DOMAIN.LONGITUDE_MAX).optional().allow(null),
-  checkinRadiusKm: Joi.number().integer().min(1).max(1000).optional().allow(null),
+  checkinRadiusKm: Joi.number().integer().min(1).max(1000).optional(),
 }).unknown(true);
 
 exports.approveQueueOrganization = Joi.object({

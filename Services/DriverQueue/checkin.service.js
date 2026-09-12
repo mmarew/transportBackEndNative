@@ -39,7 +39,7 @@ const {
 
 const validateCheckinDistance = async (executor, org, driverLat, driverLng) => {
   if (!org.checkinRadiusKm || org.latitude === null || org.longitude === null) {
-    return null; // no radius enforced
+    return null; // no radius enforced (column is NOT NULL default 15; only 0/falsy or missing coords skip)
   }
   if (driverLat === null || driverLng === null) {
     throw new AppError(

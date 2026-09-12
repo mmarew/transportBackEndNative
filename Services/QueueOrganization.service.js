@@ -130,7 +130,7 @@ const assertMembershipBelongsToOrg = async (
  * @param {string} [data.queueOrganizationAddress] - Physical address
  * @param {number|null} [data.latitude] - Site reference latitude (DECIMAL 10,8)
  * @param {number|null} [data.longitude] - Site reference longitude (DECIMAL 11,8)
- * @param {number|null} [data.checkinRadiusKm] - Max distance (km) for driver check-in; NULL = no limit
+ * @param {number} [data.checkinRadiusKm=15] - Max distance (km) for driver check-in (NOT NULL, default 15)
  * @param {string} data.createdByUserUniqueId - FK → Users (creator, auto-assigned as queueOrgAdmin)
  * @returns {Promise<object>} { message, data: { queueOrganizationUniqueId, approvalStatus, alreadyExisted? } }
  */
@@ -178,7 +178,7 @@ exports.createQueueOrganization = async (data) => {
       queueOrganizationAddress || null,
       latitude ?? null,
       longitude ?? null,
-      checkinRadiusKm ?? null,
+      checkinRadiusKm ?? 15, // eslint-disable-line no-magic-numbers -- default check-in radius (km)
       createdByUserUniqueId,
     ],
   );
@@ -377,7 +377,7 @@ exports.getQueueOrganization = async (queueOrganizationUniqueId, user) => {
  *
  * @param {string} queueOrganizationUniqueId - FK → QueueOrganization
  * @param {object} body - Request body with fields to update
- * @param {number|null} [body.checkinRadiusKm] - Max distance (km) for driver check-in; NULL = no limit
+ * @param {number} [body.checkinRadiusKm] - Max distance (km) for driver check-in (NOT NULL, default 15; min 1)
  * @param {string} userId - FK → Users (who performed the update)
  * @returns {Promise<object>} { message, data: { queueOrganizationUniqueId } }
  * @throws {AppError} 404 if org not found

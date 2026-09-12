@@ -125,10 +125,10 @@ const queueOrgReady = async (executor, queueOrganizationUniqueId) => {
  * Uses the Haversine formula (great-circle distance) to calculate the distance
  * between the driver's GPS coordinates and the organization's site reference
  * (latitude/longitude). The maximum allowed distance is set per-org via the
- * `checkinRadiusKm` column on QueueOrganization.
+ * `checkinRadiusKm` column on QueueOrganization (NOT NULL, default 15).
  *
  * Behavior:
- * - If org.checkinRadiusKm is NULL → skip validation (any driver can check in)
+ * - If org.checkinRadiusKm is falsy (0) → skip validation (any driver can check in)
  * - If org.latitude/longitude is NULL → skip validation (no reference point)
  * - If driver lat/lng is missing but radius is enforced → reject with 400
  * - If distance exceeds radius → reject with 400
@@ -142,8 +142,8 @@ const queueOrgReady = async (executor, queueOrganizationUniqueId) => {
  * @throws {AppError} 400 if driver exceeds the max allowed distance
  *
  * @example
- * // Org has no radius → skip validation
- * await validateCheckinDistance(executor, { checkinRadiusKm: null, latitude: 9.03, longitude: 38.74 }, 9.04, 38.75);
+ * // Org has no radius (0) → skip validation
+ * await validateCheckinDistance(executor, { checkinRadiusKm: 0, latitude: 9.03, longitude: 38.74 }, 9.04, 38.75);
  * // → null
  *
  * @example

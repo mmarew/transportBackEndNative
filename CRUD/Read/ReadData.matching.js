@@ -4,10 +4,10 @@ const { journeyStatusMap } = require("../../Utils/ListOfSeedData");
 const { VerifyIfShipperRequestWasNotRejected } = require("../../Utils/RejectedRequests");
 
 // Maximum matching radius in kilometres for driver ↔ shipper proximity
-const MAX_RADIUS_KM = 10;
-// Bounding-box pre-filter in degrees (1° lat ≈ 111 km → 10 km ≈ 0.09°).
+const MAX_RADIUS_KM = 20;
+// Bounding-box pre-filter in degrees (1° lat ≈ 111 km → 20 km ≈ 0.18°).
 // Slightly enlarged to avoid clipping true great-circle matches near the edge.
-const DEGREE_BUFFER = MAX_RADIUS_KM / 111 + 0.01; // eslint-disable-line no-magic-numbers -- km-per-degree and buffer padding // ≈ 0.10°
+const DEGREE_BUFFER = MAX_RADIUS_KM / 111 + 0.01; // eslint-disable-line no-magic-numbers -- km-per-degree and buffer padding // ≈ 0.19°
 
 const findNearbyDrivers = async ({ shipperRequest }) => {
   // Queue orders are dispatched exclusively via queue FIFO (handleQueueDispatch)
