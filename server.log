@@ -42375,3 +42375,1292 @@ Error: Queue organization not found
   "ip": "127.0.0.1",
   "userAgent": "okhttp/4.12.0"
 }
+15:19:54 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/",
+  "statusCode": 304,
+  "responseTime": "3ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.12.0"
+}
+15:20:30 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/",
+  "statusCode": 304,
+  "responseTime": "10ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.12.0"
+}
+15:20:31 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/",
+  "statusCode": 304,
+  "responseTime": "1ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.12.0"
+}
+15:20:37 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/",
+  "statusCode": 304,
+  "responseTime": "7ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.12.0"
+}
+15:21:35 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+15:21:35 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+15:21:55 [[32minfo[39m]: Socket disconnected
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "y060yw2xLAO3_jeSAAAM",
+  "reason": "ping timeout",
+  "userType": "shipper",
+  "identifier": "251922112481"
+}
+15:21:55 [[32minfo[39m]: Socket disconnected
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "2LmToeOmOuhabd-vAAAL",
+  "reason": "ping timeout",
+  "userType": "shipper",
+  "identifier": "251922112481"
+}
+15:21:55 [[32minfo[39m]: Socket disconnected
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "CvY3pM6c6X7uCpA6AAAK",
+  "reason": "ping timeout",
+  "userType": "shipper",
+  "identifier": "251922112481"
+}
+15:21:56 [[32minfo[39m]: Socket disconnected
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "F-5UWxNAJpapyrteAAAO",
+  "reason": "ping timeout",
+  "userType": "driver",
+  "identifier": "251922112480"
+}
+15:21:57 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/",
+  "statusCode": 304,
+  "responseTime": "8ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.12.0"
+}
+15:21:58 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/",
+  "statusCode": 304,
+  "responseTime": "2ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.12.0"
+}
+15:22:36 [[32minfo[39m]: Socket connection attempt
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "_4iTNsYzxmNLL6dFAAAP",
+  "handshake": {
+    "user": "driver",
+    "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZXJVbmlxdWVJZCI6IjAzODhmYjA0LTA1MzgtNDllMC05NzhmLTZlYjI3ZGIzYTQ5MiIsInBob25lTnVtYmVyIjoiKzI1MTkyMjExMjQ4MCIsInJvbGVJZCI6Mn0sImlhdCI6MTc4OTEyNjE3OH0.9wvMQjXIbaV8m7njdO-TvCyaCJXGKiRfYjWfZkwq2qY",
+    "phoneNumber": "+251922112480"
+  }
+}
+15:22:36 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/",
+  "statusCode": 304,
+  "responseTime": "14ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.12.0"
+}
+15:22:37 [[32minfo[39m]: Socket connection attempt
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "zNWBurky01N5KB5SAAAQ",
+  "handshake": {
+    "user": "shipper",
+    "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZXJVbmlxdWVJZCI6IjljZTY2YTFkLTU1NTAtNDhkZi05Y2NjLTFjMmM2NmYwNjBiMyIsInBob25lTnVtYmVyIjoiKzI1MTkyMjExMjQ4MSIsInJvbGVJZCI6MX0sImlhdCI6MTc4OTEyNzU1NX0.7DZFQGSXHgi_-E6nsKL6IKke39eiyg1Xh--9buy68Vc",
+    "phoneNumber": "+251922112481"
+  }
+}
+15:22:37 [[32minfo[39m]: Socket connection attempt
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "4M5yHmwhZZed4viqAAAR",
+  "handshake": {
+    "user": "shipper",
+    "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZXJVbmlxdWVJZCI6IjljZTY2YTFkLTU1NTAtNDhkZi05Y2NjLTFjMmM2NmYwNjBiMyIsInBob25lTnVtYmVyIjoiKzI1MTkyMjExMjQ4MSIsInJvbGVJZCI6MX0sImlhdCI6MTc4OTEyNzU1NX0.7DZFQGSXHgi_-E6nsKL6IKke39eiyg1Xh--9buy68Vc",
+    "phoneNumber": "+251922112481"
+  }
+}
+15:22:41 [[32minfo[39m]: Socket connection attempt
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "lHQfoHZl6Jv4-7P6AAAS",
+  "handshake": {
+    "user": "shipper",
+    "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZXJVbmlxdWVJZCI6IjljZTY2YTFkLTU1NTAtNDhkZi05Y2NjLTFjMmM2NmYwNjBiMyIsInBob25lTnVtYmVyIjoiKzI1MTkyMjExMjQ4MSIsInJvbGVJZCI6MX0sImlhdCI6MTc4OTEyNzU1NX0.7DZFQGSXHgi_-E6nsKL6IKke39eiyg1Xh--9buy68Vc",
+    "phoneNumber": "+251922112481"
+  }
+}
+15:22:41 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/",
+  "statusCode": 304,
+  "responseTime": "4ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.9.2"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: 1,
+  iat: 1789127555
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: undefined
+}
+15:22:41 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10",
+  "statusCode": 304,
+  "responseTime": "81ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.9.2",
+  "userId": 98,
+  "userUniqueId": "9ce66a1d-5550-48df-9ccc-1c2c66f060b3"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/driver/verifyDriverJourneyStatus',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '0388fb04-0538-49e0-978f-6eb27db3a492',
+  phoneNumber: '+251922112480',
+  roleId: 2,
+  iat: 1789126178
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '0388fb04-0538-49e0-978f-6eb27db3a492',
+  phoneNumber: '+251922112480',
+  roleId: undefined
+}
+15:22:42 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/driver/verifyDriverJourneyStatus",
+  "statusCode": 304,
+  "responseTime": "22ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.12.0",
+  "userId": 2,
+  "userUniqueId": "0388fb04-0538-49e0-978f-6eb27db3a492"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: 1,
+  iat: 1789127555
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: undefined
+}
+15:22:42 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10",
+  "statusCode": 304,
+  "responseTime": "34ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.9.2",
+  "userId": 98,
+  "userUniqueId": "9ce66a1d-5550-48df-9ccc-1c2c66f060b3"
+}
+15:22:47 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/",
+  "statusCode": 304,
+  "responseTime": "5ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.9.2"
+}
+15:22:51 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/",
+  "statusCode": 304,
+  "responseTime": "3ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.12.0"
+}
+15:23:05 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/",
+  "statusCode": 304,
+  "responseTime": "3ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.12.0"
+}
+15:23:16 [[32minfo[39m]: Socket disconnected
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "zNWBurky01N5KB5SAAAQ",
+  "reason": "transport close",
+  "userType": "shipper",
+  "identifier": "251922112481"
+}
+15:23:16 [[32minfo[39m]: Socket disconnected
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "lHQfoHZl6Jv4-7P6AAAS",
+  "reason": "transport close",
+  "userType": "shipper",
+  "identifier": "251922112481"
+}
+15:23:16 [[32minfo[39m]: Socket disconnected
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "4M5yHmwhZZed4viqAAAR",
+  "reason": "transport close",
+  "userType": "shipper",
+  "identifier": "251922112481"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: 1,
+  iat: 1789127555
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: 1,
+  iat: 1789127555
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: undefined
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: undefined
+}
+15:23:17 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10",
+  "statusCode": 304,
+  "responseTime": "59ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.9.2",
+  "userId": 98,
+  "userUniqueId": "9ce66a1d-5550-48df-9ccc-1c2c66f060b3"
+}
+15:23:17 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10",
+  "statusCode": 304,
+  "responseTime": "67ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.9.2",
+  "userId": 98,
+  "userUniqueId": "9ce66a1d-5550-48df-9ccc-1c2c66f060b3"
+}
+15:23:18 [[32minfo[39m]: Socket connection attempt
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "9mpyh1M8RPx_bustAAAT",
+  "handshake": {
+    "user": "shipper",
+    "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZXJVbmlxdWVJZCI6IjljZTY2YTFkLTU1NTAtNDhkZi05Y2NjLTFjMmM2NmYwNjBiMyIsInBob25lTnVtYmVyIjoiKzI1MTkyMjExMjQ4MSIsInJvbGVJZCI6MX0sImlhdCI6MTc4OTEyNzU1NX0.7DZFQGSXHgi_-E6nsKL6IKke39eiyg1Xh--9buy68Vc",
+    "phoneNumber": "+251922112481"
+  }
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: 1,
+  iat: 1789127555
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: undefined
+}
+15:23:18 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10",
+  "statusCode": 304,
+  "responseTime": "8ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.9.2",
+  "userId": 98,
+  "userUniqueId": "9ce66a1d-5550-48df-9ccc-1c2c66f060b3"
+}
+15:23:19 [[32minfo[39m]: Socket connection attempt
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "NCD65UkLf4RJhdrsAAAU",
+  "handshake": {
+    "user": "shipper",
+    "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZXJVbmlxdWVJZCI6IjljZTY2YTFkLTU1NTAtNDhkZi05Y2NjLTFjMmM2NmYwNjBiMyIsInBob25lTnVtYmVyIjoiKzI1MTkyMjExMjQ4MSIsInJvbGVJZCI6MX0sImlhdCI6MTc4OTEyNzU1NX0.7DZFQGSXHgi_-E6nsKL6IKke39eiyg1Xh--9buy68Vc",
+    "phoneNumber": "+251922112481"
+  }
+}
+15:23:19 [[32minfo[39m]: Socket connection attempt
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "it65WOd0NOk8ot21AAAV",
+  "handshake": {
+    "user": "shipper",
+    "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZXJVbmlxdWVJZCI6IjljZTY2YTFkLTU1NTAtNDhkZi05Y2NjLTFjMmM2NmYwNjBiMyIsInBob25lTnVtYmVyIjoiKzI1MTkyMjExMjQ4MSIsInJvbGVJZCI6MX0sImlhdCI6MTc4OTEyNzU1NX0.7DZFQGSXHgi_-E6nsKL6IKke39eiyg1Xh--9buy68Vc",
+    "phoneNumber": "+251922112481"
+  }
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: 1,
+  iat: 1789127555
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: undefined
+}
+15:23:19 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10",
+  "statusCode": 304,
+  "responseTime": "8ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.9.2",
+  "userId": 98,
+  "userUniqueId": "9ce66a1d-5550-48df-9ccc-1c2c66f060b3"
+}
+15:23:20 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/",
+  "statusCode": 304,
+  "responseTime": "1ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.12.0"
+}
+15:23:35 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+15:23:35 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+15:23:36 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/",
+  "statusCode": 304,
+  "responseTime": "4ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.12.0"
+}
+15:23:50 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/",
+  "statusCode": 304,
+  "responseTime": "2ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.12.0"
+}
+15:24:06 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/",
+  "statusCode": 304,
+  "responseTime": "6ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.12.0"
+}
+15:24:22 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/",
+  "statusCode": 304,
+  "responseTime": "4ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.12.0"
+}
+15:25:06 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/",
+  "statusCode": 304,
+  "responseTime": "3ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.12.0"
+}
+15:25:14 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/",
+  "statusCode": 304,
+  "responseTime": "4ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.12.0"
+}
+15:25:35 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+15:25:35 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+15:25:36 [[32minfo[39m]: Socket disconnected
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "_4iTNsYzxmNLL6dFAAAP",
+  "reason": "ping timeout",
+  "userType": "driver",
+  "identifier": "251922112480"
+}
+15:25:46 [[32minfo[39m]: Socket disconnected
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "9mpyh1M8RPx_bustAAAT",
+  "reason": "ping timeout",
+  "userType": "shipper",
+  "identifier": "251922112481"
+}
+15:25:47 [[32minfo[39m]: Socket disconnected
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "it65WOd0NOk8ot21AAAV",
+  "reason": "ping timeout",
+  "userType": "shipper",
+  "identifier": "251922112481"
+}
+15:25:47 [[32minfo[39m]: Socket disconnected
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "NCD65UkLf4RJhdrsAAAU",
+  "reason": "ping timeout",
+  "userType": "shipper",
+  "identifier": "251922112481"
+}
+15:27:35 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+15:27:35 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+15:29:35 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+15:29:35 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+15:30:03 [[32minfo[39m]: Socket connection attempt
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "2ynaaPPkhuGlKZkxAAAW",
+  "handshake": {
+    "user": "driver",
+    "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZXJVbmlxdWVJZCI6IjAzODhmYjA0LTA1MzgtNDllMC05NzhmLTZlYjI3ZGIzYTQ5MiIsInBob25lTnVtYmVyIjoiKzI1MTkyMjExMjQ4MCIsInJvbGVJZCI6Mn0sImlhdCI6MTc4OTEyNjE3OH0.9wvMQjXIbaV8m7njdO-TvCyaCJXGKiRfYjWfZkwq2qY",
+    "phoneNumber": "+251922112480"
+  }
+}
+15:30:03 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/",
+  "statusCode": 304,
+  "responseTime": "7ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.12.0"
+}
+15:30:14 [[32minfo[39m]: Socket connection attempt
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "1UGSV2laCsKxQnkUAAAX",
+  "handshake": {
+    "user": "shipper",
+    "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZXJVbmlxdWVJZCI6IjljZTY2YTFkLTU1NTAtNDhkZi05Y2NjLTFjMmM2NmYwNjBiMyIsInBob25lTnVtYmVyIjoiKzI1MTkyMjExMjQ4MSIsInJvbGVJZCI6MX0sImlhdCI6MTc4OTEyNzU1NX0.7DZFQGSXHgi_-E6nsKL6IKke39eiyg1Xh--9buy68Vc",
+    "phoneNumber": "+251922112481"
+  }
+}
+15:30:15 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/",
+  "statusCode": 304,
+  "responseTime": "37ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.9.2"
+}
+15:30:17 [[32minfo[39m]: Socket connection attempt
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "THIgzD79w5Tc035uAAAY",
+  "handshake": {
+    "user": "shipper",
+    "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZXJVbmlxdWVJZCI6IjljZTY2YTFkLTU1NTAtNDhkZi05Y2NjLTFjMmM2NmYwNjBiMyIsInBob25lTnVtYmVyIjoiKzI1MTkyMjExMjQ4MSIsInJvbGVJZCI6MX0sImlhdCI6MTc4OTEyNzU1NX0.7DZFQGSXHgi_-E6nsKL6IKke39eiyg1Xh--9buy68Vc",
+    "phoneNumber": "+251922112481"
+  }
+}
+15:30:18 [[32minfo[39m]: Socket connection attempt
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "noelW50GO9H2M_rlAAAZ",
+  "handshake": {
+    "user": "shipper",
+    "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZXJVbmlxdWVJZCI6IjljZTY2YTFkLTU1NTAtNDhkZi05Y2NjLTFjMmM2NmYwNjBiMyIsInBob25lTnVtYmVyIjoiKzI1MTkyMjExMjQ4MSIsInJvbGVJZCI6MX0sImlhdCI6MTc4OTEyNzU1NX0.7DZFQGSXHgi_-E6nsKL6IKke39eiyg1Xh--9buy68Vc",
+    "phoneNumber": "+251922112481"
+  }
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/driver/verifyDriverJourneyStatus',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '0388fb04-0538-49e0-978f-6eb27db3a492',
+  phoneNumber: '+251922112480',
+  roleId: 2,
+  iat: 1789126178
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '0388fb04-0538-49e0-978f-6eb27db3a492',
+  phoneNumber: '+251922112480',
+  roleId: undefined
+}
+15:30:20 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/driver/verifyDriverJourneyStatus",
+  "statusCode": 304,
+  "responseTime": "27ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.12.0",
+  "userId": 2,
+  "userUniqueId": "0388fb04-0538-49e0-978f-6eb27db3a492"
+}
+15:30:20 [[32minfo[39m]: Socket connection attempt
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "snJxgO-Hka7i_rd6AAAa",
+  "handshake": {
+    "user": "driver",
+    "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZXJVbmlxdWVJZCI6IjAzODhmYjA0LTA1MzgtNDllMC05NzhmLTZlYjI3ZGIzYTQ5MiIsInBob25lTnVtYmVyIjoiKzI1MTkyMjExMjQ4MCIsInJvbGVJZCI6Mn0sImlhdCI6MTc4OTEyNjE3OH0.9wvMQjXIbaV8m7njdO-TvCyaCJXGKiRfYjWfZkwq2qY",
+    "phoneNumber": "+251922112480"
+  }
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: 1,
+  iat: 1789127555
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: undefined
+}
+15:30:21 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10",
+  "statusCode": 304,
+  "responseTime": "57ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.9.2",
+  "userId": 98,
+  "userUniqueId": "9ce66a1d-5550-48df-9ccc-1c2c66f060b3"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: 1,
+  iat: 1789127555
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: undefined
+}
+15:30:21 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10",
+  "statusCode": 304,
+  "responseTime": "16ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.9.2",
+  "userId": 98,
+  "userUniqueId": "9ce66a1d-5550-48df-9ccc-1c2c66f060b3"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/driver/verifyDriverJourneyStatus',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '0388fb04-0538-49e0-978f-6eb27db3a492',
+  phoneNumber: '+251922112480',
+  roleId: 2,
+  iat: 1789126178
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '0388fb04-0538-49e0-978f-6eb27db3a492',
+  phoneNumber: '+251922112480',
+  roleId: undefined
+}
+15:30:28 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/driver/verifyDriverJourneyStatus",
+  "statusCode": 304,
+  "responseTime": "27ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.12.0",
+  "userId": 2,
+  "userUniqueId": "0388fb04-0538-49e0-978f-6eb27db3a492"
+}
+15:30:33 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/",
+  "statusCode": 304,
+  "responseTime": "5ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.9.2"
+}
+15:30:48 [[32minfo[39m]: Socket disconnected
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "2ynaaPPkhuGlKZkxAAAW",
+  "reason": "ping timeout",
+  "userType": "driver",
+  "identifier": "251922112480"
+}
+15:30:55 [[32minfo[39m]: Socket disconnected
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "snJxgO-Hka7i_rd6AAAa",
+  "reason": "transport close",
+  "userType": "driver",
+  "identifier": "251922112480"
+}
+15:31:02 [[32minfo[39m]: Socket disconnected
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "1UGSV2laCsKxQnkUAAAX",
+  "reason": "transport close",
+  "userType": "shipper",
+  "identifier": "251922112481"
+}
+15:31:02 [[32minfo[39m]: Socket disconnected
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "noelW50GO9H2M_rlAAAZ",
+  "reason": "transport close",
+  "userType": "shipper",
+  "identifier": "251922112481"
+}
+15:31:02 [[32minfo[39m]: Socket disconnected
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "THIgzD79w5Tc035uAAAY",
+  "reason": "transport close",
+  "userType": "shipper",
+  "identifier": "251922112481"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: 1,
+  iat: 1789127555
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: 1,
+  iat: 1789127555
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: undefined
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: undefined
+}
+15:31:02 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10",
+  "statusCode": 304,
+  "responseTime": "56ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.9.2",
+  "userId": 98,
+  "userUniqueId": "9ce66a1d-5550-48df-9ccc-1c2c66f060b3"
+}
+15:31:02 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10",
+  "statusCode": 304,
+  "responseTime": "53ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.9.2",
+  "userId": 98,
+  "userUniqueId": "9ce66a1d-5550-48df-9ccc-1c2c66f060b3"
+}
+15:31:03 [[32minfo[39m]: Socket connection attempt
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "PpIrC4IO-1DmeU6jAAAb",
+  "handshake": {
+    "user": "shipper",
+    "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZXJVbmlxdWVJZCI6IjljZTY2YTFkLTU1NTAtNDhkZi05Y2NjLTFjMmM2NmYwNjBiMyIsInBob25lTnVtYmVyIjoiKzI1MTkyMjExMjQ4MSIsInJvbGVJZCI6MX0sImlhdCI6MTc4OTEyNzU1NX0.7DZFQGSXHgi_-E6nsKL6IKke39eiyg1Xh--9buy68Vc",
+    "phoneNumber": "+251922112481"
+  }
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: 1,
+  iat: 1789127555
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: undefined
+}
+15:31:03 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10",
+  "statusCode": 304,
+  "responseTime": "20ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.9.2",
+  "userId": 98,
+  "userUniqueId": "9ce66a1d-5550-48df-9ccc-1c2c66f060b3"
+}
+15:31:03 [[32minfo[39m]: Socket connection attempt
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "Ewv3n_n_7GFaiE9KAAAc",
+  "handshake": {
+    "user": "shipper",
+    "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZXJVbmlxdWVJZCI6IjljZTY2YTFkLTU1NTAtNDhkZi05Y2NjLTFjMmM2NmYwNjBiMyIsInBob25lTnVtYmVyIjoiKzI1MTkyMjExMjQ4MSIsInJvbGVJZCI6MX0sImlhdCI6MTc4OTEyNzU1NX0.7DZFQGSXHgi_-E6nsKL6IKke39eiyg1Xh--9buy68Vc",
+    "phoneNumber": "+251922112481"
+  }
+}
+15:31:04 [[32minfo[39m]: Socket connection attempt
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "1RLsrqniDtOQvqYfAAAd",
+  "handshake": {
+    "user": "shipper",
+    "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZXJVbmlxdWVJZCI6IjljZTY2YTFkLTU1NTAtNDhkZi05Y2NjLTFjMmM2NmYwNjBiMyIsInBob25lTnVtYmVyIjoiKzI1MTkyMjExMjQ4MSIsInJvbGVJZCI6MX0sImlhdCI6MTc4OTEyNzU1NX0.7DZFQGSXHgi_-E6nsKL6IKke39eiyg1Xh--9buy68Vc",
+    "phoneNumber": "+251922112481"
+  }
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: 1,
+  iat: 1789127555
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '9ce66a1d-5550-48df-9ccc-1c2c66f060b3',
+  phoneNumber: '+251922112481',
+  roleId: undefined
+}
+15:31:04 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10",
+  "statusCode": 304,
+  "responseTime": "15ms",
+  "ip": "127.0.0.1",
+  "userAgent": "okhttp/4.9.2",
+  "userId": 98,
+  "userUniqueId": "9ce66a1d-5550-48df-9ccc-1c2c66f060b3"
+}
+15:31:35 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+15:31:35 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+15:33:35 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+15:33:35 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+15:35:35 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+15:35:35 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+15:37:35 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+15:37:35 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+15:39:35 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+15:39:35 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+15:41:35 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+15:41:35 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+15:43:35 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+15:43:35 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+15:45:35 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+15:45:35 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+15:47:35 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+15:47:35 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+15:49:35 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+15:49:35 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+15:51:35 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+15:51:35 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+15:53:35 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+15:53:35 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+15:55:35 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+15:55:35 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+15:57:35 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+15:57:35 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+15:59:35 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+15:59:35 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+16:01:35 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+16:01:35 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+16:03:01 [[32minfo[39m]: Socket disconnected
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "1RLsrqniDtOQvqYfAAAd",
+  "reason": "transport close",
+  "userType": "shipper",
+  "identifier": "251922112481"
+}
+16:03:01 [[32minfo[39m]: Socket disconnected
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "PpIrC4IO-1DmeU6jAAAb",
+  "reason": "transport close",
+  "userType": "shipper",
+  "identifier": "251922112481"
+}
+16:03:01 [[32minfo[39m]: Socket disconnected
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "socketId": "Ewv3n_n_7GFaiE9KAAAc",
+  "reason": "transport close",
+  "userType": "shipper",
+  "identifier": "251922112481"
+}
+16:03:24 [[32minfo[39m]: Received SIGTERM, shutting down gracefully...
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+16:03:24 [[32minfo[39m]: Automatic Timeout Detection Service stopped
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+16:03:24 [[32minfo[39m]: Telegram bot polling stopped
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+16:03:24 [[32minfo[39m]: HTTP server closed
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}

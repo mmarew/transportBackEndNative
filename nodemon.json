@@ -1,0 +1,30 @@
+{
+  "restartable": "rs",
+  "watch": [
+    "App.js",
+    "Config",
+    "Controllers",
+    "Database",
+    "Middleware",
+    "Routes",
+    "Services",
+    "Utils",
+    "Validations",
+    "Validator"
+  ],
+  "ignore": [
+    ".git/**",
+    "node_modules/**",
+    "E2ETests/**",
+    "logs/**",
+    "docs/**",
+    "uploads/**",
+    "var/**",
+    "scripts/**",
+    "tests/**",
+    "Notes/**",
+    "*.log"
+  ],
+  "ext": "js,json",
+  "delay": "300"
+}
