@@ -66,11 +66,7 @@ router.use(verifyTokenOfAxios);
  *   "shipperPhoneNumber": "+251922112481"
  * }
  */
-router.post(
-  "/driver/checkin",
-  validator(schema.checkin),
-  controller.checkin,
-);
+router.post("/driver/checkin", validator(schema.checkin), controller.checkin);
 
 /**
  * @route   GET /api/queue/driver/myPosition
