@@ -28,6 +28,20 @@ const createAndAcceptNewRequest = async (body, connection = null) => {
   try {
     // return;
     const { shipperRequestUniqueId, userUniqueId } = body;
+
+    // FENCE: queue mode and the on-demand market are mutually exclusive — a
+    // driver checked into a queue must check out before accepting a request.
+    const { myPosition } = require("../DriverQueue.service");
+    const queuePosition = await myPosition(null, { userUniqueId });
+    if (
+      Array.isArray(queuePosition?.data) === false &&
+      queuePosition?.data?.queue
+    ) {
+      throw new AppError(
+        "You are checked into a queue. Check out before accepting a request.",
+        AppError.CONFLICT,
+      );
+    }
     // get shipper request data by shipperRequestUniqueId,
     const { getShipperRequest4allOrSingleUser } = require("../ShipperRequest");
     const shipperRequestResult = await getShipperRequest4allOrSingleUser({

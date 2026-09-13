@@ -25,6 +25,7 @@ const {
 } = require("../Utils/ListOfSeedData");
 const {
   getAttachedDocumentsByUserUniqueIdAndDocumentTypeId,
+  checkActiveDriverRequest,
 } = require("../CRUD/Read/ReadData");
 const { createUser } = require("./User.service");
 const logger = require("../Utils/logger");
@@ -644,6 +645,8 @@ const resolveActiveVehicleDriver = async ({
 };
 
 exports.checkin = async (data) => {
+  // here verify driver status first, verifyDriverJourneyStatus is. used to solve this problem
+
   const { queueOrganizationUniqueId, vehicleDriverUniqueId, user } = data;
   const driverLatitude = data.latitude ?? null;
   const driverLongitude = data.longitude ?? null;
@@ -671,6 +674,34 @@ exports.checkin = async (data) => {
     vehicleDriverUniqueId,
   });
   const queueDate = today();
+
+  // FENCE: queue mode and the on-demand market are mutually exclusive. A
+  // driver ALREADY checked into a queue keeps taking the queue path (the live
+  // entry below makes re-check-in idempotent), but a driver holding a WAITING
+  // on-demand market request (DriverRequest status 1) must resolve that request
+  // first — joining a queue while still waiting for a market job would leave
+  // both modes active at once. Uses the canonical checkActiveDriverRequest
+  // read; any later status (2 = requested, 3+, journey) is caught by the
+  // hasActiveJourney fence below.
+  const { active: liveQueueEntry } = await getDriverQueueState(
+    executor,
+    vehicleDriver.driverUserUniqueId,
+    queueDate,
+  );
+  if (!liveQueueEntry) {
+    const activeMarketRequests = await checkActiveDriverRequest(
+      vehicleDriver.driverUserUniqueId,
+    );
+    const waitingMarketRequest = (activeMarketRequests || []).find(
+      (req) => Number(req.journeyStatusId) === journeyStatusMap.waiting,
+    );
+    if (waitingMarketRequest) {
+      throw new AppError(
+        "You have an active driver request waiting for a job. Resolve it before checking into a queue.",
+        AppError.CONFLICT,
+      );
+    }
+  }
 
   // FENCE: a driver holding an ACTIVE engagement cannot join the queue. This
   // covers both an UNRESOLVED queue offer (status 2 = requested) and an
@@ -1335,9 +1366,7 @@ JOIN Users u            ON u.userUniqueId           = vd.driverUserUniqueId
   // the shipper-request read flow): all non-deleted photos per confirmation,
   // ordered by photo id so the admin entry-detail can render them in order.
   const podByDC = new Map();
-  const podIds = [
-    ...new Set(rows.map((r) => r.podUniqueId).filter(Boolean)),
-  ];
+  const podIds = [...new Set(rows.map((r) => r.podUniqueId).filter(Boolean))];
   if (podIds.length > 0) {
     const [podPhotos] = await executor.query(
       `SELECT deliveryConfirmationUniqueId, deliveryConfirmationPhotoUrl
@@ -1351,7 +1380,9 @@ JOIN Users u            ON u.userUniqueId           = vd.driverUserUniqueId
       if (!podByDC.has(p.deliveryConfirmationUniqueId)) {
         podByDC.set(p.deliveryConfirmationUniqueId, []);
       }
-      podByDC.get(p.deliveryConfirmationUniqueId).push(p.deliveryConfirmationPhotoUrl);
+      podByDC
+        .get(p.deliveryConfirmationUniqueId)
+        .push(p.deliveryConfirmationPhotoUrl);
     }
   }
 
@@ -1394,9 +1425,8 @@ JOIN Users u            ON u.userUniqueId           = vd.driverUserUniqueId
       totalWaiting: rows.filter((r) => isWaiting(r.status)).length,
       statistics: {
         waiting: rows.filter((r) => isWaiting(r.status)).length,
-        requested: rows.filter(
-          (r) => r.status === QUEUE_STATUS.REQUESTED,
-        ).length,
+        requested: rows.filter((r) => r.status === QUEUE_STATUS.REQUESTED)
+          .length,
         agreed: rows.filter((r) => isAgreed(r.status)).length,
         notAgreed: rows.filter(
           (r) =>
@@ -4143,9 +4173,18 @@ exports.getEntryHistory = async (queueUniqueId, user, view) => {
        WHERE queueUniqueId = ?`,
       [queueUniqueId],
     );
-    const meta = new Set(["historyUniqueId", "historyEvent", "performedBy", "performedAt"]);
+    const meta = new Set([
+      "historyUniqueId",
+      "historyEvent",
+      "performedBy",
+      "performedAt",
+    ]);
     const value = (v) =>
-      v === undefined || v === null ? "" : v instanceof Date ? v.toISOString() : String(v);
+      v === undefined || v === null
+        ? ""
+        : v instanceof Date
+          ? v.toISOString()
+          : String(v);
     const diffs = [];
     for (let i = 0; i < history.length; i++) {
       const before = history[i];

@@ -29,6 +29,20 @@ const createRequest = async ({
       throw new AppError("you can't create requests", AppError.FORBIDDEN);
     }
 
+    // FENCE: queue mode and the on-demand market are mutually exclusive — a
+    // driver checked into a queue must check out before requesting market jobs.
+    const { myPosition } = require("../DriverQueue.service");
+    const queuePosition = await myPosition(null, { userUniqueId });
+    if (
+      Array.isArray(queuePosition?.data) === false &&
+      queuePosition?.data?.queue
+    ) {
+      throw new AppError(
+        "You are checked into a queue. Check out before requesting jobs.",
+        AppError.CONFLICT,
+      );
+    }
+
     const { currentLocation } = body;
 
     // Use a transaction to prevent race conditions (duplicate status 1 requests)

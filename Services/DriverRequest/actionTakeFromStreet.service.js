@@ -31,6 +31,22 @@ const AppError = require("../../Utils/AppError");
  */
 const takeFromStreet = async (body, user) => {
   try {
+    // FENCE: queue mode and the on-demand market are mutually exclusive — a
+    // driver already checked into a queue must check out before taking street
+    // work (mirror of the check-in fence in DriverQueue.service.checkin).
+    const { myPosition } = require("../DriverQueue.service");
+    const queuePosition = await myPosition(null, {
+      userUniqueId: user?.userUniqueId,
+    });
+    if (
+      Array.isArray(queuePosition?.data) === false &&
+      queuePosition?.data?.queue
+    ) {
+      throw new AppError(
+        "You are checked into a queue. Check out before taking a street request.",
+        AppError.CONFLICT,
+      );
+    }
     // first verify if driver has active request
     const { verifyDriverJourneyStatus } = require("./statusVerification");
     const driverStatus = await verifyDriverJourneyStatus({
