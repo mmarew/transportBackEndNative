@@ -1,218 +1,15 @@
 "use strict";
 
-const { v4: uuidv4 } = require("uuid");
-const { currentDate } = require("../../Utils/CurrentDate");
-const AppError = require("../../Utils/AppError");
-const { createData } = require("../../CRUD/Create/CreateData");
-const { sendSocketIONotificationToDriver, sendSocketIONotificationToShipper } = require("../../Utils/Notifications");
+const {
+  sendSocketIONotificationToDriver,
+  sendSocketIONotificationToShipper,
+} = require("../../Utils/Notifications");
 const { sendFCMNotificationToUser } = require("../Firebase.service");
 const { sendSms } = require("../../Utils/smsSender");
 const messageTypes = require("../../Utils/MessageTypes");
 const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
-const { updateData } = require("../../CRUD/Update/Data.update");
 const logger = require("../../Utils/logger");
-const {
-  today, queueOrgReady, logQueueHistory,
-} = require("./helpers");
-
-const getShipperRequest = async (executor, shipperRequestUniqueId) => {
-  const [rows] = await executor.query(
-    `SELECT * FROM ShipperRequest
-     WHERE shipperRequestUniqueId = ? AND shipperRequestDeletedAt IS NULL`,
-    [shipperRequestUniqueId],
-  );
-  if (rows.length === 0) {
-    throw new AppError("Shipper request not found", AppError.NOT_FOUND);
-  }
-  return rows[0];
-};
-
-
-const getDriverVehicle = async (executor, driverUserUniqueId) => {
-  const [rows] = await executor.query(
-    `SELECT v.vehicleUniqueId, v.licensePlate, v.color,
-            vt.vehicleTypeName, vt.vehicleTypeUniqueId
-     FROM Users u
-     JOIN VehicleDriver vd ON vd.driverUserUniqueId = u.userUniqueId
-       AND vd.assignmentStatus = 'active' AND vd.vehicleDriverDeletedAt IS NULL
-     JOIN Vehicle v          ON v.vehicleUniqueId        = vd.vehicleUniqueId
-     JOIN VehicleTypes vt    ON vt.vehicleTypeUniqueId   = v.vehicleTypeUniqueId
-     WHERE u.userUniqueId = ? LIMIT 1`,
-    [driverUserUniqueId],
-  );
-  return rows[0] || null;
-};
-
-
-/**
- * Ensure the driver has a `DriverRequest` in `waiting` that can receive a new
- * JourneyDecision. `JourneyDecisions.driverRequestId` is UNIQUE — one decision
- * per driver request — so we reuse only a waiting request that has never been
- * linked to a decision, and create a fresh one otherwise (falling back to the
- * queue organization's site as the origin placeholder).
- *
- * Returns `null` when the driver is already holding an active offer elsewhere
- * (their latest request is `requested`) — the caller skips to the next driver.
- */
-const ensureWaitingDriverRequest = async (
-  executor,
-  driverUserUniqueId,
-  queueOrganizationUniqueId,
-) => {
-  // The unique index `uq_driver_active_request` means at most ONE non-terminal
-  // request exists per driver (activeRequestGuard = 1 for statuses 1-5). Branch
-  // on what that request is:
-  //   - no decision attached  → a reusable `waiting` request → return it
-  //   - `waiting` + decision   → stale leftover from the expired-offer release
-  //                              fix → fall through to release + fresh insert
-  //   - requested/accepted/… + decision → a REAL pending offer or in-flight
-  //                              journey → return null so the caller advances
-  //                              to the next waiting driver (never a second
-  //                              order while the driver holds an active one).
-  const [activeRows] = await executor.query(
-    `SELECT dr.driverRequestId, dr.driverRequestUniqueId, dr.journeyStatusId,
-            jd.driverRequestId AS decisionDriverRequestId
-     FROM DriverRequest dr
-     LEFT JOIN JourneyDecisions jd ON jd.driverRequestId = dr.driverRequestId
-     WHERE dr.userUniqueId = ? AND dr.activeRequestGuard = 1
-       AND dr.driverRequestDeletedAt IS NULL
-     ORDER BY dr.driverRequestId DESC LIMIT 1`,
-    [driverUserUniqueId],
-  );
-  if (activeRows.length > 0) {
-    const latest = activeRows[0];
-    if (latest.decisionDriverRequestId === null) {
-      return {
-        driverRequestId: latest.driverRequestId,
-        driverRequestUniqueId: latest.driverRequestUniqueId,
-      };
-    }
-    if (latest.journeyStatusId !== journeyStatusMap.waiting) {
-      return null;
-    }
-  }
-
-  const [rows] = await executor.query(
-    `SELECT dr.driverRequestId, dr.driverRequestUniqueId
-     FROM DriverRequest dr
-     LEFT JOIN JourneyDecisions jd ON jd.driverRequestId = dr.driverRequestId
-     WHERE dr.userUniqueId = ? AND dr.journeyStatusId = ?
-       AND dr.driverRequestDeletedAt IS NULL
-       AND jd.driverRequestId IS NULL
-     ORDER BY dr.driverRequestId DESC LIMIT 1`,
-    [driverUserUniqueId, journeyStatusMap.waiting],
-  );
-  if (rows.length > 0) {
-    return rows[0];
-  }
-
-  // Leftover state from before the expired-offer release fix: a `waiting`
-  // DriverRequest that already has a JourneyDecision attached. It can't be
-  // reused (JourneyDecisions.driverRequestId is UNIQUE) and the active-request
-  // unique index blocks inserting a fresh one, so every offer for this driver
-  // died with ER_DUP_ENTRY. Release it to a terminal status first, then create
-  // a clean waiting request below.
-  const [staleRows] = await executor.query(
-    `SELECT dr.driverRequestId
-     FROM DriverRequest dr
-     JOIN JourneyDecisions jd ON jd.driverRequestId = dr.driverRequestId
-     WHERE dr.userUniqueId = ? AND dr.journeyStatusId = ?
-       AND dr.driverRequestDeletedAt IS NULL
-     ORDER BY dr.driverRequestId DESC LIMIT 1`,
-    [driverUserUniqueId, journeyStatusMap.waiting],
-  );
-  if (staleRows.length > 0) {
-    await updateData({
-      tableName: "DriverRequest",
-      updateValues: {
-        journeyStatusId: journeyStatusMap.rejectedByDriver,
-        driverRequestUpdatedAt: currentDate(),
-      },
-      conditions: { driverRequestId: staleRows[0].driverRequestId },
-    });
-  }
-
-  const [orgRows] = await executor.query(
-    `SELECT queueOrganizationName, latitude, longitude
-     FROM QueueOrganization
-     WHERE queueOrganizationUniqueId = ? AND isDeleted = 0`,
-    [queueOrganizationUniqueId],
-  );
-  const org = orgRows[0] || {};
-  const driverRequestUniqueId = uuidv4();
-  const inserted = await createData({
-    tableName: "DriverRequest",
-    insertValues: {
-      driverRequestUniqueId,
-      userUniqueId: driverUserUniqueId,
-      originLatitude: org.latitude ?? 0,
-      originLongitude: org.longitude ?? 0,
-      originPlace: org.queueOrganizationName || "Queue organization",
-      journeyStatusId: journeyStatusMap.waiting,
-      driverRequestCreatedAt: currentDate(),
-    },
-  });
-  return { driverRequestId: inserted.insertId, driverRequestUniqueId };
-};
-
-
-/**
- * The engine-level offer: create a `JourneyDecision` (requested, decisionBy =
- * shipper) linking the order to the driver's request, and move the order +
- * driver request into `requested` so the existing accept/reject/timeout engine
- * takes over from here.
- */
-const createQueueOffer = async (
-  executor,
-  { shipperRequest, driverRequest, user },
-) => {
-  const journeyDecisionUniqueId = uuidv4();
-  const now = currentDate();
-  await createData({
-    tableName: "JourneyDecisions",
-    insertValues: {
-      journeyDecisionUniqueId,
-      shipperRequestId: shipperRequest.shipperRequestId,
-      driverRequestId: driverRequest.driverRequestId,
-      journeyStatusId: journeyStatusMap.requested,
-      decisionTime: now,
-      decisionBy: "queue",
-      journeyDecisionCreatedBy: user.userUniqueId,
-      journeyDecisionCreatedAt: now,
-    },
-  });
-  await updateData({
-    tableName: "ShipperRequest",
-    updateValues: {
-      journeyStatusId: journeyStatusMap.requested,
-      shipperRequestUpdatedAt: now,
-      shipperRequestUpdatedBy: user.userUniqueId,
-    },
-    conditions: { shipperRequestId: shipperRequest.shipperRequestId },
-  });
-  await updateData({
-    tableName: "DriverRequest",
-    updateValues: {
-      journeyStatusId: journeyStatusMap.requested,
-      driverRequestUpdatedAt: now,
-      driverRequestUpdatedBy: user.userUniqueId,
-    },
-    conditions: { driverRequestId: driverRequest.driverRequestId },
-  });
-  return {
-    journeyDecisionUniqueId,
-    decision: {
-      journeyDecisionUniqueId,
-      shipperRequestId: shipperRequest.shipperRequestId,
-      driverRequestId: driverRequest.driverRequestId,
-      driverRequestUniqueId: driverRequest.driverRequestUniqueId,
-      journeyStatusId: journeyStatusMap.requested,
-      decisionTime: now,
-      decisionBy: "queue",
-    },
-  };
-};
-
+const { QUEUE_OFFER_WINDOW_MINUTES } = require("./helpers");
 
 /**
  * Notify a driver of a queue order offer via socket, FCM, and SMS.
@@ -304,8 +101,6 @@ const notifyDriverOfQueueOffer = async ({
     });
   }
 };
-
-
 /**
  * Push a `queue` socket event to the SHIPPER who owns a queue order. The
  * shipper is resolved via `ShipperRequest.shipperRequestCreatedBy → Users`.
@@ -352,8 +147,6 @@ const notifyShipperOfQueueEvent = async ({
     });
   }
 };
-
-
 /**
  * Notify a shipper that a driver has reserved their queue position exclusively
  * for the shipper's orders. Best-effort: socket + FCM + SMS, failures are
@@ -442,13 +235,7 @@ const notifyShipperOfQueueReservation = async ({
   }
 };
 
-
-
 module.exports = {
-  getShipperRequest,
-  getDriverVehicle,
-  ensureWaitingDriverRequest,
-  createQueueOffer,
   notifyDriverOfQueueOffer,
   notifyShipperOfQueueEvent,
   notifyShipperOfQueueReservation,
