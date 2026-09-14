@@ -130,6 +130,7 @@ const getDetailedJourneyData = async (shipperRequests) => {
       return [];
     }
     const waitingResults = [];
+    const waitingSRs = [];
     const activeSRs = [];
 
     // --- Step 1: Pre-filter non-active PRs (no DB hit) ---
@@ -139,6 +140,7 @@ const getDetailedJourneyData = async (shipperRequests) => {
         sr.journeyStatusId === journeyStatusMap.cancelledByShipper ||
         sr.journeyStatusId === journeyStatusMap.cancelledByDriver
       ) {
+        waitingSRs.push(sr);
         waitingResults.push({
           shipperRequest: sr,
           driverRequests: [],
@@ -149,12 +151,13 @@ const getDetailedJourneyData = async (shipperRequests) => {
         activeSRs.push(sr);
       }
     }
-    if (activeSRs.length === 0) {
-      return waitingResults;
-    }
 
-    // --- Step 2: Batch fetch all active/positive decisions for all active PRs (1 query) ---
-    const srIds = activeSRs.map((sr) => sr.shipperRequestId);
+    // --- Step 2: Batch fetch all active/positive decisions for active and
+    // waiting/cancelled PRs (1 query) — cancelled orders keep their linked
+    // decisions so the shipper list can still show who was involved ---
+    const srIds = [...activeSRs, ...waitingSRs].map(
+      (sr) => sr.shipperRequestId,
+    );
     // Loading stages (5/6/7) are active decisions too — without them a request
     // mid-loading would look decision-less and get auto-corrected to waiting.
     const positiveStatuses = [
@@ -233,14 +236,39 @@ const getDetailedJourneyData = async (shipperRequests) => {
         [journeyStatusMap.waiting, staleSRIds],
       );
     }
-    if (validSRs.length === 0) {
-      return waitingResults;
+
+    // Drivers for active + waiting/cancelled PRs share one map. Waiting/
+    // cancelled drivers are fetched first (no early return when no active PRs),
+    // then Step 4 appends active drivers; Steps 5-6 derive vehicle/photo lookups
+    // from this map so both buckets get fully enriched.
+    const driversByRequestId = new Map();
+    const waitingDriverRequestIds = [
+      ...new Set(
+        waitingSRs.flatMap((sr) =>
+          (decisionsBySR.get(sr.shipperRequestId) || []).map(
+            (d) => d.driverRequestId,
+          ),
+        ),
+      ),
+    ];
+    if (waitingDriverRequestIds.length > 0) {
+      const [waitingDrivers] = await executor.query(
+        `SELECT DR.*, U.userId, U.fullName, U.phoneNumber, U.email,
+                U.userCreatedAt, U.userCreatedBy, U.userDeletedAt, U.userDeletedBy,
+                U.isDeleted
+         FROM DriverRequest DR
+         JOIN Users U ON DR.userUniqueId = U.userUniqueId
+         WHERE DR.driverRequestId IN (?)`,
+        [waitingDriverRequestIds],
+      );
+      for (const dr of waitingDrivers) {
+        driversByRequestId.set(dr.driverRequestId, dr);
+      }
     }
 
     // --- Step 4: Batch fetch all driver requests + user info (1 query) ---
     const allDriverRequestIds = allDecisions.map((d) => d.driverRequestId);
     const uniqueDriverRequestIds = [...new Set(allDriverRequestIds)];
-    let driversByRequestId = new Map();
     if (uniqueDriverRequestIds.length > 0) {
       const [allDrivers] = await executor.query(
         `SELECT DR.*, U.userId, U.fullName, U.phoneNumber, U.email,
@@ -502,7 +530,9 @@ const getDetailedJourneyData = async (shipperRequests) => {
       return { organization, entry };
     };
 
-    // Also attach queue context to the pre-filtered waiting/cancelled items.
+    // Also attach queue context + linked drivers/decisions to the waiting/cancelled
+    // items — cancelled orders keep the drivers that were involved (incl. the
+    // system/problem-solver driver that cancelled the search).
     for (const item of waitingResults) {
       const sr = item.shipperRequest;
       if (sr?.batchQueueOrganizationUniqueId) {
@@ -510,11 +540,27 @@ const getDetailedJourneyData = async (shipperRequests) => {
       } else {
         item.queue = {};
       }
+      const decisions = (decisionsBySR.get(sr.shipperRequestId) || []).filter(
+        (decision) => driversByRequestId.has(decision.driverRequestId),
+      );
+      item.decisions = decisions;
+      item.driverRequests = decisions
+        .map((decision) => {
+          const driver = driversByRequestId.get(decision.driverRequestId);
+          return {
+            ...driver,
+            vehicleOfDriver: vehiclesByDriver.get(driver.userUniqueId) || null,
+            driverProfilePhoto: photosByDriver.get(driver.userUniqueId) || null,
+          };
+        })
+        .filter(Boolean);
     }
 
     // --- Step 8: Assemble results (pure JS, no queries) ---
     const activeResults = validSRs.map((sr) => {
-      const decisions = decisionsBySR.get(sr.shipperRequestId) || [];
+      const decisions = (decisionsBySR.get(sr.shipperRequestId) || []).filter(
+        (decision) => driversByRequestId.has(decision.driverRequestId),
+      );
       const driverRequests = decisions
         .map((decision) => {
           const driver = driversByRequestId.get(decision.driverRequestId);

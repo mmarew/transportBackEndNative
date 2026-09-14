@@ -39,12 +39,21 @@ exports.createQueueOrganization = async (data) => {
   } = data;
 
   const [existing] = await db().query(
-    `SELECT queueOrganizationUniqueId, queueOrganizationName, approvalStatus
+    `SELECT queueOrganizationUniqueId, queueOrganizationName, approvalStatus, queueOrganizationCreatedBy
      FROM QueueOrganization
      WHERE queueOrganizationName = ? AND isDeleted = 0`,
     [queueOrganizationName],
   );
   if (existing.length > 0) {
+    if (existing[0].queueOrganizationCreatedBy !== createdByUserUniqueId) {
+      throw new AppError(
+        {
+          message: "A queue organization with this name already exists",
+          code: "QUEUE_ORG_NAME_TAKEN",
+        },
+        AppError.CONFLICT,
+      );
+    }
     return {
       message: "success",
       data: {
