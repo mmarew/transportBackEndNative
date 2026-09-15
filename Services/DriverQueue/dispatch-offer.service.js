@@ -367,6 +367,13 @@ const offerToDriver = async ({
     shipperRequestUniqueId,
   );
 
+  if (shipperRequest.requestMode === "company_target") {
+    throw new AppError(
+      "Company-targeted order must be assigned by the winning company's own drivers (CompanyAssignment), not by the queue",
+      AppError.CONFLICT,
+    );
+  }
+
   // Targeted dispatch identifies the driver by queue entry (or vehicle
   // assignment); when no vehicle type is passed we take it from the order and
   // the target entry/driver must still match that type.

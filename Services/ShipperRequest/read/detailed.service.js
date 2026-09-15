@@ -193,8 +193,19 @@ const getDetailedJourneyData = async (shipperRequests) => {
     for (const sr of activeSRs) {
       const decisions = decisionsBySR.get(sr.shipperRequestId) || [];
       if (decisions.length === 0) {
-        // No matching active decisions — auto-correct to waiting if not already
-        if (sr.journeyStatusId !== journeyStatusMap.waiting) {
+        // No matching active decisions — auto-correct to waiting if not already.
+        // acceptedByShipper (4) is a valid intentional state in the company-target
+        // flow: the batch was accepted but no driver assignment exists yet.
+        // Resetting it to waiting would silently drop the row from the current
+        // response (it's in activeSRs, not waitingSRs) and only reappear on the
+        // next call after the DB update.
+        const isIntentionalStatus =
+          sr.journeyStatusId === journeyStatusMap.waiting ||
+          sr.journeyStatusId === journeyStatusMap.acceptedByShipper;
+        if (isIntentionalStatus) {
+          // Keep as valid — will appear in the response with empty decisions
+          validSRs.push(sr);
+        } else {
           staleSRIds.push(sr.shipperRequestId);
         }
       } else {

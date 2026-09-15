@@ -381,6 +381,10 @@ const getShipperRequest4allOrSingleUser = async ({ data }) => {
       }
     }
 
+    // Always exclude soft-deleted requests
+    whereClause += whereClause ? " AND " : " WHERE ";
+    whereClause += " ShipperRequest.shipperRequestDeletedAt IS NULL";
+
     // Add additional filters if provided
     if (filters?.vehicleTypeUniqueId) {
       whereClause += whereClause ? " AND " : " WHERE ";

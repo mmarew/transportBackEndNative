@@ -10,6 +10,7 @@ const { db } = require("../Services/CompanyHelper.service");
 const messageTypes = require("./MessageTypes");
 const logger = require("./logger");
 const { SocketUserTypes } = require("./SocketUserTypes");
+const { usersRoles } = require("./ListOfSeedData");
 
 // Room layout:
 //   queueOrg:<queueOrganizationUniqueId>            → queue org admins (all dates)
@@ -89,6 +90,78 @@ const emitQueueSnapshot = async ({
       queueOrganizationUniqueId,
       queueDate,
     });
+  }
+};
+
+/**
+ * Live company-bid event for the queue organization that owns a batch.
+ *
+ * Fired when a company joins a queue-org job (bid submitted) or when a
+ * company is selected (bid accepted). Two delivery channels so both connected
+ * queue screens and individual staff get the live message:
+ *   1. Broadcast to the org-wide room `queueOrg:<uid>` (any client subscribed).
+ *   2. Targeted Redis push to every ACTIVE staff member (roles 11 & 12).
+ * Skips silently when the batch has no queue org.
+ */
+const emitBidEventToQueueOrg = async ({
+  queueOrganizationUniqueId,
+  messageType = "company_bid_joined",
+  message = null,
+  data = null,
+  eventName = "messages",
+}) => {
+  if (!queueOrganizationUniqueId) {
+    return { status: "success", data: "Not a queue-org job — skipped" };
+  }
+  const payload = JSON.stringify({
+    message: "success",
+    messageTypes: messageTypes[messageType] || messageTypes.company_bid_joined,
+    data,
+  });
+
+  try {
+    const io = socketIO.io;
+    if (io) {
+      io.to(orgRoom(queueOrganizationUniqueId)).emit(eventName, payload);
+    }
+
+    const [members] = await db().query(
+      `SELECT u.phoneNumber
+       FROM QueueOrganizationMembership qm
+       JOIN Users u ON qm.userUniqueId = u.userUniqueId
+       WHERE qm.queueOrganizationUniqueId = ?
+         AND qm.roleId IN (?, ?)
+         AND qm.isActive = 1
+         AND qm.membershipDeletedAt IS NULL`,
+      [queueOrganizationUniqueId,
+       usersRoles.queueOrgAdminRoleId,
+       usersRoles.queueDispatcherRoleId],
+    );
+
+    const results = [];
+    for (const member of members) {
+      const cleaned = member.phoneNumber?.replace(/\D/g, "");
+      const socketId = await getSocket(SocketUserTypes.QUEUE_ORG_ADMIN, cleaned);
+      if (!socketId) continue;
+      const res = await emitMessage({ socketId, eventName, messageDetails: payload });
+      results.push({ phoneNumber: cleaned, status: res.status });
+    }
+
+    logger.debug("emitBidEventToQueueOrg done", {
+      queueOrganizationUniqueId,
+      messageType,
+      message,
+      sockets: results.length,
+    });
+    return { status: "success", data: results };
+  } catch (error) {
+    logger.error("emitBidEventToQueueOrg failed", {
+      error: error.message,
+      stack: error.stack,
+      queueOrganizationUniqueId,
+      messageType,
+    });
+    return { status: "error", message: error.message };
   }
 };
 
@@ -260,4 +333,5 @@ module.exports = {
   emitQueueSnapshot,
   notifyQueueOrgAdmins,
   notifyQueueOrgOfLoadingStage,
+  emitBidEventToQueueOrg,
 };

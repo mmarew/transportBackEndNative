@@ -231,6 +231,21 @@ const messageTypes = {
     details:
       "When a transport company submits a bid for a freight batch, the shipper is notified.",
   },
+  company_bid_joined: {
+    message: "New bidder joined your job",
+    details:
+      "When a transport company submits a bid for a queue-org job, the queue organization staff are notified live.",
+  },
+  company_selected: {
+    message: "Company selected for your job",
+    details:
+      "When a company's offer is accepted for a queue-org job, the queue organization staff are notified live.",
+  },
+  company_bid_not_selected: {
+    message: "Your bid was not selected",
+    details:
+      "When a shipper/queue staff accepts another company's bid, the other bidding companies are notified that they were not selected.",
+  },
   company_driver_assignment: {
     message: "New freight assignment",
     details:

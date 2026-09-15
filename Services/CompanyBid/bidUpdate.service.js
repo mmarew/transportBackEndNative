@@ -559,6 +559,121 @@ const updateBidStatus = async (
     }
   }
 
+  // 🔔 Notify queue-org staff — the company was selected for their job
+  if (
+    bidStatus === "accepted_by_shipper" &&
+    batch?.queueOrganizationUniqueId
+  ) {
+    const { emitBidEventToQueueOrg } = require("../../Utils/QueueSocket");
+    emitBidEventToQueueOrg({
+      queueOrganizationUniqueId: batch.queueOrganizationUniqueId,
+      messageType: "company_selected",
+      message: "A company was selected for your job",
+      data:
+        companyBidPayload ||
+        fullBid || {
+          bidStatus,
+          companyBidRequestUniqueId,
+          shipperRequestBatchUniqueId: bid.shipperRequestBatchUniqueId,
+        },
+    }).catch((e) =>
+      logger.error("Queue-org socket emit failed in updateBidStatus", {
+        error: e.message,
+        companyBidRequestUniqueId,
+      }),
+    );
+  }
+
+  // ── Notify the bidders who were NOT selected ──────────────────────────────
+  // When a company is chosen, every other company still sitting on 'submitted'
+  // for the same batch loses. Flip their bid status (row only — the batch is
+  // already accepted, so no ShipperRequest/batch side effects) and tell them
+  // live via FCM + socket.
+  if (bidStatus === "accepted_by_shipper") {
+    try {
+      const [losers] = await db().query(
+        `SELECT companyBidRequestUniqueId, companyUniqueId, bidSubmittedByUserUniqueId
+         FROM CompanyBidRequest
+         WHERE shipperRequestBatchUniqueId = ?
+           AND companyBidRequestUniqueId != ?
+           AND bidStatus = 'submitted'
+           AND companyBidRequestDeletedAt IS NULL`,
+        [bid.shipperRequestBatchUniqueId, companyBidRequestUniqueId],
+      );
+
+      if (losers.length > 0) {
+        const now = currentDate();
+        const notSelectedNotif = {
+          title: "Bid not selected",
+          body: "The shipper selected another company for your freight. Your bid was not selected.",
+        };
+        const winnerName = fullBid?.companyName || null;
+        const winnerPgPayload =
+          companyBidPayload ||
+          fullBid || {
+            companyBidRequestUniqueId,
+            shipperRequestBatchUniqueId: bid.shipperRequestBatchUniqueId,
+          };
+
+        for (const loser of losers) {
+          await db().query(
+            `UPDATE CompanyBidRequest
+             SET bidStatus = 'rejected_by_shipper',
+                 bidStatusUpdatedAt = ?, bidStatusUpdatedBy = ?,
+                 companyBidRequestUpdatedBy = ?, companyBidRequestUpdatedAt = ?
+             WHERE companyBidRequestUniqueId = ?`,
+            [now, updatedBy, updatedBy, now, loser.companyBidRequestUniqueId],
+          );
+
+          if (loser.bidSubmittedByUserUniqueId) {
+            sendFCMNotificationToUser({
+              userUniqueId: loser.bidSubmittedByUserUniqueId,
+              roleId: usersRoles.companyAdminRoleId,
+              notification: notSelectedNotif,
+              data: {
+                type: "company_bid_not_selected",
+                companyBidRequestUniqueId: loser.companyBidRequestUniqueId,
+                shipperRequestBatchUniqueId: bid.shipperRequestBatchUniqueId,
+                selectedCompanyBidRequestUniqueId: companyBidRequestUniqueId,
+              },
+            }).catch((e) =>
+              logger.error("FCM to losing bidder failed", {
+                error: e.message,
+                companyBidRequestUniqueId: loser.companyBidRequestUniqueId,
+              }),
+            );
+          }
+
+          sendSocketIONotificationToCompany({
+            companyUniqueId: loser.companyUniqueId,
+            message: {
+              messageTypes: messageTypes.company_bid_not_selected,
+              message: "Your bid was not selected",
+              notification: notSelectedNotif,
+              data: {
+                ...winnerPgPayload,
+                companyBidRequestUniqueId: loser.companyBidRequestUniqueId,
+                bidStatus: "rejected_by_shipper",
+                selectedCompanyBidRequestUniqueId: companyBidRequestUniqueId,
+                selectedCompanyName: winnerName,
+              },
+            },
+          }).catch((e) =>
+            logger.error("Socket to losing bidder failed", {
+              error: e.message,
+              companyBidRequestUniqueId: loser.companyBidRequestUniqueId,
+            }),
+          );
+        }
+      }
+    } catch (e) {
+      logger.error("Failed to notify non-selected bidders", {
+        error: e.message,
+        companyBidRequestUniqueId,
+      });
+    }
+  }
+
   return { message: `Bid ${bidStatus.replace(/_/g, " ")}`, data: null };
 };
 

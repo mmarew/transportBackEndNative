@@ -220,6 +220,7 @@ const submitBid = async (data) => {
   );
   // ── Fetch full batch + offer data matching GET /api/company/bids shape ──
   let shipperNotifPayload = null;
+  let queueOrgForBatch = null;
   try {
     const [[batchRecord]] = await db().query(
       `SELECT b.batchUniqueId,
@@ -233,6 +234,7 @@ const submitBid = async (data) => {
               b.shippingDate AS batchShippingDate,
               b.deliveryDate AS batchDeliveryDate,
               b.journeyStatusId, b.requestMode, b.batchCreatedAt,
+              b.queueOrganizationUniqueId,
               u.fullName AS shipperName,
               vt.vehicleTypeName,
               js.journeyStatusName
@@ -275,6 +277,9 @@ const submitBid = async (data) => {
       [companyBidRequestUniqueId],
     );
 
+    if (batchRecord) {
+      queueOrgForBatch = batchRecord.queueOrganizationUniqueId || null;
+    }
     if (batchRecord && offerRecord) {
       shipperNotifPayload = {
         ...batchRecord,
@@ -343,6 +348,27 @@ const submitBid = async (data) => {
         }),
       );
     }
+  }
+
+  // 🔔 Notify queue-org staff — a bidder joined their company job
+  if (queueOrgForBatch) {
+    const { emitBidEventToQueueOrg } = require("../../Utils/QueueSocket");
+    emitBidEventToQueueOrg({
+      queueOrganizationUniqueId: queueOrgForBatch,
+      messageType: "company_bid_joined",
+      message: "A new bidder joined your job",
+      data: shipperNotifPayload || {
+        companyBidRequestUniqueId,
+        shipperRequestBatchUniqueId,
+        queueOrganizationUniqueId: queueOrgForBatch,
+        companyName: company.companyName,
+      },
+    }).catch((e) =>
+      logger.error("Queue-org socket emit failed in submitBid", {
+        error: e.message,
+        shipperRequestBatchUniqueId,
+      }),
+    );
   }
 
   return {
