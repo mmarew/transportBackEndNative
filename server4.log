@@ -1,0 +1,1198 @@
+◇ injected env (41) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+08:01:21 [[32minfo[39m]: MySQL pool created
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "host": "localhost",
+  "database": "transport",
+  "port": 8889,
+  "socketPath": "/Applications/MAMP/tmp/mysql/mysql.sock"
+}
+08:01:21 [[32minfo[39m]: Server running at:
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+08:01:21 [[32minfo[39m]:    Local:   http://localhost:3000
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+08:01:21 [[32minfo[39m]:    Network: http://192.168.101.2:3000
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+08:01:21 [[32minfo[39m]:    Env:     development
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+08:01:21 [[32minfo[39m]: Server is running on http://192.168.101.2:3000
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "port": 3000,
+  "nodeEnv": "development",
+  "pid": 17515
+}
+08:01:21 [[32minfo[39m]: Query performance monitoring initialized
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "slowQueryThreshold": "100ms",
+  "queryLoggingEnabled": true
+}
+08:01:21 [[32minfo[39m]: Starting Automatic Timeout Detection Service
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "intervalSeconds": 120,
+  "timeoutMinutes": 5,
+  "runImmediately": true
+}
+08:01:21 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+08:01:21 [[32minfo[39m]: Automatic Timeout Detection Service started
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "intervalSeconds": 120,
+  "timeoutMinutes": 5
+}
+08:01:21 [[32minfo[39m]: Telegram bot polling started (callback-query approvals)
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+08:01:21 [[32minfo[39m]: MySQL connectivity check succeeded
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+08:01:21 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+08:01:21 [[32minfo[39m]: DeliveryConfirmations schema migration ensured
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+08:01:26 [[33mwarn[39m]: Redis adapter initialization skipped - Redis unavailable (continuing in single-server mode)
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "error": "Pub client connection timeout",
+  "name": "Error"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/?target=available&companyUniqueId=39dfb215-4fea-4bab-8ff6-d0c99b3fac26',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: 'a69a351c-262b-4c78-974b-8fb18ee74826',
+  phoneNumber: '+251929257890',
+  roleId: 7,
+  iat: 1789445083
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: 'a69a351c-262b-4c78-974b-8fb18ee74826',
+  phoneNumber: '+251929257890',
+  roleId: undefined
+}
+08:01:53 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/company/bids?target=available&companyUniqueId=39dfb215-4fea-4bab-8ff6-d0c99b3fac26",
+  "statusCode": 200,
+  "responseTime": "12ms",
+  "ip": "127.0.0.1",
+  "userAgent": "PostmanRuntime/7.56.1",
+  "userId": 812,
+  "userUniqueId": "a69a351c-262b-4c78-974b-8fb18ee74826"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/?page=1&limit=10&%20shipperRequestBatchUniqueId=ef5bc758-b85f-4de6-a750-855c79643101',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: 'a69a351c-262b-4c78-974b-8fb18ee74826',
+  phoneNumber: '+251929257890',
+  roleId: 7,
+  iat: 1789445083
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: 'a69a351c-262b-4c78-974b-8fb18ee74826',
+  phoneNumber: '+251929257890',
+  roleId: undefined
+}
+08:02:05 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/company/bids?page=1&limit=10&%20shipperRequestBatchUniqueId=ef5bc758-b85f-4de6-a750-855c79643101",
+  "statusCode": 200,
+  "responseTime": "9ms",
+  "ip": "127.0.0.1",
+  "userAgent": "PostmanRuntime/7.56.1",
+  "userId": 812,
+  "userUniqueId": "a69a351c-262b-4c78-974b-8fb18ee74826"
+}
+08:02:15 [[33mwarn[39m]: @validator schema.validate failed "roleId" is required
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "method": "POST",
+  "path": "/api/user/loginUser",
+  "source": "body",
+  "details": [
+    {
+      "field": "roleId",
+      "message": "\"roleId\" is required"
+    }
+  ]
+}
+08:02:15 [[33mwarn[39m]: API Error "roleId" is required
+Error: "roleId" is required
+    at /Users/zewedu/Desktop/Projects/transportBackEndNative/Middleware/Validator.js:52:9
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:117:3)
+    at handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at /Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:295:15
+    at processParams (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:582:12)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:291:5)
+    at router.handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:186:3)
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_ERROR",
+  "code": "VALIDATION_ERROR",
+  "statusCode": 400,
+  "path": "/api/user/loginUser",
+  "method": "POST",
+  "ip": "127.0.0.1",
+  "requestId": "450e2bec-019b-4804-815f-7c8f9df9ce6f",
+  "body": {
+    "phoneNumber": "[REDACTED]"
+  },
+  "params": {},
+  "query": {}
+}
+08:02:15 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/loginUser",
+  "statusCode": 400,
+  "responseTime": "2ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node"
+}
+08:02:15 [[32minfo[39m]: Transaction committed
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "transactionId": "txn_2026-09-15 08:02:15_xo5kboef3",
+  "duration": "83ms"
+}
+08:02:15 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/verifyUserByOTP",
+  "statusCode": 200,
+  "responseTime": "84ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node"
+}
+[VerifyToken] Request: {
+  method: 'POST',
+  url: '/api/shipperRequest/createRequest',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '45eed220-69e1-45f6-a971-9ee49d38b8e4',
+  phoneNumber: '+251949293069',
+  roleId: 11,
+  iat: 1789448535
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '45eed220-69e1-45f6-a971-9ee49d38b8e4',
+  phoneNumber: '+251949293069',
+  roleId: undefined
+}
+08:02:16 [[32minfo[39m]: Transaction committed
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "transactionId": "txn_2026-09-15 08:02:15_eazvssby5",
+  "duration": "395ms"
+}
+08:02:16 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/shipperRequest/createRequest",
+  "statusCode": 200,
+  "responseTime": "398ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node",
+  "userId": 413,
+  "userUniqueId": "45eed220-69e1-45f6-a971-9ee49d38b8e4"
+}
+08:02:16 [[32minfo[39m]: Telegram message sent
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "messageId": 2026
+}
+08:03:17 [[33mwarn[39m]: @validator schema.validate failed "roleId" is required
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "method": "POST",
+  "path": "/api/user/loginUser",
+  "source": "body",
+  "details": [
+    {
+      "field": "roleId",
+      "message": "\"roleId\" is required"
+    }
+  ]
+}
+08:03:17 [[33mwarn[39m]: API Error "roleId" is required
+Error: "roleId" is required
+    at /Users/zewedu/Desktop/Projects/transportBackEndNative/Middleware/Validator.js:52:9
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:117:3)
+    at handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at /Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:295:15
+    at processParams (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:582:12)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:291:5)
+    at router.handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:186:3)
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_ERROR",
+  "code": "VALIDATION_ERROR",
+  "statusCode": 400,
+  "path": "/api/user/loginUser",
+  "method": "POST",
+  "ip": "127.0.0.1",
+  "requestId": "cbb283cc-9b7a-4c39-82f2-a3b19b53af3f",
+  "body": {
+    "phoneNumber": "[REDACTED]"
+  },
+  "params": {},
+  "query": {}
+}
+08:03:17 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/loginUser",
+  "statusCode": 400,
+  "responseTime": "2ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node"
+}
+08:03:17 [[32minfo[39m]: Transaction committed
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "transactionId": "txn_2026-09-15 08:03:17_omlo8v94e",
+  "duration": "74ms"
+}
+08:03:17 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/verifyUserByOTP",
+  "statusCode": 200,
+  "responseTime": "77ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node"
+}
+08:03:17 [[33mwarn[39m]: @validator schema.validate failed "roleId" is required
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "method": "POST",
+  "path": "/api/user/loginUser",
+  "source": "body",
+  "details": [
+    {
+      "field": "roleId",
+      "message": "\"roleId\" is required"
+    }
+  ]
+}
+08:03:17 [[33mwarn[39m]: API Error "roleId" is required
+Error: "roleId" is required
+    at /Users/zewedu/Desktop/Projects/transportBackEndNative/Middleware/Validator.js:52:9
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:117:3)
+    at handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at /Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:295:15
+    at processParams (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:582:12)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:291:5)
+    at router.handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:186:3)
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_ERROR",
+  "code": "VALIDATION_ERROR",
+  "statusCode": 400,
+  "path": "/api/user/loginUser",
+  "method": "POST",
+  "ip": "127.0.0.1",
+  "requestId": "43753268-63a9-4a5d-ab88-65842b1fffa0",
+  "body": {
+    "phoneNumber": "[REDACTED]"
+  },
+  "params": {},
+  "query": {}
+}
+08:03:17 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/loginUser",
+  "statusCode": 400,
+  "responseTime": "1ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node"
+}
+08:03:17 [[32minfo[39m]: Transaction committed
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "transactionId": "txn_2026-09-15 08:03:17_3ap04ucet",
+  "duration": "73ms"
+}
+08:03:17 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/verifyUserByOTP",
+  "statusCode": 200,
+  "responseTime": "73ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/?batchUniqueId=22128489-f42a-44d9-ae88-d4e245faa8e3',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '45eed220-69e1-45f6-a971-9ee49d38b8e4',
+  phoneNumber: '+251949293069',
+  roleId: 11,
+  iat: 1789448597
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '45eed220-69e1-45f6-a971-9ee49d38b8e4',
+  phoneNumber: '+251949293069',
+  roleId: undefined
+}
+08:03:17 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/company/bids?batchUniqueId=22128489-f42a-44d9-ae88-d4e245faa8e3",
+  "statusCode": 200,
+  "responseTime": "3ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node",
+  "userId": 413,
+  "userUniqueId": "45eed220-69e1-45f6-a971-9ee49d38b8e4"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/?batchUniqueId=22128489-f42a-44d9-ae88-d4e245faa8e3&includeBids=true',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '45eed220-69e1-45f6-a971-9ee49d38b8e4',
+  phoneNumber: '+251949293069',
+  roleId: 11,
+  iat: 1789448597
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '45eed220-69e1-45f6-a971-9ee49d38b8e4',
+  phoneNumber: '+251949293069',
+  roleId: undefined
+}
+08:03:17 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/shipperRequestBatch?batchUniqueId=22128489-f42a-44d9-ae88-d4e245faa8e3&includeBids=true",
+  "statusCode": 200,
+  "responseTime": "5ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node",
+  "userId": 413,
+  "userUniqueId": "45eed220-69e1-45f6-a971-9ee49d38b8e4"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/?batchUniqueId=6113caae-330f-4091-9ed5-234123943034',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '45eed220-69e1-45f6-a971-9ee49d38b8e4',
+  phoneNumber: '+251949293069',
+  roleId: 11,
+  iat: 1789448597
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '45eed220-69e1-45f6-a971-9ee49d38b8e4',
+  phoneNumber: '+251949293069',
+  roleId: undefined
+}
+08:03:17 [[33mwarn[39m]: API Error You are not an active member of this queue organization
+Error: You are not an active member of this queue organization
+    at resolveQueueStaffOrgScope (/Users/zewedu/Desktop/Projects/transportBackEndNative/Services/QueueOrganization/helpers.js:55:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Object.getBids (/Users/zewedu/Desktop/Projects/transportBackEndNative/Services/CompanyBid/bidRead.service.js:519:41)
+    at async exports.getBids (/Users/zewedu/Desktop/Projects/transportBackEndNative/Controllers/CompanyBid.controller.js:25:7)
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_ERROR",
+  "statusCode": 403,
+  "path": "/api/company/bids?batchUniqueId=6113caae-330f-4091-9ed5-234123943034",
+  "method": "GET",
+  "ip": "127.0.0.1",
+  "requestId": "5624106c-57eb-4031-9581-2d56f11433e0",
+  "userId": 413,
+  "userUniqueId": "45eed220-69e1-45f6-a971-9ee49d38b8e4",
+  "params": {},
+  "query": {
+    "batchUniqueId": "6113caae-330f-4091-9ed5-234123943034",
+    "target": "grouped",
+    "page": 1,
+    "limit": 10,
+    "shipperRequestBatchUniqueId": "6113caae-330f-4091-9ed5-234123943034"
+  }
+}
+08:03:17 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/company/bids?batchUniqueId=6113caae-330f-4091-9ed5-234123943034",
+  "statusCode": 403,
+  "responseTime": "2ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node",
+  "userId": 413,
+  "userUniqueId": "45eed220-69e1-45f6-a971-9ee49d38b8e4"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/?batchUniqueId=6113caae-330f-4091-9ed5-234123943034',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '45eed220-69e1-45f6-a971-9ee49d38b8e4',
+  phoneNumber: '+251949293069',
+  roleId: 11,
+  iat: 1789448597
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '45eed220-69e1-45f6-a971-9ee49d38b8e4',
+  phoneNumber: '+251949293069',
+  roleId: undefined
+}
+08:03:17 [[33mwarn[39m]: API Error You are not an active member of this queue organization
+Error: You are not an active member of this queue organization
+    at resolveQueueStaffOrgScope (/Users/zewedu/Desktop/Projects/transportBackEndNative/Services/QueueOrganization/helpers.js:55:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async exports.getBatches (/Users/zewedu/Desktop/Projects/transportBackEndNative/Controllers/ShipperRequestBatch.controller.js:58:43)
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_ERROR",
+  "statusCode": 403,
+  "path": "/api/shipperRequestBatch?batchUniqueId=6113caae-330f-4091-9ed5-234123943034",
+  "method": "GET",
+  "ip": "127.0.0.1",
+  "requestId": "dfffe10c-dbc7-4f8b-8976-29c73afe4478",
+  "userId": 413,
+  "userUniqueId": "45eed220-69e1-45f6-a971-9ee49d38b8e4",
+  "params": {},
+  "query": {
+    "batchUniqueId": "6113caae-330f-4091-9ed5-234123943034",
+    "page": 1,
+    "limit": 10
+  }
+}
+08:03:17 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/shipperRequestBatch?batchUniqueId=6113caae-330f-4091-9ed5-234123943034",
+  "statusCode": 403,
+  "responseTime": "2ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node",
+  "userId": 413,
+  "userUniqueId": "45eed220-69e1-45f6-a971-9ee49d38b8e4"
+}
+[VerifyToken] Request: { method: 'GET', url: '/?page=1&limit=10', hasAuth: true }
+[VerifyToken] Token decoded: {
+  userUniqueId: '45eed220-69e1-45f6-a971-9ee49d38b8e4',
+  phoneNumber: '+251949293069',
+  roleId: 11,
+  iat: 1789448597
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '45eed220-69e1-45f6-a971-9ee49d38b8e4',
+  phoneNumber: '+251949293069',
+  roleId: undefined
+}
+08:03:17 [[33mwarn[39m]: API Error You belong to multiple queue organizations. Please provide queueOrganizationUniqueId to specify which queue organization you are fetching data for.
+Error: You belong to multiple queue organizations. Please provide queueOrganizationUniqueId to specify which queue organization you are fetching data for.
+    at resolveQueueStaffOrgScope (/Users/zewedu/Desktop/Projects/transportBackEndNative/Services/QueueOrganization/helpers.js:67:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Object.getBids (/Users/zewedu/Desktop/Projects/transportBackEndNative/Services/CompanyBid/bidRead.service.js:519:41)
+    at async exports.getBids (/Users/zewedu/Desktop/Projects/transportBackEndNative/Controllers/CompanyBid.controller.js:25:7)
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_ERROR",
+  "statusCode": 400,
+  "path": "/api/company/bids?page=1&limit=10",
+  "method": "GET",
+  "ip": "127.0.0.1",
+  "requestId": "f389e667-e31e-4e26-ba73-5c97608e62d9",
+  "userId": 413,
+  "userUniqueId": "45eed220-69e1-45f6-a971-9ee49d38b8e4",
+  "params": {},
+  "query": {
+    "page": 1,
+    "limit": 10,
+    "target": "grouped"
+  }
+}
+08:03:17 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/company/bids?page=1&limit=10",
+  "statusCode": 400,
+  "responseTime": "2ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node",
+  "userId": 413,
+  "userUniqueId": "45eed220-69e1-45f6-a971-9ee49d38b8e4"
+}
+[VerifyToken] Request: { method: 'GET', url: '/?page=1&limit=10', hasAuth: true }
+[VerifyToken] Token decoded: {
+  userUniqueId: '55547eed-e853-44af-8e46-682cae46b000',
+  phoneNumber: '+251911889404',
+  roleId: 11,
+  iat: 1789448597
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '55547eed-e853-44af-8e46-682cae46b000',
+  phoneNumber: '+251911889404',
+  roleId: undefined
+}
+08:03:17 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/company/bids?page=1&limit=10",
+  "statusCode": 200,
+  "responseTime": "4ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node",
+  "userId": 3,
+  "userUniqueId": "55547eed-e853-44af-8e46-682cae46b000"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/?batchUniqueId=22128489-f42a-44d9-ae88-d4e245faa8e3',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '55547eed-e853-44af-8e46-682cae46b000',
+  phoneNumber: '+251911889404',
+  roleId: 11,
+  iat: 1789448597
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '55547eed-e853-44af-8e46-682cae46b000',
+  phoneNumber: '+251911889404',
+  roleId: undefined
+}
+08:03:17 [[33mwarn[39m]: API Error You are not an active member of this queue organization
+Error: You are not an active member of this queue organization
+    at resolveQueueStaffOrgScope (/Users/zewedu/Desktop/Projects/transportBackEndNative/Services/QueueOrganization/helpers.js:55:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async exports.getBatches (/Users/zewedu/Desktop/Projects/transportBackEndNative/Controllers/ShipperRequestBatch.controller.js:58:43)
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_ERROR",
+  "statusCode": 403,
+  "path": "/api/shipperRequestBatch?batchUniqueId=22128489-f42a-44d9-ae88-d4e245faa8e3",
+  "method": "GET",
+  "ip": "127.0.0.1",
+  "requestId": "4d7211f4-3214-4e59-8342-9e0b2b30da57",
+  "userId": 3,
+  "userUniqueId": "55547eed-e853-44af-8e46-682cae46b000",
+  "params": {},
+  "query": {
+    "batchUniqueId": "22128489-f42a-44d9-ae88-d4e245faa8e3",
+    "page": 1,
+    "limit": 10
+  }
+}
+08:03:17 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/shipperRequestBatch?batchUniqueId=22128489-f42a-44d9-ae88-d4e245faa8e3",
+  "statusCode": 403,
+  "responseTime": "2ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node",
+  "userId": 3,
+  "userUniqueId": "55547eed-e853-44af-8e46-682cae46b000"
+}
+08:03:21 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+08:03:21 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+08:04:03 [[33mwarn[39m]: @validator schema.validate failed "roleId" is required
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "method": "POST",
+  "path": "/api/user/loginUser",
+  "source": "body",
+  "details": [
+    {
+      "field": "roleId",
+      "message": "\"roleId\" is required"
+    }
+  ]
+}
+08:04:03 [[33mwarn[39m]: API Error "roleId" is required
+Error: "roleId" is required
+    at /Users/zewedu/Desktop/Projects/transportBackEndNative/Middleware/Validator.js:52:9
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:117:3)
+    at handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at /Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:295:15
+    at processParams (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:582:12)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:291:5)
+    at router.handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:186:3)
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_ERROR",
+  "code": "VALIDATION_ERROR",
+  "statusCode": 400,
+  "path": "/api/user/loginUser",
+  "method": "POST",
+  "ip": "127.0.0.1",
+  "requestId": "df2ee5b0-cb25-4ca3-84d4-bf108fec889f",
+  "body": {
+    "phoneNumber": "[REDACTED]"
+  },
+  "params": {},
+  "query": {}
+}
+08:04:03 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/loginUser",
+  "statusCode": 400,
+  "responseTime": "4ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node"
+}
+08:04:03 [[32minfo[39m]: Transaction committed
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "transactionId": "txn_2026-09-15 08:04:03_baol8owrn",
+  "duration": "83ms"
+}
+08:04:03 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/verifyUserByOTP",
+  "statusCode": 200,
+  "responseTime": "83ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node"
+}
+08:04:03 [[33mwarn[39m]: @validator schema.validate failed "roleId" is required
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "method": "POST",
+  "path": "/api/user/loginUser",
+  "source": "body",
+  "details": [
+    {
+      "field": "roleId",
+      "message": "\"roleId\" is required"
+    }
+  ]
+}
+08:04:03 [[33mwarn[39m]: API Error "roleId" is required
+Error: "roleId" is required
+    at /Users/zewedu/Desktop/Projects/transportBackEndNative/Middleware/Validator.js:52:9
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/route.js:117:3)
+    at handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/lib/layer.js:152:17)
+    at /Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:295:15
+    at processParams (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:582:12)
+    at next (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:291:5)
+    at router.handle (/Users/zewedu/Desktop/Projects/transportBackEndNative/node_modules/router/index.js:186:3)
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_ERROR",
+  "code": "VALIDATION_ERROR",
+  "statusCode": 400,
+  "path": "/api/user/loginUser",
+  "method": "POST",
+  "ip": "127.0.0.1",
+  "requestId": "dd2cf96f-7e03-4735-80c1-db15f793a28f",
+  "body": {
+    "phoneNumber": "[REDACTED]"
+  },
+  "params": {},
+  "query": {}
+}
+08:04:03 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/loginUser",
+  "statusCode": 400,
+  "responseTime": "1ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node"
+}
+08:04:03 [[32minfo[39m]: Transaction committed
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "transactionId": "txn_2026-09-15 08:04:03_5g52kwwii",
+  "duration": "73ms"
+}
+08:04:03 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "POST",
+  "url": "/api/user/verifyUserByOTP",
+  "statusCode": 200,
+  "responseTime": "73ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/?batchUniqueId=22128489-f42a-44d9-ae88-d4e245faa8e3',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '45eed220-69e1-45f6-a971-9ee49d38b8e4',
+  phoneNumber: '+251949293069',
+  roleId: 11,
+  iat: 1789448643
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '45eed220-69e1-45f6-a971-9ee49d38b8e4',
+  phoneNumber: '+251949293069',
+  roleId: undefined
+}
+08:04:03 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/company/bids?batchUniqueId=22128489-f42a-44d9-ae88-d4e245faa8e3",
+  "statusCode": 200,
+  "responseTime": "2ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node",
+  "userId": 413,
+  "userUniqueId": "45eed220-69e1-45f6-a971-9ee49d38b8e4"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/?batchUniqueId=22128489-f42a-44d9-ae88-d4e245faa8e3&includeBids=true',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '45eed220-69e1-45f6-a971-9ee49d38b8e4',
+  phoneNumber: '+251949293069',
+  roleId: 11,
+  iat: 1789448643
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '45eed220-69e1-45f6-a971-9ee49d38b8e4',
+  phoneNumber: '+251949293069',
+  roleId: undefined
+}
+08:04:03 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/shipperRequestBatch?batchUniqueId=22128489-f42a-44d9-ae88-d4e245faa8e3&includeBids=true",
+  "statusCode": 200,
+  "responseTime": "2ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node",
+  "userId": 413,
+  "userUniqueId": "45eed220-69e1-45f6-a971-9ee49d38b8e4"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/?batchUniqueId=6113caae-330f-4091-9ed5-234123943034',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '45eed220-69e1-45f6-a971-9ee49d38b8e4',
+  phoneNumber: '+251949293069',
+  roleId: 11,
+  iat: 1789448643
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '45eed220-69e1-45f6-a971-9ee49d38b8e4',
+  phoneNumber: '+251949293069',
+  roleId: undefined
+}
+08:04:03 [[33mwarn[39m]: API Error You are not an active member of this queue organization
+Error: You are not an active member of this queue organization
+    at resolveQueueStaffOrgScope (/Users/zewedu/Desktop/Projects/transportBackEndNative/Services/QueueOrganization/helpers.js:55:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Object.getBids (/Users/zewedu/Desktop/Projects/transportBackEndNative/Services/CompanyBid/bidRead.service.js:519:41)
+    at async exports.getBids (/Users/zewedu/Desktop/Projects/transportBackEndNative/Controllers/CompanyBid.controller.js:25:7)
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_ERROR",
+  "statusCode": 403,
+  "path": "/api/company/bids?batchUniqueId=6113caae-330f-4091-9ed5-234123943034",
+  "method": "GET",
+  "ip": "127.0.0.1",
+  "requestId": "e18b1031-14bc-427e-b9e9-136be9679071",
+  "userId": 413,
+  "userUniqueId": "45eed220-69e1-45f6-a971-9ee49d38b8e4",
+  "params": {},
+  "query": {
+    "batchUniqueId": "6113caae-330f-4091-9ed5-234123943034",
+    "target": "grouped",
+    "page": 1,
+    "limit": 10,
+    "shipperRequestBatchUniqueId": "6113caae-330f-4091-9ed5-234123943034"
+  }
+}
+08:04:03 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/company/bids?batchUniqueId=6113caae-330f-4091-9ed5-234123943034",
+  "statusCode": 403,
+  "responseTime": "1ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node",
+  "userId": 413,
+  "userUniqueId": "45eed220-69e1-45f6-a971-9ee49d38b8e4"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/?batchUniqueId=6113caae-330f-4091-9ed5-234123943034',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '45eed220-69e1-45f6-a971-9ee49d38b8e4',
+  phoneNumber: '+251949293069',
+  roleId: 11,
+  iat: 1789448643
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '45eed220-69e1-45f6-a971-9ee49d38b8e4',
+  phoneNumber: '+251949293069',
+  roleId: undefined
+}
+08:04:03 [[33mwarn[39m]: API Error You are not an active member of this queue organization
+Error: You are not an active member of this queue organization
+    at resolveQueueStaffOrgScope (/Users/zewedu/Desktop/Projects/transportBackEndNative/Services/QueueOrganization/helpers.js:55:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async exports.getBatches (/Users/zewedu/Desktop/Projects/transportBackEndNative/Controllers/ShipperRequestBatch.controller.js:58:43)
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_ERROR",
+  "statusCode": 403,
+  "path": "/api/shipperRequestBatch?batchUniqueId=6113caae-330f-4091-9ed5-234123943034",
+  "method": "GET",
+  "ip": "127.0.0.1",
+  "requestId": "b89ea748-6988-4357-9d1b-d73c5eceb30c",
+  "userId": 413,
+  "userUniqueId": "45eed220-69e1-45f6-a971-9ee49d38b8e4",
+  "params": {},
+  "query": {
+    "batchUniqueId": "6113caae-330f-4091-9ed5-234123943034",
+    "page": 1,
+    "limit": 10
+  }
+}
+08:04:03 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/shipperRequestBatch?batchUniqueId=6113caae-330f-4091-9ed5-234123943034",
+  "statusCode": 403,
+  "responseTime": "2ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node",
+  "userId": 413,
+  "userUniqueId": "45eed220-69e1-45f6-a971-9ee49d38b8e4"
+}
+[VerifyToken] Request: { method: 'GET', url: '/?page=1&limit=10', hasAuth: true }
+[VerifyToken] Token decoded: {
+  userUniqueId: '45eed220-69e1-45f6-a971-9ee49d38b8e4',
+  phoneNumber: '+251949293069',
+  roleId: 11,
+  iat: 1789448643
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '45eed220-69e1-45f6-a971-9ee49d38b8e4',
+  phoneNumber: '+251949293069',
+  roleId: undefined
+}
+08:04:03 [[33mwarn[39m]: API Error You belong to multiple queue organizations. Please provide queueOrganizationUniqueId to specify which queue organization you are fetching data for.
+Error: You belong to multiple queue organizations. Please provide queueOrganizationUniqueId to specify which queue organization you are fetching data for.
+    at resolveQueueStaffOrgScope (/Users/zewedu/Desktop/Projects/transportBackEndNative/Services/QueueOrganization/helpers.js:67:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Object.getBids (/Users/zewedu/Desktop/Projects/transportBackEndNative/Services/CompanyBid/bidRead.service.js:519:41)
+    at async exports.getBids (/Users/zewedu/Desktop/Projects/transportBackEndNative/Controllers/CompanyBid.controller.js:25:7)
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_ERROR",
+  "statusCode": 400,
+  "path": "/api/company/bids?page=1&limit=10",
+  "method": "GET",
+  "ip": "127.0.0.1",
+  "requestId": "f01e8956-123f-46b1-a5bd-5090bef93354",
+  "userId": 413,
+  "userUniqueId": "45eed220-69e1-45f6-a971-9ee49d38b8e4",
+  "params": {},
+  "query": {
+    "page": 1,
+    "limit": 10,
+    "target": "grouped"
+  }
+}
+08:04:03 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/company/bids?page=1&limit=10",
+  "statusCode": 400,
+  "responseTime": "2ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node",
+  "userId": 413,
+  "userUniqueId": "45eed220-69e1-45f6-a971-9ee49d38b8e4"
+}
+[VerifyToken] Request: { method: 'GET', url: '/?page=1&limit=10', hasAuth: true }
+[VerifyToken] Token decoded: {
+  userUniqueId: '55547eed-e853-44af-8e46-682cae46b000',
+  phoneNumber: '+251911889404',
+  roleId: 11,
+  iat: 1789448643
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '55547eed-e853-44af-8e46-682cae46b000',
+  phoneNumber: '+251911889404',
+  roleId: undefined
+}
+08:04:03 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/company/bids?page=1&limit=10",
+  "statusCode": 200,
+  "responseTime": "3ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node",
+  "userId": 3,
+  "userUniqueId": "55547eed-e853-44af-8e46-682cae46b000"
+}
+[VerifyToken] Request: {
+  method: 'GET',
+  url: '/?batchUniqueId=ef5bc758-b85f-4de6-a750-855c79643113',
+  hasAuth: true
+}
+[VerifyToken] Token decoded: {
+  userUniqueId: '55547eed-e853-44af-8e46-682cae46b000',
+  phoneNumber: '+251911889404',
+  roleId: 11,
+  iat: 1789448643
+}
+[VerifyToken] User authenticated: {
+  userUniqueId: '55547eed-e853-44af-8e46-682cae46b000',
+  phoneNumber: '+251911889404',
+  roleId: undefined
+}
+08:04:03 [[32minfo[39m]: API Request
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "type": "API_REQUEST",
+  "method": "GET",
+  "url": "/api/shipperRequestBatch?batchUniqueId=ef5bc758-b85f-4de6-a750-855c79643113",
+  "statusCode": 200,
+  "responseTime": "1ms",
+  "ip": "127.0.0.1",
+  "userAgent": "node",
+  "userId": 3,
+  "userUniqueId": "55547eed-e853-44af-8e46-682cae46b000"
+}
+08:05:21 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+08:05:21 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+08:07:21 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+08:07:21 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+08:09:21 [[32minfo[39m]: Starting automatic timeout check
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "timeoutMinutes": 5
+}
+08:09:21 [[32minfo[39m]: No timed-out driver requests found
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+08:10:05 [[32minfo[39m]: Received SIGTERM, shutting down gracefully...
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+08:10:05 [[32minfo[39m]: Automatic Timeout Detection Service stopped
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+08:10:05 [[32minfo[39m]: Telegram bot polling stopped
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+08:10:05 [[32minfo[39m]: HTTP server closed
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}

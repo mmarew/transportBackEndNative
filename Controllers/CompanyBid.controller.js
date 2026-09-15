@@ -36,6 +36,7 @@ exports.updateBidStatus = async (req, res, next) => {
         req.params.companyBidRequestUniqueId,
         req.body.bidStatus,
         req.user.userUniqueId,
+        req.user.roleId,
       ),
     );
     ServerResponder(res, result);

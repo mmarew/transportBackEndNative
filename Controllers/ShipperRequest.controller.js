@@ -190,6 +190,19 @@ const getShipperRequest4allOrSingleUser = async (req, res, next) => {
       filters.journeyStatusIds = journeyStatusIds;
     }
 
+    const { resolveQueueStaffOrgScope } = require("../Services/QueueOrganization/helpers");
+    // Queue staff (11/12) operate inside exactly ONE queue org at a time —
+    // resolve it here so the service scopes to a single org, never a union.
+    if (
+      req.user.roleId === usersRoles.queueOrgAdminRoleId ||
+      req.user.roleId === usersRoles.queueDispatcherRoleId
+    ) {
+      filters.queueOrganizationUniqueId = await resolveQueueStaffOrgScope(
+        req.user.userUniqueId,
+        filters.queueOrganizationUniqueId,
+      );
+    }
+
     const data = {
       filters,
       userUniqueId:
@@ -235,12 +248,30 @@ const deleteRequest = async (req, res, next) => {
 const verifyShipperStatus = async (req, res, next) => {
   try {
     const { pageSize, page, queueOrganizationUniqueId } = req?.query || {};
-    const { userUniqueId } = req?.user ?? {};
+    const { userUniqueId, roleId } = req?.user ?? {};
+
+    // Queue staff (11/12): operate inside exactly ONE queue org at a time.
+    // Resolve it (single membership auto-resolves, 2+ requires the org param,
+    // non-member / no-membership are rejected). Only then pass it to the
+    // service so the active-request/count queries scope to that exact org.
+    let resolvedOrg = queueOrganizationUniqueId;
+    if (
+      roleId === usersRoles.queueOrgAdminRoleId ||
+      roleId === usersRoles.queueDispatcherRoleId
+    ) {
+      const { resolveQueueStaffOrgScope } = require("../Services/QueueOrganization/helpers");
+      resolvedOrg = await resolveQueueStaffOrgScope(
+        userUniqueId,
+        queueOrganizationUniqueId,
+      );
+    }
+
     const result = await ShipperService.verifyShipperStatus({
       userUniqueId,
+      roleId,
       pageSize,
       page,
-      queueOrganizationUniqueId,
+      queueOrganizationUniqueId: resolvedOrg,
       sendNotificationsToDrivers: true,
     });
     ServerResponder(res, result, HTTP_STATUS.OK);

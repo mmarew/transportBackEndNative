@@ -539,6 +539,13 @@ CREATE TABLE IF NOT EXISTS ShipperRequestBatch (
     -- or shipper submits formal POD. Set at batch creation, immutable after.
     isPodRequired BOOLEAN NOT NULL DEFAULT TRUE,
 
+    -- Audit: who created this batch (shipper, admin, company admin, or queue staff).
+    -- Stored at creation time from shipperRequestCreatedBy / shipperRequestCreatedByRoleId.
+    -- These are AUDIT mextadata only — access scoping for queue staff is by org
+    -- membership (QueueOrganizationMembership), NOT by this column.
+    batchCreatedBy VARCHAR(36) NULL DEFAULT NULL,          -- FK → Users (userUniqueId of the creator)
+    batchCreatedByRoleId INT NULL DEFAULT NULL,            -- FK → Roles (creator's roleId: 1=shipper, 3=admin, 7=companyAdmin, 11=queueOrgAdmin, 12=queueDispatcher)
+
     journeyStatusId INT NOT NULL DEFAULT 1,                -- FK → JourneyStatus
     batchCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     batchUpdatedAt DATETIME NULL,
@@ -548,9 +555,12 @@ CREATE TABLE IF NOT EXISTS ShipperRequestBatch (
     INDEX idx_batch_status (journeyStatusId),
     INDEX idx_batch_mode (requestMode),
     INDEX idx_batch_queue_org (queueOrganizationUniqueId),
+    INDEX idx_batch_created_by (batchCreatedBy),
     FOREIGN KEY (shipperUserUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId),
-    FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
+    FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId),
+    FOREIGN KEY (batchCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (batchCreatedByRoleId) REFERENCES Roles(roleId)
     -- NOTE: queueOrganizationUniqueId FK deliberately NOT declared inline here —
     -- QueueOrganization is created LATER in this schema (line ~2081), so an inline
     -- FK would fail a fresh run with ER_FK_CANNOT_OPEN_PARENT (1824). The FK is

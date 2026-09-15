@@ -56,6 +56,7 @@ const verifyShipperStatus = async ({
   pageSize,
   page,
   queueOrganizationUniqueId,
+  roleId,
 }) => {
   try {
     // 1. Check if the user has an active request (status 1, 2, 3, 4, 5, 6)
@@ -65,6 +66,7 @@ const verifyShipperStatus = async ({
         pageSize,
         page,
         queueOrganizationUniqueId,
+        roleId,
       });
 
       activeRequest = dataOfActiveRequest?.activeRequests;

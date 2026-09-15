@@ -1,7 +1,7 @@
 const AppError = require("../../Utils/AppError");
 const { transactionStorage } = require("../../Utils/TransactionContext");
 const { pool } = require("../../Middleware/Database.config");
-const { journeyStatusMap } = require("../../Utils/ListOfSeedData");
+const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
 const { performJoinSelect } = require("./ReadData.core");
 
 const getShipperRequestByRequestUniqueId = async (shipperRequestUniqueId) => {
@@ -29,6 +29,7 @@ const checkActiveShipperRequest = async ({
   pageSize = 10,
   connection = null,
   queueOrganizationUniqueId = null,
+  roleId = null,
 }) => {
   const offset = (page - 1) * pageSize;
   // Active pipeline: waiting → requested → acceptedByDriver → acceptedByShipper
@@ -44,6 +45,32 @@ const checkActiveShipperRequest = async ({
     journeyStatusMap.loaded, //7
     journeyStatusMap.journeyStarted, //8
   ];
+
+  const isQueueStaff =
+    roleId === usersRoles.queueOrgAdminRoleId ||
+    roleId === usersRoles.queueDispatcherRoleId;
+
+  // Determine the WHERE clause to scope active requests.
+  // - Queue staff (11/12): operate inside exactly ONE queue org at a time — the
+  //   controller resolves and passes an exact queueOrganizationUniqueId (single
+  //   membership auto-resolves; 2+ memberships require the param). Require it
+  //   here too so a direct service call cannot fall back to a union of orgs.
+  // - Everyone else: scope to their own ShipperRequest.userUniqueId.
+  let scopeWhere;
+  let scopeParams;
+  if (isQueueStaff) {
+    if (!queueOrganizationUniqueId) {
+      throw new AppError(
+        "queueOrganizationUniqueId is required for queue staff",
+        AppError.BAD_REQUEST,
+      );
+    }
+    scopeWhere = "srb.queueOrganizationUniqueId = ?";
+    scopeParams = [queueOrganizationUniqueId];
+  } else {
+    scopeWhere = "sr.userUniqueId = ?";
+    scopeParams = [userUniqueId];
+  }
 
   const query = `
     SELECT 
@@ -81,7 +108,7 @@ const checkActiveShipperRequest = async ({
     LEFT JOIN JourneyDecisions jd ON sr.shipperRequestId = jd.shipperRequestId
     -- queueOrganizationUniqueId is canonical on the batch (srb), inherited via join
     LEFT JOIN ShipperRequestBatch srb ON srb.batchUniqueId = sr.shipperRequestBatchUniqueId
-    WHERE ${queueOrganizationUniqueId ? "srb.queueOrganizationUniqueId = ?" : "sr.userUniqueId = ?"}
+    WHERE ${scopeWhere}
     AND (
       sr.journeyStatusId IN (?,?,?,?,?,?,?,?) 
       OR (sr.isCompletionSeen = ? AND sr.journeyStatusId = ?)
@@ -99,7 +126,7 @@ const checkActiveShipperRequest = async ({
     journeyStatusMap?.journeyCompleted, // for CASE
     journeyStatusMap?.cancelledByDriver, // for CASE
     "not seen by shipper yet", // for CASE
-    queueOrganizationUniqueId || userUniqueId,
+    ...scopeParams,
     ...activeJourneyStatuses,
     false,
     journeyStatusMap?.journeyCompleted,
@@ -112,7 +139,7 @@ const checkActiveShipperRequest = async ({
   const queryExecutor = transactionStorage.getStore() || connection || pool;
   const [activeRequests, totalRecords] = await Promise.all([
     queryExecutor?.query?.(query, values),
-    getActiveRequestsCount(userUniqueId, connection, queueOrganizationUniqueId),
+    getActiveRequestsCount(userUniqueId, connection, queueOrganizationUniqueId, roleId),
   ]);
 
   return { activeRequests: activeRequests?.[0], totalRecords };
@@ -122,10 +149,41 @@ const getActiveRequestsCount = async (
   userUniqueId,
   connection = null,
   queueOrganizationUniqueId = null,
+  roleId = null,
 ) => {
   // ── Part 1: Individual-level counts from ShipperRequest ────────────────
   // Only count INDIVIDUAL (non-company_target) requests here.
   // Company counts come entirely from the ShipperRequestBatch query (Part 2).
+  const isQueueStaff =
+    roleId === usersRoles.queueOrgAdminRoleId ||
+    roleId === usersRoles.queueDispatcherRoleId;
+
+  let scopeWhere;
+  let scopeParams;
+  if (isQueueStaff) {
+    if (!queueOrganizationUniqueId) {
+      throw new AppError(
+        "queueOrganizationUniqueId is required for queue staff",
+        AppError.BAD_REQUEST,
+      );
+    }
+    scopeWhere = "srb.queueOrganizationUniqueId = ?";
+    scopeParams = [queueOrganizationUniqueId];
+  } else {
+    scopeWhere = "sr.userUniqueId = ?";
+    scopeParams = [userUniqueId];
+  }
+
+  // SR-level scope for company slot queries (Parts 3 & 4): these join the
+  // batch (srb) to resolve the org, so the WHERE uses the same membership rule.
+  let srScopeWhere = scopeWhere;
+  let srScopeParams = scopeParams;
+  if (!isQueueStaff) {
+    // Non-staff never needs the batch for scoping (their SRs are already theirs).
+    srScopeWhere = "sr.userUniqueId = ?";
+    srScopeParams = [userUniqueId];
+  }
+
   const prQuery = `
     SELECT 
       COUNT(DISTINCT sr.shipperRequestId) as totalCount,
@@ -140,7 +198,7 @@ const getActiveRequestsCount = async (
     LEFT JOIN JourneyDecisions jd ON sr.shipperRequestId = jd.shipperRequestId
     -- queueOrganizationUniqueId is canonical on the batch (srb), inherited via join
     LEFT JOIN ShipperRequestBatch srb ON srb.batchUniqueId = sr.shipperRequestBatchUniqueId
-    WHERE ${queueOrganizationUniqueId ? "srb.queueOrganizationUniqueId = ?" : "sr.userUniqueId = ?"}
+    WHERE ${scopeWhere}
     AND sr.shipperRequestDeletedAt IS NULL
     AND (sr.requestMode IS NULL OR sr.requestMode != 'company_target')
     AND (
@@ -169,7 +227,7 @@ const getActiveRequestsCount = async (
     journeyStatusMap.cancelledByDriver,
     "not seen by shipper yet",
     // WHERE clause
-    queueOrganizationUniqueId || userUniqueId,
+    ...scopeParams,
     journeyStatusMap.waiting,
     journeyStatusMap.requested,
     journeyStatusMap.acceptedByDriver,
@@ -252,7 +310,7 @@ const getActiveRequestsCount = async (
       END), 0) as companyOngoingVehicles
 
     FROM ShipperRequestBatch b
-    WHERE b.shipperUserUniqueId = ?
+    WHERE ${isQueueStaff ? "b.queueOrganizationUniqueId = ?" : "b.shipperUserUniqueId = ?"}
       AND b.batchDeletedAt IS NULL
       AND b.requestMode = 'company_target'
   `;
@@ -264,7 +322,9 @@ const getActiveRequestsCount = async (
     journeyStatusMap.requested,
     journeyStatusMap.acceptedByShipper,
     journeyStatusMap.acceptedByShipper,
-    userUniqueId,
+    ...(isQueueStaff
+      ? [queueOrganizationUniqueId]
+      : [userUniqueId]),
   ];
 
   // ── Part 3: Company slot-level counts (flat — backward compat) ──────────
@@ -287,7 +347,8 @@ const getActiveRequestsCount = async (
 
     FROM ShipperRequest sr
     LEFT JOIN JourneyDecisions jd ON jd.shipperRequestId = sr.shipperRequestId
-    WHERE sr.userUniqueId = ?
+    ${isQueueStaff ? "LEFT JOIN ShipperRequestBatch srb ON srb.batchUniqueId = sr.shipperRequestBatchUniqueId" : ""}
+    WHERE ${isQueueStaff ? srScopeWhere : "sr.userUniqueId = ?"}
       AND sr.requestMode = 'company_target'
       AND sr.shipperRequestDeletedAt IS NULL
   `;
@@ -298,7 +359,7 @@ const getActiveRequestsCount = async (
     false, // companyNotSeenCompleted isCompletionSeen
     journeyStatusMap.cancelledByDriver, // companyNotSeenCancelledByDriver status
     "not seen by shipper yet", // companyNotSeenCancelledByDriver seen flag
-    userUniqueId,
+    ...srScopeParams,
   ];
 
   // ── Part 4: Active-only company slot breakdown (nested under acceptedByShipper) ──
@@ -422,7 +483,8 @@ const getActiveRequestsCount = async (
         THEN sr.shipperRequestId END) AS total
 
     FROM ShipperRequest sr
-    WHERE sr.userUniqueId = ?
+    ${isQueueStaff ? "LEFT JOIN ShipperRequestBatch srb ON srb.batchUniqueId = sr.shipperRequestBatchUniqueId" : ""}
+    WHERE ${isQueueStaff ? srScopeWhere : "sr.userUniqueId = ?"}
       AND sr.requestMode = 'company_target'
       AND sr.shipperRequestDeletedAt IS NULL
   `;
@@ -439,7 +501,7 @@ const getActiveRequestsCount = async (
     journeyStatusMap.cancelledByAdmin, // total: exclude cancelledByAdmin
     journeyStatusMap.cancelledBySystem, // total: exclude cancelledBySystem
     journeyStatusMap.journeyCompleted, // total: exclude seen-completed (paired with isCompletionSeen=true)
-    userUniqueId,
+    ...srScopeParams,
   ];
 
   const queryExecutor = transactionStorage.getStore() || connection || pool;

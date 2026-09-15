@@ -52,8 +52,16 @@ exports.getBatchesQuery = Joi.object({
   // ── Identity ──
   batchUniqueId: uuidSchema.optional(),
   shipperUserUniqueId: uuidSchema.optional(),
+  batchCreatedBy: uuidSchema.optional(),
+  batchCreatedByRoleId: Joi.number().integer().min(1).optional(),
   vehicleTypeUniqueId: uuidSchema.optional(),
   targetCompanyUniqueId: uuidSchema.optional(),
+  // Queue-staff org context: required when the caller is an active member of
+  // 2+ queue orgs (see resolveQueueStaffOrgScope). Verified against membership.
+  queueOrganizationUniqueId: uuidSchema.optional(),
+  // Enrich each batch with { bidSummary, acceptedOffer } from CompanyBidRequest
+  // (opt-in so the default list stays lean).
+  includeBids: Joi.boolean().optional(),
   requestMode: Joi.string()
     .valid("individual_target", "company_target")
     .optional(),

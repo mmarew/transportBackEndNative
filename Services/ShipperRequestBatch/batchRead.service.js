@@ -35,6 +35,22 @@ exports.getBatches = async (filters = {}) => {
     clauses.push("b.shipperUserUniqueId = ?");
     params.push(filters.shipperUserUniqueId);
   }
+  // Queue-staff access scope: staff operate inside exactly ONE queue org at a
+  // time. The controller resolves that org (auto-resolve single membership /
+  // 400 if ambiguous / 403 if the requested org is not theirs) and injects it
+  // here as an exact match. Deactivated memberships cannot pass the resolver.
+  if (filters.queueOrganizationUniqueId) {
+    clauses.push("b.queueOrganizationUniqueId = ?");
+    params.push(filters.queueOrganizationUniqueId);
+  }
+  if (filters.batchCreatedBy) {
+    clauses.push("b.batchCreatedBy = ?");
+    params.push(filters.batchCreatedBy);
+  }
+  if (filters.batchCreatedByRoleId) {
+    clauses.push("b.batchCreatedByRoleId = ?");
+    params.push(Number(filters.batchCreatedByRoleId));
+  }
   if (filters.vehicleTypeUniqueId) {
     clauses.push("b.vehicleTypeUniqueId = ?");
     params.push(filters.vehicleTypeUniqueId);
@@ -141,7 +157,7 @@ exports.getBatches = async (filters = {}) => {
     ${where}
   `;
 
-  return paginatedQuery(
+  const result = await paginatedQuery(
     `${baseSql} ORDER BY b.batchCreatedAt DESC`,
     countSql,
     params,
@@ -149,6 +165,93 @@ exports.getBatches = async (filters = {}) => {
     limit,
     offset,
   );
+
+  // ── Optional bid status enrichment (?includeBids=true) ──────────────────
+  // Only fetched on request so the default list stays lean. Runs ONE grouped
+  // query (no N+1) over the page's batch ids plus one winner lookup.
+  if (String(filters.includeBids) === "true" && result.data.length > 0) {
+    const batchIds = result.data.map((b) => b.batchUniqueId);
+
+    const [bidSummaries] = await db().query(
+      `SELECT cbr.shipperRequestBatchUniqueId,
+              COUNT(*)                                      AS total,
+              COUNT(DISTINCT cbr.companyUniqueId)           AS joinedCompanyCount,
+              SUM(cbr.bidStatus = 'submitted')              AS submitted,
+              SUM(cbr.bidStatus = 'accepted_by_shipper')    AS accepted,
+              SUM(cbr.bidStatus = 'rejected_by_shipper')    AS rejected,
+              SUM(cbr.bidStatus = 'cancelled_by_company')   AS cancelledByCompany,
+              SUM(cbr.bidStatus = 'expired')                AS expired
+       FROM CompanyBidRequest cbr
+       WHERE cbr.shipperRequestBatchUniqueId IN (?)
+         AND cbr.companyBidRequestDeletedAt IS NULL
+       GROUP BY cbr.shipperRequestBatchUniqueId`,
+      [batchIds],
+    );
+
+    const [acceptedBids] = await db().query(
+      `SELECT cbr.shipperRequestBatchUniqueId,
+              cbr.companyUniqueId,
+              cbr.proposedCostPerVehicle,
+              cbr.proposedTotalCost,
+              cbr.bidStatusUpdatedAt,
+              tc.companyName,
+              cbr.numberOfVehiclesOffered
+       FROM CompanyBidRequest cbr
+       LEFT JOIN TransportCompany tc ON cbr.companyUniqueId = tc.companyUniqueId
+       WHERE cbr.bidStatus = 'accepted_by_shipper'
+         AND cbr.shipperRequestBatchUniqueId IN (?)
+         AND cbr.companyBidRequestDeletedAt IS NULL`,
+      [batchIds],
+    );
+
+    const n = (v) => Number(v) || 0;
+    const summaryByBatch = new Map(
+      bidSummaries.map((row) => [
+        row.shipperRequestBatchUniqueId,
+        {
+          total: n(row.total),
+          submitted: n(row.submitted),
+          accepted: n(row.accepted),
+          rejected: n(row.rejected),
+          cancelledByCompany: n(row.cancelledByCompany),
+          expired: n(row.expired),
+          joinedCompanyCount: n(row.joinedCompanyCount),
+        },
+      ]),
+    );
+    const winnersByBatch = new Map(
+      acceptedBids.map((row) => [row.shipperRequestBatchUniqueId, row]),
+    );
+
+    result.data = result.data.map((batch) => ({
+      ...batch,
+      bidSummary:
+        summaryByBatch.get(batch.batchUniqueId) || {
+          total: 0,
+          submitted: 0,
+          accepted: 0,
+          rejected: 0,
+          cancelledByCompany: 0,
+          expired: 0,
+          joinedCompanyCount: 0,
+        },
+      acceptedOffer: winnersByBatch.has(batch.batchUniqueId)
+        ? (() => {
+            const w = winnersByBatch.get(batch.batchUniqueId);
+            return {
+              companyUniqueId: w.companyUniqueId,
+              companyName: w.companyName,
+              numberOfVehiclesOffered: w.numberOfVehiclesOffered,
+              proposedCostPerVehicle: w.proposedCostPerVehicle,
+              proposedTotalCost: w.proposedTotalCost,
+              bidStatusUpdatedAt: w.bidStatusUpdatedAt,
+            };
+          })()
+        : null,
+    }));
+  }
+
+  return result;
 };
 
 // ── PATCH (partial update) ────────────────────────────────────────────────────

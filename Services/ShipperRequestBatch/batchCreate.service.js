@@ -50,6 +50,8 @@ exports.upsertBatch = async ({
   shippingCost,
   isPodRequired,
   journeyStatusId,
+  batchCreatedBy,
+  batchCreatedByRoleId,
 }) => {
   // 1. Check existence first — avoids AUTO_INCREMENT wastage
   const [existing] = await db().query(
@@ -66,8 +68,9 @@ exports.upsertBatch = async ({
          originLatitude, originLongitude, originPlace,
          destinationLatitude, destinationLongitude, destinationPlace,
          shippableItemName, shippableItemQtyInQuintal, shippingDate, deliveryDate,
-         shippingCost, isPodRequired, journeyStatusId, batchCreatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         shippingCost, isPodRequired, journeyStatusId, batchCreatedAt,
+         batchCreatedBy, batchCreatedByRoleId)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         batchUniqueId,
         shipperUserUniqueId,
@@ -90,6 +93,8 @@ exports.upsertBatch = async ({
         isPodRequired !== undefined ? isPodRequired : true,
         journeyStatusId,
         currentDate(),
+        batchCreatedBy || null,
+        batchCreatedByRoleId || null,
       ],
     );
 

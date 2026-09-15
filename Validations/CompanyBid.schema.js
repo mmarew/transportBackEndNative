@@ -35,7 +35,13 @@ exports.bidParams = Joi.object({
 exports.getBidsQuery = Joi.object({
   companyBidRequestUniqueId: uuidSchema.optional(),
   shipperRequestBatchUniqueId: uuidSchema.optional(),
+  // Alias for shipperRequestBatchUniqueId — the same id the /shipperRequestBatch
+  // list returns (batchUniqueId). Normalized to shipperRequestBatchUniqueId by getBids.
+  batchUniqueId: uuidSchema.optional(),
   companyUniqueId: uuidSchema.optional(),
+  // Queue-staff (11/12) org context: resolved via active memberships
+  // (single-membership auto-resolve; required when a staffer belongs to 2+ orgs).
+  queueOrganizationUniqueId: uuidSchema.optional(),
   bidSubmittedByUserUniqueId: uuidSchema.optional(),
   numberOfVehiclesOffered: Joi.number().integer().min(1).optional(),
   vehicleTypeUniqueId: uuidSchema.optional(),

@@ -49,6 +49,12 @@ const getAvailableRequests = async (companyUniqueId, filters = {}) => {
     )`,
   ];
   const params = [companyUniqueId, activeStatusIds, companyUniqueId];
+
+  // Queue-staff scope: optional single-org restriction (getBids resolves it).
+  if (filters.queueOrganizationUniqueId) {
+    filterClauses.push("b.queueOrganizationUniqueId = ?");
+    params.push(filters.queueOrganizationUniqueId);
+  }
   const filterWhere = `WHERE ${filterClauses.join(" AND ")}`;
 
   // baseSql: No subqueries, no Group By! Pure performance.
@@ -95,7 +101,8 @@ const getAvailableRequests = async (companyUniqueId, filters = {}) => {
  * @returns {Promise<Object>} Paginated list of batches with nested offers.
  */
 const getGroupedBids = async (scope = {}, filters = {}) => {
-  const { shipperUserUniqueId, companyUniqueId } = scope;
+  const { shipperUserUniqueId, companyUniqueId, queueOrganizationUniqueId } =
+    scope;
   const { page, limit, offset } = paginate(filters);
 
   // ── 1. Build the batch WHERE clause ──────────────────────────────────────
@@ -109,6 +116,14 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
   if (shipperUserUniqueId) {
     batchClauses.push("b.shipperUserUniqueId = ?");
     batchParams.push(shipperUserUniqueId);
+  }
+
+  // Queue-staff scope: restrict to a single queue organization (resolved by
+  // getBids for roles 11/12). A staff user sees the org's batches and the bids
+  // of ALL companies on them — not only one company's.
+  if (queueOrganizationUniqueId) {
+    batchClauses.push("b.queueOrganizationUniqueId = ?");
+    batchParams.push(queueOrganizationUniqueId);
   }
 
   // We must only return batches that have at least one bid matching the
@@ -182,7 +197,7 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
             b.shippableItemName, b.shippableItemQtyInQuintal,
             b.totalVehicles, b.shippingCost AS batchShippingCost,
             b.shippingDate AS batchShippingDate, b.deliveryDate AS batchDeliveryDate,
-            b.journeyStatusId, b.requestMode, b.batchCreatedAt,
+            b.journeyStatusId, b.requestMode, b.queueOrganizationUniqueId, b.batchCreatedAt,
             js.journeyStatusName, b.vehicleTypeUniqueId, vt.vehicleTypeName,
             u.fullName AS shipperName
      FROM ShipperRequestBatch b
@@ -417,6 +432,13 @@ const getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
   if (!userUniqueId) {
     throw new AppError("Authentication required", AppError.UNAUTHORIZED);
   }
+
+  // Detect batch id no matter which name the frontend uses. Both forms point to
+  // ShipperRequestBatch.batchUniqueId (also exposed as shipperRequestBatchUniqueId).
+  if (filters.batchUniqueId && !filters.shipperRequestBatchUniqueId) {
+    filters.shipperRequestBatchUniqueId = filters.batchUniqueId;
+  }
+
   const isAdmin =
     roleId === usersRoles.adminRoleId ||
     roleId === usersRoles.supperAdminRoleId;
@@ -424,8 +446,12 @@ const getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
   const isCompanyAdmin =
     roleId === usersRoles.companyAdminRoleId ||
     roleId === usersRoles.companyDispatchRoleId;
+  const isQueueStaff =
+    roleId === usersRoles.queueOrgAdminRoleId ||
+    roleId === usersRoles.queueDispatcherRoleId;
   let resolvedCompanyUniqueId = null;
   let resolvedShipperUserUniqueId = null;
+  let resolvedQueueOrganizationUniqueId = null;
 
   if (isAdmin) {
     // Admins can target a specific company or shipper
@@ -472,6 +498,37 @@ const getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
         );
       }
     }
+  } else if (isQueueStaff) {
+    // Queue staff (11/12): operate inside exactly ONE queue org at a time.
+    // Single membership auto-resolves; 2+ memberships require the org param.
+    // Convenience: when drilling into a specific batch (shipperRequestBatchUniqueId
+    // / batchUniqueId) without an org, derive the org from the batch itself — the
+    // resolver then verifies the user is an active member of it (403 otherwise).
+    const { resolveQueueStaffOrgScope } = require("../QueueOrganization/helpers");
+    let requestedOrg = filters.queueOrganizationUniqueId;
+    if (!requestedOrg && filters.shipperRequestBatchUniqueId) {
+      const [batchRows] = await db().query(
+        `SELECT queueOrganizationUniqueId
+         FROM ShipperRequestBatch
+         WHERE batchUniqueId = ?
+         LIMIT 1`,
+        [filters.shipperRequestBatchUniqueId],
+      );
+      requestedOrg = batchRows[0]?.queueOrganizationUniqueId || undefined;
+    }
+    resolvedQueueOrganizationUniqueId = await resolveQueueStaffOrgScope(
+      userUniqueId,
+      requestedOrg,
+    );
+    if (
+      filters?.target === "summary" ||
+      filters?.target === "available"
+    ) {
+      throw new AppError(
+        "The available/summary views are only for transport companies",
+        AppError.BAD_REQUEST,
+      );
+    }
   }
   //get all company bids for the resolved companyUniqueId
 
@@ -500,6 +557,7 @@ const getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
     {
       shipperUserUniqueId: resolvedShipperUserUniqueId,
       companyUniqueId: resolvedCompanyUniqueId,
+      queueOrganizationUniqueId: resolvedQueueOrganizationUniqueId,
     },
     filters,
   );

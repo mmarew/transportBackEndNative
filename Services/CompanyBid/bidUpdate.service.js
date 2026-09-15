@@ -29,6 +29,7 @@ const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
  * @param {string} companyBidRequestUniqueId - The ID of the bid record to update.
  * @param {string} bidStatus - The new desired status (e.g., 'accepted_by_shipper').
  * @param {string} updatedBy - The admin/shipper ID performing the action.
+ * @param {string} roleId - The role of the user performing the action (from token).
  */
 /**
  * Updates the status of a company bid (e.g., Accepting, Rejecting, or Cancelling).
@@ -59,6 +60,7 @@ const updateBidStatus = async (
   companyBidRequestUniqueId,
   bidStatus,
   updatedBy,
+  roleId,
 ) => {
   const [bidRow] = await getData({
     tableName: "CompanyBidRequest",
@@ -69,6 +71,96 @@ const updateBidStatus = async (
   logger.debug("updateBidStatus ~ bid:", bid);
   if (bid.companyBidRequestDeletedAt) {
     throw new AppError("Bid has been deleted", AppError.BAD_REQUEST);
+  }
+
+  // ── Authorization guards ──────────────────────────────────────────────────
+  // Queue staff (11/12) may accept/reject offers for batches in queue orgs
+  // they actively belong to; the shipper who owns the batch may accept/reject;
+  // companies may cancel their own bid; admins may do everything.
+  const isAdmin =
+    roleId === usersRoles.adminRoleId ||
+    roleId === usersRoles.supperAdminRoleId;
+
+  const [[batch]] = await db().query(
+    `SELECT shipperUserUniqueId, queueOrganizationUniqueId
+     FROM ShipperRequestBatch
+     WHERE batchUniqueId = ? LIMIT 1`,
+    [bid.shipperRequestBatchUniqueId],
+  );
+  if (!batch) {
+    throw new AppError("Batch not found for this bid", AppError.BAD_REQUEST);
+  }
+
+  if (bidStatus === "accepted_by_shipper" || bidStatus === "rejected_by_shipper") {
+    const isBatchOwner =
+      roleId === usersRoles.shipperRoleId &&
+      batch.shipperUserUniqueId === updatedBy;
+    if (isBatchOwner || isAdmin) {
+      // allowed — shipper who owns the batch, or admin
+    } else if (
+      roleId === usersRoles.queueOrgAdminRoleId ||
+      roleId === usersRoles.queueDispatcherRoleId
+    ) {
+      // Queue staff accepting an offer on behalf of the shipper: must be an
+      // active member of the queue org that owns the batch.
+      if (!batch.queueOrganizationUniqueId) {
+        throw new AppError(
+          "This batch is not tied to any queue organization",
+          AppError.FORBIDDEN,
+        );
+      }
+      const [memberRows] = await db().query(
+        `SELECT 1 FROM QueueOrganizationMembership
+          WHERE queueOrganizationUniqueId = ?
+            AND userUniqueId = ?
+            AND roleId IN (?, ?)
+            AND isActive = 1
+            AND membershipDeletedAt IS NULL
+          LIMIT 1`,
+        [
+          batch.queueOrganizationUniqueId,
+          updatedBy,
+          usersRoles.queueOrgAdminRoleId,
+          usersRoles.queueDispatcherRoleId,
+        ],
+      );
+      if (memberRows.length === 0) {
+        throw new AppError(
+          "You are not an active member of this batch's queue organization",
+          AppError.FORBIDDEN,
+        );
+      }
+    } else {
+      throw new AppError(
+        "Unauthorized to accept or reject this bid",
+        AppError.FORBIDDEN,
+      );
+    }
+  } else if (bidStatus === "cancelled_by_company") {
+    if (!isAdmin) {
+      const [companyMember] = await db().query(
+        `SELECT 1 FROM CompanyMembership
+          WHERE companyUniqueId = ?
+            AND userUniqueId = ?
+            AND isActive = 1
+            AND membershipDeletedAt IS NULL
+          LIMIT 1`,
+        [bid.companyUniqueId, updatedBy],
+      );
+      if (companyMember.length === 0) {
+        throw new AppError(
+          "Unauthorized: you are not a member of this company",
+          AppError.FORBIDDEN,
+        );
+      }
+    }
+  } else if (bidStatus === "expired") {
+    if (!isAdmin) {
+      throw new AppError(
+        "Unauthorized to mark bid as expired",
+        AppError.FORBIDDEN,
+      );
+    }
   }
 
   //update bidStatus to accepted_by_shipper if it was submitted, to
@@ -165,8 +257,8 @@ const updateBidStatus = async (
           batch.shippingDate ? formatDateToReadable(batch.shippingDate) : null,
           batch.deliveryDate ? formatDateToReadable(batch.deliveryDate) : null,
           batch.shippingCost,
-          updatedBy, // shipperRequestCreatedBy (shipper who accepted)
-          usersRoles.shipperRoleId, // shipperRequestCreatedByRoleId
+          updatedBy, // shipperRequestCreatedBy (shipper or queue staff who accepted)
+          roleId, // shipperRequestCreatedByRoleId
           currentDate(), // shipperRequestCreatedAt
         );
       }

@@ -5,6 +5,7 @@ const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const logger = require("../Utils/logger");
 const { usersRoles } = require("../Utils/ListOfSeedData");
+const { resolveQueueStaffOrgScope } = require("../Services/QueueOrganization/helpers");
 const { HTTP_STATUS } = require("../Utils/Constants");
 
 /**
@@ -21,13 +22,45 @@ exports.getBatches = async (req, res, next) => {
       roleId === usersRoles.adminRoleId ||
       roleId === usersRoles.supperAdminRoleId
     ) {
+      // Admin/SuperAdmin: see all orgs/batches — no forced scope.
       if (
         !filters.shipperUserUniqueId ||
         filters.shipperUserUniqueId === "self"
       ) {
         delete filters.shipperUserUniqueId;
       }
+    } else if (
+      roleId === usersRoles.queueOrgAdminRoleId ||
+      roleId === usersRoles.queueDispatcherRoleId
+    ) {
+      // Queue staff (11/12): operate inside exactly ONE queue org at a time.
+      // resolveQueueStaffOrgScope enforces the multi-membership rule: a staffer
+      // with 2+ active memberships MUST pass queueOrganizationUniqueId (400 if
+      // missing, 403 if it is not one of their orgs); with a single membership
+      // it auto-resolves. Convenience: when drilling into a specific batch
+      // (batchUniqueId) without an org, derive the org from the batch itself —
+      // the resolver then verifies the user is an active member of it.
+      // Never scope by shipperUserUniqueId (batches are created on behalf of
+      // the shipper, so that column holds the shipper, not the staff member).
+      let requestedOrg = filters.queueOrganizationUniqueId;
+      if (!requestedOrg && filters.batchUniqueId) {
+        const { pool } = require("../Middleware/Database.config");
+        const [batchRows] = await pool.query(
+          `SELECT queueOrganizationUniqueId
+           FROM ShipperRequestBatch
+           WHERE batchUniqueId = ?
+           LIMIT 1`,
+          [filters.batchUniqueId],
+        );
+        requestedOrg = batchRows[0]?.queueOrganizationUniqueId || undefined;
+      }
+      delete filters.shipperUserUniqueId;
+      filters.queueOrganizationUniqueId = await resolveQueueStaffOrgScope(
+        userUniqueId,
+        requestedOrg,
+      );
     } else {
+      // Shipper / other roles: only their own batches.
       filters.shipperUserUniqueId = userUniqueId;
     }
 

@@ -107,6 +107,24 @@ const createShipperRequest = async (body, journeyStatusId) => {
     if (!userUniqueId) {
       throw new AppError("userUniqueId is required", AppError.BAD_REQUEST);
     }
+
+    // Queue staff (11/12) write-side guard: a staff member may only create under
+    // a queue org they are an ACTIVE member of. resolveQueueStaffOrgScope enforces
+    // the same rule as reads — single membership auto-resolves, 2+ memberships
+    // require an explicit queueOrganizationUniqueId (400 if missing, 403 if it is
+    // not one of their orgs), 0 memberships → 403. The resolved org is forced onto
+    // the batch so a non-member can never mint batches for another org.
+    if (
+      body?.shipperRequestCreatedByRoleId === usersRoles.queueOrgAdminRoleId ||
+      body?.shipperRequestCreatedByRoleId === usersRoles.queueDispatcherRoleId
+    ) {
+      const { resolveQueueStaffOrgScope } = require("../QueueOrganization/helpers");
+      body.queueOrganizationUniqueId = await resolveQueueStaffOrgScope(
+        body.shipperRequestCreatedBy,
+        body.queueOrganizationUniqueId,
+      );
+    }
+
     const numberOfVehicles = body?.numberOfVehicles || 1;
 
     // First check if the user has an active request based on shipperRequestBatchUniqueId
@@ -199,6 +217,8 @@ const createShipperRequest = async (body, journeyStatusId) => {
         shippingCost: body.shippingCost || null,
         isPodRequired: body.isPodRequired !== undefined ? body.isPodRequired : true,
         journeyStatusId,
+        batchCreatedBy: body.shipperRequestCreatedBy || null,
+        batchCreatedByRoleId: body.shipperRequestCreatedByRoleId || null,
       });
 
       // ── company_target mode: DEFER individual sr creation ──────────────────

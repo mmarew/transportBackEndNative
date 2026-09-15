@@ -343,7 +343,26 @@ const getShipperRequest4allOrSingleUser = async ({ data }) => {
     }
 
     // Build WHERE clause based on target and filters
-    if (target !== "all" && userUniqueId) {
+    const isQueueStaff =
+      roleId === usersRoles.queueOrgAdminRoleId ||
+      roleId === usersRoles.queueDispatcherRoleId;
+    if (isQueueStaff) {
+      // Queue staff (11/12) act on behalf of shippers. They operate inside
+      // exactly ONE queue org at a time — the controller resolves and injects
+      // filters.queueOrganizationUniqueId (auto-resolve single membership /
+      // 400 if ambiguous / 403 if the requested org is not theirs). Scope to
+      // that exact org — never a union of all member orgs.
+      if (!filters?.queueOrganizationUniqueId) {
+        throw new AppError(
+          "queueOrganizationUniqueId is required for queue staff",
+          AppError.BAD_REQUEST,
+        );
+      }
+      whereClause =
+        " WHERE ShipperRequestBatch.queueOrganizationUniqueId = ?";
+      queryParams = [filters.queueOrganizationUniqueId];
+      countParams = [filters.queueOrganizationUniqueId];
+    } else if (target !== "all" && userUniqueId) {
       if (roleId === usersRoles.driverRoleId) {
         // Driver: find requests where this driver was assigned via JourneyDecisions → DriverRequest
         whereClause = ` WHERE EXISTS (

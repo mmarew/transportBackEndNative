@@ -121,6 +121,87 @@ const ensureQueueOrgReferences = async (connection) => {
 };
 
 /**
+ * Idempotently add the batch-creator audit columns to ShipperRequestBatch.
+ *
+ * batchCreatedBy / batchCreatedByRoleId record WHO created the batch at insert
+ * time (shipper, admin, company admin, or queue staff) — AUDIT metadata only.
+ * Scoping of what a queue-staff member may SEE is by org membership
+ * (QueueOrganizationMembership), never by this column. Existing rows keep the
+ * columns NULL (legacy); new batches get them from the create flow.
+ */
+const ensureBatchCreatedByColumn = async (connection) => {
+  const dbName = dbConfig.database;
+
+  const addColumnIfMissing = async (columnName, definition) => {
+    const [col] = await connection.query(
+      `SELECT COUNT(*) AS cnt FROM information_schema.columns
+       WHERE table_schema = ? AND table_name = 'ShipperRequestBatch' AND column_name = ?`,
+      [dbName, columnName],
+    );
+    if (col[0].cnt === 0) {
+      await connection.query(
+        `ALTER TABLE ShipperRequestBatch ADD COLUMN ${definition}`,
+      );
+      logger.info(`Migration: added ShipperRequestBatch.${columnName} column`);
+    }
+  };
+
+  await addColumnIfMissing(
+    "batchCreatedBy",
+    "batchCreatedBy VARCHAR(36) NULL DEFAULT NULL",
+  );
+  await addColumnIfMissing(
+    "batchCreatedByRoleId",
+    "batchCreatedByRoleId INT NULL DEFAULT NULL",
+  );
+
+  // Index on the creator column for optional lookup/filtering.
+  const [idxRows] = await connection.query(
+    `SELECT COUNT(*) AS cnt FROM information_schema.statistics
+     WHERE table_schema = ? AND table_name = 'ShipperRequestBatch' AND index_name = 'idx_batch_created_by'`,
+    [dbName],
+  );
+  if (idxRows[0].cnt === 0) {
+    await connection.query(
+      `ALTER TABLE ShipperRequestBatch ADD INDEX idx_batch_created_by (batchCreatedBy)`,
+    );
+    logger.info("Migration: added index idx_batch_created_by");
+  }
+
+  // FK -> Users (creator). Users already exists, so this is safe inline.
+  const [userFk] = await connection.query(
+    `SELECT COUNT(*) AS cnt FROM information_schema.referential_constraints
+     WHERE constraint_schema = ? AND constraint_name = 'fk_ShipperRequestBatch_batchCreatedBy'`,
+    [dbName],
+  );
+  if (userFk[0].cnt === 0) {
+    await connection.query(
+      `ALTER TABLE ShipperRequestBatch
+       ADD CONSTRAINT fk_ShipperRequestBatch_batchCreatedBy
+       FOREIGN KEY (batchCreatedBy) REFERENCES Users(userUniqueId)`,
+    );
+    logger.info("Migration: added FK fk_ShipperRequestBatch_batchCreatedBy");
+  }
+
+  // FK -> Roles. Roles exists too and is stable.
+  const [roleFk] = await connection.query(
+    `SELECT COUNT(*) AS cnt FROM information_schema.referential_constraints
+     WHERE constraint_schema = ? AND constraint_name = 'fk_ShipperRequestBatch_batchCreatedByRoleId'`,
+    [dbName],
+  );
+  if (roleFk[0].cnt === 0) {
+    await connection.query(
+      `ALTER TABLE ShipperRequestBatch
+       ADD CONSTRAINT fk_ShipperRequestBatch_batchCreatedByRoleId
+       FOREIGN KEY (batchCreatedByRoleId) REFERENCES Roles(roleId)`,
+    );
+    logger.info(
+      "Migration: added FK fk_ShipperRequestBatch_batchCreatedByRoleId",
+    );
+  }
+};
+
+/**
  * Idempotently drop the DriverQueue `uq_queue_vehicle_day` UNIQUE key.
  *
  * Re-check-in now RETIRES the previous same-day entry (soft-delete) and inserts
@@ -790,6 +871,10 @@ const createTable = async () => {
     // Idempotently enforce the BATCH-canonical queueOrganizationUniqueId model
     // (see ensureQueueOrgReferences). Must run while this connection still has the DB selected.
     await ensureQueueOrgReferences(adminConnection);
+
+    // Idempotently add the batch-creator audit columns (batchCreatedBy /
+    // batchCreatedByRoleId) — AUDIT metadata, not an access-scoping filter.
+    await ensureBatchCreatedByColumn(adminConnection);
 
     // Idempotently drop DriverQueue's legacy one-entry-per-day UNIQUE key so
     // re-check-in can insert a brand-new row (fresh queueUniqueId) — see
