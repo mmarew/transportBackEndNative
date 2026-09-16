@@ -8,10 +8,15 @@ const COMPANY_BID_ENDPOINTS = {
 
   // Relative paths — used by Express router (already mounted at /api/company/bids)
   ROUTER: {
+    CREATE_BID: "/",
+    GET_BIDS: "/",
     UPDATE_BID_STATUS: "/:companyBidRequestUniqueId/status",
     DELETE_BID: "/:companyBidRequestUniqueId",
     MARK_AS_SEEN: "/:companyBidRequestUniqueId/markAsSeen",
   },
+
+  // Mount prefix — used by company/index.js
+  MOUNT: "/bids",
 };
 
 module.exports = {

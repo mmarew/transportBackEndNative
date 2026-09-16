@@ -9,10 +9,11 @@ const {
   updateCommissionStatus,
   getAllCommissionStatuses,
 } = require("../../Validations/CommissionStatus.schema");
+const { COMMISSION_STATUS_ENDPOINTS: EP } = require("../EndPoints/commissionStatus.endpoints");
 
 // Create
 router.post(
-  "/admin/commission-statuses",
+  EP.ROUTER.CREATE_COMMISSION_STATUS,
   verifyTokenOfAxios,
   validator(createCommissionStatus),
   commissionStatusController.createCommissionStatus,
@@ -20,7 +21,7 @@ router.post(
 
 // Get all (with filters)
 router.get(
-  "/admin/commission-statuses",
+  EP.ROUTER.GET_ALL_COMMISSION_STATUSES,
   verifyTokenOfAxios,
   validator(getAllCommissionStatuses, "query"),
   commissionStatusController.getAllCommissionStatuses,
@@ -28,7 +29,7 @@ router.get(
 
 // Update
 router.put(
-  "/admin/commission-statuses/:id",
+  EP.ROUTER.UPDATE_COMMISSION_STATUS,
   verifyTokenOfAxios,
   validator(updateCommissionStatus),
   commissionStatusController.updateCommissionStatus,
@@ -36,8 +37,9 @@ router.put(
 
 // Delete
 router.delete(
-  "/admin/commission-statuses/:id",
+  EP.ROUTER.DELETE_COMMISSION_STATUS,
   verifyTokenOfAxios,
+  validator(updateCommissionStatus),
   commissionStatusController.deleteCommissionStatus,
 );
 

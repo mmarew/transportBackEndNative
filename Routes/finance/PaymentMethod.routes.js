@@ -14,10 +14,11 @@ const {
   paymentMethodParams,
   getPaymentMethodQuery,
 } = require("../../Validations/PaymentMethod.schema");
+const { PAYMENT_METHOD_ENDPOINTS: EP } = require("../EndPoints/paymentMethod.endpoints");
 
 // Create a new payment method
 router.post(
-  "/",
+  EP.ROUTER.CREATE_PAYMENT_METHOD,
   verifyTokenOfAxios,
   verifyIfUserIsAdminOrSupperAdmin,
 
@@ -27,7 +28,7 @@ router.post(
 
 // Get all payment methods
 router.get(
-  "/",
+  EP.ROUTER.GET_ALL_PAYMENT_METHODS,
   verifyTokenOfAxios,
 
   validator(getPaymentMethodQuery, "query"),
@@ -36,7 +37,7 @@ router.get(
 
 // Update a specific payment method by ID
 router.put(
-  "/:paymentMethodUniqueId",
+  EP.ROUTER.UPDATE_PAYMENT_METHOD,
   verifyTokenOfAxios,
   verifyIfUserIsAdminOrSupperAdmin,
   validator(paymentMethodParams, "params"),
@@ -46,7 +47,7 @@ router.put(
 
 // Delete a specific payment method by ID
 router.delete(
-  "/:paymentMethodUniqueId",
+  EP.ROUTER.DELETE_PAYMENT_METHOD,
   verifyTokenOfAxios,
   verifyIfUserIsAdminOrSupperAdmin,
   validator(paymentMethodParams, "params"),

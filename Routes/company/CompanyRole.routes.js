@@ -11,6 +11,7 @@ const {
   companyRoleParams,
   getAllCompanyRolesQuery,
 } = require("../../Validations/CompanyRole.schema");
+const { COMPANY_ROLE_ENDPOINTS: EP } = require("../EndPoints/companyRole.endpoints");
 
 // All company role routes require a valid token
 router.use(verifyTokenOfAxios);
@@ -20,34 +21,34 @@ router.use(verifyTokenOfAxios);
  * @desc    Create a new company role
  * @access  Private
  */
-router.post("/", validator(createCompanyRole), controller.createCompanyRole);
+router.post(EP.ROUTER.CREATE_COMPANY_ROLE, validator(createCompanyRole), controller.createCompanyRole);
 
 /**
  * @route   GET /api/company/roles
  * @desc    Get all available company roles
  * @access  Private
  */
-router.get("/", validator(getAllCompanyRolesQuery, "query"), controller.getCompanyRoles);
+router.get(EP.ROUTER.GET_ALL_COMPANY_ROLES, validator(getAllCompanyRolesQuery, "query"), controller.getCompanyRoles);
 
 /**
  * @route   GET /api/company/roles/:companyRoleUniqueId
  * @desc    Get a specific company role by unique ID
  * @access  Private
  */
-router.get("/:companyRoleUniqueId", validator(companyRoleParams, "params"), controller.getCompanyRole);
+router.get(EP.ROUTER.GET_COMPANY_ROLE_BY_UNIQUE_ID, validator(companyRoleParams, "params"), controller.getCompanyRole);
 
 /**
  * @route   PUT /api/company/roles/:companyRoleUniqueId
  * @desc    Update a specific company role by unique ID
  * @access  Private
  */
-router.put("/:companyRoleUniqueId", validator(companyRoleParams, "params"), validator(updateCompanyRole), controller.updateCompanyRole);
+router.put(EP.ROUTER.UPDATE_COMPANY_ROLE, validator(companyRoleParams, "params"), validator(updateCompanyRole), controller.updateCompanyRole);
 
 /**
  * @route   DELETE /api/company/roles/:companyRoleUniqueId
  * @desc    Soft-delete a specific company role by unique ID
  * @access  Private
  */
-router.delete("/:companyRoleUniqueId", validator(companyRoleParams, "params"), controller.deleteCompanyRole);
+router.delete(EP.ROUTER.DELETE_COMPANY_ROLE, validator(companyRoleParams, "params"), controller.deleteCompanyRole);
 
 module.exports = router;

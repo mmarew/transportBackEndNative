@@ -1,4 +1,5 @@
 const USER_ROLE_ENDPOINTS = {
+  MOUNT: "/api/admin/userRole",
   CREATE_USER_ROLE: "/create",
   GET_USER_ROLE_LIST_BY_FILTER: "/filter",
   UPDATE_USER_ROLE: "/:userRoleUniqueId",

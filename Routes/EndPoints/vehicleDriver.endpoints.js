@@ -1,4 +1,5 @@
 const VEHICLE_DRIVER_ENDPOINTS = {
+  MOUNT: "/api/vehicleDriver",
   CREATE_VEHICLE_DRIVER: "/",
   GET_ALL_VEHICLE_DRIVERS: "/",
   UPDATE_VEHICLE_DRIVER: "/:vehicleDriverUniqueId",

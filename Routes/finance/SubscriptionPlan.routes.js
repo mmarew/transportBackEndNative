@@ -10,10 +10,11 @@ const {
   subscriptionPlanParams,
   getSubscriptionPlansQuery,
 } = require("../../Validations/SubscriptionPlan.schema");
+const { SUBSCRIPTION_PLAN_ENDPOINTS: EP } = require("../EndPoints/subscriptionPlan.endpoints");
 
 // Create
 router.post(
-  "/",
+  EP.ROUTER.CREATE_SUBSCRIPTION_PLAN,
   verifyTokenOfAxios,
   validator(createSubscriptionPlan),
   subscriptionPlanController.createSubscriptionPlan,
@@ -21,7 +22,7 @@ router.post(
 
 // Single GET endpoint with filters (plan only, no pricing)
 router.get(
-  "/",
+  EP.ROUTER.GET_ALL_SUBSCRIPTION_PLANS,
   verifyTokenOfAxios,
   validator(getSubscriptionPlansQuery, "query"),
   subscriptionPlanController.getSubscriptionPlans,
@@ -29,7 +30,7 @@ router.get(
 
 // Update by uniqueId
 router.put(
-  "/:uniqueId",
+  EP.ROUTER.UPDATE_SUBSCRIPTION_PLAN,
   verifyTokenOfAxios,
   validator(subscriptionPlanParams, "params"),
   validator(updateSubscriptionPlan),
@@ -38,7 +39,7 @@ router.put(
 
 // Delete by uniqueId
 router.delete(
-  "/:uniqueId",
+  EP.ROUTER.DELETE_SUBSCRIPTION_PLAN,
   verifyTokenOfAxios,
   validator(subscriptionPlanParams, "params"),
   subscriptionPlanController.deleteSubscriptionPlan,

@@ -2,6 +2,7 @@
 
 const express = require("express");
 const router = express.Router();
+const { DRIVER_QUEUE_ENDPOINTS: EP } = require("../EndPoints/driverQueue.endpoints");
 const controller = require("../../Controllers/DriverQueue.controller");
 const schema = require("../../Validations/DriverQueue.schema");
 const { validator } = require("../../Middleware/Validator");
@@ -66,7 +67,7 @@ router.use(verifyTokenOfAxios);
  *   "shipperPhoneNumber": "+251922112481"
  * }
  */
-router.post("/driver/checkin", validator(schema.checkin), controller.checkin);
+router.post(EP.ROUTER.CHECKIN, validator(schema.checkin), controller.checkin);
 
 /**
  * @route   GET /api/queue/driver/myPosition
@@ -91,7 +92,7 @@ router.post("/driver/checkin", validator(schema.checkin), controller.checkin);
  * @example GET /api/queue/driver/myPosition?queueOrganizationUniqueId=58f68fea-...
  */
 router.get(
-  "/driver/myPosition",
+  EP.ROUTER.MY_POSITION,
   validator(schema.myPositionQuery, "query"),
   controller.myPosition,
 );
@@ -116,7 +117,7 @@ router.get(
  * Body: { "queueOrganizationUniqueId": "58f68fea-..." }
  */
 router.delete(
-  "/driver/checkout",
+  EP.ROUTER.CHECKOUT,
   validator(schema.checkout),
   controller.checkout,
 );
@@ -144,7 +145,7 @@ router.delete(
  * @example GET /api/queue/status?queueOrganizationUniqueId=58f68fea-...&queueDate=2026-08-19
  */
 router.get(
-  "/status",
+  EP.ROUTER.STATUS,
   verifyIfUserIsQueueOrgAdmin,
   validator(schema.statusQuery, "query"),
   controller.getQueueStatus,
@@ -184,7 +185,7 @@ router.get(
  * }
  */
 router.post(
-  "/manualCheckin",
+  EP.ROUTER.MANUAL_CHECKIN,
   verifyIfUserIsQueueOrgAdmin,
   validator(schema.manualCheckin),
   controller.manualCheckin,
@@ -219,7 +220,7 @@ router.post(
  * Body: { "queueNumber": 3, "reason": "Driver arrived earlier, system glitch" }
  */
 router.patch(
-  "/entry/:queueUniqueId/override",
+  EP.ROUTER.OVERRIDE_ENTRY,
   verifyIfUserIsQueueOrgAdmin,
   validator(schema.entryParams, "params"),
   validator(schema.overrideBody),
@@ -253,7 +254,7 @@ router.patch(
  * @example DELETE /api/queue/entry/a1b2c3d4-...
  */
 router.delete(
-  "/entry/:queueUniqueId",
+  EP.ROUTER.REMOVE_ENTRY,
   verifyIfUserIsQueueOrgAdmin,
   validator(schema.entryParams, "params"),
   controller.removeEntry,
@@ -315,7 +316,7 @@ router.delete(
  * }
  */
 router.post(
-  "/dispatch",
+  EP.ROUTER.DISPATCH,
   verifyIfUserIsQueueOrgAdmin,
   validator(schema.dispatchBody),
   controller.dispatch,
@@ -347,7 +348,7 @@ router.post(
  * @example GET /api/queue/entry/a1b2c3d4-.../history
  */
 router.get(
-  "/entry/:queueUniqueId/history",
+  EP.ROUTER.ENTRY_HISTORY,
   validator(schema.entryParams, "params"),
   controller.getEntryHistory,
 );
@@ -381,7 +382,7 @@ const biddingSchema = require("../../Validations/DriverBid.schema");
  * @returns {Object}  { message, data: { shipperRequestUniqueIds, isBiddingApproved, count, waitingMatched } }
  */
 router.post(
-  "/bidding/approve",
+  EP.ROUTER.APPROVE_BIDDING,
   validator(biddingSchema.approveBidding),
   controller.approveBidding,
 );
@@ -401,7 +402,7 @@ router.post(
  * @returns {Object}  { message, data: [bids], pagination: { currentPage, limit, totalItems, totalPages } }
  */
 router.get(
-  "/bidding/order/:shipperRequestUniqueId/bids",
+  EP.ROUTER.GET_BIDS_FOR_ORDER,
   validator(biddingSchema.getBidsParams, "params"),
   validator(biddingSchema.getBidsQuery, "query"),
   controller.getBidsForOrder,

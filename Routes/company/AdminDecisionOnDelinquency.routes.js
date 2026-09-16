@@ -15,6 +15,9 @@ const {
   adminDecisionParams,
   updateAdminDecision,
 } = require("../../Validations/AdminDecisionOnDelinquency.schema");
+const {
+  ADMIN_DECISION_ON_DELINQUENCY_ENDPOINTS: EP,
+} = require("../EndPoints/adminDecisionOnDelinquency.endpoints");
 
 const adminOnly = [verifyTokenOfAxios, verifyIfUserIsAdminOrSupperAdmin];
 
@@ -32,7 +35,7 @@ const routes = [
    *   DISMISSED → case closed, no side-effect
    */
   {
-    path: "/",
+    path: EP.ROUTER.CREATE_ADMIN_DECISION,
     method: "post",
     middleware: [...adminOnly, validator(createAdminDecision)],
     handler: controller.createAdminDecision,
@@ -44,7 +47,7 @@ const routes = [
    * Query: companyDelinquencyUniqueId?, decisionOutcome?, page?, limit?, sortOrder?
    */
   {
-    path: "/",
+    path: EP.ROUTER.GET_ADMIN_DECISIONS,
     method: "get",
     middleware: [...adminOnly, validator(getAdminDecisionsQuery, "query")],
     handler: controller.getAdminDecisions,
@@ -55,7 +58,7 @@ const routes = [
    * GET /api/company/admin/delinquency-decisions/:adminDecisionOnDelinquencyUniqueId
    */
   {
-    path: "/:adminDecisionOnDelinquencyUniqueId",
+    path: EP.ROUTER.GET_ADMIN_DECISION_BY_ID,
     method: "get",
     middleware: [...adminOnly, validator(adminDecisionParams, "params")],
     handler: controller.getAdminDecisionById,
@@ -67,7 +70,7 @@ const routes = [
    * Body: { adminDecisionText }
    */
   {
-    path: "/:adminDecisionOnDelinquencyUniqueId",
+    path: EP.ROUTER.UPDATE_ADMIN_DECISION,
     method: "put",
     middleware: [
       ...adminOnly,
@@ -82,7 +85,7 @@ const routes = [
    * DELETE /api/company/admin/delinquency-decisions/:adminDecisionOnDelinquencyUniqueId
    */
   {
-    path: "/:adminDecisionOnDelinquencyUniqueId",
+    path: EP.ROUTER.DELETE_ADMIN_DECISION,
     method: "delete",
     middleware: [...adminOnly, validator(adminDecisionParams, "params")],
     handler: controller.deleteAdminDecision,

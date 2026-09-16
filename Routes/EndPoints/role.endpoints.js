@@ -1,4 +1,5 @@
 const ROLE_ENDPOINTS = {
+  MOUNT: "/api/admin/roles",
   CREATE_ROLE: "/",
   UPDATE_ROLE: "/:roleUniqueId",
   DELETE_ROLE: "/:roleUniqueId",

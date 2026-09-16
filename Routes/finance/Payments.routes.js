@@ -10,28 +10,29 @@ const {
   paymentParams,
   userPaymentParams,
 } = require("../../Validations/Payments.schema");
+const { PAYMENTS_ENDPOINTS: EP } = require("../EndPoints/payments.endpoints");
 
 // Create a new payment
 router.post(
-  "/",
+  EP.ROUTER.CREATE_PAYMENT,
   verifyTokenOfAxios,
   validator(createPayment),
   paymentsController.createPayment,
 );
 
 // Get all payments
-router.get("/", verifyTokenOfAxios, paymentsController.getAllPayments);
+router.get(EP.ROUTER.GET_ALL_PAYMENTS, verifyTokenOfAxios, paymentsController.getAllPayments);
 
 // Get a specific payment by ID
 router.get(
-  "/:userUniqueId/:fromDate/:toDate",
+  EP.ROUTER.GET_PAYMENTS_BY_USER_UNIQUE_ID,
   verifyTokenOfAxios,
   validator(userPaymentParams, "params"),
   paymentsController.getPaymentsByUserUniqueId,
 );
 // Get a specific payment by ID
 router.get(
-  "/:id",
+  EP.ROUTER.GET_PAYMENT_BY_ID,
   verifyTokenOfAxios,
   validator(paymentParams, "params"),
   paymentsController.getPaymentById,
@@ -39,7 +40,7 @@ router.get(
 
 // Update a specific payment by ID
 router.put(
-  "/:id",
+  EP.ROUTER.UPDATE_PAYMENT,
   verifyTokenOfAxios,
   validator(paymentParams, "params"),
   validator(updatePayment),
@@ -48,7 +49,7 @@ router.put(
 
 // Delete a specific payment by ID
 router.delete(
-  "/:id",
+  EP.ROUTER.DELETE_PAYMENT,
   verifyTokenOfAxios,
   validator(paymentParams, "params"),
   paymentsController.deletePayment,

@@ -2,6 +2,7 @@ const HEALTH_ENDPOINTS = {
   HEALTH_CHECK: "/api/health",
   DATABASE_HEALTH: "/api/health/database",
   DATABASE_STATS: "/api/admin/database/stats",
+  CLEAR_CACHE: "/api/utils/clear-cache",
 };
 
 module.exports = {

@@ -16,6 +16,9 @@ const COMPANY_ASSIGNMENT_ENDPOINTS = {
     UPDATE_ASSIGNMENT_STATUS: "/:assignmentUniqueId/status",
     DELETE_ASSIGNMENT: "/:assignmentUniqueId",
   },
+
+  // Mount prefix — used by company/index.js
+  MOUNT: "/assignments",
 };
 
 module.exports = {

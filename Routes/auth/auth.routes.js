@@ -18,7 +18,7 @@ const {
   loginUser,
   verifyUserByOTP,
 } = require("../../Validations/User.schema");
-const { AUTH_ENDPOINTS } = require("./APIEndPoints");
+const { AUTH_ENDPOINTS } = require("../EndPoints/auth.endpoints");
 
 const router = express.Router();
 

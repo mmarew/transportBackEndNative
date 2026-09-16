@@ -1,4 +1,5 @@
 const DOCUMENT_TYPES_ENDPOINTS = {
+  MOUNT: "/api/documentTypes",
   CREATE_DOCUMENT_TYPE: "/",
   GET_DOCUMENT_TYPES: "/",
   UPDATE_DOCUMENT_TYPE: "/:documentTypeUniqueId",

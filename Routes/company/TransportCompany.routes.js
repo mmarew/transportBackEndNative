@@ -10,6 +10,7 @@ const {
   verifyIfUserIsAdminOrSupperAdmin,
   verifyIfUserIsAdminSuperAdminOrCompanyAdmin,
 } = require("../../Middleware/VerifyToken");
+const { TRANSPORT_COMPANY_ENDPOINTS: EP } = require("../EndPoints/transportCompany.endpoints");
 
 // Authentication middleware for all routes
 router.use(verifyTokenOfAxios);
@@ -20,7 +21,7 @@ router.use(verifyTokenOfAxios);
  * @access  Private
  */
 router.post(
-  "/",
+  EP.ROUTER.CREATE_TRANSPORT_COMPANY,
   verifyIfUserIsAdminSuperAdminOrCompanyAdmin,
   validator(schema.createCompany),
   controller.createCompany,
@@ -31,7 +32,7 @@ router.post(
  * @desc    Get all transport companies (with filtering and pagination)
  * @access  Private
  */
-router.get("/", controller.getCompanies);
+router.get(EP.ROUTER.GET_ALL_TRANSPORT_COMPANIES, controller.getCompanies);
 
 /**
  * @route   PATCH /api/company/companies/:companyUniqueId
@@ -39,7 +40,7 @@ router.get("/", controller.getCompanies);
  * @access  Private
  */
 router.patch(
-  "/:companyUniqueId",
+  EP.ROUTER.UPDATE_TRANSPORT_COMPANY,
   verifyIfUserIsAdminSuperAdminOrCompanyAdmin,
   validator(schema.companyParams, "params"),
   validator(schema.updateCompany),
@@ -52,7 +53,7 @@ router.patch(
  * @access  Private
  */
 router.patch(
-  "/:companyUniqueId/approve",
+  EP.ROUTER.UPDATE_TRANSPORT_COMPANY_APPROVAL,
   verifyIfUserIsAdminOrSupperAdmin,
   validator(schema.companyParams, "params"),
   validator(schema.approveCompany),
@@ -65,7 +66,7 @@ router.patch(
  * @access  Private
  */
 router.delete(
-  "/:companyUniqueId",
+  EP.ROUTER.DELETE_TRANSPORT_COMPANY,
   verifyIfUserIsAdminOrSupperAdmin,
   validator(schema.companyParams, "params"),
   controller.deleteCompany,
@@ -81,7 +82,7 @@ router.delete(
  * @query   page?, limit?, fieldName? (e.g. 'approvalStatus' or 'companyPhone'), source? (e.g. 'ban', 'profile_update')
  */
 router.get(
-  "/:companyUniqueId/profileHistory",
+  EP.ROUTER.GET_TRANSPORT_COMPANY_PROFILE_HISTORY,
   verifyIfUserIsAdminSuperAdminOrCompanyAdmin,
   validator(schema.companyParams, "params"),
   controller.getCompanyHistory,

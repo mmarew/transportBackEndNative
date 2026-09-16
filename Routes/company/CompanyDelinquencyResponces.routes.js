@@ -14,6 +14,9 @@ const {
 const {
   pendingDelinquenciesQuery,
 } = require("../../Validations/CompanyDelinquency.schema");
+const {
+  COMPANY_DELINQUENCY_RESPONCES_ENDPOINTS: EP,
+} = require("../EndPoints/companyDelinquencyResponces.endpoints");
 
 const routes = [
   // ── Pending delinquencies (company sees what needs attention) ──────────────
@@ -25,7 +28,7 @@ const routes = [
    * Each row includes a responseStatus: 'AWAITING_RESPONSE' or 'RESPONDED'.
    */
   {
-    path: "/pending",
+    path: EP.ROUTER.GET_PENDING_DELINQUENCIES,
     method: "get",
     middleware: [
       verifyTokenOfAxios,
@@ -43,7 +46,7 @@ const routes = [
    * to defend against a delinquency. Duplicate responses are blocked.
    */
   {
-    path: "/response",
+    path: EP.ROUTER.CREATE_DELINQUENCY_RESPONSE,
     method: "post",
     middleware: [verifyTokenOfAxios, validator(createDelinquencyResponse)],
     handler: controller.createDelinquencyResponse,
@@ -55,7 +58,7 @@ const routes = [
    * Query: companyDelinquencyUniqueId?, companyDelinquencyResponseUniqueId?, page?, limit?
    */
   {
-    path: "/response",
+    path: EP.ROUTER.GET_DELINQUENCY_RESPONSES,
     method: "get",
     middleware: [
       verifyTokenOfAxios,

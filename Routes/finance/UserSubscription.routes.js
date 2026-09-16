@@ -12,10 +12,11 @@ const {
   userSubscriptionUuidParams,
   getUserSubscriptionsQuery,
 } = require("../../Validations/UserSubscription.schema");
+const { USER_SUBSCRIPTION_ENDPOINTS: EP } = require("../EndPoints/userSubscription.endpoints");
 
 // Create subscription
 router.post(
-  "/:driverUniqueId",
+  EP.ROUTER.CREATE_USER_SUBSCRIPTION,
   verifyTokenOfAxios,
   validator(userSubscriptionParams, "params"),
   validator(createUserSubscription),
@@ -27,7 +28,7 @@ router.post(
 //           /api/finance/userSubscription?userSubscriptionUniqueId=uuid
 //           /api/finance/userSubscription?driverUniqueId=uuid&isActive=true
 router.get(
-  "/",
+  EP.ROUTER.GET_ALL_USER_SUBSCRIPTIONS,
   verifyTokenOfAxios,
   validator(userSubscriptionGetParams, "params"),
   validator(getUserSubscriptionsQuery, "query"),
@@ -36,7 +37,7 @@ router.get(
 
 // Update by UUID
 router.put(
-  "/:userSubscriptionUniqueId",
+  EP.ROUTER.UPDATE_USER_SUBSCRIPTION,
   verifyTokenOfAxios,
   validator(userSubscriptionUuidParams, "params"),
   validator(updateUserSubscription),
@@ -45,7 +46,7 @@ router.put(
 
 // Delete by UUID
 router.delete(
-  "/:userSubscriptionUniqueId",
+  EP.ROUTER.DELETE_USER_SUBSCRIPTION,
   verifyTokenOfAxios,
   validator(userSubscriptionUuidParams, "params"),
   controller.deleteUserSubscriptionByUniqueId,

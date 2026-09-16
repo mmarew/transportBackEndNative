@@ -1,4 +1,5 @@
 const BANNED_USERS_ENDPOINTS = {
+  MOUNT: "/api/admin/bannedUsers",
   BAN_USER: "/",
   GET_BANNED_USERS: "/",
   UPDATE_BANNED_USER: "/:banUniqueId",

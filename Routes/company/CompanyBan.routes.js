@@ -14,27 +14,28 @@ const {
   getCompanyBansQuery,
   companyBanParams,
 } = require("../../Validations/CompanyDelinquency.schema"); // Shared schema
+const { COMPANY_BAN_ENDPOINTS: EP } = require("../EndPoints/companyBan.endpoints");
 
 const adminOnly = [verifyTokenOfAxios, verifyIfUserIsAdminOrSupperAdmin];
 
 const routes = [
   // ── Company Ban ────────────────────────────────────────────────────────────
   {
-    path: "/",
+    path: EP.ROUTER.CREATE_BAN,
     method: "post",
     middleware: [...adminOnly, validator(banCompany)],
     handler: controller.banCompany,
     // Body: { companyUniqueId, companyDelinquencyUniqueId, banReason, banDurationDays }
   },
   {
-    path: "/",
+    path: EP.ROUTER.GET_COMPANY_BANS,
     method: "get",
     middleware: [...adminOnly, validator(getCompanyBansQuery, "query")],
     handler: controller.getCompanyBans,
     // Query: companyUniqueId?, isActive?, startDate?, endDate?, page?, limit?
   },
   {
-    path: "/:companyBanUniqueId/unban",
+    path: EP.ROUTER.UNBAN_COMPANY,
     method: "patch",
     middleware: [...adminOnly, validator(companyBanParams, "params")],
     handler: controller.unbanCompany,

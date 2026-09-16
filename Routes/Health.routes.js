@@ -9,7 +9,8 @@ const { getQueryStats } = require("../Middleware/QueryPerformance");
 const AppError = require("../Utils/AppError");
 const { currentDate } = require("../Utils/CurrentDate");
 const { HEALTH_ENDPOINTS } = require("./EndPoints/health.endpoints");
-const { clearCache } = require("../Services/FixedData.service");
+const { clearCache: clearFixedDataCache } = require("../Services/FixedData.service");
+const { clearFixedDataCache: clearCacheController } = require("../Controllers/Health.controller");
 const { HTTP_STATUS } = require("../Utils/Constants");
 
 // Simple health check with DB reachability indicator
@@ -78,9 +79,6 @@ router.get(HEALTH_ENDPOINTS.DATABASE_STATS, async (req, res, next) => {
 });
 
 // Clear FixedData cache (useful for test suites)
-router.get("/api/utils/clear-cache", async (req, res) => {
-  clearCache();
-  res.json({ message: "success", data: "FixedData cache cleared" });
-});
+router.get(HEALTH_ENDPOINTS.CLEAR_CACHE, clearCacheController);
 
 module.exports = router;

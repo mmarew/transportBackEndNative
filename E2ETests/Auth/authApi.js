@@ -3,7 +3,7 @@
 // must route through here (via ensureUser). Keeps auth wiring in one place.
 
 const axios = require("axios");
-const { AUTH_ENDPOINTS } = require("../../Routes/auth/APIEndPoints");
+const { AUTH_ENDPOINTS } = require("../../Routes/EndPoints/auth.endpoints");
 const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
 

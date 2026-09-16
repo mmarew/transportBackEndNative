@@ -11,10 +11,11 @@ const {
   paymentStatusParams,
   getPaymentStatusQuery,
 } = require("../../Validations/PaymentStatus.schema");
+const { PAYMENT_STATUS_ENDPOINTS: EP } = require("../EndPoints/paymentStatus.endpoints");
 
 // Create a new payment status
 router.post(
-  "/",
+  EP.ROUTER.CREATE_PAYMENT_STATUS,
   verifyTokenOfAxios,
   validator(createPaymentStatus),
   paymentStatusController.createPaymentStatus,
@@ -22,7 +23,7 @@ router.post(
 
 // Get all payment statuses
 router.get(
-  "/",
+  EP.ROUTER.GET_ALL_PAYMENT_STATUSES,
   verifyTokenOfAxios,
   validator(getPaymentStatusQuery, "query"),
   paymentStatusController.getAllPaymentStatuses,
@@ -30,7 +31,7 @@ router.get(
 
 // Update a specific payment status by ID
 router.put(
-  "/:paymentStatusUniqueId",
+  EP.ROUTER.UPDATE_PAYMENT_STATUS,
   verifyTokenOfAxios,
   validator(paymentStatusParams, "params"),
   validator(updatePaymentStatus),
@@ -39,7 +40,7 @@ router.put(
 
 // Delete a specific payment status by ID
 router.delete(
-  "/:paymentStatusUniqueId",
+  EP.ROUTER.DELETE_PAYMENT_STATUS,
   verifyTokenOfAxios,
   validator(paymentStatusParams, "params"),
   paymentStatusController.deletePaymentStatus,

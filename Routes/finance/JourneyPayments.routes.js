@@ -26,10 +26,11 @@ const {
   journeyPaymentParams,
   getJourneyPaymentsQuery,
 } = require("../../Validations/JourneyPayments.schema");
+const { JOURNEY_PAYMENTS_ENDPOINTS: EP } = require("../EndPoints/journeyPayments.endpoints");
 
 // Create a new journey payment
 router.post(
-  "/",
+  EP.ROUTER.CREATE_JOURNEY_PAYMENT,
   verifyTokenOfAxios,
   validator(createJourneyPayment),
   journeyPaymentsController.createJourneyPayment,
@@ -37,7 +38,7 @@ router.post(
 
 // Get all journey payments with pagination and filtering
 router.get(
-  "/",
+  EP.ROUTER.GET_ALL_JOURNEY_PAYMENTS,
   verifyTokenOfAxios,
   validator(getJourneyPaymentsQuery, "query"),
   journeyPaymentsController.getAllJourneyPayments,
@@ -45,7 +46,7 @@ router.get(
 
 // Get a specific journey payment by ID
 router.get(
-  "/:paymentUniqueId",
+  EP.ROUTER.GET_JOURNEY_PAYMENT_BY_ID,
   verifyTokenOfAxios,
   validator(journeyPaymentParams, "params"),
   journeyPaymentsController.getJourneyPaymentById,
@@ -53,7 +54,7 @@ router.get(
 
 // Update a specific journey payment by ID
 router.put(
-  "/:paymentUniqueId",
+  EP.ROUTER.UPDATE_JOURNEY_PAYMENT,
   verifyTokenOfAxios,
   validator(journeyPaymentParams, "params"),
   validator(updateJourneyPayment),
@@ -62,7 +63,7 @@ router.put(
 
 // Delete a specific journey payment by ID
 router.delete(
-  "/:paymentUniqueId",
+  EP.ROUTER.DELETE_JOURNEY_PAYMENT,
   verifyTokenOfAxios,
   validator(journeyPaymentParams, "params"),
   journeyPaymentsController.deleteJourneyPayment,

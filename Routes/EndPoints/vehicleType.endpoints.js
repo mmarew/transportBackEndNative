@@ -1,4 +1,5 @@
 const VEHICLE_TYPE_ENDPOINTS = {
+  MOUNT: "/api/admin/vehicleTypes",
   CREATE_VEHICLE_TYPE: "/",
   GET_VEHICLE_TYPES: "/",
   UPDATE_VEHICLE_TYPE: "/:vehicleTypeUniqueId",

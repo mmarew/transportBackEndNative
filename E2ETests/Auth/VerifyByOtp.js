@@ -1,5 +1,5 @@
 const axios = require("axios");
-const { AUTH_ENDPOINTS } = require("../../Routes/auth/APIEndPoints");
+const { AUTH_ENDPOINTS } = require("../../Routes/EndPoints/auth.endpoints");
 const { usersData, backendURL } = require("../constants");
 
 const testVerifyUserByOTP = async ({ userType = "admin" }) => {

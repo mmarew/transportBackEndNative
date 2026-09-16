@@ -13,10 +13,11 @@ const {
   updateDepositSource,
   depositSourceParams,
 } = require("../../Validations/DepositSource.schema");
+const { DEPOSIT_SOURCE_ENDPOINTS: EP } = require("../EndPoints/depositSource.endpoints");
 
 // Create new source
 router.post(
-  "/",
+  EP.ROUTER.CREATE_DEPOSIT_SOURCE,
   verifyTokenOfAxios,
   verifyIfUserIsAdminOrSupperAdmin,
   validator(createDepositSource),
@@ -25,14 +26,14 @@ router.post(
 
 // Get all sources
 router.get(
-  "/",
+  EP.ROUTER.GET_ALL_DEPOSIT_SOURCES,
   verifyTokenOfAxios,
   controller.getAllDepositSources,
 );
 
 // Get by UUID
 router.get(
-  "/:depositSourceUniqueId",
+  EP.ROUTER.GET_DEPOSIT_SOURCE_BY_UNIQUE_ID,
   verifyTokenOfAxios,
   validator(depositSourceParams, "params"),
   controller.getDepositSourceByUniqueId,
@@ -40,7 +41,7 @@ router.get(
 
 // Update by UUID
 router.put(
-  "/:depositSourceUniqueId",
+  EP.ROUTER.UPDATE_DEPOSIT_SOURCE,
   verifyTokenOfAxios,
   verifyIfUserIsAdminOrSupperAdmin,
   validator(depositSourceParams, "params"),
@@ -50,7 +51,7 @@ router.put(
 
 // Delete by UUID
 router.delete(
-  "/:depositSourceUniqueId",
+  EP.ROUTER.DELETE_DEPOSIT_SOURCE,
   verifyTokenOfAxios,
   verifyIfUserIsAdminOrSupperAdmin,
   validator(depositSourceParams, "params"),

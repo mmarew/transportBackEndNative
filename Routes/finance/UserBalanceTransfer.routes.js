@@ -11,10 +11,11 @@ const {
   transferParams,
   transferQuery,
 } = require("../../Validations/UserBalanceTransfer.schema");
+const { USER_BALANCE_TRANSFER_ENDPOINTS: EP } = require("../EndPoints/userBalanceTransfer.endpoints");
 
 // Create
 router.post(
-  "/:transferredBy",
+  EP.ROUTER.CREATE_TRANSFER,
   verifyTokenOfAxios,
   validator(transferParams, "params"),
   validator(createTransfer),
@@ -23,7 +24,7 @@ router.post(
 
 // Get all transfers
 router.get(
-  "/",
+  EP.ROUTER.GET_ALL_TRANSFERS,
   verifyTokenOfAxios,
   validator(transferQuery, "query"),
   controller.getAllTransfers,
@@ -31,7 +32,7 @@ router.get(
 
 // Get by UUID
 router.get(
-  "/:depositTransferUniqueId",
+  EP.ROUTER.GET_TRANSFER_BY_UNIQUE_ID,
   verifyTokenOfAxios,
   validator(transferParams, "params"),
   controller.getTransferByUniqueId,
@@ -39,7 +40,7 @@ router.get(
 
 // Get by fromDriver
 router.get(
-  "/from/:fromDriverUniqueId",
+  EP.ROUTER.GET_TRANSFERS_BY_FROM_DRIVER,
   verifyTokenOfAxios,
   validator(transferParams, "params"),
   validator(transferQuery, "query"),
@@ -48,7 +49,7 @@ router.get(
 
 // Get by toDriver
 router.get(
-  "/to/:toDriverUniqueId",
+  EP.ROUTER.GET_TRANSFERS_BY_TO_DRIVER,
   verifyTokenOfAxios,
   validator(transferParams, "params"),
   validator(transferQuery, "query"),
@@ -57,7 +58,7 @@ router.get(
 
 // Update transfer by UUID - Dedicated PUT route for balance transfer updates
 router.put(
-  "/:depositTransferUniqueId",
+  EP.ROUTER.UPDATE_TRANSFER,
   verifyTokenOfAxios,
   validator(transferParams, "params"),
   validator(updateTransfer),
@@ -66,7 +67,7 @@ router.put(
 
 // Delete by UUID
 router.delete(
-  "/:depositTransferUniqueId",
+  EP.ROUTER.DELETE_TRANSFER,
   verifyTokenOfAxios,
   validator(transferParams, "params"),
   controller.deleteTransferByUniqueId,

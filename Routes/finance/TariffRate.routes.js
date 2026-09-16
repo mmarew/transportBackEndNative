@@ -11,10 +11,11 @@ const {
   tariffRateParams,
   getTariffRatesByFiltersQuery,
 } = require("../../Validations/TariffRate.schema");
+const { TARIFF_RATE_ENDPOINTS: EP } = require("../EndPoints/tariffRate.endpoints");
 
 // Create a new tariff rate
 router.post(
-  "/",
+  EP.ROUTER.CREATE_TARIFF_RATE,
   verifyTokenOfAxios,
   validator(createTariffRate),
   tariffRateController.createTariffRate,
@@ -26,7 +27,7 @@ router.post(
 //   GET /?tariffRateUniqueId=uuid                  → single rate by ID
 //   GET /?tariffRateName=base&page=1&limit=5       → search by name
 router.get(
-  "/",
+  EP.ROUTER.GET_ALL_TARIFF_RATES,
   verifyTokenOfAxios,
   validator(getTariffRatesByFiltersQuery, "query"),
   tariffRateController.getTariffRatesByFilter,
@@ -34,7 +35,7 @@ router.get(
 
 // Update a tariff rate by ID
 router.put(
-  "/:tariffRateUniqueId",
+  EP.ROUTER.UPDATE_TARIFF_RATE,
   verifyTokenOfAxios,
   validator(tariffRateParams, "params"),
   validator(updateTariffRate),
@@ -43,7 +44,7 @@ router.put(
 
 // Delete a tariff rate by ID
 router.delete(
-  "/:tariffRateUniqueId",
+  EP.ROUTER.DELETE_TARIFF_RATE,
   verifyTokenOfAxios,
   validator(tariffRateParams, "params"),
   tariffRateController.deleteTariffRate,

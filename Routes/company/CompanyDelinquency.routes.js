@@ -14,6 +14,9 @@ const {
   getCompanyDelinquenciesQuery,
   companyDelinquencyParams,
 } = require("../../Validations/CompanyDelinquency.schema");
+const {
+  COMPANY_DELINQUENCY_ENDPOINTS: EP,
+} = require("../EndPoints/companyDelinquency.endpoints");
 
 const adminOnly = [verifyTokenOfAxios, verifyIfUserIsAdminOrSupperAdmin];
 
@@ -34,14 +37,14 @@ const routes = [
    */
 
   {
-    path: "/",
+    path: EP.ROUTER.CREATE_COMPANY_DELINQUENCY,
     method: "post",
     middleware: [...adminOnly, validator(createCompanyDelinquency)],
     handler: controller.createCompanyDelinquency,
     // Body: { companyUniqueId, delinquencyTypeUniqueId, delinquencyDescription?, journeyDecisionUniqueId? }
   },
   {
-    path: "/",
+    path: EP.ROUTER.GET_COMPANY_DELINQUENCIES,
     method: "get",
     middleware: [
       ...adminOnly,
@@ -51,7 +54,7 @@ const routes = [
     // Query: companyUniqueId?, delinquencyTypeUniqueId?, severity?, startDate?, endDate?, page?, limit?
   },
   {
-    path: "/:companyDelinquencyUniqueId",
+    path: EP.ROUTER.DELETE_COMPANY_DELINQUENCY,
     method: "delete",
     middleware: [...adminOnly, validator(companyDelinquencyParams, "params")],
     handler: controller.deleteCompanyDelinquency,

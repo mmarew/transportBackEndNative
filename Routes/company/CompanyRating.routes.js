@@ -34,6 +34,7 @@ const {
   companyRatingParams,
   updateCompanyRating,
 } = require("../../Validations/CompanyRating.schema");
+const { COMPANY_RATING_ENDPOINTS: EP } = require("../EndPoints/companyRating.endpoints");
 
 const adminOnly = [verifyTokenOfAxios, verifyIfUserIsAdminOrSupperAdmin];
 const authOnly = [verifyTokenOfAxios];
@@ -41,7 +42,7 @@ const authOnly = [verifyTokenOfAxios];
 const routes = [
   // ── Submit a rating (shipper only, one per job) ────────────────────────────
   {
-    path: "/",
+    path: EP.ROUTER.CREATE_COMPANY_RATING,
     method: "post",
     middleware: [...authOnly, validator(createCompanyRating)],
     handler: controller.createCompanyRating,
@@ -50,7 +51,7 @@ const routes = [
 
   // ── List ratings (admin or public query) ──────────────────────────────────
   {
-    path: "/",
+    path: EP.ROUTER.GET_COMPANY_RATINGS,
     method: "get",
     middleware: [...authOnly, validator(getCompanyRatingsQuery, "query")],
     handler: controller.getCompanyRatings,
@@ -60,7 +61,7 @@ const routes = [
 
   // ── Average rating for a specific company (shown on bid list) ─────────────
   {
-    path: "/average/:companyUniqueId",
+    path: EP.ROUTER.GET_COMPANY_AVERAGE_RATING,
     method: "get",
     middleware: [...authOnly, validator(companyAverageParams, "params")],
     handler: controller.getCompanyAverageRating,
@@ -69,7 +70,7 @@ const routes = [
 
   // ── Update a rating (admin corrects erroneous submissions) ────────────────
   {
-    path: "/:companyRatingUniqueId",
+    path: EP.ROUTER.UPDATE_COMPANY_RATING,
     method: "put",
     middleware: [
       ...adminOnly,
@@ -81,7 +82,7 @@ const routes = [
 
   // ── Soft-delete a rating (admin only) ────────────────────────────────────
   {
-    path: "/:companyRatingUniqueId",
+    path: EP.ROUTER.DELETE_COMPANY_RATING,
     method: "delete",
     middleware: [...adminOnly, validator(companyRatingParams, "params")],
     handler: controller.deleteCompanyRating,

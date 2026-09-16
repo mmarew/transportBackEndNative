@@ -1,4 +1,5 @@
 const AUTH_ENDPOINTS = {
+  MOUNT: "/",
   CREATE_USER: `/api/user/createUser`,
   CREATE_USER_BY_ADMIN: `/api/admin/createUserByAdminOrSuperAdmin`,
   CREATE_USER_BY_QUEUE_ADMIN: `/api/queueOrganization/createUserByQueueAdmin`,
@@ -13,3 +14,6 @@ const AUTH_ENDPOINTS = {
 module.exports = {
   AUTH_ENDPOINTS,
 };
+
+// Mount prefix — used by Routes/auth/index.js (auth routes carry FULL absolute paths, mounted at root)
+AUTH_ENDPOINTS.MOUNT = "/";

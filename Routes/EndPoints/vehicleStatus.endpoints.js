@@ -1,4 +1,5 @@
 const VEHICLE_STATUS_ENDPOINTS = {
+  MOUNT: "/api/vehicleStatus",
   CREATE_VEHICLE_STATUS: "/",
   GET_VEHICLE_STATUSES: "/",
   UPDATE_VEHICLE_STATUS: "/:vehicleStatusUniqueId",
