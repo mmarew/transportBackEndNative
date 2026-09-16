@@ -1,3 +1,58 @@
+// Utils/Notifications.js
+//
+// Stakeholder notification helpers — how to push live (socket.io) and offline
+// (FCM) messages to shipper, company, driver and queue loading place during
+// the freight flow. Every helper here returns a Promise and never throws; call
+// them AFTER the DB commit (fire-and-forget with .catch(logger.error) so a
+// heartbeat hiccup never breaks the REST write).
+
+/**
+ * ── Channels at a glance ────────────────────────────────────────────────────
+ * Per-user socket   `getSocket("{userType}:{digitsOnlyPhone}") -> socketId`,
+ *                   then `emitMessage({socketId, eventName, messageDetails})`.
+ *                   Used for a single stakeholder (shipper, company member,
+ *                   driver, queue staff). Redis key = userType + digits-only
+ *                   phone (see Utils/WsConnectionStore.js, SocketUserTypes).
+ * Org room broadcast `io.to(orgRoom(uid)) -> "queueOrg:<queueOrganizationUniqueId>"`
+ *                   Any subscribed client of a queue org (drivers + staff).
+ * Day room broadcast `io.to(dayRoom(uid, date)) -> "queueOrg:<uid>:<YYYY-MM-DD>"`
+ *                   Queue-position changes for a specific queue day.
+ * FCM               `sendFCMNotificationToUser({userUniqueId, roleId, ...})`
+ *                   Background/killed apps. Pair socket + FCM for the actor
+ *                   whose device must wake (e.g. shipper); queue loading place
+ *                   events are socket-ONLY (live screens, offline staff poll).
+ *
+ * Socket user types (Utils/SocketUserTypes.js): driver · shipper · SMSSender ·
+ * admin · company · queueOrgAdmin.
+ *
+ * ── Message envelope (what every client receives) ──────────────────────────
+ *   {
+ *     "message": "success",
+ *     "messageTypes": { "message": "...", "details": "..." },
+ *     "notification": { "title": "...", "body": "..." },      // FCM only
+ *     "data": { "type": "...", ...any screen payload... }
+ *   }
+ *
+ * ── Company-targeted flow — who hears what (socket / FCM) ───────────────────
+ * Batch created (PRs deferred)        : targeted companies ← company_batch_available
+ * Company submits bid                 : shipper ← company_bid_submitted;
+ *                                       queue org ← company_bid_joined (room+staff)
+ * Winning bid accepted                : shipper (FCM+socket); company ←
+ *                                       company_bid_accepted; queue org ←
+ *                                       company_selected (socket-only)
+ * Losing bids                         : company ← company_bid_not_selected
+ * Driver assigned                     : driver ← company_driver_assignment
+ * Driver confirms (confirmed_by_driver): shipper + company ← company_driver_confirmed;
+ *                                       queue loading place ←
+ *                                       queue_driver_confirmed_assignment (socket-only)
+ * Loading stages (5/6/7)              : queue org ← notifyQueueOrgOfLoadingStage
+ *                                       (room + staff, socket-only)
+ *
+ * Helpers here target shipper / company / admin / driver one-at-a-time.
+ * See Utils/QueueSocket.js for queue-org room + staff helpers. Message type
+ * metadata lives in Utils/MessageTypes.js; FCM lives in
+ * Services/Firebase.service.js (sendFCMNotificationToUser).
+ */
 const { emitMessage } = require("./WsServerResponder");
 const { getSocket } = require("./WsConnectionStore");
 const { redis } = require("../Config/redis.config");

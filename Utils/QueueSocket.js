@@ -326,6 +326,133 @@ const notifyQueueOrgOfLoadingStage = async ({
   }
 };
 
+/**
+ * emitAssignmentConfirmationToQueueOrg — driver confirmed an assignment
+ * ──────────────────────────────────────────────────────────────────────
+ * Live (socket-only, no FCM) event for the QUEUE LOADING PLACE when a driver
+ * confirms a company freight assignment (`confirmed_by_driver`). Mirrors
+ * `emitBidEventToQueueOrg` / `company_selected` so loading-place staff see the
+ * confirmation instantly instead of polling. Only relevant for queue-org jobs;
+ * individual (distance) flow skips this silently.
+ *
+ * When to call: from the assignment-status transition service, AFTER the DB
+ * commit — fire-and-forget with `.catch(logger.error)` so a socket hiccup
+ * never breaks the REST write.
+ *
+ * Delivery channels (both):
+ *   1. Room broadcast → `queueOrg:<queueOrganizationUniqueId>` on the
+ *      `eventName` socket event ("messages" by default) — any subscribed
+ *      client (queue screens, staff) gets it live.
+ *   2. Targeted per-user push → every ACTIVE queue staff member
+ *      (`QueueOrganizationMembership` with roleId IN (11, 12), isActive = 1,
+ *      membershipDeletedAt IS NULL) via `getSocket(QUEUE_ORG_ADMIN, phone)`.
+ *
+ * Resolves the owning org through the order's batch header —
+ * `ShipperRequest.shipperRequestBatchUniqueId` →
+ * `ShipperRequestBatch.queueOrganizationUniqueId` (the canonical org link;
+ * `ShipperRequest` has no org column).
+ *
+ * Socket-only by design: live screens should render immediately; offline staff
+ * rely on polling, matching `company_selected`. Do NOT add FCM for this event
+ * unless a background/offline user must be woken.
+ *
+ * Envelope sent to each recipient:
+ *   { message: "success",
+ *     messageTypes: messageTypes.queue_driver_confirmed_assignment,  // {message, details}
+ *     data: <caller payload> | { type: "queue_driver_confirmed_assignment", ... } }
+ *
+ * @param {object} options
+ * @param {string} options.shipperRequestUniqueId  Order that was confirmed (required).
+ * @param {string} [options.driverName=""]         Driver display name, put in data/detail.
+ * @param {object} [options.data=null]             Payload forwarded verbatim in `data`; when
+ *                                                 omitted, a default envelope is built.
+ * @param {string} [options.eventName="messages"]  Socket event name (clients listen here).
+ * @returns {Promise<{status: "success"|"skipped"|"error", queueOrganizationUniqueId?, reason?, data?}>}
+ *   "success" when emitted to 0+ sockets; "skipped" when not a queue order (reason:
+ *   "not a queue order"); "error" on failure (logged, never throws).
+ */
+const emitAssignmentConfirmationToQueueOrg = async ({
+  shipperRequestUniqueId,
+  driverName = "",
+  data = null,
+  eventName = "messages",
+}) => {
+  if (!shipperRequestUniqueId) {
+    return { status: "error", message: "shipperRequestUniqueId is required" };
+  }
+
+  try {
+    const [orders] = await db().query(
+      `SELECT srb.queueOrganizationUniqueId
+       FROM ShipperRequest sr
+       LEFT JOIN ShipperRequestBatch srb ON srb.batchUniqueId = sr.shipperRequestBatchUniqueId
+       WHERE sr.shipperRequestUniqueId = ?
+         AND sr.shipperRequestDeletedAt IS NULL
+       LIMIT 1`,
+      [shipperRequestUniqueId],
+    );
+    const queueOrganizationUniqueId = orders[0]?.queueOrganizationUniqueId;
+    if (!queueOrganizationUniqueId) {
+      return { status: "skipped", reason: "not a queue order" };
+    }
+
+    const payloadObj = {
+      message: "success",
+      messageTypes:
+        messageTypes.queue_driver_confirmed_assignment ||
+        messageTypes.queue_position_changed,
+      data: data || {
+        type: "queue_driver_confirmed_assignment",
+        shipperRequestUniqueId,
+        driverName,
+        assignmentStatus: "confirmed_by_driver",
+      },
+    };
+    const payload = JSON.stringify(payloadObj);
+
+    const io = socketIO.io;
+    if (io) {
+      io.to(orgRoom(queueOrganizationUniqueId)).emit(eventName, payload);
+    }
+
+    const [members] = await db().query(
+      `SELECT u.phoneNumber
+       FROM QueueOrganizationMembership qm
+       JOIN Users u ON qm.userUniqueId = u.userUniqueId
+       WHERE qm.queueOrganizationUniqueId = ?
+         AND qm.roleId IN (?, ?)
+         AND qm.isActive = 1
+         AND qm.membershipDeletedAt IS NULL`,
+      [queueOrganizationUniqueId,
+       usersRoles.queueOrgAdminRoleId,
+       usersRoles.queueDispatcherRoleId],
+    );
+
+    const results = [];
+    for (const member of members) {
+      const cleaned = member.phoneNumber?.replace(/\D/g, "");
+      const socketId = await getSocket(SocketUserTypes.QUEUE_ORG_ADMIN, cleaned);
+      if (!socketId) continue;
+      const res = await emitMessage({ socketId, eventName, messageDetails: payload });
+      results.push({ phoneNumber: cleaned, status: res.status });
+    }
+
+    logger.debug("emitAssignmentConfirmationToQueueOrg done", {
+      queueOrganizationUniqueId,
+      shipperRequestUniqueId,
+      sockets: results.length,
+    });
+    return { status: "success", queueOrganizationUniqueId, data: results };
+  } catch (error) {
+    logger.error("emitAssignmentConfirmationToQueueOrg failed", {
+      error: error.message,
+      stack: error.stack,
+      shipperRequestUniqueId,
+    });
+    return { status: "error", message: error.message };
+  }
+};
+
 module.exports = {
   orgRoom,
   dayRoom,
@@ -334,4 +461,5 @@ module.exports = {
   notifyQueueOrgAdmins,
   notifyQueueOrgOfLoadingStage,
   emitBidEventToQueueOrg,
+  emitAssignmentConfirmationToQueueOrg,
 };

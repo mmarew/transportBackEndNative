@@ -16,6 +16,29 @@ const {
 } = require("../../../../Utils/Notifications");
 const { getCompanyUniqueId, getShipperContact } = require("../helpers");
 
+/**
+ * handleDriverConfirmation
+ * ────────────────────────
+ * Applies the `confirmed_by_driver` transition on a CompanyBidVehicleAssignment
+ * and notifies every stakeholder EXCEPT the driver himself (he performed it):
+ *
+ *   1. Transport company  → socket `company_driver_confirmed` to every online
+ *      member of the winning company (`sendSocketIONotificationToCompany`).
+ *   2. Shipper            → FCM (`company_driver_confirmed`) + socket
+ *      (`sendSocketIONotificationToShipper`). Wake the shipper: the cargo is
+ *      committed to a driver who is on the way.
+ *   3. Queue loading place → socket-only `queue_driver_confirmed_assignment`
+ *      via `emitAssignmentConfirmationToQueueOrg` (org room + queue staff,
+ *      roles 11/12). Fire-and-forget with `.catch(logger.error)` — mirrors
+ *      `company_selected`; see Utils/QueueSocket.js for channels.
+ *
+ * Each recipient's socket payload carries `fullAssignment` (post-update row)
+ * when available, otherwise a minimal `{ type, assignmentStatus: "confirmed_by_driver",
+ * assignmentUniqueId, ... }` envelope.
+ *
+ * Also releases any pending individual driver offers for the same driver
+ * (releaseConflictingOffers) so he isn't double-booked on the company ride.
+ */
 const handleDriverConfirmation = async ({
   assignment,
   assignmentStatus,
@@ -248,6 +271,29 @@ const handleDriverConfirmation = async ({
     ).catch((e) =>
       logger.error("WebSocket to shipper failed on driver confirm", {
         error: e.message,
+      }),
+    );
+
+    // 🔔 Notify queue loading place: the order belongs to a queue org (batch
+    // owner) — its staff (roles 11/12) see the driver confirmation live and
+    // can prep the loading bay. Socket-only, mirrors company_selected.
+    const { emitAssignmentConfirmationToQueueOrg } = require("../../../../Utils/QueueSocket");
+    emitAssignmentConfirmationToQueueOrg({
+      shipperRequestUniqueId: assignment.shipperRequestUniqueId,
+      driverName,
+      data: fullAssignment || {
+        type: "queue_driver_confirmed_assignment",
+        assignmentStatus: "confirmed_by_driver",
+        assignmentUniqueId,
+        shipperRequestUniqueId: assignment.shipperRequestUniqueId,
+        companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
+        driverUserUniqueId: assignment.driverUserUniqueId,
+        driverName,
+      },
+    }).catch((e) =>
+      logger.error("Queue-org socket emit failed on driver confirm", {
+        error: e.message,
+        assignmentUniqueId,
       }),
     );
 

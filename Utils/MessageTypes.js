@@ -351,6 +351,11 @@ const messageTypes = {
     message: "New member added to queue organization",
     details: "A new member was added to a queue organization by its admin.",
   },
+  queue_driver_confirmed_assignment: {
+    message: "Driver confirmed assignment for a queue job",
+    details:
+      "When a driver confirms a company freight assignment for a queue-org job, the queue loading place staff are notified live.",
+  },
   queue_driver_going_to_loading_place: {
     message: "Driver on the way to the queue loading point",
     details:
