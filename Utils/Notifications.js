@@ -60,6 +60,7 @@ const logger = require("./logger");
 const AppError = require("./AppError");
 const { db } = require("../Services/CompanyHelper.service");
 const { SocketUserTypes } = require("./SocketUserTypes");
+const { notifyQueueOrgAdmins } = require("./QueueSocket");
 
 // Regular expression to validate phone numbers (only digits, between 9 and 15 digits)
 const phoneNumberRegex = /^[0-9]{9,15}$/;
@@ -368,9 +369,126 @@ const sendSocketIONotificationToCompany = async ({
   }
 };
 
+/**
+ * 🔔 Broadcast a journeyStatusId change (the 3 → 9 window) to every stakeholder
+ * of the SAME journey page in real time:
+ *
+ *   • Shipper owner of the goods    — targeted per-user socket push
+ *   • Transport company room        — ALL active company members (role-agnostic),
+ *                                     matching decision #1 (whole company room).
+ *                                     ONLY when this journey is genuinely held by
+ *                                     that company (caller resolves the winning
+ *                                     bid's company — a company not in the bid is
+ *                                     NEVER paged, per stakeholder-involvement).
+ *   • Queue loading-place staff     — org room broadcast + per-member admin push
+ *                                     for the WHOLE journey, not just pre-loading.
+ *                                     ONLY for a real queue order (caller resolves
+ *                                     the batch → queueOrganizationUniqueId link;
+ *                                     a non-queue order is NEVER paged).
+ *   • Assigned driver               — targeted per-user socket push
+ *
+ * INVOLVEMENT RULE (enforced at every call-site): notifyQueueOrgAdmins is given
+ * a queueOrganizationUniqueId ONLY when the order's batch header actually links
+ * a queue org (same "Not a queue-org job → skipped" contract); the company room
+ * is given a companyUniqueId ONLY when that company holds the journey's bid.
+ * No id → lane silently skipped → a stakeholder with no stake never hears it.
+ *
+ * Fire-and-forget, AFTER the DB commit; never throws. Each helper below is the
+ * canonical per-channel funnel reused by the 7 driver/bid mutation endpoints.
+ */
+const broadcastJourneyStatusChanged = async ({
+  journeyUniqueId,
+  journeyStatusId,
+  journeyUniqueUniqueId,
+  shipperPhoneNumber,
+  shipperRequestUniqueId,
+  driverPhoneNumber,
+  companyUniqueId,
+  eventName = "messages",
+  message = null,
+  data = null,
+}) => {
+  const results = [];
+  const envelope = { journeyUniqueId, journeyStatusId, data };
+
+  const lane = (label, fn) =>
+    fn()
+      .then((r) => results.push({ lane: label, status: r.status, detail: r.message }))
+      .catch((err) => {
+        logger.error(`journey-status broadcast failed (${label})`, {
+          error: err.message,
+          stack: err.stack,
+          journeyUniqueId,
+          journeyStatusId,
+        });
+        results.push({ lane: label, status: "error", detail: err.message });
+      });
+
+  // Resolve the queue loading place ONLY when the journey is actually a queue
+  // order (org lives on the batch header, the canonical link — same join the
+  // rest of the codebase uses, see Utils/QueueSocket.js notifyQueueOrgOfLoadingStage).
+  // Not a queue order → queue staff must NOT be paged (skip-lane by design).
+  let queueOrganizationUniqueId = null;
+  if (shipperRequestUniqueId) {
+    try {
+      const [rows] = await db().query(
+        `SELECT srb.queueOrganizationUniqueId
+         FROM ShipperRequest sr
+         JOIN ShipperRequestBatch srb
+           ON srb.shipperRequestBatchUniqueId = sr.shipperRequestBatchUniqueId
+         WHERE sr.shipperRequestUniqueId = ?
+           AND sr.shipperRequestDeletedAt IS NULL
+         LIMIT 1`,
+        [shipperRequestUniqueId],
+      );
+      queueOrganizationUniqueId = rows[0]?.queueOrganizationUniqueId || null;
+    } catch (resolveError) {
+      logger.error("journey-status broadcast: queue-org resolve failed", {
+        error: resolveError.message,
+        stack: resolveError.stack,
+        shipperRequestUniqueId,
+        journeyUniqueId,
+      });
+    }
+  }
+
+  if (driverPhoneNumber) {
+    await lane("driver", () =>
+      sendSocketIONotificationToDriver({ message, phoneNumber: driverPhoneNumber, eventName }),
+    );
+  }
+  if (shipperPhoneNumber) {
+    await lane("shipper", () =>
+      sendSocketIONotificationToShipper({ message, phoneNumber: shipperPhoneNumber, eventName }),
+    );
+  }
+  if (companyUniqueId) {
+    // Transport company lane — only when the company is genuinely part of this
+    // journey (caller passes the bid-winning company's id, or omits it when the
+    // journey has no company involvement). Skipping here = never page a company
+    // that has no stake in this journey's bid.
+    await lane("company", () =>
+      sendSocketIONotificationToCompany({ message, companyUniqueId, eventName }),
+    );
+  }
+  if (queueOrganizationUniqueId) {
+    await lane("queueOrg", () =>
+      notifyQueueOrgAdmins({
+        queueOrganizationUniqueId,
+        eventName,
+        messageType: "journey_status_changed",
+        message: JSON.stringify(envelope),
+      }),
+    );
+  }
+
+  return { status: "success", data: results };
+};
+
 module.exports = {
   sendSocketIONotificationToAdmin,
   sendSocketIONotificationToDriver,
   sendSocketIONotificationToShipper,
   sendSocketIONotificationToCompany,
+  broadcastJourneyStatusChanged,
 };

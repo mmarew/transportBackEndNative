@@ -28,6 +28,12 @@ const runCompanyFlow = async () => {
 
   await createCompanyAdminFlow({});
 
+  // Fleet capacity gate: submitBid() now requires ≥1 active vehicle matching
+  // the batch's vehicle type. Assign the vehicle BEFORE calling the bid workflow
+  // so the test company passes the gate. Without this, the bid submission
+  // returns 400 ("no active vehicles of the required type").
+  await assignVehicleToCompany({});
+
   const bidToAccept = await initiateCompanyBiddingWorkFlow({
     userType: "companyAdmin",
   });
@@ -41,7 +47,6 @@ const runCompanyFlow = async () => {
   if (!acceptedBid)
     throw new Error("No accepted company bid found to assign drivers.");
 
-  await assignVehicleToCompany({});
   await assignDrivers({ bid: acceptedBid });
 
   await getDriverJourneyStatus({ userType: "driver" });

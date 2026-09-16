@@ -358,6 +358,21 @@ const transitionLoadingStage = (stage) => async (body) => {
       stage: config.companyAction, // 'going_to_loading_place' | 'started_loading' | 'completed_loading'
     });
 
+    // 🔔 Real-time same-page update to the shipper + driver owners: the loading
+    // stage changed (3/4/5) → push to their per-user socket so the live journey
+    // page on ALL stakeholders' screens updates in the same instant. Fire-and-
+    // forget after the DB commit; the queue loading-place lane above is served
+    // by notifyQueueOrgOfLoadingStage, so we do NOT double-page the queue org.
+    const { broadcastJourneyStatusChanged } = require("../../../Utils/Notifications");
+    await broadcastJourneyStatusChanged({
+      journeyUniqueId: journeyUniqueId,
+      journeyStatusId: config.targetStatus,
+      shipperPhoneNumber: shipperRequest?.phoneNumber,
+      driverPhoneNumber: driverInfo?.driver?.phoneNumber,
+      companyUniqueId: null, // company lane handled downstream by its own bid lane
+      queueOrganizationUniqueId: null, // queue lane handled above
+    });
+
     return {
       message: config.successMessage,
       status: config.targetStatus,

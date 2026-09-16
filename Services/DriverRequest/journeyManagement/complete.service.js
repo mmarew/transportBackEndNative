@@ -366,6 +366,22 @@ const completeJourney = async (body) => {
       });
     }
 
+    // 🔔 Real-time journey page (status 9 / journeyCompleted): shipper owner +
+    // assigned driver see the completed journey land on their same page live.
+    // Company + queue-org lanes are NOT double-paged here — they are served by
+    // notifyCompanyOnDriverAction (line ~301) and the queue-close lane above,
+    // both already firing for the completion stage. Involvement rule: page only
+    // the driver + shipper for the journey, matching statuses 3-8.
+    const { broadcastJourneyStatusChanged } = require("../../../Utils/Notifications");
+    await broadcastJourneyStatusChanged({
+      journeyUniqueId: journeyData?.journeyUniqueId || body.journeyUniqueId,
+      journeyStatusId: journeyStatusMap.journeyCompleted,
+      shipperPhoneNumber: shipperRequest?.phoneNumber,
+      driverPhoneNumber: driverInfo?.driver?.phoneNumber,
+      companyUniqueId: null, // served by notifyCompanyOnDriverAction lane above
+      queueOrganizationUniqueId: null, // served by queue-close lane above
+    });
+
     return {
       message: "Journey completed successfully",
       status: journeyStatusMap.journeyCompleted,

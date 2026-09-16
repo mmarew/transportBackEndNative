@@ -159,6 +159,40 @@ const submitBid = async (data) => {
     }
   }
 
+  // 3b. FLEET CAPACITY GATE
+  // A transport company must own at least one active vehicle that matches the
+  // batch's required vehicle type before it can submit a bid.
+  //
+  // WHY: Without this guard a company with zero trucks of the right type could
+  // win a bid and then fail to fulfill it — wasting the shipper's time and
+  // blocking other companies from bidding.
+  //
+  // HOW: Join CompanyVehicle → Vehicle to check the vehicleTypeUniqueId.
+  // We match against the batch's required type (finalVehicleTypeUniqueId),
+  // which was resolved in step 1 from ShipperRequestBatch.vehicleTypeUniqueId.
+  //
+  // NOTE: This is a minimum ownership check, NOT a capacity check.
+  // A company with 1 Isuzu can bid on a batch needing 20 — they may fulfill
+  // in multiple rounds or acquire more trucks. The batch visibility endpoint
+  // still shows all batches regardless of fleet size (the company can see
+  // but cannot participate until they have a matching vehicle).
+  const [[fleetRow]] = await db().query(
+    `SELECT COUNT(*) AS fleetCount
+     FROM CompanyVehicle cv
+     JOIN Vehicle v ON v.vehicleUniqueId = cv.vehicleUniqueId
+     WHERE cv.companyUniqueId = ?
+       AND v.vehicleTypeUniqueId = ?
+       AND cv.assignmentStatus = 'active'
+       AND cv.companyVehicleDeletedAt IS NULL`,
+    [companyUniqueId, finalVehicleTypeUniqueId],
+  );
+  if (!fleetRow || fleetRow.fleetCount === 0) {
+    throw new AppError(
+      `You cannot bid on this batch. Your company has no active vehicles of the required type. Please assign at least one matching vehicle before bidding.`,
+      AppError.BAD_REQUEST,
+    );
+  }
+
   // 4. Determine final vehicle count (Full Batch Logic)
   // To restore partial bidding, use the user input instead of totalVehicles.
   const finalCount = totalVehicles;
@@ -183,9 +217,7 @@ const submitBid = async (data) => {
     );
   }
 
-  // Note: Capacity validation removed per user request.
-  // Companies can now bid even if requested vehicles exceed their current free fleet,
-  // as they may fulfill the request in multiple rounds.
+  // Fleet capacity validated in step 3b — company has ≥1 active vehicle of the required type.
 
   const journeyStatusId = journeyStatusMap.waiting;
 

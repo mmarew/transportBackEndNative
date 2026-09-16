@@ -269,6 +269,22 @@ const startJourney = async (body) => {
       stage: "started_journey",
     });
 
+    // 🔔 Real-time journey page (status 6): shipper owner + assigned driver see
+    // the same-page update live. Company + queue-org lanes are NOT double-paged
+    // here — the company lane is served by notifyCompanyOnDriverAction (line
+    // ~252) and the queue-org lane by notifyQueueOrgOfLoadingStage above, both
+    // already firing for this stage. Involvement rule: we page only the driver
+    // + shipper for the journey, exactly the same stakeholder set as status 3-5.
+    const { broadcastJourneyStatusChanged } = require("../../../Utils/Notifications");
+    await broadcastJourneyStatusChanged({
+      journeyUniqueId: journeyData?.journeyUniqueId || finalJourneyUniqueId,
+      journeyStatusId: body?.journeyStatusId,
+      shipperPhoneNumber: shipperRequest?.phoneNumber,
+      driverPhoneNumber: driverInfo?.driver?.phoneNumber,
+      companyUniqueId: null, // served by notifyCompanyOnDriverAction lane above
+      queueOrganizationUniqueId: null, // served by notifyQueueOrgOfLoadingStage above
+    });
+
     return {
       message: "Journey started successfully",
       status: journeyStatusMap.journeyStarted,

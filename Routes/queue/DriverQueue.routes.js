@@ -2,7 +2,9 @@
 
 const express = require("express");
 const router = express.Router();
-const { DRIVER_QUEUE_ENDPOINTS: EP } = require("../EndPoints/driverQueue.endpoints");
+const {
+  DRIVER_QUEUE_ENDPOINTS: EP,
+} = require("../EndPoints/driverQueue.endpoints");
 const controller = require("../../Controllers/DriverQueue.controller");
 const schema = require("../../Validations/DriverQueue.schema");
 const { validator } = require("../../Middleware/Validator");
