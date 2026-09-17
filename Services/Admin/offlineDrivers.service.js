@@ -160,12 +160,12 @@ const getOfflineDrivers = async req => {
     return {
       message: data.length > 0 ? "success" : "No offline drivers found",
       pagination: {
-        total,
-        page: parseInt(page),
+        currentPage: parseInt(page),
+        totalItems: total,
+        totalPages: Math.ceil(total / limit),
         limit: parseInt(limit),
-        totalPages: Math.ceil(total / limit)
       },
-      data
+      data,
     };
   } catch {
     throw new AppError("Failed to fetch offline drivers", AppError.INTERNAL_SERVER_ERROR);

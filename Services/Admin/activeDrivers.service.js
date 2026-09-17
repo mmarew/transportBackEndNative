@@ -156,10 +156,10 @@ const getAllActiveDrivers = async req => {
   return {
     message: "Active drivers list fetched",
     pagination: {
-      total,
-      page: parseInt(page),
+      currentPage: parseInt(page),
+      totalItems: total,
+      totalPages: Math.ceil(total / limit),
       limit: parseInt(limit),
-      totalPages: Math.ceil(total / limit)
     },
     data,
     filters: {
