@@ -41,7 +41,7 @@ Admin reviews response + issues decision (Step 4)
 
 ## Step 1 — Admin Creates a Delinquency
 
-**Endpoint:** `POST {{url}}/api/admin/userDelinquency/`
+**Endpoint:** `POST {{url}}/api/admin/userDelinquency/` (mounted at `/api/admin/userDelinquency`)
 
 **Auth:** Bearer token (Admin / Super Admin)
 
@@ -94,7 +94,7 @@ Admin reviews response + issues decision (Step 4)
 
 ## Step 2 — Driver Views Pending Delinquencies
 
-**Endpoint:** `GET {{url}}/api/user/delinquency-response/pending`
+**Endpoint:** `GET {{url}}/api/user/delinquencyResponse/pending` (mounted at `/api/user/delinquencyResponse`)
 
 **Auth:** Bearer token (Driver)
 
@@ -109,7 +109,7 @@ Admin reviews response + issues decision (Step 4)
 
 **Request Example:**
 ```
-GET {{url}}/api/user/delinquency-response/pending?userUniqueId=driver-uuid&roleId=2&page=1&limit=10
+GET {{url}}/api/user/delinquencyResponse/pending?userUniqueId=driver-uuid&roleId=2&page=1&limit=10
 ```
 
 **Success Response (200):**
@@ -152,7 +152,7 @@ GET {{url}}/api/user/delinquency-response/pending?userUniqueId=driver-uuid&roleI
 
 ## Step 3 — Driver Submits a Defense
 
-**Endpoint:** `POST {{url}}/api/user/delinquency-response/response`
+**Endpoint:** `POST {{url}}/api/user/delinquencyResponse/response`
 
 **Auth:** Bearer token (Driver)
 
@@ -205,7 +205,7 @@ GET {{url}}/api/user/delinquency-response/pending?userUniqueId=driver-uuid&roleI
 
 ## Step 4 — Admin Issues a Decision
 
-**Endpoint:** `POST {{url}}/api/admin/user-delinquency-decisions/`
+**Endpoint:** `POST {{url}}/api/admin/userDelinquencyDecisions/` (mounted at `/api/admin/userDelinquencyDecisions`)
 
 **Auth:** Bearer token (Admin / Super Admin only)
 
@@ -303,12 +303,12 @@ GET {{url}}/api/admin/userDelinquency/?userUniqueId=driver-uuid&roleId=2&summary
 
 ### Get Driver's Response
 ```
-GET {{url}}/api/user/delinquency-response/response?userDelinquencyUniqueId=delinquency-uuid
+GET {{url}}/api/user/delinquencyResponse/response?userDelinquencyUniqueId=delinquency-uuid
 ```
 
 ### Get Admin Decisions
 ```
-GET {{url}}/api/admin/user-delinquency-decisions/?userDelinquencyUniqueId=delinquency-uuid
+GET {{url}}/api/admin/userDelinquencyDecisions/?userDelinquencyUniqueId=delinquency-uuid
 ```
 
 ### Check Automatic Ban Status
