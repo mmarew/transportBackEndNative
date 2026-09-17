@@ -410,7 +410,12 @@ async function initSocket({ httpServer }) {
   });
 
   io.engine.on("connection_error", (err) => {
-    logger.error("Socket.IO engine connection error", {
+    // "Session ID unknown" (code 1) and "TRANSPORT_MISMATCH" (code 3) are
+    // recoverable operational events — clients retry automatically.
+    // Log them at warn level to avoid flooding production error dashboards.
+    const isHarmless = err.code === 1 || err.code === 3;
+    const logFn = isHarmless ? logger.warn : logger.error;
+    logFn("Socket.IO engine connection error", {
       error: err.message,
       code: err.code,
       context: err.context,

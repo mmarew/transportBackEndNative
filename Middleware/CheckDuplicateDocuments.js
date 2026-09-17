@@ -43,6 +43,16 @@ const checkDuplicateDocuments = async (req, res, next) => {
       return next();
     }
 
+    // Resolve the correct owner context for the duplicate check.
+    // Company routes set req.ownerType='company' and req.ownerUniqueIdParam;
+    // Vehicle routes set req.ownerType='vehicle' and req.ownerUniqueIdParam;
+    // User routes set req.ownerType='user' (default).
+    // Without this, company uploads always bypass the duplicate check because
+    // docs are stored with ownerType='company' but checked against 'user'.
+    const resolvedOwnerType = req.ownerType || "user";
+    const resolvedOwnerUniqueId =
+      req.ownerUniqueIdParam || userUniqueId;
+
     // Query database to check for existing documents
     // Check each documentTypeId individually to identify which ones are duplicates
     const duplicateChecks = await Promise.all(
@@ -50,8 +60,8 @@ const checkDuplicateDocuments = async (req, res, next) => {
         const existingDocs = await getData({
           tableName: "AttachedDocuments",
           conditions: {
-            ownerType: "user",
-            ownerUniqueId: userUniqueId,
+            ownerType: resolvedOwnerType,
+            ownerUniqueId: resolvedOwnerUniqueId,
             documentTypeId,
           },
         });
