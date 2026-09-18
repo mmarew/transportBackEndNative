@@ -7,8 +7,11 @@ let redis = null;
 // Only create Redis client if UPSTASH_REDIS_URL is configured
 if (UPSTASH_REDIS_URL) {
   try {
+    // TLS is required for Upstash (rediss://) but must be OFF for a plain
+    // self-hosted redis:// so ioredis doesn't try to handshake TLS against it.
+    const useTLS = UPSTASH_REDIS_URL.startsWith("rediss://");
+
     const redisOptions = {
-      tls: {},
       connectTimeout: 10000, // 10s timeout
       retryStrategy: (times) => {
         const delay = Math.min(times * 50, 2000);
@@ -18,6 +21,10 @@ if (UPSTASH_REDIS_URL) {
       enableReadyCheck: true,
       enableOfflineQueue: false, // Don't queue commands when disconnected
     };
+
+    if (useTLS) {
+      redisOptions.tls = {};
+    }
 
     if (process.env.REDIS_PASSWORD) {
       redisOptions.password = process.env.REDIS_PASSWORD;
