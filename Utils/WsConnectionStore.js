@@ -6,6 +6,17 @@ const redisClient = redis;
 // In-memory fallback store for when Redis is unavailable (single-server / test mode)
 const inMemoryStore = new Map();
 
+// Socket keys get a 24h TTL so stale ":phone" rows self-expire instead of
+// growing forever. Without it every notification fan-out re-fetches dead keys
+// and the Upstash keyspace balloons, burning the daily request quota.
+// eslint-disable-next-line no-magic-numbers
+const SOCKET_KEY_TTL_SECONDS = 24 * 60 * 60;
+
+// Operator kill-switch: on a single server the in-memory map is authoritative.
+// Set DISABLE_SOCKET_REDIS=1 to stop paying Upstash for the redundant copy
+// (e.g. while raising the request quota on the Upstash console).
+const persistToRedis = process.env.DISABLE_SOCKET_REDIS !== "1";
+
 const getAllSockets = async () => {
   const sockets = [];
 
@@ -15,7 +26,7 @@ const getAllSockets = async () => {
   }
 
   // Collect from Redis if available
-  if (redisClient && redisClient.status === "ready") {
+  if (persistToRedis && redisClient && redisClient.status === "ready") {
     try {
       const stream = redisClient.scanStream({
         match: "*:*",
@@ -60,9 +71,9 @@ const setSocket = async (userType, identifier, socketId) => {
   inMemoryStore.set(key, socketId);
 
   // Also try Redis if available
-  if (redisClient && redisClient.status === "ready") {
+  if (persistToRedis && redisClient && redisClient.status === "ready") {
     try {
-      await redisClient.set(key, socketId);
+      await redisClient.set(key, socketId, "EX", SOCKET_KEY_TTL_SECONDS);
       return;
     } catch (error) {
       logger.error("Error setting socket in Redis", {
@@ -87,7 +98,7 @@ const getSocket = async (userType, identifier) => {
   }
 
   // Fall back to Redis
-  if (redisClient && redisClient.status === "ready") {
+  if (persistToRedis && redisClient && redisClient.status === "ready") {
     try {
       const redisSocket = await redisClient.get(key);
       return redisSocket;
@@ -111,7 +122,7 @@ const removeSocket = async (userType, identifier) => {
   inMemoryStore.delete(key);
 
   // Also remove from Redis if available
-  if (redisClient && redisClient.status === "ready") {
+  if (persistToRedis && redisClient && redisClient.status === "ready") {
     try {
       await redisClient.del(key);
     } catch (error) {

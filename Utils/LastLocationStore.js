@@ -11,6 +11,12 @@ const logger = require("./logger");
 // eslint-disable-next-line no-magic-numbers
 const TTL_SECONDS = 30 * 60; // keep last-known fixes for 30 minutes
 
+// GPS ticks fire far more often than Redis needs them: coalesce writes so each
+// journey hits Upstash at most once per interval. The in-memory map is always
+// updated on every tick; only the redundant Redis copy is throttled.
+const LOCATION_REDIS_COALESCE_MS = 10_000;
+const redisLastWrite = new Map();
+
 // journeyDecisionUniqueId -> { payload, shipperPhoneNumber, updatedAt }
 const inMemory = new Map();
 // shipperPhoneNumber -> Set<journeyDecisionUniqueId>
@@ -38,8 +44,15 @@ const saveLastLocation = async ({ payload, shipperPhoneNumber } = {}) => {
     }
     inMemoryByShipper.get(phone).add(id);
 
-    // Redis (multi-server)
+    // Redis (multi-server) — coalesced: at most one write per journey per interval
     if (redis && redis.status === "ready") {
+      const now = Date.now();
+      const lastWrite = redisLastWrite.get(id) || 0;
+      if (now - lastWrite < LOCATION_REDIS_COALESCE_MS) {
+        return;
+      }
+      redisLastWrite.set(id, now);
+
       await redis.set(`lastLoc:${id}`, JSON.stringify(record), "EX", TTL_SECONDS);
       const rawIdx = await redis.get(`lastLocIdx:${phone}`).catch(() => null);
       const ids = rawIdx ? JSON.parse(rawIdx) : [];
@@ -121,6 +134,7 @@ const removeLastLocation = async journeyDecisionUniqueId => {
       inMemoryByShipper.get(record.shipperPhoneNumber)?.delete(journeyDecisionUniqueId);
     }
     if (redis && redis.status === "ready") {
+      redisLastWrite.delete(journeyDecisionUniqueId);
       await redis.del(`lastLoc:${journeyDecisionUniqueId}`);
     }
   } catch (error) {

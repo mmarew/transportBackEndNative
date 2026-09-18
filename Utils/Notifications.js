@@ -54,8 +54,7 @@
  * Services/Firebase.service.js (sendFCMNotificationToUser).
  */
 const { emitMessage } = require("./WsServerResponder");
-const { getSocket } = require("./WsConnectionStore");
-const { redis } = require("../Config/redis.config");
+const { getSocket, getAllSockets } = require("./WsConnectionStore");
 const logger = require("./logger");
 const AppError = require("./AppError");
 const { db } = require("../Services/CompanyHelper.service");
@@ -198,46 +197,28 @@ const sendSocketIONotificationToShipper = async ({
 };
 
 const sendSocketIONotificationToAdmin = async ({ message, eventName }) => {
-  if (!redis) {
-    logger.warn("Redis not available for admin notification");
-    return { status: "error", message: "Redis not available" };
-  }
   try {
-    let keys = [];
-    try {
-      keys = await redis.keys(`${SocketUserTypes.ADMIN}:*`);
-    } catch (redisError) {
-      logger.error("Redis connection error", {
-        error: redisError.message,
-        stack: redisError.stack,
-      });
-      return {
-        status: "error",
-        message: "Redis connection error - unable to send admin notifications",
-      };
+    // Resolve admin socket ids from the connection store (in-memory first,
+    // Redis only as a secondary source). Avoids `redis.keys(...)` which scans
+    // the whole Upstash keyspace and counts every key against the daily quota.
+    const matches = await getAllSockets();
+
+    if (!matches || matches.length === 0) {
+      logger.warn("No admin sockets connected for admin notification");
+      return { status: "error", message: "No admin sockets connected" };
     }
+
+    const keys = matches
+      .filter(
+        ({ key, socketId }) =>
+          key.startsWith(`${SocketUserTypes.ADMIN}:`) && socketId,
+      )
+      .map(({ key, socketId }) => ({ key, socketId }));
 
     const successList = [];
     const errorList = [];
 
-    for (const key of keys) {
-      let socketId = null;
-      try {
-        socketId = await redis.get(key);
-      } catch (redisError) {
-        logger.error("Redis error while fetching socket", {
-          key,
-          error: redisError.message,
-          stack: redisError.stack,
-        });
-        // Skip this key if Redis error occurs
-        errorList.push({
-          key,
-          status: "error",
-          detail: "Redis error while fetching socket",
-        });
-        continue;
-      }
+    for (const { socketId } of keys) {
 
       if (!socketId) {
         continue;
