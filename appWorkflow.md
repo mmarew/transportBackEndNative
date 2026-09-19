@@ -39,14 +39,14 @@ Installed at database initialization (endpoint: `installPreDefinedData`), these 
 | 4   | **Vehicle Owner**    | Owns vehicles in the fleet                  |
 | 5   | **System**           | Automated system processes (no human login) |
 | 6   | **Super Admin**      | Highest privilege; creates admins           |
-| 7   | **Unknown Role**     | Default for unclassified registrations      |
-| 8   | **Company Admin**    | Manages company-level operations            |
-| 9   | **Queue Org Admin**  | Manages queue/dispatch org                  |
-| 10  | **Queue Dispatcher** | Dispatch within a queue org                 |
-| 11  | **Dispatcher**       | General dispatch role                       |
-| 12  | **Vehicle Entity**   | Vehicle-level operations                    |
+| 7   | **Company Admin**          | Company admin user; manages their company, fleet, and bids         |
+| 8   | **company** *(entity role)* | Entity row representing a `TransportCompany`; not a login role    |
+| 9   | **vehicle** *(entity role)* | Entity row representing a `Vehicle`; not a login role             |
+| 10  | **Dispatcher**             | Company dispatcher; assigns fleet day-to-day                        |
+| 11  | **Queue Organization Admin** | Manages queue/dispatch org at a loading place                    |
+| 12  | **Queue Dispatcher**       | Runs dispatch inside a queue org                                    |
 
-Roles 8-12 are added by the application after initial seeding. E2E tests reference all 12 via `UsersRoles` constants in `E2ETests/constants.js`.
+All 12 are seeded at init — `installPreDefinedData` loops the full `roleList` (`Services/Database/tableManage.service.js:990`). Roles 8 and 9 are **entity roles**: they are auto-attached to `TransportCompany` / `Vehicle` rows (document requirements use `roleId` 8 and 9) and never represent a human login. E2E tests reference all 12 via `UsersRoles` constants in `E2ETests/constants.js`.
 
 ### 2.2 Statuses (`statusList`)
 
@@ -59,6 +59,8 @@ Roles 8-12 are added by the application after initial seeding. E2E tests referen
 | 5   | **Inactive - Documents Pending**          | Documents awaiting review               |
 | 6   | **Inactive - User Banned**                | Admin-banned                            |
 | 7   | **Inactive - No Subscription**            | No active subscription (drivers)        |
+| 8   | **Inactive - Account Deleted**            | User requested their account to be deleted |
+| 9   | **Inactive - Grace Period Expired**       | Free-plan grace lapsed with `netBalance <= 0` (see 13.2) |
 
 ---
 
@@ -96,7 +98,7 @@ All paths converge on `handleUserRoleStatus()` in `credentials.service.js`, whic
 | `fullName`                  | yes      | Display name                                   |
 | `phoneNumber`               | yes      | Primary identity (normalized internally)       |
 | `email`                     | optional | Auto-generated placeholder if absent           |
-| `roleId`                    | yes      | Must be a public role (1, 2, 8, 9)             |
+| `roleId`                    | yes      | Must be a public role (1 shipper, 2 driver, 7 companyAdmin, 11 queueOrgAdmin) |
 | `statusId`                  | optional | Validated if present; no status row if omitted |
 | `userRoleStatusDescription` | optional | Stored with initial status                     |
 
@@ -123,12 +125,12 @@ E2E: `E2ETests/Auth/User.js` — `apiCreateUser` (line 63); `E2ETests/Auth/ensur
 
 **Endpoint:** `POST /api/admin/createUserByAdminOrSuperAdmin`
 
-Same field set, but no `requestedFrom` — admin is the actor; `userUniqueId` in the header identifies the admin.
+Same field set, but no `requestedFrom` — admin is the actor; `userUniqueId` in the header identifies the admin. Joi-valid set (`Validations/User.schema.js:49-56`): shipper(1), driver(2), admin(3), vehicleOwner(4), companyAdmin(7), queueOrgAdmin(11). Queue org admins create only queue dispatchers (12) via `createUserByQueueAdmin`.
 
-| Who can call         | What roles they can assign                     |
-| -------------------- | ---------------------------------------------- |
-| Super Admin (role 6) | Admin (3), CompanyAdmin (8), QueueOrgAdmin (9) |
-| Admin (role 3)       | CompanyAdmin (8), QueueOrgAdmin (9)            |
+| Who can call         | What roles they can assign                        |
+| -------------------- | ------------------------------------------------ |
+| Super Admin (role 6) | Shipper(1), Driver(2), Admin(3), VehicleOwner(4), CompanyAdmin(7), QueueOrgAdmin(11) |
+| Admin (role 3)       | Same Joi-valid set as above                      |
 
 **Flow:**
 
@@ -244,8 +246,8 @@ Once a user is created and verified, **role determines everything**:
 | ---------------- | ------------------------------- | ---------------------------- |
 | Driver (2)       | `GET /api/driver/account`       | `E2ETests/Auth/Account.js:3` |
 | Shipper (1)      | `GET /api/shipper/account`      | same file                    |
-| CompanyAdmin (8) | `GET /api/companyAdmin/account` | same file                    |
-| Dispatcher (11)  | `GET /api/dispatcher/account`   | same file                    |
+| CompanyAdmin (7) | `GET /api/companyAdmin/account` | same file                    |
+| Dispatcher (10)  | `GET /api/dispatcher/account`   | same file                    |
 | All              | `GET /api/me/account`           | Me profile                   |
 | All              | `GET /api/account/status`       | Current status for caller    |
 
@@ -856,7 +858,7 @@ All tables from `Database/Database.js`, grouped by domain. The **Phase** column 
 | Table                           | Purpose                                                                                                                                                                                                                                                                 | Key columns                                                                                                                                                                                                                                                                                     | Phase |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
 | **QueueOrganization**           | A registered queue org (customs, factory, cement depot…).`queueEnabled` must be TRUE for dispatch to run. `checkinRadiusKm` enforced by Haversine at check-in.                                                                                                          | `queueOrganizationUniqueId`, `queueOrganizationType` ENUM(customs, factory, cement, depot, other), `latitude`, `longitude`, `checkinRadiusKm` (default 15), `approvalStatus`, `queueEnabled`, `isDeleted`                                                                                       | Q     |
-| **QueueOrganizationMembership** | Links users (queueOrgAdmin role 9, dispatcher role 10) to a queue org. One active membership per user per org (unique key).                                                                                                                                             | `queueOrganizationUniqueId` (FK), `userUniqueId` (FK), `roleId` (FK), `isActive`, `membershipStartDate`                                                                                                                                                                                         | Q     |
+| **QueueOrganizationMembership** | Links users (queueOrgAdmin role 11, queueDispatcher role 12) to a queue org. One active membership per user per org (unique key).                                                                                                                                             | `queueOrganizationUniqueId` (FK), `userUniqueId` (FK), `roleId` (FK), `isActive`, `membershipStartDate`                                                                                                                                                                                         | Q     |
 | **DriverQueue**                 | The virtual waiting line per (org, date).`queueNumber` is FIFO position per (org, date, vehicleType). Re-check-in soft-deletes previous row and inserts a new one at the back. `targetedShipperUserUUID` reserves a position for orders from a specific shipper only.   | `queueOrganizationUniqueId` (FK), `queueDate`, `queueNumber`, `queueRefusalCount`, `vehicleDriverUniqueId` (FK), `shipperRequestUniqueId` (FK nullable), `targetedShipperUserUUID` (FK nullable), `driverLatitude/Longitude`, `joinedAt`, `status` (journeyStatusId), `requestedAt`, `agreedAt` | Q     |
 | **DriverQueueHistory**          | Full-snapshot audit trail for`DriverQueue`. Each mutation inserts a complete mirror of the row BEFORE the change + `historyEvent` + `performedBy`. INSERT events store the just-created row (no prior state). Reconstruct transitions by diffing consecutive snapshots. | mirrors all`DriverQueue` columns + `historyEvent` (checkin/recheckin/checkout/offer/accept/…), `performedBy` (FK), `performedAt`                                                                                                                                                                | Q     |
 | **QueueAuditLog**               | Immutable log of supervisor overrides (override/remove/manual_checkin/dispatch). Stores before/after JSON snapshots and a reason.                                                                                                                                       | `queueOrganizationUniqueId` (FK), `queueDate`, `queueUniqueId` (FK nullable), `action` ENUM, `beforeValue`, `afterValue`, `reason`, `performedBy` (FK)                                                                                                                                          | Q     |
@@ -930,12 +932,4 @@ request (≤9 individual | >9 company | queue org)
 
 post-journey: delivery confirm + POD photos → ratings → Commission → withdrawal
 enforcement:  delinquency x3 → ban → status ladder (banned overrides all)
-```mpleted(7) → startJourney(8) → completeJourney(9)
-  ├─ company: bid(submitted) → shipper accept → N x ShipperRequest
-  │           → fleet → assignment → driver confirm → journey(4→8→9)
-  └─ queue: dispatch → offer(3min) → accept | refusal → re-offer
-           → journey mirrors 5-9 → DriverQueueHistory
-
-post-journey: delivery confirm + POD → ratings → Commission → withdrawal
-enforcement: delinquency x3 → ban → ladder (banned overrides)
-````
+`````
