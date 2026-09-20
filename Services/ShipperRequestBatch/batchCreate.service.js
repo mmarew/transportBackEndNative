@@ -3,7 +3,7 @@
 const { db } = require("../CompanyHelper.service");
 const { currentDate } = require("../../Utils/CurrentDate");
 const messageTypes = require("../../Utils/MessageTypes");
-const { usersRoles } = require("../../Utils/ListOfSeedData");
+const { usersRoles, companyRoles } = require("../../Utils/ListOfSeedData");
 const { SocketUserTypes } = require("../../Utils/SocketUserTypes");
 const logger = require("../../Utils/logger");
 
@@ -161,14 +161,17 @@ exports.upsertBatch = async ({
           }
         }
 
-        // Fire-and-forget FCM to all company admins as offline fallback
+        // Fire-and-forget FCM to all company owners (owner-role members) as offline fallback
         const { sendFCMNotificationToUser } = require("../Firebase.service");
         const [rows] = await db()
           .query(
             `SELECT u.userUniqueId
-           FROM TransportCompany tc
-           JOIN Users u ON tc.companyCreatedBy = u.userUniqueId
-           WHERE tc.isDeleted = 0 AND tc.companyDeletedAt IS NULL`,
+           FROM CompanyMembership cm
+           JOIN Users u ON cm.userUniqueId = u.userUniqueId
+           WHERE cm.companyRoleUniqueId = ?
+             AND cm.isActive = 1
+             AND cm.membershipDeletedAt IS NULL`,
+            [companyRoles.ownerUniqueId],
           );
         for (const row of rows) {
           sendFCMNotificationToUser({

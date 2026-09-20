@@ -26,6 +26,7 @@ const {
   getActiveTokensByUser,
 } = require("./Firebase.service");
 const { usersRoles } = require("../Utils/ListOfSeedData");
+const { resolveOwnerUserUniqueId } = require("./CompanyHelper.service");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CREATE — Admin issues a formal ruling on a delinquency dispute
@@ -173,10 +174,14 @@ const createAdminDecision = async ({
       `SELECT tc.companyCreatedBy FROM TransportCompany tc WHERE tc.companyUniqueId = ? LIMIT 1`,
       [companyUniqueId],
     );
+    const ownerUserUniqueId =
+      (await resolveOwnerUserUniqueId(companyUniqueId)) ||
+      companyOwner?.companyCreatedBy ||
+      null;
 
-    if (companyOwner?.companyCreatedBy) {
+    if (ownerUserUniqueId) {
       const { data: tokens } = await getActiveTokensByUser(
-        companyOwner.companyCreatedBy,
+        ownerUserUniqueId,
         usersRoles.vehicleOwnerRoleId, // vehicle owner (company owner) roleId
       );
 
@@ -250,11 +255,6 @@ const getAdminDecisions = async (filters = {}) => {
   const safeOrder = sortOrder.toUpperCase() === "ASC" ? "ASC" : "DESC";
   const whereClause = where.join(" AND ");
   const offset = (page - 1) * limit;
-
-  const [[{ total }]] = await exec().query(
-    `SELECT COUNT(*) AS total FROM AdminDecisionOnDelinquency d WHERE ${whereClause}`,
-    params,
-  );
 
   const [rows] = await exec().query(
     `SELECT

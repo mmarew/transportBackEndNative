@@ -28,6 +28,7 @@ const logger = require("../Utils/logger");
 
 const { pool } = require("../Middleware/Database.config");
 const { transactionStorage } = require("../Utils/TransactionContext");
+const { resolveOwnerUserUniqueId } = require("./CompanyHelper.service");
 const {
   sendNotificationToTokens,
   getActiveTokensByUser,
@@ -157,13 +158,17 @@ const createCompanyDelinquency = async (data) => {
   // Fire-and-forget: notification failure should never block delinquency creation.
   try {
     const [[companyOwner]] = await exec().query(
-      `SELECT tc.companyCreatedBy, tc.companyName
+      `SELECT tc.companyCreatedBy
        FROM TransportCompany tc
        WHERE tc.companyUniqueId = ? LIMIT 1`,
       [companyUniqueId],
     );
+    const ownerUserUniqueId =
+      (await resolveOwnerUserUniqueId(companyUniqueId)) ||
+      companyOwner?.companyCreatedBy ||
+      null;
 
-    if (companyOwner?.companyCreatedBy) {
+    if (ownerUserUniqueId) {
       // Fetch the delinquency type name for a clear notification
       const [[dtype]] = await exec().query(
         `SELECT delinquencyTypeName FROM DelinquencyTypes WHERE delinquencyTypeUniqueId = ? LIMIT 1`,
@@ -171,7 +176,7 @@ const createCompanyDelinquency = async (data) => {
       );
 
       const { data: tokens } = await getActiveTokensByUser(
-        companyOwner.companyCreatedBy,
+        ownerUserUniqueId,
         usersRoles.vehicleOwnerRoleId, // vehicle owner (company owner) roleId
       );
 
@@ -191,7 +196,7 @@ const createCompanyDelinquency = async (data) => {
         logger.info("Delinquency notification sent to company owner", {
           companyUniqueId,
           companyDelinquencyUniqueId,
-          ownerUniqueId: companyOwner.companyCreatedBy,
+          ownerUniqueId: ownerUserUniqueId,
         });
       }
     }

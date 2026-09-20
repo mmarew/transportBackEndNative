@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { usersRoles, companyRoles } = require("../Utils/ListOfSeedData");
-const { db, paginate } = require("./CompanyHelper.service");
+const { db, paginate, resolveOwnerUserUniqueIds } = require("./CompanyHelper.service");
 const { getData } = require("../CRUD/Read/ReadData");
 const { addMember } = require("./CompanyMembership.service");
 const { sendCompanyCreatedAlert } = require("../Utils/TelegramNotifier");
@@ -36,6 +36,38 @@ exports.createCompany = async (data) => {
     companyAddress,
     createdByUserUniqueId,
   } = data;
+  const user = data.user;
+  const isSystemAdmin =
+    user &&
+    (user.roleId === usersRoles.adminRoleId ||
+      user.roleId === usersRoles.supperAdminRoleId);
+
+  // ── Resolve the intended company owner ─────────────────────────────────────
+  // Non-system-admins create on their own behalf. An admin/superAdmin creates
+  // on behalf of a company-admin user, which must be named explicitly.
+  let ownerUserUniqueId = user?.userUniqueId;
+  if (isSystemAdmin) {
+    ownerUserUniqueId = data.companyOwnerUserUniqueId;
+    if (!ownerUserUniqueId) {
+      throw new AppError(
+        "companyOwnerUserUniqueId is required when creating a company as an admin",
+        AppError.BAD_REQUEST,
+      );
+    }
+    const [[ownerRole]] = await db().query(
+      `SELECT ur.userUniqueId
+       FROM UserRole ur
+       WHERE ur.userUniqueId = ? AND ur.roleId = ?
+       LIMIT 1`,
+      [ownerUserUniqueId, usersRoles.companyAdminRoleId],
+    );
+    if (!ownerRole) {
+      throw new AppError(
+        "The designated company owner must be an existing company admin user (roleId 7)",
+        AppError.BAD_REQUEST,
+      );
+    }
+  }
 
   // Duplicate check for critical fields
   const dupCheckFields = {
@@ -95,24 +127,17 @@ exports.createCompany = async (data) => {
     values,
   );
 
-  // Auto-link creator as owner if they are not system admins (3 or 6)
-  const user = data.user;
-  if (
-    user &&
-    user.roleId !== usersRoles.adminRoleId &&
-    user.roleId !== usersRoles.supperAdminRoleId
-  ) {
-    const ownerRoleUniqueId = companyRoles.ownerUniqueId;
-
-    await addMember({
-      companyUniqueId,
-      userUniqueId: user.userUniqueId,
-      companyRoleUniqueId: ownerRoleUniqueId,
-      membershipStartDate: currentDate(),
-      createdByUserUniqueId: createdByUserUniqueId,
-      skipApprovalCheck: true,
-    });
-  }
+  // ── Auto-link the owner as an owner-role member ─────────────────────────────
+  // Applied for system admins too, so an admin-created company still has an
+  // owner for approval (member requirement) and data-segregation visibility.
+  const memberResult = await addMember({
+    companyUniqueId,
+    userUniqueId: ownerUserUniqueId,
+    companyRoleUniqueId: companyRoles.ownerUniqueId,
+    membershipStartDate: currentDate(),
+    createdByUserUniqueId,
+    skipApprovalCheck: true,
+  });
 
   // Best-effort Telegram alert so the owner can confirm a newly created
   // company immediately. Never blocks or fails the creation itself.
@@ -130,7 +155,14 @@ exports.createCompany = async (data) => {
     });
   }
 
-  return { message: "Company created successfully", data: { companyUniqueId } };
+  return {
+    message: "Company created successfully",
+    data: {
+      companyUniqueId,
+      ownerUserUniqueId,
+      membershipUniqueId: memberResult?.data?.membershipUniqueId ?? null,
+    },
+  };
 };
 
 /**
@@ -193,15 +225,10 @@ exports.getCompanies = async (filters = {}, user = {}) => {
   const where = `WHERE ${clauses.join(" AND ")}`;
   const executor = db();
 
-  // ── 1. Paginated list of companies with creator profile ────────────────────
+  // ── 1. Paginated list of companies ──────────────────────────────────────────
   const [companies] = await executor.query(
-    `SELECT TransportCompany.*,
-            owner.userUniqueId AS ownerUserUniqueId,
-            owner.fullName   AS ownerFullName,
-            owner.email      AS ownerEmail,
-            owner.phoneNumber AS ownerPhoneNumber
+    `SELECT TransportCompany.*
      FROM TransportCompany
-     LEFT JOIN Users owner ON TransportCompany.companyCreatedBy = owner.userUniqueId
      ${where}
      ORDER BY TransportCompany.companyCreatedAt DESC
      LIMIT ? OFFSET ?`,
@@ -317,14 +344,39 @@ exports.getCompanies = async (filters = {}, user = {}) => {
     }
   }
 
-  // ── 3. Merge compliance + owner profile into each company row ─────────────
+  // ── 3. Resolve each company's owner via its owner-role membership ─────────
+  const ownerMap = await resolveOwnerUserUniqueIds(
+    companies.map((c) => c.companyUniqueId),
+  );
+  const ownerIds = [...new Set(Object.values(ownerMap).filter(Boolean))];
+  let ownerProfiles = {};
+  if (ownerIds.length > 0) {
+    const placeholders = ownerIds.map(() => "?").join(", ");
+    const [ownerRows] = await executor.query(
+      `SELECT userUniqueId, fullName, email, phoneNumber
+       FROM Users WHERE userUniqueId IN (${placeholders})`,
+      ownerIds,
+    );
+    ownerProfiles = Object.fromEntries(
+      ownerRows.map((r) => [r.userUniqueId, r]),
+    );
+  }
+
+  // ── 4. Merge compliance + owner profile into each company row ─────────────
   const data = companies.map((c) => {
-    const { ownerUserUniqueId, ownerFullName, ownerEmail, ownerPhoneNumber, ...rest } = c;
-    const ownerProfile = ownerFullName
-      ? { userUniqueId: ownerUserUniqueId, fullName: ownerFullName, email: ownerEmail, phoneNumber: ownerPhoneNumber }
+    const ownerUserUniqueId =
+      ownerMap[c.companyUniqueId] ?? c.companyCreatedBy;
+    const owner = ownerProfiles[ownerUserUniqueId];
+    const ownerProfile = owner
+      ? {
+          userUniqueId: ownerUserUniqueId,
+          fullName: owner.fullName,
+          email: owner.email,
+          phoneNumber: owner.phoneNumber,
+        }
       : null;
     return {
-      ...rest,
+      ...c,
       documentCompliance: complianceMap[c.companyUniqueId] ?? null,
       ownerProfile,
     };

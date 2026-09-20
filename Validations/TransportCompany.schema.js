@@ -9,6 +9,8 @@ exports.createCompany = Joi.object({
   companyPhone: Joi.string().max(DOMAIN.MAX_PHONE_LENGTH).optional().allow("", null),
   companyEmail: Joi.string().email().max(DOMAIN.MAX_VARCHAR_LENGTH).optional().allow("", null),
   companyAddress: Joi.string().max(DOMAIN.MAX_COMMENT_LENGTH).optional().allow("", null),
+  // Required by the service when the creator is an admin/superAdmin (no role context here).
+  companyOwnerUserUniqueId: uuidSchema.optional().allow("", null),
 }).unknown(true);
 
 exports.updateCompany = Joi.object({
