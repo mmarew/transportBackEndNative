@@ -1,7 +1,6 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
 const { updateUserRoleStatus } = require("./UserRoleStatus.service");
-const { accountStatus } = require("./Account");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
@@ -79,7 +78,7 @@ const banUser = async (data) => {
   );
   if (existingActiveBanRows.length > 0) {
     return {
-      message: "Banned users list fetched",
+      message: "User is already banned — existing active ban returned",
       data: null,
       banUniqueId: existingActiveBanRows[0].banUniqueId,
     };
@@ -119,7 +118,7 @@ const banUser = async (data) => {
   });
 
   return {
-    message: "User already banned",
+    message: "User banned successfully",
     data: null,
     banUniqueId,
     banExpiresAt,
@@ -274,7 +273,8 @@ const getBannedUsers = async (filters = {}) => {
   const totalPages = Math.ceil(total / limit);
 
   return {
-    message: "User banned successfully",
+    message:
+      total === 0 ? "No banned users found" : "Banned users fetched successfully",
     data: results,
     pagination: {
       currentPage: parseInt(page),
@@ -325,7 +325,7 @@ const updateBannedUser = async (banUniqueId, data) => {
 
   if (result.affectedRows > 0) {
     return {
-      message: "User banned successfully",
+      message: "Ban updated successfully",
       data: null,
     };
   } else {
@@ -333,44 +333,69 @@ const updateBannedUser = async (banUniqueId, data) => {
   }
 };
 
-const unbanUser = async (query) => {
-  try {
-    const { banUniqueId, phoneNumber, roleId, newStatusId } = query;
-    // validate all query
-    if (!banUniqueId || !phoneNumber || !roleId || !newStatusId) {
-      throw new AppError("all fields are required", AppError.BAD_REQUEST);
-    }
-    const sql = "update   BannedUsers set isActive=? WHERE banUniqueId = ?";
-    const executor = transactionStorage.getStore() || pool;
-    const [updatedBanResult] = await executor.query(sql, [false, banUniqueId]);
-
-    const { getUserByFilterDetailed } = require("./User.service");
-    const filters = { phoneNumber };
-    const userData = await getUserByFilterDetailed(filters);
-    const ownerUserUniqueId = userData?.data?.[0]?.user?.userUniqueId;
-
-    await accountStatus({ ownerUserUniqueId, body: { roleId } });
-
-    if (updatedBanResult.affectedRows > 0) {
-      return { message: "User banned successfully", data: null };
-    } else {
-      throw new AppError("Failed to unBan user", AppError.INTERNAL_SERVER_ERROR);
-    }
-  } catch (error) {
-    const logger = require("../Utils/logger");
-    logger.error("Error unbanning user", {
-      error: error.message,
-      stack: error.stack,
-    });
-    throw new AppError("Failed to unBan user", AppError.INTERNAL_SERVER_ERROR);
+const unbanUser = async (query, user) => {
+  const { banUniqueId, phoneNumber, roleId, newStatusId } = query;
+  if (!banUniqueId || !phoneNumber || !roleId || !newStatusId) {
+    throw new AppError(
+      "banUniqueId, phoneNumber, roleId and newStatusId are required",
+      AppError.BAD_REQUEST,
+    );
   }
+
+  const executor = transactionStorage.getStore() || pool;
+
+  // Confirm the ban actually exists so "already inactive" is not mistaken for
+  // "not found" (an UPDATE that sets isActive to its current value reports 0 rows).
+  const [banRows] = await executor.query(
+    "SELECT banUniqueId, isActive FROM BannedUsers WHERE banUniqueId = ?",
+    [banUniqueId],
+  );
+  if (banRows.length === 0) {
+    throw new AppError(
+      "Ban record not found for the provided banUniqueId",
+      AppError.NOT_FOUND,
+    );
+  }
+
+  // Lift the ban before touching status so no re-evaluation re-bans the user.
+  await executor.query(
+    "UPDATE BannedUsers SET isActive = FALSE WHERE banUniqueId = ?",
+    [banUniqueId],
+  );
+
+  // Resolve the target user by phone.
+  const { getUserByFilterDetailed } = require("./User.service");
+  const userData = await getUserByFilterDetailed({ phoneNumber });
+  const ownerUserUniqueId = userData?.data?.[0]?.user?.userUniqueId;
+  if (!ownerUserUniqueId) {
+    throw new AppError(
+      "No user found for the provided phoneNumber",
+      AppError.NOT_FOUND,
+    );
+  }
+
+  // Apply the requested status (admin override).
+  await updateUserRoleStatus({
+    user,
+    roleId: Number(roleId),
+    newStatusId: Number(newStatusId),
+    phoneNumber,
+  });
+
+  return {
+    message: "User unbanned successfully",
+    data: null,
+    banUniqueId,
+    userUniqueId: ownerUserUniqueId,
+    newStatusId: Number(newStatusId),
+  };
 };
 
 const deactivateBan = async (banUniqueId) => {
   const sql = "UPDATE BannedUsers SET isActive = FALSE WHERE banUniqueId = ?";
   const result = await query(sql, [banUniqueId]);
   if (result.affectedRows > 0) {
-    return { message: "User banned successfully", data: null };
+    return { message: "Ban deactivated successfully", data: null };
   } else {
     throw new AppError("Failed to deactivate ban", AppError.INTERNAL_SERVER_ERROR);
   }
