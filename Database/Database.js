@@ -1276,10 +1276,6 @@ CREATE TABLE IF NOT EXISTS UserBalanceTransfer (
   FOREIGN KEY (userBalanceTransferDeletedBy) REFERENCES Users(userUniqueId)
 );
 
-
-
- 
-
 -- UserRefund can be used to give back users money from ride hailing account (drivers, shippers, etc.)
 CREATE TABLE IF NOT EXISTS UserRefund (
   userRefundId INT AUTO_INCREMENT PRIMARY KEY, -- Auto-incremented unique identifier for each refund record

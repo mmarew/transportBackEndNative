@@ -156,11 +156,12 @@ const getAllActiveRequests = async (filters = {}) => {
     LEFT JOIN JourneyStatus js ON sr.journeyStatusId = js.journeyStatusId
     LEFT JOIN ShipperRequestBatch srb ON srb.batchUniqueId = sr.shipperRequestBatchUniqueId
     WHERE sr.journeyStatusId IN (?)
-      -- Queue orders are dispatched ONLY by queue FIFO (offer → accept) — they
-      -- must never be listed as manually-acceptable online jobs, or a driver
-      -- can grab queue placements outside the queue system.
+      -- Queue orders are dispatched ONLY by queue FIFO (offer → accept) and
+      -- must never be listed as manually-acceptable online jobs — EXCEPT
+      -- bid-board orders (ShipperRequest.isBiddingApproved = TRUE), which are
+      -- deliberately open to driver bidding / distance matching.
       -- queueOrganizationUniqueId is canonical on the batch (srb), inherited via join.
-      AND srb.queueOrganizationUniqueId IS NULL
+      AND (srb.queueOrganizationUniqueId IS NULL OR sr.isBiddingApproved = TRUE)
   `;
   let whereConditions = [];
   let values = [activeStatusIds];
