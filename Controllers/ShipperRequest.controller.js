@@ -393,6 +393,30 @@ const markCancellationAsSeenController = async (req, res, next) => {
   }
 };
 
+/**
+ * GET ALL ACTIVE REQUESTS — online job news feed (drivers).
+ *
+ * Serves the driver-facing feed of currently open jobs. It is location-agnostic:
+ * a driver sees every active job wherever they are, so it doubles as the app's
+ * job "news ticker" table.
+ *
+ * Feed contents (see Services/ShipperRequest/readActive.service.js):
+ * - Non-queue jobs in active statuses (waiting/requested/acceptedByDriver).
+ * - Queue-backed jobs open to bidding (ShipperRequest.isBiddingApproved = TRUE) —
+ *   queue orgs place individual orders on the bidding board; these are
+ *   distance-matched and grab-able by drivers like ordinary online jobs.
+ * - FIFO-only queue orders are excluded by design (queue offer → accept only).
+ *
+ * Driver convenience:
+ * - When the caller is a DRIVER (role 4), the controller resolves the driver's
+ *   most recent known origin (last DriverRequest with lat/lng) and injects it as
+ *   driverLatitude/driverLongitude so the feed sorts nearest-first via distanceKm.
+ *   It never filters by that location — proximity is a sort hint, not a scope.
+ *
+ * @param {Object} req - Express request (query params per getAllActiveRequestsQuery schema)
+ * @param {Object} res - Express response
+ * @param {Function} next - Express next middleware
+ */
 const getAllActiveRequestsController = async (req, res, next) => {
   try {
     const filters = {

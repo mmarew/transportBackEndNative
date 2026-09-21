@@ -874,15 +874,28 @@ router.get(
 );
 
 /**
- * Get All Active Requests Endpoint
+ * Get All Active Requests — ONLINE JOB NEWS FEED (drivers).
  *
- * Purpose: Retrieves all active shipper requests for drivers to view available journeys.
+ * The driver-facing feed of currently open jobs. Drivers see every active job
+ * wherever they are — this endpoint is the "news ticker" the driver app renders
+ * in their table. It streams:
+ * - All non-queue jobs in active statuses: waiting (1), requested (2), acceptedByDriver (3).
+ * - Queue-backed jobs placed on the OPEN BIDDING BOARD (isBiddingApproved = TRUE):
+ *   queue orgs opt individual orders into bid, making them distance-matched and
+ *   driver-grabbable like ordinary online jobs.
+ * FIFO-only queue orders (queue-owned batches with isBiddingApproved FALSE/NULL)
+ * are excluded — they are dispatched strictly via the queue offer → accept
+ * pipeline and must not be grabbed outside the queue system.
  *
  * How it works:
- * - Fetches requests with active statuses: waiting, requested, acceptedByDriver
- * - Supports comprehensive filtering by user, request, location, and date criteria
- * - Includes pagination and sorting capabilities
- * - Returns detailed request information with user and vehicle type data
+ * - When the caller is a DRIVER, the controller resolves their most recent known
+ *   location and injects it so the feed sorts nearest-first (distanceKm), never
+ *   filters — it's a location-agnostic feed with proximity sorting.
+ * - Each row includes isBiddingApproved and batchQueueOrganizationUniqueId so the
+ *   app can label "open bid-board job" vs "regular job".
+ * - Supports comprehensive filtering by user, request, location, and date criteria.
+ * - Includes pagination and sorting; returns detailed request info (user, vehicle
+ *   type, journey status, batch).
  *
  * Query Parameters:
  * - userUniqueId: Filter by shipper user ID (optional)
@@ -902,14 +915,16 @@ router.get(
  * - limit: Number of results per page (optional, default: 10)
  * - sortBy: Field to sort by (optional, default: "shipperRequestCreatedAt")
  * - sortOrder: Sort direction "ASC" or "DESC" (optional, default: "DESC")
+ * - requestMode: Filter by "individual_target" or "company_target" (optional)
  *
  * Authorization:
  * - Requires valid authentication token
  * - Typically used by drivers to find available journeys
  *
  * Response:
- * - Returns array of active requests with pagination info
- * - Each request includes shipper details, vehicle type, and journey status
+ * - Returns the active-jobs feed array with pagination info
+ * - Each request includes shipper details, vehicle type, journey status, batch
+ *   (batchId), and bidding context (isBiddingApproved, batchQueueOrganizationUniqueId)
  * - Includes pagination metadata (currentPage, totalPages, totalCount, etc.)
  */
 router.get(

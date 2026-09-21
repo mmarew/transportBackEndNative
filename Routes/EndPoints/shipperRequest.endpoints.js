@@ -15,6 +15,8 @@ const SHIPPER_REQUEST_ENDPOINTS = {
     "/api/shipperRequest/getCancellationNotifications",
   MARK_CANCELLATION_AS_SEEN: "/api/shipperRequest/markCancellationAsSeen",
   VERIFY_SHIPPER_STATUS: "/api/shipperRequest/verifyShipperStatus",
+  // ONLINE JOB NEWS FEED (drivers): streams every active job — non-queue jobs plus
+  // bidding-board queue orders (isBiddingApproved = TRUE) — wherever the driver is.
   GET_ALL_ACTIVE_REQUESTS: "/api/shippingRequest/getAllActiveRequests",
 };
 

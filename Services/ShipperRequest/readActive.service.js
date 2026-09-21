@@ -64,10 +64,32 @@ const logger = require("../../Utils/logger");
  */
 
 /**
- * Get All Active Requests
+ * Get All Active Requests — ONLINE JOB NEWS FEED (drivers).
  *
- * Purpose: Retrieves all active shipper requests (waiting, requested, acceptedByDriver)
- * for drivers to view available journeys.
+ * The driver-facing "news feed" of currently open jobs. Wherever the driver
+ * is (GeoIP/location-independent), this endpoint streams every active shipper
+ * request they could pick up, so drivers can scan and grab work.
+ *
+ * What is included:
+ * - All non-queue jobs in active statuses: waiting (1), requested (2), acceptedByDriver (3).
+ * - Queue-backed jobs that were deliberately placed on the OPEN BIDDING BOARD
+ *   (ShipperRequest.isBiddingApproved = TRUE). Queue orgs opt individual orders
+ *   into bid this way; they are distance-matched and driver-grabbable, just like
+ *   ordinary online jobs.
+ *
+ * What is excluded:
+ * - FIFO-only queue orders (queueOrganizationUniqueId set AND isBiddingApproved
+ *   FALSE/NULL). Those flow ONLY through the queue offer → accept pipeline and
+ *   must never be grabbed manually outside the queue system.
+ *
+ * Preserved ordering/context:
+ * - For drivers, the controller resolves their most recent known location and
+ *   passes driverLatitude/driverLongitude so rows are sorted nearest-first
+ *   (distanceKm added to each row). The list is never geographically filtered —
+ *   distance is a SORTING hint only.
+ * - Each returned row carries its bidding context: isBiddingApproved and
+ *   batchQueueOrganizationUniqueId (null for ordinary non-queue jobs), so the
+ *   driver app can label "open bid-board job" vs "regular job".
  *
  * @param {Object} filters - Filtering options
  * @param {string} filters.userUniqueId - Filter by shipper user ID
@@ -85,9 +107,11 @@ const logger = require("../../Utils/logger");
  * @param {string} filters.deliveryDate - Filter by delivery date
  * @param {number} filters.page - Page number (default: 1)
  * @param {number} filters.limit - Results per page (default: 2)
- * @param {string} filters.sortBy - Field to sort by (default: "requestTime")
+ * @param {string} filters.sortBy - Field to sort by (default: "shipperRequestCreatedAt")
  * @param {string} filters.sortOrder - Sort direction "ASC" or "DESC" (default: "DESC")
- * @returns {Promise<Object>} Response with data, pagination, and filters
+ * @param {number} [filters.driverLatitude] - Driver's last known latitude (sorting only)
+ * @param {number} [filters.driverLongitude] - Driver's last known longitude (sorting only)
+ * @returns {Promise<Object>} Response with the active-jobs feed data, pagination, and filters
  */
 const getAllActiveRequests = async (filters = {}) => {
   const {
@@ -139,7 +163,9 @@ const getAllActiveRequests = async (filters = {}) => {
       u.userCreatedAt as userCreatedAt,
       vt.vehicleTypeName,
       js.journeyStatusName,
-      srb.batchId
+      srb.batchId,
+      sr.isBiddingApproved,
+      srb.queueOrganizationUniqueId AS batchQueueOrganizationUniqueId
       ${
         sortByDistance
           ? `,
