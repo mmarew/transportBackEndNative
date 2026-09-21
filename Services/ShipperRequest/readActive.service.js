@@ -164,7 +164,6 @@ const getAllActiveRequests = async (filters = {}) => {
       vt.vehicleTypeName,
       js.journeyStatusName,
       srb.batchId,
-      sr.isBiddingApproved,
       srb.queueOrganizationUniqueId AS batchQueueOrganizationUniqueId
       ${
         sortByDistance
