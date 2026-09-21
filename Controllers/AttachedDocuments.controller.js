@@ -142,10 +142,11 @@ const getAttachedDocumentsByFilter = async (req, res, next) => {
       },
     });
 
-    // ── Company: attach RoleDocumentRequirements as the upload spec ──────────
-    // The company route (ownerType='company') returns the documents the company
-    // entity role (roleId 8) is required to have, so the frontend can render the
-    // "what's missing vs what's uploaded" view from a single response.
+    // ── Company: flat-merge RoleDocumentRequirements into each data item ────
+    // The company route (ownerType='company') matches each returned document to
+    // its requirement row (roleId 8) by documentTypeUniqueId and merges the
+    // requirement flags onto the document, so the frontend sees the upload spec
+    // (isDocumentMandatory, isFileNumberRequired, …) inline with each doc.
     if (resolvedOwnerType === "company") {
       const requirementsResult = await getRoleDocumentRequirements({
         roleId: usersRolesList.company.roleId,
@@ -154,8 +155,13 @@ const getAttachedDocumentsByFilter = async (req, res, next) => {
         sortBy: "documentTypeId",
         sortOrder: "ASC",
       });
-      result.requirements = requirementsResult?.data || [];
-      result.requirementsPagination = requirementsResult?.pagination || null;
+      const requirementsById = new Map(
+        (requirementsResult?.data || []).map((req) => [req.documentTypeUniqueId, req]),
+      );
+      result.data = (result.data || []).map((doc) => {
+        const requirement = requirementsById.get(doc.documentTypeUniqueId);
+        return requirement ? { ...doc, ...requirement } : doc;
+      });
     }
 
     ServerResponder(res, result);
