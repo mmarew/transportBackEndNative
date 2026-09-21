@@ -5,6 +5,7 @@ const attachedDocumentsService = require("../Services/AttachedDocuments");
 const {
   driversDocumentVehicleRequirement,
   entityDocumentRequirement,
+  getRoleDocumentRequirements,
 } = require("../Services/RoleDocumentRequirements");
 const { sendSocketIONotificationToAdmin } = require("../Utils/Notifications");
 const { sendDocumentUploadAlert } = require("../Utils/TelegramNotifier");
@@ -140,6 +141,22 @@ const getAttachedDocumentsByFilter = async (req, res, next) => {
         order: sortOrder,
       },
     });
+
+    // ── Company: attach RoleDocumentRequirements as the upload spec ──────────
+    // The company route (ownerType='company') returns the documents the company
+    // entity role (roleId 8) is required to have, so the frontend can render the
+    // "what's missing vs what's uploaded" view from a single response.
+    if (resolvedOwnerType === "company") {
+      const requirementsResult = await getRoleDocumentRequirements({
+        roleId: usersRolesList.company.roleId,
+        page: 1,
+        limit: 1000,
+        sortBy: "documentTypeId",
+        sortOrder: "ASC",
+      });
+      result.requirements = requirementsResult?.data || [];
+      result.requirementsPagination = requirementsResult?.pagination || null;
+    }
 
     ServerResponder(res, result);
   } catch (error) {
