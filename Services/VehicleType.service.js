@@ -259,7 +259,7 @@ const updateVehicleType = async (vehicleTypeUniqueId, data, file) => {
     throw new AppError("Vehicle type not found or update failed", AppError.NOT_FOUND);
   }
 
-  return { message: "Vehicle type deleted", data: null };
+  return { message: "Vehicle type updated", data: null };
 };
 
 // Soft-delete a vehicle type by unique ID
