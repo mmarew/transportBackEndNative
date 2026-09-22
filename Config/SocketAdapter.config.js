@@ -19,6 +19,7 @@ async function initSocket({ httpServer }) {
   const io = new SocketServer(httpServer, {
     cors: {
       origin: [
+        "https://app.dynamicsroute.tech",
         "https://dynamicsroute.tech",
         "https://company.dynamicsroute.tech",
         "https://admin.dynamicsroute.tech",
@@ -257,7 +258,12 @@ async function initSocket({ httpServer }) {
       try {
         const { queueOrganizationUniqueId, queueDate } = payload || {};
         if (!queueOrganizationUniqueId) {
-          return sendError(socket, "queueOrganizationUniqueId is required", "BAD_REQUEST", "queue");
+          return sendError(
+            socket,
+            "queueOrganizationUniqueId is required",
+            "BAD_REQUEST",
+            "queue",
+          );
         }
         if (queueDate) {
           socket.join(`queueOrg:${queueOrganizationUniqueId}:${queueDate}`);
@@ -278,7 +284,12 @@ async function initSocket({ httpServer }) {
           socketId: socket.id,
           error: error.message,
         });
-        sendError(socket, "Failed to subscribe to queue", "INTERNAL_SERVER_ERROR", "queue");
+        sendError(
+          socket,
+          "Failed to subscribe to queue",
+          "INTERNAL_SERVER_ERROR",
+          "queue",
+        );
       }
     });
 
@@ -287,9 +298,13 @@ async function initSocket({ httpServer }) {
         const { queueOrganizationUniqueId, queueDate } = payload || {};
         if (queueOrganizationUniqueId) {
           socket.leave(`queueOrg:${queueOrganizationUniqueId}`);
-          if (queueDate) socket.leave(`queueOrg:${queueOrganizationUniqueId}:${queueDate}`);
+          if (queueDate)
+            socket.leave(`queueOrg:${queueOrganizationUniqueId}:${queueDate}`);
         }
-        socket.emit("queue:unsubscribed", { status: "success", message: "success" });
+        socket.emit("queue:unsubscribed", {
+          status: "success",
+          message: "success",
+        });
       } catch (error) {
         logger.error("queue:unsubscribe error", {
           socketId: socket.id,
