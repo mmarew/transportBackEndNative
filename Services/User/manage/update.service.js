@@ -79,10 +79,21 @@ const updateUser = async body => {
   const errors = [];
 
   // Check if email is reserved by another user
-  if (email) {
-    // if email is placeholder email, skip the check
-    const isEmailPlaceholder = isPlaceholderEmail(email);
-    if (!isEmailPlaceholder) {
+  if (email !== undefined && email !== null) {
+    // Explicit empty string clears the user's email
+    if (email === "") {
+      const usersWithEmptyEmail = await getData({
+        tableName: "Users",
+        conditions: {
+          email: ""
+        }
+      });
+      if (usersWithEmptyEmail?.some(u => u.userUniqueId !== userUniqueId)) {
+        errors.push("Email already exists");
+      } else {
+        updateValues.email = "";
+      }
+    } else if (!isPlaceholderEmail(email)) {
       const userDataByEmail = await getData({
         tableName: "Users",
         conditions: {
