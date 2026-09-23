@@ -58,11 +58,19 @@ exports.updateVehicleType = async (req, res, next) => {
       vehicleTypeUpdatedBy: req?.user?.userUniqueId,
     };
 
+    // Persist a new icon the same way create does: memoryStorage has no
+    // filesystem write, so we must save the buffer and store the returned path.
+    if (req.file) {
+      const fileExtension = path.extname(req.file.originalname);
+      const uniqueFilename = `vehicle_${uuidv4()}${fileExtension}`;
+      const uploadedUrl = await uploadToFTP(req.file.buffer, uniqueFilename);
+      data.vehicleTypeIconName = uploadedUrl;
+    }
+
     const result = await executeInTransaction(async () => {
       return await vehicleTypeService.updateVehicleType(
         req.params.vehicleTypeUniqueId,
         data,
-        req.file || null,
       );
     });
 

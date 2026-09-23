@@ -1,4 +1,5 @@
 const { v4: uuidv4 } = require("uuid");
+const path = require("path");
 const { pool } = require("../Middleware/Database.config");
 const { deleteFile } = require("../Utils/FileUtils");
 const { getData } = require("../CRUD/Read/ReadData");
@@ -196,13 +197,14 @@ const getVehicleTypesByfilter = async (filters = {}) => {
 };
 
 // Update a vehicle type by unique ID
-const updateVehicleType = async (vehicleTypeUniqueId, data, file) => {
+const updateVehicleType = async (vehicleTypeUniqueId, data) => {
   const {
     vehicleTypeName,
     vehicleTypeDescription,
     carryingCapacity,
     vehicleTypeUpdatedBy,
     previousVehicleTypeIconName,
+    vehicleTypeIconName,
   } = data;
 
   const setParts = [];
@@ -228,11 +230,9 @@ const updateVehicleType = async (vehicleTypeUniqueId, data, file) => {
     values.push(vehicleTypeUpdatedBy);
   }
 
-  let newIconFileName = null;
-  if (file) {
-    newIconFileName = file.filename;
+  if (vehicleTypeIconName) {
     setParts.push("vehicleTypeIconName = ?");
-    values.push(newIconFileName);
+    values.push(vehicleTypeIconName);
   }
 
   if (setParts.length === 0) {
@@ -248,11 +248,11 @@ const updateVehicleType = async (vehicleTypeUniqueId, data, file) => {
   const executor = transactionStorage.getStore() || pool;
   const [result] = await executor.query(query, values);
   if (
-    newIconFileName &&
+    vehicleTypeIconName &&
     result.affectedRows > 0 &&
     previousVehicleTypeIconName
   ) {
-    deleteFile(previousVehicleTypeIconName);
+    deleteFile(path.basename(previousVehicleTypeIconName));
   }
 
   if (result.affectedRows === 0) {
