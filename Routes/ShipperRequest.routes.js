@@ -24,7 +24,9 @@ const {
   rejectDriverOfferBody,
   getAllActiveRequestsQuery,
 } = require("../Validations/ShipperRequest.schema");
-const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoints");
+const {
+  SHIPPER_REQUEST_ENDPOINTS,
+} = require("./EndPoints/shipperRequest.endpoints");
 
 /**
  * Shipper Create Request Endpoint
@@ -297,7 +299,7 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  *   - destination: object with latitude, longitude, description (latitude/longitude optional, description optional)
  *   - vehicle: object with vehicleTypeUniqueId (UUID, required)
  *   - shipperPhoneNumber: string, optional (required for admin/queue-org-admin)
- *   - requestType: "PASSENGER" | "CARGO", optional
+ *   - requestType: "shipper" | "CARGO", optional
  * - Validates shipperRequestBatchUniqueId is not null (service level)
  * - Validates userUniqueId is available (after admin user creation if applicable)
  * - Validates vehicle type exists in VehicleTypes table (for each request creation)

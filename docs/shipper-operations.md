@@ -17,7 +17,7 @@ Complete guide to shipper ride requests, journey management, and transportation 
   "shipperRequestBatchId": "ef5bc758-b85f-4de6-a750-855c79643790",
   "numberOfVehicles": 4,
   "deliveryDate": "2025-04-20T10:54:26.077Z",
-  "requestType": "PASSENGER",
+  "requestType": "shipper",
   "destination": {
     "latitude": 9.0204693,
     "longitude": 38.80246,
