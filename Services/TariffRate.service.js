@@ -3,6 +3,7 @@ const { currentDate } = require("../Utils/CurrentDate");
 const { pool } = require("../Middleware/Database.config");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
+const { insertHistoryRecord } = require("./History/History.service");
 
 // Create a new tariff rate
 exports.createTariffRate = async (data) => {
@@ -203,6 +204,13 @@ exports.updateTariffRate = async (tariffRateUniqueId, data) => {
   values.push(tariffRateUniqueId);
   const sql = `UPDATE TariffRate SET ${setParts.join(", ")} WHERE tariffRateUniqueId = ? AND tariffRateDeletedAt IS NULL`;
 
+  await insertHistoryRecord({
+    sourceTable: "TariffRate",
+    conditions: { tariffRateUniqueId },
+    changeType: "UPDATE",
+    changedByUserId: userUniqueId,
+  });
+
   const [result] = await (transactionStorage.getStore() || pool).query(sql, values);
   if (result.affectedRows === 0) {
     throw new AppError("Tariff rate not found or update failed", AppError.NOT_FOUND);
@@ -214,6 +222,14 @@ exports.updateTariffRate = async (tariffRateUniqueId, data) => {
 exports.deleteTariffRate = async (tariffRateUniqueId, user) => {
   const userUniqueId = user?.userUniqueId;
   const sql = `UPDATE TariffRate SET tariffRateDeletedAt = ?, tariffRateDeletedBy = ? WHERE tariffRateUniqueId = ? AND tariffRateDeletedAt IS NULL`;
+
+  await insertHistoryRecord({
+    sourceTable: "TariffRate",
+    conditions: { tariffRateUniqueId },
+    changeType: "DELETE",
+    changedByUserId: userUniqueId,
+  });
+
   const [result] = await (transactionStorage.getStore() || pool).query(sql, [currentDate(), userUniqueId, tariffRateUniqueId]);
   if (result.affectedRows === 0) {
     throw new AppError("Tariff rate not found or delete failed", AppError.NOT_FOUND);

@@ -6,6 +6,7 @@ const { insertData } = require("../CRUD/Create/CreateData");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
 const { PAGINATION } = require("../Utils/Constants");
+const { insertHistoryRecord } = require("./History/History.service");
 
 const createRole = async (body) => {
   const { roleName, roleDescription, user } = body;
@@ -97,6 +98,13 @@ const updateRole = async (roleUniqueId, body) => {
   const sql = `UPDATE Roles SET ${setParts.join(", ")} WHERE roleUniqueId = ? AND roleDeletedAt IS NULL`;
   values.push(roleUniqueId);
 
+  await insertHistoryRecord({
+    sourceTable: "Roles",
+    conditions: { roleUniqueId },
+    changeType: "UPDATE",
+    changedByUserId: userUniqueId,
+  });
+
   const executor = transactionStorage.getStore() || pool;
   try {
     const [result] = await executor.query(sql, values);
@@ -118,6 +126,13 @@ const updateRole = async (roleUniqueId, body) => {
 const deleteRole = async (roleUniqueId, user) => {
   const userUniqueId = user?.userUniqueId;
   const sql = `UPDATE Roles SET roleDeletedAt = ?, roleDeletedBy = ? WHERE roleUniqueId = ?`;
+
+  await insertHistoryRecord({
+    sourceTable: "Roles",
+    conditions: { roleUniqueId },
+    changeType: "DELETE",
+    changedByUserId: userUniqueId,
+  });
 
   const executor = transactionStorage.getStore() || pool;
   try {

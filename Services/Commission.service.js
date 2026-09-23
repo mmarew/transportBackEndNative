@@ -14,6 +14,7 @@ const {
 } = require("./FixedData.service");
 const { transactionStorage } = require("../Utils/TransactionContext");
 const { PAGINATION, DOMAIN } = require("../Utils/Constants");
+const { insertHistoryRecord } = require("./History/History.service");
 
 const allowedSortFields = {
   commissionId: "c.commissionId",
@@ -382,6 +383,13 @@ async function updateCommission(id, data, updatedBy) {
     throw new AppError("No fields to update", AppError.BAD_REQUEST);
   }
 
+  await insertHistoryRecord({
+    sourceTable: "Commission",
+    conditions: { commissionUniqueId: id },
+    changeType: "UPDATE",
+    changedByUserId: updatedBy,
+  });
+
   const amountOrDriverChanged =
     data.commissionAmount !== null || data.journeyDecisionUniqueId !== null;
 
@@ -498,6 +506,13 @@ async function deleteCommission(id, deletedBy) {
   }
 
   const { commissionAmount, driverUniqueId } = commissionRows[0];
+
+  await insertHistoryRecord({
+    sourceTable: "Commission",
+    conditions: { commissionUniqueId: id },
+    changeType: "DELETE",
+    changedByUserId: deletedBy,
+  });
 
   // 2. Soft-delete commission
   const updateSql = `

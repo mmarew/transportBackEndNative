@@ -4,6 +4,7 @@ const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { DOMAIN } = require("../Utils/Constants");
 const { transactionStorage } = require("../Utils/TransactionContext");
+const { insertHistoryRecord } = require("./History/History.service");
 
 // Helper function to add days to a date
 const addDays = (date, days) => {
@@ -442,6 +443,13 @@ const updatePricingByUniqueId = async (
   // Add the uniqueId for WHERE clause
   values.push(subscriptionPlanPricingUniqueId);
 
+  await insertHistoryRecord({
+    sourceTable: "SubscriptionPlanPricing",
+    conditions: { subscriptionPlanPricingUniqueId },
+    changeType: "UPDATE",
+    changedByUserId: updatedBy,
+  });
+
   const sql = `
     UPDATE SubscriptionPlanPricing
     SET ${setClauses.join(", ")}
@@ -540,6 +548,13 @@ const deletePricingByUniqueId = async (subscriptionPlanPricingUniqueId) => {
   if (!existing || existing.length === 0) {
     throw new AppError("Pricing record not found", AppError.NOT_FOUND);
   }
+
+  await insertHistoryRecord({
+    sourceTable: "SubscriptionPlanPricing",
+    conditions: { subscriptionPlanPricingUniqueId },
+    changeType: "DELETE",
+    changedByUserId: undefined,
+  });
 
   const sql = `DELETE FROM SubscriptionPlanPricing WHERE subscriptionPlanPricingUniqueId = ?`;
   const [result] = await executor.query(sql, [subscriptionPlanPricingUniqueId]);

@@ -21,6 +21,8 @@ const {
   transactionStorage
 } = require("../../Utils/TransactionContext");
 
+const { insertHistoryRecord } = require("../History/History.service");
+
 // Create a new journey status
 
 // Soft delete a journey status by unique ID
@@ -38,6 +40,13 @@ const deleteJourneyStatusByUniqueId = async (journeyStatusUniqueId, user) => {
   if (existing[0]?.journeyStatusDeletedAt) {
     throw new AppError("Journey status already deleted", AppError.BAD_REQUEST);
   }
+
+  await insertHistoryRecord({
+    sourceTable: "JourneyStatus",
+    conditions: { journeyStatusUniqueId },
+    changeType: "DELETE",
+    changedByUserId: userUniqueId,
+  });
 
   // Execute pure SQL soft delete to avoid NULL handling issues in updateData
   const sql = `
@@ -61,6 +70,12 @@ const deleteJourneyStatusByUniqueId = async (journeyStatusUniqueId, user) => {
 
 // Delete a journey status by ID
 const deleteJourneyStatus = async journeyStatusUniqueId => {
+  await insertHistoryRecord({
+    sourceTable: "JourneyStatus",
+    conditions: { journeyStatusUniqueId },
+    changeType: "DELETE",
+    changedByUserId: undefined,
+  });
   const result = await deleteData({
     tableName: "JourneyStatus",
     conditions: {

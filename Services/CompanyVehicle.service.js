@@ -6,6 +6,7 @@ const AppError = require("../Utils/AppError");
 const { db, paginate, paginatedQuery } = require("./CompanyHelper.service");
 const { getData } = require("../CRUD/Read/ReadData");
 const { usersRoles } = require("../Utils/ListOfSeedData");
+const { insertHistoryRecord } = require("./History/History.service");
 
 /**
  * Returns all companies a driver is associated with, via two paths:
@@ -165,6 +166,12 @@ exports.moveVehicle = async (data) => {
         data: { message: "Vehicle is already assigned to this company" },
       };
     }
+    await insertHistoryRecord({
+      sourceTable: "CompanyVehicle",
+      conditions: { companyVehicleUniqueId: existing[0].companyVehicleUniqueId },
+      changeType: "DELETE",
+    });
+
     await db().query(
       `UPDATE CompanyVehicle
        SET assignmentStatus = 'inactive', companyVehicleDeletedAt = ?, companyVehicleDeletedBy = ?
@@ -299,6 +306,13 @@ exports.getCompanyVehicles = async (filters = {}, user = {}) => {
 };
 
 exports.removeVehicle = async (companyVehicleUniqueId, deletedBy) => {
+  await insertHistoryRecord({
+    sourceTable: "CompanyVehicle",
+    conditions: { companyVehicleUniqueId },
+    changeType: "DELETE",
+    changedByUserId: deletedBy,
+  });
+
   const [res] = await db().query(
     `UPDATE CompanyVehicle
      SET assignmentStatus = 'inactive', companyVehicleDeletedAt = ?, companyVehicleDeletedBy = ?

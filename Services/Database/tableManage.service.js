@@ -2,6 +2,7 @@
 
 const Config = require("../../Utils/Config");
 const { sqlQuery, driverQueueHistoryDdl } = require("../../Database/Database");
+const { historyTablesDdl } = require("../../Database/HistoryTables");
 const { pool, config: dbConfig } = require("../../Middleware/Database.config");
 const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
@@ -867,6 +868,9 @@ const createTable = async () => {
 
     // Run the full schema (all CREATE TABLE IF NOT EXISTS statements)
     await adminConnection.query(sqlQuery);
+
+    // Create the audit-history tables (one snapshot table per tracked entity)
+    await adminConnection.query(historyTablesDdl);
 
     // Idempotently enforce the BATCH-canonical queueOrganizationUniqueId model
     // (see ensureQueueOrgReferences). Must run while this connection still has the DB selected.

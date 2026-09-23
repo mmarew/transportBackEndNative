@@ -1,9 +1,16 @@
 const { pool } = require("../../Middleware/Database.config");
 const AppError = require("../../Utils/AppError");
 const { transactionStorage } = require("../../Utils/TransactionContext");
+const { insertHistoryRecord } = require("../History/History.service");
 
 // Delete a driver balance record by ID
 const deleteUserBalance = async (userBalanceUniqueId) => {
+  await insertHistoryRecord({
+    sourceTable: "UserBalance",
+    conditions: { userBalanceUniqueId },
+    changeType: "DELETE",
+    changedByUserId: undefined,
+  });
   const sql = `DELETE FROM UserBalance WHERE userBalanceUniqueId = ?`;
   const [result] = await (transactionStorage.getStore() || pool).query(sql, [userBalanceUniqueId]);
   if (result.affectedRows === 0) {
@@ -15,6 +22,12 @@ const deleteUserBalance = async (userBalanceUniqueId) => {
 const deleteUserBalanceByTransactionUniqueId = async ({
   transactionUniqueId,
 }) => {
+  await insertHistoryRecord({
+    sourceTable: "UserBalance",
+    conditions: { transactionUniqueId },
+    changeType: "DELETE",
+    changedByUserId: undefined,
+  });
   const sql = `DELETE FROM UserBalance WHERE transactionUniqueId = ?`;
   const [result] = await (transactionStorage.getStore() || pool).query(sql, [transactionUniqueId]);
 

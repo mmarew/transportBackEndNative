@@ -27,6 +27,8 @@ const {
   transactionStorage
 } = require("../../Utils/TransactionContext");
 
+const { insertHistoryRecord } = require("../History/History.service");
+
 // Create a new journey status
 
 // Update a journey status by unique ID (dynamic)
@@ -57,6 +59,13 @@ const updateJourneyStatusByUniqueId = async (journeyStatusUniqueId, updatePayloa
   if (Object.keys(updateValues).length === 0) {
     throw new AppError("No fields provided to update", AppError.BAD_REQUEST);
   }
+
+  await insertHistoryRecord({
+    sourceTable: "JourneyStatus",
+    conditions: { journeyStatusUniqueId },
+    changeType: "UPDATE",
+    changedByUserId: userUniqueId,
+  });
 
   // Execute pure SQL update to avoid NULL handling issues in updateData
   const sql = `

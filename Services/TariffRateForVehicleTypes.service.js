@@ -3,6 +3,7 @@ const { currentDate } = require("../Utils/CurrentDate");
 const { pool } = require("../Middleware/Database.config");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
+const { insertHistoryRecord } = require("./History/History.service");
 
 // Create a new tariff rate for a vehicle type
 exports.createTariffRateForVehicleType = async (data) => {
@@ -202,6 +203,13 @@ exports.updateTariffRateForVehicleType = async (
     WHERE tariffRateForVehicleTypeUniqueId = ?
       AND tariffRateForVehicleTypeDeletedAt IS NULL`;
 
+  await insertHistoryRecord({
+    sourceTable: "TariffRateForVehicleTypes",
+    conditions: { tariffRateForVehicleTypeUniqueId },
+    changeType: "UPDATE",
+    changedByUserId: userUniqueId,
+  });
+
   const [result] = await (transactionStorage.getStore() || pool).query(sql, values);
 
   if (result.affectedRows === 0) {
@@ -230,6 +238,14 @@ exports.deleteTariffRateForVehicleType = async (
     WHERE tariffRateForVehicleTypeUniqueId = ?
       AND tariffRateForVehicleTypeDeletedAt IS NULL
   `;
+
+  await insertHistoryRecord({
+    sourceTable: "TariffRateForVehicleTypes",
+    conditions: { tariffRateForVehicleTypeUniqueId },
+    changeType: "DELETE",
+    changedByUserId: userUniqueId,
+  });
+
   const [result] = await (transactionStorage.getStore() || pool).query(sql, [
     currentDate(),
     userUniqueId,

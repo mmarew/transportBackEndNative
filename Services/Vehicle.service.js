@@ -15,6 +15,7 @@ const { transactionStorage } = require("../Utils/TransactionContext");
 const { sendSocketIONotificationToAdmin } = require("../Utils/Notifications");
 const messageTypes = require("../Utils/MessageTypes");
 const { performJoinSelect } = require("../CRUD/Read/ReadData");
+const { insertHistoryRecord } = require("./History/History.service");
 
 // create vehicle and create ownership based on status of vehicle.
 const createVehicle = async (data, user, driverUserUniqueId) => {
@@ -171,6 +172,13 @@ const updateVehicle = async (vehicleUniqueId, updateValues, user) => {
     }
   }
 
+  await insertHistoryRecord({
+    sourceTable: "Vehicle",
+    conditions: { vehicleUniqueId },
+    changeType: "UPDATE",
+    changedByUserId: user?.userUniqueId,
+  });
+
   const result = await updateData({
     tableName: "Vehicle",
     conditions: { vehicleUniqueId },
@@ -207,6 +215,13 @@ const deleteVehicle = async (vehicleUniqueId, user) => {
       throw new AppError("Unauthorized: You do not own or drive this vehicle", AppError.FORBIDDEN);
     }
   }
+
+  await insertHistoryRecord({
+    sourceTable: "Vehicle",
+    conditions: { vehicleUniqueId },
+    changeType: "DELETE",
+    changedByUserId: user?.userUniqueId,
+  });
 
   const result = await updateData({
     tableName: "Vehicle",

@@ -6,6 +6,7 @@ const { insertData } = require("../CRUD/Create/CreateData");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
 const { PAGINATION } = require("../Utils/Constants");
+const { insertHistoryRecord } = require("./History/History.service");
 
 const createStatus = async (body) => {
   const { statusName, statusDescription, user } = body;
@@ -80,6 +81,13 @@ const updateStatus = async (statusUniqueId, body) => {
   const sql = `UPDATE Statuses SET ${setParts.join(", ")} WHERE statusUniqueId = ? AND statusDeletedAt IS NULL`;
   values.push(statusUniqueId);
 
+  await insertHistoryRecord({
+    sourceTable: "Statuses",
+    conditions: { statusUniqueId },
+    changeType: "UPDATE",
+    changedByUserId: userUniqueId,
+  });
+
   const executor = transactionStorage.getStore() || pool;
   const [result] = await executor.query(sql, values);
   if (result.affectedRows === 0) {
@@ -91,6 +99,13 @@ const updateStatus = async (statusUniqueId, body) => {
 const deleteStatus = async (id, user) => {
   const userUniqueId = user?.userUniqueId;
   const sql = `UPDATE Statuses SET statusDeletedAt = ?, statusDeletedBy = ? WHERE statusUniqueId = ?`;
+
+  await insertHistoryRecord({
+    sourceTable: "Statuses",
+    conditions: { statusUniqueId: id },
+    changeType: "DELETE",
+    changedByUserId: userUniqueId,
+  });
 
   const executor = transactionStorage.getStore() || pool;
   const [result] = await executor.query(sql, [currentDate(), userUniqueId, id]);

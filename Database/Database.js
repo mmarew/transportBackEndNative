@@ -136,8 +136,7 @@ CREATE TABLE IF NOT EXISTS VehicleTypesHistory (
     vehicleTypeUpdatedAt DATETIME NULL,  -- Vehicle type update date at the time of the change
     vehicleTypeDeletedAt DATETIME NULL,  -- Vehicle type deletion date at the time of the change
     vehicleTypeVersion INT NOT NULL DEFAULT 1,
-    INDEX idx_vth_vehicleType (vehicleTypeId),
-    FOREIGN KEY (vehicleTypeId) REFERENCES VehicleTypes(vehicleTypeId)
+    INDEX idx_vth_vehicleType (vehicleTypeId)
 ) ;
 
  -- Create the JourneyStatus table

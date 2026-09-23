@@ -5,6 +5,7 @@ const { db, paginate, paginatedQuery } = require("./CompanyHelper.service");
 const { getData } = require("../CRUD/Read/ReadData");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
+const { insertHistoryRecord } = require("./History/History.service");
 
 /**
  * Create a new company role.
@@ -117,6 +118,14 @@ exports.updateRole = async (uniqueId, body) => {
   params.push(currentDate());
 
   params.push(uniqueId);
+
+  await insertHistoryRecord({
+    sourceTable: "CompanyRoles",
+    conditions: { companyRoleUniqueId: uniqueId },
+    changeType: "UPDATE",
+    changedByUserId: userUniqueId,
+  });
+
   try {
     const [result] = await db().query(
       `UPDATE CompanyRoles SET ${setParts.join(", ")} WHERE companyRoleUniqueId = ? AND companyRoleDeletedAt IS NULL`,
@@ -142,6 +151,13 @@ exports.updateRole = async (uniqueId, body) => {
  * @returns {Promise<Object>} Deletion status
  */
 exports.deleteRole = async (uniqueId, userUniqueId) => {
+  await insertHistoryRecord({
+    sourceTable: "CompanyRoles",
+    conditions: { companyRoleUniqueId: uniqueId },
+    changeType: "DELETE",
+    changedByUserId: userUniqueId,
+  });
+
   const [result] = await db().query(
     `UPDATE CompanyRoles SET 
       companyRoleDeletedAt = ?, 

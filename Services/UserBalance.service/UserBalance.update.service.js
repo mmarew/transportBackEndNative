@@ -2,8 +2,15 @@ const { pool } = require("../../Middleware/Database.config");
 const AppError = require("../../Utils/AppError");
 const { currentDate } = require("../../Utils/CurrentDate");
 const { transactionStorage } = require("../../Utils/TransactionContext");
+const { insertHistoryRecord } = require("../History/History.service");
 
 const updateUserBalance = async (userBalanceUniqueId, data) => {
+  await insertHistoryRecord({
+    sourceTable: "UserBalance",
+    conditions: { userBalanceUniqueId },
+    changeType: "UPDATE",
+    changedByUserId: undefined,
+  });
   const sql = `
     UPDATE UserBalance
     SET userUniqueId = ?, transactionType = ?, 

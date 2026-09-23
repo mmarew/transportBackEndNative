@@ -5,6 +5,7 @@ const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
 const { PAGINATION } = require("../Utils/Constants");
+const { insertHistoryRecord } = require("./History/History.service");
 
 // Create a new payment status
 exports.createPaymentStatus = async ({ paymentStatus }) => {
@@ -134,6 +135,14 @@ exports.updatePaymentStatus = async (
 
   values.push(paymentStatusUniqueId);
   const sql = `UPDATE PaymentStatus SET ${setParts.join(", ")} WHERE paymentStatusUniqueId = ? AND paymentStatusDeletedAt IS NULL`;
+
+  await insertHistoryRecord({
+    sourceTable: "PaymentStatus",
+    conditions: { paymentStatusUniqueId },
+    changeType: "UPDATE",
+    changedByUserId: userUniqueId,
+  });
+
   try {
     const [result] = await executor.query(sql, values);
     if (result.affectedRows === 0) {
@@ -171,6 +180,14 @@ exports.deletePaymentStatus = async (paymentStatusUniqueId, user) => {
 
   const paymentStatusDeletedAt = currentDate();
   const sql = `UPDATE PaymentStatus SET paymentStatusDeletedAt = ?, paymentStatusDeletedBy = ? WHERE paymentStatusUniqueId = ? AND paymentStatusDeletedAt IS NULL`;
+
+  await insertHistoryRecord({
+    sourceTable: "PaymentStatus",
+    conditions: { paymentStatusUniqueId },
+    changeType: "DELETE",
+    changedByUserId: userUniqueId,
+  });
+
   const [result] = await executor.query(sql, [
     paymentStatusDeletedAt,
     userUniqueId,

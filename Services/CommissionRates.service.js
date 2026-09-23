@@ -4,6 +4,7 @@ const { PAGINATION } = require("../Utils/Constants");
 
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
+const { insertHistoryRecord } = require("./History/History.service");
 // Create a commission rate
 const createCommissionRate = async ({
   commissionRateUniqueId,
@@ -289,6 +290,13 @@ const updateCommissionRateByUniqueId = async ({
   const sqlQuery = `UPDATE CommissionRates SET ${setParts.join(", ")} WHERE commissionRateUniqueId = ?`;
   values.push(commissionRateUniqueId);
 
+  await insertHistoryRecord({
+    sourceTable: "CommissionRates",
+    conditions: { commissionRateUniqueId },
+    changeType: "UPDATE",
+    changedByUserId: commissionRateUpdatedBy,
+  });
+
   const [result] = await executor.query(sqlQuery, values);
   if (result.affectedRows === 0) {
     throw new AppError("Commission rate update failed", AppError.INTERNAL_SERVER_ERROR);
@@ -327,6 +335,13 @@ const deleteCommissionRateByUniqueId = async ({
     commissionRateDeletedBy,
     commissionRateUniqueId,
   ];
+
+  await insertHistoryRecord({
+    sourceTable: "CommissionRates",
+    conditions: { commissionRateUniqueId },
+    changeType: "DELETE",
+    changedByUserId: commissionRateDeletedBy,
+  });
 
   const [result] = await executor.query(sqlDelete, values);
   if (result.affectedRows === 0) {

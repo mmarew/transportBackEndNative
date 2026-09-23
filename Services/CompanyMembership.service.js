@@ -6,6 +6,7 @@ const AppError = require("../Utils/AppError");
 const { db, paginate, paginatedQuery } = require("./CompanyHelper.service");
 const { getData } = require("../CRUD/Read/ReadData");
 const { usersRoles } = require("../Utils/ListOfSeedData");
+const { insertHistoryRecord } = require("./History/History.service");
 
 /**
  * Adds a new member to a company with a specific role ID.
@@ -142,6 +143,13 @@ exports.activateMember = async (membershipUniqueId, updatedBy) => {
   );
   if (existing.length === 0) {throw new AppError("Membership not found", AppError.NOT_FOUND);}
 
+  await insertHistoryRecord({
+    sourceTable: "CompanyMembership",
+    conditions: { membershipUniqueId },
+    changeType: "UPDATE",
+    changedByUserId: updatedBy,
+  });
+
   await db().query(
     `UPDATE CompanyMembership
      SET isActive = 1, membershipEndDate = NULL, membershipUpdatedBy = ?, membershipUpdatedAt = ?
@@ -158,6 +166,13 @@ exports.deactivateMember = async (membershipUniqueId, updatedBy) => {
   );
   if (existing.length === 0) {throw new AppError("Membership not found", AppError.NOT_FOUND);}
 
+  await insertHistoryRecord({
+    sourceTable: "CompanyMembership",
+    conditions: { membershipUniqueId },
+    changeType: "UPDATE",
+    changedByUserId: updatedBy,
+  });
+
   await db().query(
     `UPDATE CompanyMembership
      SET isActive = 0, membershipEndDate = ?, membershipUpdatedBy = ?, membershipUpdatedAt = ?
@@ -173,6 +188,13 @@ exports.deleteMember = async (membershipUniqueId, deletedBy) => {
     [membershipUniqueId],
   );
   if (existing.length === 0) {throw new AppError("Membership not found", AppError.NOT_FOUND);}
+
+  await insertHistoryRecord({
+    sourceTable: "CompanyMembership",
+    conditions: { membershipUniqueId },
+    changeType: "DELETE",
+    changedByUserId: deletedBy,
+  });
 
   await db().query(
     `UPDATE CompanyMembership

@@ -5,6 +5,7 @@ const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
 const { PAGINATION } = require("../Utils/Constants");
+const { insertHistoryRecord } = require("./History/History.service");
 
 const query = async (sql, values = []) => {
   const executor = transactionStorage.getStore() || pool;
@@ -303,6 +304,13 @@ const updateDelinquencyType = async (delinquencyTypeUniqueId, data) => {
     const sql = `UPDATE DelinquencyTypes SET ${setParts.join(", ")} WHERE delinquencyTypeUniqueId = ?`;
     values.push(delinquencyTypeUniqueId);
 
+    await insertHistoryRecord({
+      sourceTable: "DelinquencyTypes",
+      conditions: { delinquencyTypeUniqueId },
+      changeType: "UPDATE",
+      changedByUserId: userUniqueId,
+    });
+
     const result = await query(sql, values);
 
     if (result.affectedRows > 0) {
@@ -345,6 +353,14 @@ const deleteDelinquencyType = async (delinquencyTypeUniqueId, user) => {
   }
 
   const sql = `UPDATE DelinquencyTypes SET delinquencyTypeDeletedAt = ?, delinquencyTypeDeletedBy = ? WHERE delinquencyTypeUniqueId = ?`;
+
+  await insertHistoryRecord({
+    sourceTable: "DelinquencyTypes",
+    conditions: { delinquencyTypeUniqueId },
+    changeType: "DELETE",
+    changedByUserId: userUniqueId,
+  });
+
   const result = await query(sql, [
     currentDate(),
     userUniqueId,
@@ -397,6 +413,13 @@ const getDelinquencyTypesByRole = async (roleUniqueId, pagination = {}) => {
 };
 
 const toggleDelinquencyTypeActive = async (delinquencyTypeUniqueId) => {
+  await insertHistoryRecord({
+    sourceTable: "DelinquencyTypes",
+    conditions: { delinquencyTypeUniqueId },
+    changeType: "UPDATE",
+    changedByUserId: undefined,
+  });
+
   const sql = `
     UPDATE DelinquencyTypes 
     SET isActive = NOT isActive 

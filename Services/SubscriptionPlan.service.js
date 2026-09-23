@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
+const { insertHistoryRecord } = require("./History/History.service");
 
 // Create
 const createSubscriptionPlan = async ({
@@ -199,6 +200,13 @@ const updateSubscriptionPlan = async (
   // Add uniqueId to values array for WHERE clause
   values.push(uniqueId);
 
+  await insertHistoryRecord({
+    sourceTable: "SubscriptionPlan",
+    conditions: { subscriptionPlanUniqueId: uniqueId },
+    changeType: "UPDATE",
+    changedByUserId: updatedBy,
+  });
+
   const sql = `
     UPDATE SubscriptionPlan
     SET ${setClauses.join(", ")}
@@ -237,6 +245,12 @@ const updateSubscriptionPlan = async (
 
 // Delete by uniqueId
 const deleteSubscriptionPlan = async (uniqueId) => {
+  await insertHistoryRecord({
+    sourceTable: "SubscriptionPlan",
+    conditions: { subscriptionPlanUniqueId: uniqueId },
+    changeType: "DELETE",
+    changedByUserId: undefined,
+  });
   const sql = `DELETE FROM SubscriptionPlan WHERE subscriptionPlanUniqueId = ?`;
   const executor = transactionStorage.getStore() || pool;
   const [result] = await executor.query(sql, [uniqueId]);

@@ -7,6 +7,7 @@ const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
 const { PAGINATION } = require("../Utils/Constants");
+const { insertHistoryRecord } = require("./History/History.service");
 
 const createVehicleStatus = async (data) => {
   const {
@@ -128,6 +129,13 @@ const getVehicleStatuses = async (filters = {}) => {
 };
 
 const updateVehicleStatus = async (vehicleStatusUniqueId, data) => {
+  await insertHistoryRecord({
+    sourceTable: "VehicleStatus",
+    conditions: { vehicleStatusUniqueId },
+    changeType: "UPDATE",
+    changedByUserId: data?.user?.userUniqueId,
+  });
+
   const result = await updateData({
     tableName: "VehicleStatus",
     conditions: { vehicleStatusUniqueId },
@@ -142,6 +150,13 @@ const updateVehicleStatus = async (vehicleStatusUniqueId, data) => {
 };
 
 const deleteVehicleStatus = async (vehicleStatusUniqueId) => {
+  await insertHistoryRecord({
+    sourceTable: "VehicleStatus",
+    conditions: { vehicleStatusUniqueId },
+    changeType: "DELETE",
+    changedByUserId: undefined,
+  });
+
   const result = await updateData({
     tableName: "VehicleStatus",
     conditions: { vehicleStatusUniqueId },

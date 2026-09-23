@@ -5,6 +5,7 @@ const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
 const { PAGINATION } = require("../Utils/Constants");
+const { insertHistoryRecord } = require("./History/History.service");
 
 // Create a new payment method
 exports.createPaymentMethod = async ({ paymentMethod, user }) => {
@@ -146,6 +147,14 @@ exports.updatePaymentMethod = async (
 
   values.push(paymentMethodUniqueId);
   const sql = `UPDATE PaymentMethod SET ${setParts.join(", ")} WHERE paymentMethodUniqueId = ?`;
+
+  await insertHistoryRecord({
+    sourceTable: "PaymentMethod",
+    conditions: { paymentMethodUniqueId },
+    changeType: "UPDATE",
+    changedByUserId: userUniqueId,
+  });
+
   const [result] = await executor.query(sql, values);
 
   if (result.affectedRows === 0) {
@@ -172,6 +181,14 @@ exports.deletePaymentMethod = async (paymentMethodUniqueId, user) => {
   }
 
   const sql = `UPDATE PaymentMethod SET paymentMethodDeletedAt = ?, paymentMethodDeletedBy = ? WHERE paymentMethodUniqueId = ?`;
+
+  await insertHistoryRecord({
+    sourceTable: "PaymentMethod",
+    conditions: { paymentMethodUniqueId },
+    changeType: "DELETE",
+    changedByUserId: userUniqueId,
+  });
+
   const [result] = await executor.query(sql, [
     currentDate(),
     userUniqueId,

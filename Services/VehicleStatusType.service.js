@@ -8,6 +8,7 @@ const { pool } = require("../Middleware/Database.config");
 const { transactionStorage } = require("../Utils/TransactionContext");
 const logger = require("../Utils/logger");
 const { PAGINATION, DOMAIN } = require("../Utils/Constants");
+const { insertHistoryRecord } = require("./History/History.service");
 
 // Create a new VehicleStatusType
 const createVehicleStatusType = async (data) => {
@@ -108,6 +109,13 @@ const updateVehicleStatusType = async (vehicleStatusTypeUniqueId, data) => {
     VehicleStatusTypeDescription: data.statusTypeDescription || data.description,
   };
 
+  await insertHistoryRecord({
+    sourceTable: "VehicleStatusTypes",
+    conditions: { vehicleStatusTypeUniqueId },
+    changeType: "UPDATE",
+    changedByUserId: data?.user?.userUniqueId,
+  });
+
   const result = await updateData({
     tableName: "VehicleStatusTypes",
     conditions: { vehicleStatusTypeUniqueId },
@@ -126,6 +134,13 @@ const updateVehicleStatusType = async (vehicleStatusTypeUniqueId, data) => {
 
 // Soft Delete VehicleStatusType by UUID
 const deleteVehicleStatusType = async (vehicleStatusTypeUniqueId) => {
+  await insertHistoryRecord({
+    sourceTable: "VehicleStatusTypes",
+    conditions: { vehicleStatusTypeUniqueId },
+    changeType: "DELETE",
+    changedByUserId: undefined,
+  });
+
   const result = await updateData({
     tableName: "VehicleStatusTypes",
     conditions: { vehicleStatusTypeUniqueId },

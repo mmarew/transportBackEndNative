@@ -6,6 +6,7 @@ const AppError = require("../Utils/AppError");
 
 const { transactionStorage } = require("../Utils/TransactionContext");
 const { PAGINATION } = require("../Utils/Constants");
+const { insertHistoryRecord } = require("./History/History.service");
 
 // Create a new VehicleDriver assignment
 const createVehicleDriver = async (data) => {
@@ -269,6 +270,12 @@ const updateVehicleDriverByUniqueId = async (
   )}, vehicleDriverUpdatedAt = ? WHERE vehicleDriverUniqueId = ?`;
   params.push(currentDate(), vehicleDriverUniqueId);
 
+  await insertHistoryRecord({
+    sourceTable: "VehicleDriver",
+    conditions: { vehicleDriverUniqueId },
+    changeType: "UPDATE",
+  });
+
   const executor = transactionStorage.getStore() || pool;
   const [result] = await executor.query(sql, params);
   if (!result.affectedRows) {
@@ -306,6 +313,12 @@ const deleteVehicleDriverByUniqueId = async (vehicleDriverUniqueId) => {
   }
 
   const driverUserUniqueId = existingRecord[0].driverUserUniqueId;
+
+  await insertHistoryRecord({
+    sourceTable: "VehicleDriver",
+    conditions: { vehicleDriverUniqueId },
+    changeType: "DELETE",
+  });
 
   const [result] = await executor.query(
     `DELETE FROM VehicleDriver WHERE vehicleDriverUniqueId = ?`,

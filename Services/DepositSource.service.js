@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
+const { insertHistoryRecord } = require("./History/History.service");
 
 // Create
 const createDepositSource = async ({ sourceKey, sourceLabel, user }) => {
@@ -94,6 +95,13 @@ const updateDepositSourceByUniqueId = async (
   values.push(depositSourceUniqueId);
   const sql = `UPDATE DepositSource SET ${setParts.join(", ")} WHERE depositSourceUniqueId = ? AND depositSourceDeletedAt IS NULL`;
 
+  await insertHistoryRecord({
+    sourceTable: "DepositSource",
+    conditions: { depositSourceUniqueId },
+    changeType: "UPDATE",
+    changedByUserId: userUniqueId,
+  });
+
   const executor = transactionStorage.getStore() || pool;
   const [result] = await executor.query(sql, values);
 
@@ -124,6 +132,14 @@ const deleteDepositSourceByUniqueId = async (depositSourceUniqueId, user) => {
 
   const userUniqueId = user?.userUniqueId;
   const sql = `UPDATE DepositSource SET depositSourceDeletedAt = ?, depositSourceDeletedBy = ? WHERE depositSourceUniqueId = ?`;
+
+  await insertHistoryRecord({
+    sourceTable: "DepositSource",
+    conditions: { depositSourceUniqueId },
+    changeType: "DELETE",
+    changedByUserId: userUniqueId,
+  });
+
   const [result] = await executor.query(sql, [
     currentDate(),
     userUniqueId,

@@ -15,6 +15,8 @@ const {
   transactionStorage
 } = require("../../Utils/TransactionContext");
 
+const { insertHistoryRecord } = require("../History/History.service");
+
 // Update by UUID - Dynamic update (only updates provided fields)
 const updateUserSubscriptionByUniqueId = async (userSubscriptionUniqueId, data) => {
   if (!userSubscriptionUniqueId || !data || Object.keys(data).length === 0) {
@@ -42,6 +44,14 @@ const updateUserSubscriptionByUniqueId = async (userSubscriptionUniqueId, data) 
 
   // Add WHERE clause value
   values.push(currentDate(), userSubscriptionUniqueId);
+
+  await insertHistoryRecord({
+    sourceTable: "UserSubscription",
+    conditions: { userSubscriptionUniqueId },
+    changeType: data.userSubscriptionDeletedAt ? "DELETE" : "UPDATE",
+    changedByUserId: undefined,
+  });
+
   const sql = `
     UPDATE UserSubscription 
     SET ${updates.join(", ")}

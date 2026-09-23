@@ -6,6 +6,7 @@ const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
 const { PAGINATION } = require("../Utils/Constants");
+const { insertHistoryRecord } = require("./History/History.service");
 // Function to add a cancellation reason
 const addCancellationReason = async (body, user) => {
   const roleId = body?.roleId;
@@ -89,6 +90,14 @@ const deleteCancellationReason = async (req) => {
   }
 
   const sqlToDeleteReason = `UPDATE CancellationReasonsType SET cancellationReasonTypeDeletedAt = ?, cancellationReasonTypeDeletedBy = ? WHERE cancellationReasonTypeUniqueId = ?`;
+
+  await insertHistoryRecord({
+    sourceTable: "CancellationReasonsType",
+    conditions: { cancellationReasonTypeUniqueId },
+    changeType: "DELETE",
+    changedByUserId: userUniqueId,
+  });
+
   const [result] = await executor.query(sqlToDeleteReason, [
     currentDate(),
     userUniqueId,
@@ -156,6 +165,13 @@ const updateCancellationReason = async (req) => {
 
   const sqlToUpdateReason = `UPDATE CancellationReasonsType SET ${setParts.join(", ")} WHERE cancellationReasonTypeUniqueId = ?`;
   values.push(cancellationReasonTypeUniqueId);
+
+  await insertHistoryRecord({
+    sourceTable: "CancellationReasonsType",
+    conditions: { cancellationReasonTypeUniqueId },
+    changeType: "UPDATE",
+    changedByUserId: userUniqueId,
+  });
 
   const [result] = await executor.query(sqlToUpdateReason, values);
   if (result.affectedRows > 0) {
