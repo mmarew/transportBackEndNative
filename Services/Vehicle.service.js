@@ -189,7 +189,7 @@ const updateVehicle = async (vehicleUniqueId, updateValues, user) => {
     throw new AppError("Failed to update vehicle or vehicle not found", AppError.NOT_FOUND);
   }
 
-  return { message: "Vehicles list fetched", data: null };
+  return { message: "Vehicle updated successfully", data: null };
 };
 
 const deleteVehicle = async (vehicleUniqueId, user) => {
@@ -235,7 +235,7 @@ const deleteVehicle = async (vehicleUniqueId, user) => {
     throw new AppError("Failed to delete vehicle or vehicle not found", AppError.NOT_FOUND);
   }
 
-  return { message: "Vehicles list fetched", data: null };
+  return { message: "Vehicle deleted successfully", data: null };
 };
 
 const getVehicles = async (query) => {
