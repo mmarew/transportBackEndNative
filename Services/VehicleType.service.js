@@ -1,6 +1,7 @@
 const { v4: uuidv4 } = require("uuid");
 const path = require("path");
 const { pool } = require("../Middleware/Database.config");
+const { insertData } = require("../CRUD/Create/CreateData");
 const { deleteFile } = require("../Utils/FileUtils");
 const { getData } = require("../CRUD/Read/ReadData");
 const { currentDate } = require("../Utils/CurrentDate");
@@ -196,6 +197,59 @@ const getVehicleTypesByfilter = async (filters = {}) => {
   };
 };
 
+// Snapshot the current VehicleTypes row into history BEFORE a mutation.
+// changeType: 'UPDATE' | 'DELETE'. Runs on the same executor as the caller so
+// it stays inside the surrounding transaction.
+const insertVehicleTypeHistory = async ({
+  vehicleTypeUniqueId,
+  changeType,
+  changedByUserId,
+}) => {
+  const current = await getData({
+    tableName: "VehicleTypes",
+    conditions: { vehicleTypeUniqueId },
+  });
+
+  if (current.length === 0) {
+    throw new AppError("Vehicle type not found for history record", AppError.NOT_FOUND);
+  }
+
+  const row = current[0];
+
+  const executor = transactionStorage.getStore() || pool;
+  const [[{ maxVersion }]] = await executor.query(
+    `SELECT COALESCE(MAX(vehicleTypeVersion), 0) AS maxVersion
+     FROM VehicleTypesHistory
+     WHERE vehicleTypeId = ?`,
+    [row.vehicleTypeId],
+  );
+
+  const insertDataValues = {
+    vehicleTypeHistoryUniqueId: uuidv4(),
+    vehicleTypeId: row.vehicleTypeId,
+    vehicleTypeUniqueId: row.vehicleTypeUniqueId,
+    vehicleTypeName: row.vehicleTypeName,
+    vehicleTypeIconName: row.vehicleTypeIconName,
+    vehicleTypeDescription: row.vehicleTypeDescription,
+    vehicleTypeCreatedBy: row.vehicleTypeCreatedBy,
+    changeType,
+    vehicleTypeUpdatedBy: row.vehicleTypeUpdatedBy,
+    vehicleTypeDeletedBy: row.vehicleTypeDeletedBy,
+    carryingCapacity: row.carryingCapacity,
+    cargoType: row.cargoType,
+    vehicleTypeCreatedAt: row.vehicleTypeCreatedAt,
+    changedByUserId: changedByUserId || row.vehicleTypeCreatedBy,
+    vehicleTypeUpdatedAt: row.vehicleTypeUpdatedAt,
+    vehicleTypeDeletedAt: row.vehicleTypeDeletedAt,
+    vehicleTypeVersion: Number(maxVersion) + 1,
+  };
+
+  await insertData({
+    tableName: "VehicleTypesHistory",
+    colAndVal: insertDataValues,
+  });
+};
+
 // Update a vehicle type by unique ID
 const updateVehicleType = async (vehicleTypeUniqueId, data) => {
   const {
@@ -239,6 +293,13 @@ const updateVehicleType = async (vehicleTypeUniqueId, data) => {
     throw new AppError("No fields provided to update", AppError.BAD_REQUEST);
   }
 
+  // Snapshot the pre-update row into history (inside the caller's transaction)
+  await insertVehicleTypeHistory({
+    vehicleTypeUniqueId,
+    changeType: "UPDATE",
+    changedByUserId: vehicleTypeUpdatedBy,
+  });
+
   setParts.push("vehicleTypeUpdatedAt = ?");
   values.push(currentDate());
 
@@ -273,6 +334,14 @@ const deleteVehicleType = async (vehicleTypeUniqueId, deletedBy) => {
   `;
 
   const executor = transactionStorage.getStore() || pool;
+
+  // Snapshot the pre-delete row into history (inside the caller's transaction)
+  await insertVehicleTypeHistory({
+    vehicleTypeUniqueId,
+    changeType: "DELETE",
+    changedByUserId: deletedBy,
+  });
+
   const [result] = await executor.query(query, [
     currentDate(),
     deletedBy,

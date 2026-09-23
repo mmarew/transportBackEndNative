@@ -115,6 +115,31 @@ CREATE TABLE IF NOT EXISTS Roles (
     vehicleTypeDeletedAt DATETIME NULL  -- Vehicle type deletion date
 ) ; 
 
+-- Create the VehicleTypesHistory Table
+
+CREATE TABLE IF NOT EXISTS VehicleTypesHistory (
+    vehicleTypeHistoryId INT AUTO_INCREMENT PRIMARY KEY,
+    vehicleTypeHistoryUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the history record
+    vehicleTypeId INT NOT NULL,  -- Reference to the original VehicleTypes
+    vehicleTypeUniqueId VARCHAR(36) NOT NULL,  -- UUID of the vehicle type
+    vehicleTypeName VARCHAR(50) NOT NULL,  -- Name of the vehicle type
+    vehicleTypeIconName VARCHAR(255) NULL,  -- Icon name of the vehicle type
+    vehicleTypeDescription VARCHAR(255) NULL,  -- Description of the vehicle type
+    vehicleTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the vehicle type
+    changeType ENUM('UPDATE', 'DELETE') NOT NULL,  -- Whether it was an update or delete
+    vehicleTypeUpdatedBy VARCHAR(36) NULL,  -- Who updated the vehicle type
+    vehicleTypeDeletedBy VARCHAR(36) NULL,  -- Who deleted the vehicle type
+    carryingCapacity INT NULL,  -- Max carrying capacity in quintal
+    cargoType ENUM('bulk_only', 'container_only', 'both') NULL,  -- Cargo the vehicle class supported at the time of the change
+    vehicleTypeCreatedAt DATETIME NOT NULL,  -- When the vehicle type was created
+    changedByUserId VARCHAR(36) NOT NULL,  -- The user who made the change
+    vehicleTypeUpdatedAt DATETIME NULL,  -- Vehicle type update date at the time of the change
+    vehicleTypeDeletedAt DATETIME NULL,  -- Vehicle type deletion date at the time of the change
+    vehicleTypeVersion INT NOT NULL DEFAULT 1,
+    INDEX idx_vth_vehicleType (vehicleTypeId),
+    FOREIGN KEY (vehicleTypeId) REFERENCES VehicleTypes(vehicleTypeId)
+) ;
+
  -- Create the JourneyStatus table
 
 CREATE TABLE IF NOT EXISTS JourneyStatus (
