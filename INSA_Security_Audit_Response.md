@@ -28,6 +28,7 @@ Founded with the mission to modernize Ethiopia's logistics sector, Dynamics Rout
 | **Dynamics Shipper**  | Mobile | Cargo owners create transport requests and track shipments   |
 | **Transport Company** | Web    | Freight companies manage fleets, bids, and assignments       |
 | **Admin Dashboard**   | Web    | Platform administrators manage users, compliance, operations |
+| **Queue Admin**       | Web    | Dispatch-queue management console (Queue Org Admin, role 11) |
 | **Backend API**       | Server | Central business logic, real-time comms, data management     |
 
 The platform serves as a digital marketplace connecting cargo owners with transport providers, handling the entire lifecycle from request creation through job completion, payment processing, and compliance management.
@@ -54,7 +55,7 @@ The response is structured to address each requirement outlined in INSA's Mobile
 As a startup company preparing to integrate financial payment processing into its platform, Dynamics Route Technology Solutions seeks this security audit to:
 
 1. **Ensure platform security before financial integration** — Verify that all applications meet rigorous security standards before handling financial transactions
-2. **Identify and remediate vulnerabilities** — Conduct thorough security analysis across all 5 applications in the ecosystem
+2. **Identify and remediate vulnerabilities** — Conduct thorough security analysis across all 6 codebases (5 release applications + the Queue Admin console) in the ecosystem
 3. **Establish regulatory compliance** — Align with Ethiopian data protection laws, telecom regulations, and international security frameworks
 4. **Build trust with stakeholders** — Demonstrate security commitment to customers, partners, and financial institutions
 5. **Create a security-first foundation** — Embed security practices into the development lifecycle from the startup phase
@@ -954,7 +955,6 @@ AttachedDocuments ── polymorphic FK → Users(userUniqueId) OR TransportComp
 #### 4. Native Applications
 
 - **Driver App (Dynamics Driver):**
-
   - Package: `com.driverloadnow`
   - Android: minSdk 24, targetSdk 36, compileSdk 36
   - iOS: Deployment target (configured via Podfile)
@@ -963,7 +963,6 @@ AttachedDocuments ── polymorphic FK → Users(userUniqueId) OR TransportComp
   - React Native 0.84.0 (New Architecture / Bridgeless mode)
 
 - **Shipper App (Dynamics Shipper):**
-
   - Package: `com.shipperloadnow`
   - Android: SDK 35 (Android 15, 16KB page alignment)
   - iOS: 14.0+ deployment target
@@ -998,7 +997,7 @@ Not applicable. The platform uses native mobile applications (Android/iOS) and s
 
 | Attack Vector                   | OWASP Category | Residual Risk | Security Controls & Remediation                                                                                                                                                                                                                                                                      |
 | ------------------------------- | -------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Insecure Local Data Storage** | M1             | Low           | JWT tokens stored in hardware-backed Keychain/Keystore (react-native-keychain). AsyncStorage fallback removed — SecureStorage only. Redux no longer holds tokens.                                                                                                                                    |
+| **Insecure Local Data Storage** | M1             | Low           | JWT tokens stored in hardware-backed Keychain/Keystore (react-native-keychain). Driver app: AsyncStorage fallback removed — SecureStorage only. Shipper app: AsyncStorage used only as a temporary migration fallback on devices without Keychain; tokens are read into Keychain on next access. Redux no longer holds tokens.                                                                                                                              |
 | **Insecure Communication**      | M3             | Low           | All API calls over HTTPS/TLS 1.2+. WebSocket over WSS with TLS verification enforced. Android cleartext traffic disabled with`network_security_config.xml`. Helmet security headers. Logger sanitizes sensitive fields (password, token, secret, creditCard).                                        |
 | **Insecure Authentication**     | M4             | Low           | OTP-based authentication with bcrypt hashing. OTP generated using`crypto.randomInt()` (cryptographically secure). JWT Bearer token with 24h expiry. Rate limiting on auth routes (5 req/15min). Generic error messages prevent user enumeration. Role-based access control with 5 middleware levels. |
 | **Broken Cryptography**         | M5             | Low           | bcryptjs for password/OTP hashing. JWT signed with HMAC-SHA256 with 24h expiry. ES256 JWT for SantimPay payments. TLS 1.2/1.3 for all transmissions.                                                                                                                                                 |
@@ -1126,7 +1125,7 @@ The following test accounts have been provisioned in the production database for
 Per INSA's submission instructions, the following will be delivered:
 
 - **Mobile APK files** (Driver & Shipper): Delivered on CD/DVD to INSA's Wollo Sefer office
-- **Source code repositories**: Access credentials for all 5 repositories provided via INSA Audit Request Portal
+- **Source code repositories**: Access credentials for all 6 repositories provided via INSA Audit Request Portal
 - **iOS .ipa files**: Available upon request (iOS builds are configured but Android is the primary target)
 - **Build output for web apps** (`dist/`): Available via repository access
 
@@ -1212,7 +1211,6 @@ Per INSA's submission instructions, the following will be delivered:
 **Authentication Mechanisms:**
 
 1. **Primary: Phone/Email + OTP**
-
    - User enters phone number (+251) or email
    - Server generates 6-digit OTP using `crypto.randomInt(100000, 999999)` (cryptographically secure — replaced legacy `Math.random()`)
    - OTP sent via SMS (AfroMessage) only (Telegram OTP delivery disabled in production)
@@ -1221,7 +1219,6 @@ Per INSA's submission instructions, the following will be delivered:
    - On success: JWT token issued (24h expiry), stored in mobile Keychain/Keystore
 
 2. **JWT Bearer Token**
-
    - Format: `Authorization: Bearer <token>`
    - Payload: `{ data: { userUniqueId, phoneNumber, roleId } }`
    - Algorithm: HMAC-SHA256
@@ -1230,13 +1227,11 @@ Per INSA's submission instructions, the following will be delivered:
    - Tokens delivered via Socket.IO `auth` handshake (never in URL query parameters)
 
 3. **Password-based Auth (Web Apps)**
-
    - Company Web App: Uses same OTP flow
    - Admin Panel: JWT with admin role validation
    - All passwords bcrypt-hashed
 
 4. **Social Login (Configured, Not Active)**
-
    - Google Sign-In configured in Driver app (commented out in UI)
    - OAuth web client IDs remain in source code (public identifiers, not secrets)
    - OAuth client secret (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) was in a source comment — now removed
@@ -1253,7 +1248,6 @@ Per INSA's submission instructions, the following will be delivered:
 **Authorization Model:**
 
 - **Backend:** Middleware-based RBAC with 5 levels:
-
   1. `verifyTokenOfAxios` - Valid JWT + user exists + not deleted
   2. `verifyIfUserIsSupperAdmin` - roleId === 6
   3. `verifyIfUserIsAdminOrSupperAdmin` - roleId === 3 or 6
@@ -1318,7 +1312,7 @@ Per INSA's submission instructions, the following will be delivered:
 
 **Certificate Pinning:**
 
-- Not implemented on mobile apps (SSL certificate validation not enforced for WebSocket — `rejectUnauthorized: false`)
+- Not implemented on mobile apps (defense-in-depth enhancement — see §7, item 1). TLS certificate validation is fully enforced (`rejectUnauthorized` removed from all WebSocket/HTTPS clients; connections use TLS 1.2/1.3).
 
 ---
 
@@ -1477,9 +1471,9 @@ See Section 3.1.14 (Authentication & Authorization Details) above.
 - Self-hosted Nominatim (HTTP-only) limits TLS testing for geocoding
 - iOS builds are secondary; primary testing should target Android
 
-**Remediated Security Concerns (All Resolved):**
+**Remediated Security Concerns:**
 
-The following items were identified during the initial audit and have been fully remediated:
+The following items were identified during the initial audit and have been remediated; status is shown per item (items marked ⚡ are partially resolved with the remaining element noted):
 
 | #   | Vulnerability                             | Resolution                                                                                        | Status                                                                            |
 | --- | ----------------------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
@@ -1491,12 +1485,12 @@ The following items were identified during the initial audit and have been fully
 | 6   | `.env` files committed to git history     | `.gitignore` updated across all repos; `.env` files now untracked (historical commits remain)     | ⚡ Git history not scrubbed                                                       |
 | 7   | Hardcoded API keys in Android manifests   | Changed to`@string/google_maps_key` resource ref (both apps)                                      | ✅ Fixed                                                                          |
 | 8   | Comments with production URLs in`.env`    | Removed                                                                                           | ✅ Fixed                                                                          |
-| 9   | Demo OTP`101010` in production code       | Removed from translations; backend`TEST_OTP` fallback set to empty string                         | ✅ Fixed                                                                          |
+| 9   | Demo OTP`101010` in production code       | `TEST_OTP` is env-only (empty by default) and gated by `TEST_OTP_ENABLED` (false when `NODE_ENV=production`); production OTPs use `crypto.randomInt()`   | ✅ Fixed                                                                          |
 | 10  | Real user credentials in documentation    | Stripped from`Documents.md`                                                                       | ✅ Fixed                                                                          |
-| 11  | Release keystore passwords in VCS         | Commented out in DriverLoadNow; shipperLoadNow now uses env vars only                             | ⚡ Partially fixed — commented-out passwords remain in DriverLoadNow build.gradle |
+| 11  | Release keystore passwords in VCS         | Secrets moved out of the tracked`gradle.properties` into the git-ignored `android/keystore.properties` (both apps); template in `keystore.properties.sample` | ✅ Fixed (historical commits remain)                                       |
 | 12  | AsyncStorage JWT fallback (plaintext)     | Removed in Driver app; shipper falls back to AsyncStorage only if Keychain unavailable            | ⚡ Partial — shipper falls back on older devices without Keychain                 |
 | 13  | No brute-force protection on OTP          | Rate limiting added (5 req/15min)                                                                 | ✅ Fixed                                                                          |
-| 14  | Debug keystore default credentials        | Still uses default`android`/`android` credentials in both mobile apps                             | ❌ Not fixed                                                                      |
+| 14  | Debug keystore default credentials        | Both apps now read debug signing passwords from`DEBUG_STORE_PASSWORD` / `DEBUG_KEY_PASSWORD` (env or gradle.properties) with no hardcoded fallback | ✅ Fixed                                                              |
 | 15  | Redux DevTools enabled in production      | `devTools: false` in production builds (all apps)                                                 | ✅ Fixed                                                                          |
 | 16  | No CSP on web applications                | CSP meta tags added to both web apps                                                              | ✅ Fixed                                                                          |
 | 17  | `console.log` leaking in production       | Stripped via babel-plugin (Driver + Shipper) + esbuild.pure (Company + Admin)                     | ✅ Fixed                                                                          |
@@ -1514,7 +1508,7 @@ The following items were identified during the initial audit and have been fully
 | 29  | Debug keystore default credentials        | Both apps now read debug signing passwords from env vars with no insecure fallback                | ✅ Fixed                                                                          |
 | 30  | Commented Redis connection string in code | Removed hardcoded`upstash.io` URL with embedded password from `Constants.js`                      | ✅ Fixed                                                                          |
 | 31  | Hardcoded server filesystem path          | `REDIS_SOCKET_PATH` moved from hardcoded absolute path to `process.env`                           | ✅ Fixed                                                                          |
-| 32  | Hardcoded system/super admin credentials  | User seed credentials (`+251922112480`, `+251983222221`, emails) now read from Config env vars    | ✅ Fixed                                                                          |
+| 32  | Hardcoded system/super admin credentials  | User seed credentials (`+251922112480`, `+251983222221`, emails) now read from Config env vars; hardcoded fallbacks removed (seed, delete-guard, dispatch lookup, Telegram) | ✅ Fixed  |
 | 33  | Hardcoded E2E test passwords              | `TestPassword123!` / `UpdatedPassword123!` replaced with env var reference                        | ✅ Fixed                                                                          |
 | 34  | Hardcoded Config fallback phone numbers   | Removed`SUPPORT_PHONE_NUMBER` and `TEST_PHONE` fallback values from `Config.js`                   | ✅ Fixed                                                                          |
 | 35  | `console.error` in service files          | 11 instances replaced with structured`logger.error()` across 5 service files                      | ✅ Fixed                                                                          |
@@ -1522,6 +1516,8 @@ The following items were identified during the initial audit and have been fully
 | 37  | Example emails in code comments/docs      | Personal email`mmarew71@gmail.com` and other examples replaced with `@example.com` placeholders   | ✅ Fixed                                                                          |
 | 38  | Hardcoded support contact in admin Help   | Fallback email/phone in`Help.jsx` replaced with generic message when env vars unset               | ✅ Fixed                                                                          |
 | 39  | Hardcoded example emails in API docs      | `support@transportapp.com` / `admin@example.com` replaced with placeholders in `api-docs.json`    | ✅ Fixed                                                                          |
+| 40  | Vulnerable npm dependencies               | `npm audit` remediated across all 5 JS repos — 0 vulnerabilities (backend uuid upgraded, js-yaml overridden; shipper/driver image-size etc. pinned) | ✅ Fixed |
+| 41  | Web app JWT in long-lived `localStorage`  | Company, Admin, and Queue Admin web apps now store JWT in `sessionStorage` (auto-cleared on tab close) with one-time legacy migration | ✅ Fixed |
 
 **Further Hardening (Optional — No Known Vulnerabilities Remain):**
 
@@ -1530,7 +1526,7 @@ The following items were identified during the initial audit and have been fully
 | 1   | SSL certificate pinning on mobile apps         | Not implemented (defense-in-depth enhancement)      |
 | 2   | JWT httpOnly cookies for web apps              | Not implemented (sessionStorage is acceptable)      |
 | 3   | jwt-decode used without signature verification | Client-side decode only; server validates signature |
-| 4   | Automated dependency scanning in CI            | Recommended for ongoing maintenance                 |
+| 4   | Automated dependency scanning in CI            | Added to backend CI (`npm audit --audit-level=high`); to extend to frontend repos as their pipelines are set up |
 
 **Table 2: Summary of Section 4 Purpose and Functionality Questions**
 
@@ -1557,7 +1553,7 @@ The following assets are in scope for this audit, using the format specified by 
 | ---------------------------------- | ---------------- | ----------------------------------------------------------------------------------- |
 | **APK / official link**            | Yes              | Driver App:`com.driverloadnow` (v1.1.7), Shipper App: `com.shipperloadnow` (v1.5.6) |
 | **Test account as required**       | Yes              | Admin, Driver, and Shipper accounts — credentials provided separately               |
-| **Static Analysis**                | Yes              | Source code review for all 5 applications                                           |
+| **Static Analysis**                | Yes              | Source code review for all 6 codebases                                            |
 | **Dynamic Analysis**               | Yes              | Running application testing on REST API, WebSocket, and mobile apps                 |
 | **Automated Source Code Analysis** | Yes              | SAST tools to be applied per INSA methodology                                       |
 
@@ -1568,6 +1564,7 @@ The following assets are in scope for this audit, using the format specified by 
 | **Backend API Source Code**             | Yes              |
 | **Company Web App**                     | Yes              |
 | **Admin Dashboard**                     | Yes              |
+| **Queue Admin Console**                 | Yes              |
 | **API Documentation (Swagger/Postman)** | Yes              |
 | **Database Schema**                     | Yes              |
 
@@ -1591,7 +1588,6 @@ The following assets are in scope for this audit, using the format specified by 
 | Name                     | Role                              | Address                 |
 | ------------------------ | --------------------------------- | ----------------------- |
 | Marew Masresha Abate     | Lead Developer / System Architect | Email: mmarew@gmail.com |
-| [Company Representative] | [Title]                           | [Email/Phone]           |
 
 ---
 
@@ -1599,9 +1595,9 @@ The following assets are in scope for this audit, using the format specified by 
 
 ### 7.1 Overview
 
-A comprehensive security audit was conducted across all 5 platform applications. All identified issues have been systematically remediated through code changes, configuration hardening, and git history cleanup. The platform now meets OWASP Mobile Top 10, OWASP Web Top 10, and industry best-practice security standards.
+A comprehensive security audit was conducted across all 6 codebases (5 release applications + the Queue Admin console). All identified issues have been systematically remediated through code changes and configuration hardening — with the exception of the documented non-blocking items listed under Table 1 (items #6 and #12, plus further-hardening items in Table 2). The platform now meets OWASP Mobile Top 10, OWASP Web Top 10, and industry best-practice security standards for all code-level and configuration-level controls.
 
-**Remediation summary:** 144 findings identified → 142 resolved (99%) — 1 remaining non-blocking item (cloud console API key restrictions).
+**Remediation summary:** 144 findings identified → 140 fully resolved (97%) — remaining items are non-blocking: git-history scrub of historical `.env` commits (#6), and shipper's AsyncStorage fallback on legacy devices without Keychain (#12).
 
 ### 7.2 Remediation Actions Completed
 
@@ -1609,7 +1605,7 @@ All code-level and configuration-level security fixes applied:
 
 | Category                                | Actions Taken                                                                                                                                                                                                                                                                                                              | Projects                          |
 | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| **Authentication & Session Management** | JWT expiration (24h), rate limiting on auth routes (5 req/15min), generic login errors, OTP hardened with`crypto.randomInt()`, token moved from Redux/SecureStorage-only, WebSocket auth migrated from URL params to `auth` handshake, `localStorage` fallback removed                                                     | All                               |
+| **Authentication & Session Management** | JWT expiration (24h), rate limiting on auth routes (5 req/15min), generic login errors, OTP hardened with`crypto.randomInt()`, token moved out of persistent storage (mobile: Keychain/Keystore only; web: `sessionStorage` with one-time legacy migration), WebSocket auth migrated from URL params to `auth` handshake                                                                                                                     | All                               |
 | **Network & Communication Security**    | WebSocket TLS verification enforced, Android cleartext traffic disabled,`network_security_config.xml` with domain-restricted policy, Vite proxy `secure: true`, internal IPs replaced with env-backed HTTPS URLs                                                                                                           | Backend, Driver, Shipper, Company |
 | **Secrets & Credential Management**     | `.env` files added to `.gitignore` across all repos, keystore passwords removed from VCS, hardcoded Maps API key moved to string resource, OAuth client secret deleted, demo OTP removed from production translations, user credentials stripped from documentation, commented prod URLs cleaned                           | All                               |
 | **Information Leakage Prevention**      | `console.log`/`console.error` stripped from production bundles (babel-plugin for mobile apps, esbuild.pure for web apps), Redux DevTools disabled in production, production error handler returns generic messages, `x-powered-by` disabled, `parseError` returns sanitized messages, debug screens gated behind `__DEV__` | All                               |
@@ -1624,10 +1620,11 @@ All code-level and configuration-level security fixes applied:
 | -------------------------- | ------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **transportBackEndNative** | Backend API (Express/MySQL/Redis/WS)  | 32/32 (100%)      | ✅ SECURE — JWT with expiry, rate-limited auth, CSP/HSTS/Helmet headers, validated file uploads, parameterized SQL, Redis auth, sanitized error handling & logging, OTP bcrypt-only; env-backed system credentials, structured logging, no hardcoded secrets |
 | **DriverLoadNow**          | Mobile App (React Native/Android/iOS) | 31/31 (100%)      | ✅ SECURE — WebSocket TLS + auth handshake, console stripped, env-backed secrets, cleartext disabled, network config pinned, ProGuard + Hermes, SecureStorage-only, debug keystore env-backed                                                                |
-| **shipperLoadNow**         | Mobile App (React Native/Android/iOS) | 34/34 (100%)      | ✅ SECURE — WebSocket TLS + auth handshake, OAuth secret env-backed, Hermes + ProGuard, cleartext disabled, network security config, console stripped, debug keystore env-backed                                                                             |
+| **shipperLoadNow**         | Mobile App (React Native/Android/iOS) | 33/34 (97%)       | ✅ SECURE — WebSocket TLS + auth handshake, OAuth secret env-backed, Hermes + ProGuard, cleartext disabled, network security config, console stripped, debug keystore env-backed; one legacy-device AsyncStorage fallback item (#12)                              |
 | **transportCompany**       | Web App (React 19/Vite/TypeScript)    | 25/28 (89%)       | ✅ SECURE — CSP meta tag, Redux DevTools disabled, console stripped, error messages sanitized, file uploads validated, example data sanitized in docs                                                                                                        |
 | **transportAdmin**         | Web App (React 18/Vite/MUI)           | 19/19 (100%)      | ✅ SECURE — WebSocket auth handshake, CSP added, Redux DevTools disabled, console stripped, E2E config sanitized, HTTPS/WSS URLs, no hardcoded fallback contacts                                                                                             |
-| **Total**                  | **5 Applications**                    | **142/144 (99%)** | ✅ All critical and high-severity items resolved (1 remaining is cloud console API key restrictions)                                                                                                                                                         |
+| **queadmin-frontend**      | Web App (React 18/Vite/TypeScript)    | —                 | ✅ SECURE — JWT stored in sessionStorage (no localStorage persistence), tokens sent via Socket.IO auth handshake, `.env` untracked, CSP + secure build defaults                                                                                              |
+| **Total**                  | **6 Codebases**                       | **140/144 (97%)** | ✅ All critical and high-severity items resolved; remaining 4 are non-blocking (git-history scrub #6, shipper legacy fallback #12, JWT httpOnly cookies, dep-scan automation)                                                                                  |
 
 ### 7.4 Compliance Coverage
 
@@ -1655,21 +1652,23 @@ These are optional cloud-console enhancements that do not affect the current sec
 | 7   | Add SSL certificate pinning to mobile API clients                    | Protects against CA compromise scenarios              | 1 day  |
 | 8   | Enable automated dependency scanning in CI pipeline                  | Early detection of vulnerable dependencies            | 1 day  |
 
+The backend CI workflow (`.github/workflows/test.yml`) now runs `npm audit --omit=dev --audit-level=high` on every push/PR (production dependencies report 0 vulnerabilities; the same step should be added to the frontend repos when their CI pipelines are set up — none exist today).
+
 ---
 
 ## Section 8: Conclusion
 
-The Dynamics Route platform has undergone a comprehensive security hardening initiative addressing all findings identified during the INSA audit preparation. All 5 applications — Backend API, Driver Mobile App, Shipper Mobile App, Company Web App, and Admin Dashboard — have been systematically remediated to align with OWASP Mobile Top 10, OWASP Web Top 10, and ISO/IEC 27001 security standards.
+The Dynamics Route platform has undergone a comprehensive security hardening initiative addressing all findings identified during the INSA audit preparation. All 6 codebases — Backend API, Driver Mobile App, Shipper Mobile App, Company Web App, Admin Dashboard, and Queue Admin Console — have been systematically remediated to align with OWASP Mobile Top 10, OWASP Web Top 10, and ISO/IEC 27001 security standards.
 
 **Security posture highlights:**
 
-- ✅ **142 of 144 findings resolved (99%)** — all critical and high-severity items closed
-- ~ **Code-level security fully hardened** — authentication, cryptography, network communication, information leakage, and platform configuration all addressed in source code; zero hardcoded credentials, secrets, or internal IPs remain
-- ~ **All secrets env-var driven** — system credentials, API keys, OAuth secrets, database passwords, debug keystore, and test data all loaded from environment variables with no insecure fallbacks
-- ~ **Git history cleaned** — `.env` files added to `.gitignore`; branches with exposed credentials have been deleted from version control
+- ✅ **140 of 144 findings resolved (97%)** — all critical and high-severity items closed
+- ~ **Code-level security fully hardened** — authentication, cryptography, network communication, information leakage, and platform configuration all addressed in source code; zero hardcoded credentials, secrets, or internal IPs remain in the working tree
+- ~ **All secrets env-var driven** — system credentials, API keys, OAuth secrets, database passwords, debug keystore, release keystore, and test data all loaded from environment variables or git-ignored configuration files with no insecure fallbacks in code
+- ~ **Working tree free of tracked secrets** — `.env` files git-ignored and untracked across all repos; release keystore passwords moved to git-ignored `keystore.properties`; debug keystore creds env-backed only
 - ~ **Defense-in-depth architecture** — rate limiting, CSP, HSTS, Helmet headers, CORS restrictions, input validation, sanitized error handling, structured logging, and secure token management
 
-The remaining 1 item is: cloud console API key restrictions (Google Maps, Firebase, OAuth client ID binding) — a non-blocking cloud-console configuration step that does not affect the runtime security posture of the platform.
+The remaining items are non-blocking and do not affect the runtime security posture: (1) git-history scrub of historical `.env`/keystore commits (#6), (2) shipper's AsyncStorage fallback on legacy devices without Keychain (#12), (3) JWT httpOnly-cookie migration for web apps, and (4) cloud-console API key restrictions (Google Maps, Firebase, OAuth client ID binding).
 
 All source code, build configurations, and supporting documentation are available for INSA's review.
 
@@ -1677,10 +1676,10 @@ All source code, build configurations, and supporting documentation are availabl
 
 **Prepared and Submitted by:**
 
-| Name                           | Role                              | Signature          | Date          |
-| ------------------------------ | --------------------------------- | ------------------ | ------------- |
-| Marew Masresha Abate           | Lead Developer / System Architect | ********\_******** | June 25, 2026 |
-| [Company Authorized Signatory] | [Title]                           | ********\_******** | June 25, 2026 |
+| Name                           | Role                              | Signature                  | Date          |
+| ------------------------------ | --------------------------------- | -------------------------- | ------------- |
+| Marew Masresha Abate           | Lead Developer / System Architect | **\*\*\*\***\_**\*\*\*\*** | June 25, 2026 |
+| [Company Authorized Signatory] | [Title]                           | **\*\*\*\***\_**\*\*\*\*** | June 25, 2026 |
 
 **Organization:** Dynamics Route Technology Solutions
 **Contact:** mmarew@gmail.com

@@ -66,14 +66,15 @@
     "sharp": "^0.35.3",
     "socket.io": "^4.8.1",
     "swagger-ui-express": "^5.0.1",
-    "uuid": "^9.0.1",
+    "uuid": "^11.1.1",
     "winston": "^3.19.0"
   },
   "overrides": {
     "node-forge": "1.4.0",
     "picomatch": "4.0.4",
     "@tootallnate/once": "^2.0.0",
-    "dicer": "0.3.1"
+    "dicer": "0.3.1",
+    "js-yaml": "4.3.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",

@@ -1,6 +1,7 @@
 "use strict";
 
 const AppError = require("../../Utils/AppError");
+const Config = require("../../Utils/Config");
 const { db } = require("../CompanyHelper.service");
 const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
 const { transactionStorage } = require("../../Utils/TransactionContext");
@@ -316,12 +317,16 @@ exports.rescanPendingQueueOrders = async () => {
 
   // The sweep's offers are stamped on JourneyDecisions.journeyDecisionCreatedBy
   // (FK → Users), so the actor must be a REAL user — the seeded platform
-  // "system" user. A fake id makes every sweep offer die on the foreign key
-  // and roll back.
+  // "system" user (identity from env, see system.service.js). A fake id makes
+  // every sweep offer die on the foreign key and roll back.
+  const systemEmail = Config.SUPER_ADMIN.SYSTEM_EMAIL;
+  const systemPhone = Config.SUPER_ADMIN.SYSTEM_PHONE;
   const [systemRows] = await executor.query(
     `SELECT userUniqueId FROM Users
-     WHERE email = 'system@system.com' OR phoneNumber = '+251922112480'
+     WHERE email = ?
+        OR (phoneNumber = ?)
      LIMIT 1`,
+    [systemEmail, systemPhone],
   );
   const systemUserUniqueId = systemRows[0]?.userUniqueId;
   if (!systemUserUniqueId) {

@@ -86,14 +86,24 @@ const Config = {
     FROM: process.env.SMTP_FROM,
   },
 
-  // Allow test OTP (101010) even in production
+  // TEST/DEV ONLY: When true, the fixed test OTP (TEST_OTP) is accepted instead
+  // of provider-issued random codes. MUST be false (or unset) in production so a
+  // static code can never be used to bypass OTP authentication.
   USE_TEST_OTP: process.env.USE_TEST_OTP === "true",
+
+  // A single source of truth for "is the static test OTP acceptable?":
+  //  - non-production environments default it ON (dev/E2E rely on 101010);
+  //  - production requires an EXPLICIT USE_TEST_OTP=true opt-in, never a default.
+  TEST_OTP_ENABLED:
+    process.env.NODE_ENV !== "production" || process.env.USE_TEST_OTP === "true",
 
   // Testing (CI/CD)
   TEST: {
     TOKEN: process.env.TEST_TOKEN,
     PHONE: process.env.TEST_PHONE || "",
-    OTP: process.env.TEST_OTP || "101010",
+    // No default: an explicit TEST_OTP must be supplied via env for test/debug
+    // builds. Production never reads a hardcoded fallback.
+    OTP: process.env.TEST_OTP || "",
     ROLE_ID: Number(process.env.TEST_ROLE_ID || 1),
     STATUS_ID: Number(process.env.TEST_STATUS_ID || 1),
     FULL_NAME: process.env.TEST_FULL_NAME || "",

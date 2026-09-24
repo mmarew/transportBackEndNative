@@ -22,13 +22,17 @@ const {
 const {
   USER_STATUS,
   statusList,
-  
+  usersRoles,
 } = require("../../../Utils/ListOfSeedData");
 const Config = require("../../../Utils/Config");
 
-// The system super-admin account is non-deletable. Phone is read from env
-// (SUPER_ADMIN_PHONE) with the same default the seeding code uses.
-const SUPER_ADMIN_PHONE_DIGITS = (Config.SUPER_ADMIN.PHONE || "+251983222221").replace(/\D/g, "");
+// The system super-admin account is non-deletable. Protection is derived from
+// env config (SUPER_ADMIN_PHONE) OR from holding the super-admin role — no
+// hardcoded phone values in source. Rows are normalized to digits for the phone
+// comparison.
+const SUPER_ADMIN_PHONE_DIGITS = Config.SUPER_ADMIN.PHONE
+  ? Config.SUPER_ADMIN.PHONE.replace(/\D/g, "")
+  : null;
 
 
 
@@ -46,16 +50,28 @@ const deleteUser = async ({
   }
   const executor = transactionStorage.getStore() || connection || pool;
 
-  // Never allow deleting the system super-admin account (e.g. +251983222221).
+  // Never allow deleting the system super-admin account. An account is
+  // protected when its phone matches the env-configured SUPER_ADMIN_PHONE, or
+  // when it holds the system (5) / supper admin (6) role.
   const [targetRows] = await executor.query(
-    "SELECT userUniqueId, phoneNumber FROM Users WHERE userUniqueId = ? AND userDeletedAt IS NULL LIMIT 1",
-    [userUniqueId]
+    `SELECT
+       u.userUniqueId,
+       u.phoneNumber,
+       (SELECT COUNT(*) FROM UserRole ur
+        WHERE ur.userUniqueId = u.userUniqueId
+          AND ur.roleId IN (?, ?)
+          AND ur.userRoleDeletedAt IS NULL) AS protectedRoleCount
+     FROM Users u
+     WHERE u.userUniqueId = ? AND u.userDeletedAt IS NULL
+     LIMIT 1`,
+    [usersRoles.systemRoleId, usersRoles.supperAdminRoleId, userUniqueId]
   );
   if (!targetRows || targetRows.length === 0) {
     throw new AppError("User not found or already deleted", AppError.NOT_FOUND);
   }
   const targetPhoneDigits = (targetRows[0]?.phoneNumber || "").replace(/\D/g, "");
-  if (targetPhoneDigits && targetPhoneDigits === SUPER_ADMIN_PHONE_DIGITS) {
+  const holdsProtectedRole = Number(targetRows[0]?.protectedRoleCount || 0) > 0;
+  if (holdsProtectedRole || (SUPER_ADMIN_PHONE_DIGITS && targetPhoneDigits === SUPER_ADMIN_PHONE_DIGITS)) {
     throw new AppError("The system super admin account cannot be deleted", AppError.FORBIDDEN);
   }
 

@@ -28,7 +28,7 @@ const OTP_WINDOW_MINUTES = 60;
 // flow stays testable offline. Enabled whenever not production, or explicitly via
 // USE_TEST_OTP=true. Mirrors the login OTP fallback (Services/User/auth/otp.service.js).
 const isTestOtpEnabled = () =>
-  Config.NODE_ENV !== "production" || Config.USE_TEST_OTP === true;
+  Config.TEST_OTP_ENABLED;
 const testOtp = () => String(Config.TEST.OTP || "101010");
 
 

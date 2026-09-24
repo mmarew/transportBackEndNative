@@ -29,7 +29,13 @@ let cachedSystemUserId = null;
 const getSystemUserId = async () => {
   if (cachedSystemUserId) return cachedSystemUserId;
   const { SUPER_ADMIN } = require("./Config");
-  const systemEmail = SUPER_ADMIN.SYSTEM_EMAIL || "system@system.com";
+  const systemEmail = SUPER_ADMIN.SYSTEM_EMAIL;
+  if (!systemEmail) {
+    logger.warn(
+      "Could not resolve system user for Telegram approvals: SYSTEM_EMAIL not configured",
+    );
+    return "system";
+  }
   try {
     const [rows] = await pool.query(
       "SELECT userUniqueId FROM Users WHERE email = ? LIMIT 1",

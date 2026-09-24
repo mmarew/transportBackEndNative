@@ -36,6 +36,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Dependency vulnerability scan
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Wait for MySQL
         run: |
           for i in $(seq 1 30); do
@@ -66,6 +69,10 @@ jobs:
           SUPER_ADMIN_FULL_NAME=Supper Admin
           SUPER_ADMIN_PHONE=+251983222221
           SUPER_ADMIN_EMAIL=supperAdmin@supperAdmin.com
+          SUPER_ADMIN_TEMP_PASSWORD=101010
+          SYSTEM_FULL_NAME=system
+          SYSTEM_PHONE=+251922112480
+          SYSTEM_EMAIL=system@system.com
           SMS_TOKEN=placeholder
           AFRO_BASE_URL=https://api.afromessage.com/api/send
           SMS_SENDER=Dynamics.T
