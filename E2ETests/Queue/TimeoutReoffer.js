@@ -43,9 +43,30 @@ const {
 } = require("./helpers");
 
 const { releaseExpiredOffers } = require("../../Services/DriverQueue.service");
+const { EAT_OFFSET_MS } = require("../../Utils/Timezone");
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const TINY_WINDOW = 0.00000001;
+
+// `releaseExpiredOffers` matches `dq.requestedAt < cutoff`, both truncated to
+// whole EAT seconds (formatDateTime). If an offer is stamped in the final
+// <~600ms of a second the scan can run in that SAME second, making the
+// comparison false (equal) and skipping the entry — a flaky timeout. Wait
+// until the current EAT second is strictly past the offer's requestedAt
+// second so the scan's cutoff column is guaranteed > requestedAt.
+const waitPastOfferedSecond = async (requestedAt) => {
+  // getQueueEntryByDriver returns a JS Date (mysql2 timezone +03:00 → EAT).
+  // Its EAT wall-clock ms value = getTime() + EAT_OFFSET_MS. A raw string is
+  // already EAT wall-clock, so parsing it as "Z" yields the same domain.
+  const base = requestedAt instanceof Date
+    ? requestedAt.getTime() + EAT_OFFSET_MS
+    : new Date(requestedAt.replace(" ", "T") + "Z").getTime();
+  for (let i = 0; i < 30; i++) {
+    if (Date.now() + EAT_OFFSET_MS >= base + 1050) return;
+    await wait(100);
+  }
+  throw new Error(`never crossed the second boundary after requestedAt ${requestedAt}`);
+};
 
 // Free a driver of any active engagement so they can check into the scenario
 // org. Earlier suites (and my own sequential scenarios) leave d2/d3 checked into
@@ -144,6 +165,7 @@ const testTQ41_42LateAcceptHonoured = async () => {
       throw new Error(`d2 not offered O1: ${JSON.stringify(before)}`);
     }
 
+    await waitPastOfferedSecond(before.requestedAt);
     await releaseExpiredOffers({ windowMinutes: TINY_WINDOW });
     await wait(800);
 
@@ -201,6 +223,14 @@ const testTQ43StaleLateAcceptRejected = async () => {
       throw new Error("d2 has no live offer to capture for the stale-accept attempt");
     }
 
+    const d2offered = await getQueueEntryByDriver({
+      queueOrganizationUniqueId: orgUniqueId,
+      driverKey: "queueDriver2",
+    });
+    if (!d2offered || d2offered.status !== 2) {
+      throw new Error(`d2 not offered before TQ-43 scan: ${JSON.stringify(d2offered)}`);
+    }
+    await waitPastOfferedSecond(d2offered.requestedAt);
     await releaseExpiredOffers({ windowMinutes: TINY_WINDOW });
     await wait(800);
 

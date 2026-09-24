@@ -6,6 +6,7 @@
 const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
+const { armExpect, disarmExpect } = require("../Expect");
 
 const BASE_URL = "/api/shipperRequestBatch";
 const cache = { data: null };
@@ -146,10 +147,19 @@ const testPartialCancelBatch = async ({ user, batchUniqueId, payload } = {}) => 
       cancellationReasonsTypeId: 3,
       ...payload,
     };
-    const result = await axios.put(backendURL + url, defaultPayload, authConfig(token));
-    cache.partialCanceledId = id;
-    console.log("✅ Batch partially canceled:", id);
-    return result.data;
+    // A slot already in transit/terminal rejects the partial cancel (400) —
+    // declare the probe so logCapture labels it 🛡 EXPECTED, not undeclared 4xx.
+    armExpect([400], "partialCancel blocked when slot is in transit/terminal", {
+      urlIncludes: "/partialCancel",
+    });
+    try {
+      const result = await axios.put(backendURL + url, defaultPayload, authConfig(token));
+      cache.partialCanceledId = id;
+      console.log("✅ Batch partially canceled:", id);
+      return result.data;
+    } finally {
+      disarmExpect();
+    }
   } catch (error) {
     const status = error.response?.status;
     if (status === 400) {

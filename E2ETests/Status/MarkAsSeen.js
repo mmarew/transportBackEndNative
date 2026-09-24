@@ -5,6 +5,7 @@
 const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
+const { armExpect, disarmExpect } = require("../Expect");
 const {
   DRIVER_REQUEST_ENDPOINTS,
 } = require("../../Routes/EndPoints/driverRequest.endpoints");
@@ -40,13 +41,23 @@ const testMarkNegativeStatusAsSeen = async ({ userType = "driver" } = {}) => {
       console.log("⏩ testMarkNegativeStatusAsSeen skipped — no driverRequestUniqueId available");
       return { skipped: true };
     }
-    const result = await axios.put(
-      backendURL + DRIVER_REQUEST_ENDPOINTS.MARK_NEGATIVE_STATUS_AS_SEEN,
-      { driverRequestUniqueId },
-      authConfig(token),
-    );
-    console.log("✅ Driver negative status marked as seen:", result.data?.message || "OK");
-    return result.data;
+    // driverRequestUniqueId may belong to another driver — the 403 guard proves
+    // ownership enforcement. Declare the expected 4xx so logCapture labels it
+    // 🛡 EXPECTED, not undeclared negative traffic.
+    armExpect([400, 403, 404], "markNegativeStatusAsSeen: unauthorized/not-found is a guard", {
+      urlIncludes: "/markNegativeStatusAsSeen",
+    });
+    try {
+      const result = await axios.put(
+        backendURL + DRIVER_REQUEST_ENDPOINTS.MARK_NEGATIVE_STATUS_AS_SEEN,
+        { driverRequestUniqueId },
+        authConfig(token),
+      );
+      console.log("✅ Driver negative status marked as seen:", result.data?.message || "OK");
+      return result.data;
+    } finally {
+      disarmExpect();
+    }
   } catch (error) {
     const status = error.response?.status;
     if (status === 400 || status === 404 || status === 403) {
@@ -87,13 +98,20 @@ const testMarkJourneyCompletionAsSeen = async ({ userType = "shipper" } = {}) =>
       console.log("⏩ testMarkJourneyCompletionAsSeen skipped — no completed shipper request with journey decision");
       return { skipped: true };
     }
-    const result = await axios.put(
-      backendURL + SHIPPER_REQUEST_ENDPOINTS.MARK_JOURNEY_COMPLETION_AS_SEEN,
-      { journeyDecisionUniqueId, shipperRequestUniqueId, rating: 5 },
-      authConfig(token),
-    );
-    console.log("✅ Shipper journey completion marked as seen:", result.data?.message || "OK");
-    return result.data;
+    armExpect([400, 404], "markJourneyCompletionAsSeen: no pending notification is a guard", {
+      urlIncludes: "/markJourneyCompletionAsSeen",
+    });
+    try {
+      const result = await axios.put(
+        backendURL + SHIPPER_REQUEST_ENDPOINTS.MARK_JOURNEY_COMPLETION_AS_SEEN,
+        { journeyDecisionUniqueId, shipperRequestUniqueId, rating: 5 },
+        authConfig(token),
+      );
+      console.log("✅ Shipper journey completion marked as seen:", result.data?.message || "OK");
+      return result.data;
+    } finally {
+      disarmExpect();
+    }
   } catch (error) {
     const status = error.response?.status;
     if (status === 400 || status === 404) {
@@ -124,13 +142,20 @@ const testMarkCancellationAsSeen = async ({ userType = "shipper" } = {}) => {
       console.log("⏩ testMarkCancellationAsSeen skipped — no cancellation notification available");
       return { skipped: true };
     }
-    const result = await axios.put(
-      backendURL + SHIPPER_REQUEST_ENDPOINTS.MARK_CANCELLATION_AS_SEEN,
-      { journeyDecisionUniqueId },
-      authConfig(token),
-    );
-    console.log("✅ Shipper cancellation marked as seen:", result.data?.message || "OK");
-    return result.data;
+    armExpect([400, 404], "markCancellationAsSeen: no pending cancellation is a guard", {
+      urlIncludes: "/markCancellationAsSeen",
+    });
+    try {
+      const result = await axios.put(
+        backendURL + SHIPPER_REQUEST_ENDPOINTS.MARK_CANCELLATION_AS_SEEN,
+        { journeyDecisionUniqueId },
+        authConfig(token),
+      );
+      console.log("✅ Shipper cancellation marked as seen:", result.data?.message || "OK");
+      return result.data;
+    } finally {
+      disarmExpect();
+    }
   } catch (error) {
     const status = error.response?.status;
     if (status === 400 || status === 404) {
