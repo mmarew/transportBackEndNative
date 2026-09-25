@@ -2,6 +2,7 @@
 
 const AppError = require("../Utils/AppError");
 const { cookieIsPresent } = require("../Utils/AuthCookie");
+const { allowedHosts } = require("../Config/AllowedOrigins");
 
 /**
  * CSRF defense-in-depth for cookie-authenticated sessions.
@@ -36,17 +37,8 @@ const csrfOriginCheck = (req, res, next) => {
     return next(new AppError("Invalid request origin", AppError.FORBIDDEN));
   }
 
-  const allowedHosts = [
-    "company.dynamicsroute.tech",
-    "admin.dynamicsroute.tech",
-    "dynamicsroute.tech",
-    "queue.dynamicsroute.tech",
-    "account.dynamicsroute.tech",
-    "association.dynamicsroute.tech",
-    "localhost:5173",
-    "localhost:3000",
-  ];
-  if (!allowedHosts.includes(host)) {
+  const localCheck = allowedHosts();
+  if (!localCheck.includes(host)) {
     return next(
       new AppError("Cross-site request rejected", AppError.FORBIDDEN),
     );

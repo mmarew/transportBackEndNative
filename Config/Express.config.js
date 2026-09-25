@@ -33,18 +33,11 @@ app.set("trust proxy", 1);
 app.use(helmet());
 
 // 2. Enable CORS - restrict to specific frontend domains
-const allowedOrigins = [
-  "https://company.dynamicsroute.tech",
-  "https://admin.dynamicsroute.tech",
-  "https://dynamicsroute.tech",
-  "https://queue.dynamicsroute.tech",
-  "http://localhost:5173",
-  "http://localhost:3000",
-  "https://account.dynamicsroute.tech",
-  "https://association.dynamicsroute.tech",
-];
+//    Origins come from Config/AllowedOrigins.js: *.dynamicsroute.tech always;
+//    localhost/dev.* only when ENABLE_LOCAL_DEV_ORIGINS=true (dev sandbox).
+const { allowedOrigins } = require("./AllowedOrigins");
 const corsOptions = {
-  origin: allowedOrigins,
+  origin: allowedOrigins(),
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   allowedHeaders: ["Content-Type", "Authorization", "X-API-Key"],
   credentials: true,
@@ -111,19 +104,24 @@ app.use(scannerBlock);
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 app.use("/Assets", express.static(path.join(__dirname, "../Assets")));
 
-// API Documentation - Swagger UI
-app.use(
-  "/api-docs",
-  swaggerUi.serve,
-  swaggerUi.setup(swaggerDocument, {
-    explorer: true,
-    swaggerOptions: {
-      docExpansion: "none",
-      filter: true,
-      showRequestDuration: true,
-    },
-  }),
-);
+// API Documentation - Swagger UI.
+// Public API docs are an info-leak surface: only exposed outside production
+// (or when ENABLE_SWAGGER=true is explicitly set in the deployed env).
+const Config = require("../Utils/Config");
+if (Config.NODE_ENV !== "production" || process.env.ENABLE_SWAGGER === "true") {
+  app.use(
+    "/api-docs",
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerDocument, {
+      explorer: true,
+      swaggerOptions: {
+        docExpansion: "none",
+        filter: true,
+        showRequestDuration: true,
+      },
+    }),
+  );
+}
 
 // API Routes - Protected by API Key
 // app.use("/", apiKeyAuth, Routes);

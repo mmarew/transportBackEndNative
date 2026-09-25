@@ -1,5 +1,6 @@
 const { Server: SocketServer } = require("socket.io");
 const Config = require("../Utils/Config");
+const { allowedOrigins } = require("./AllowedOrigins");
 const { createAdapter } = require("@socket.io/redis-adapter");
 const Redis = require("ioredis");
 const WSPusher = require("../Utils/WSPusher");
@@ -18,17 +19,7 @@ const { getShipperRequestByRequestUniqueId } = require("../CRUD/Read/ReadData");
 async function initSocket({ httpServer }) {
   const io = new SocketServer(httpServer, {
     cors: {
-      origin: [
-        "https://app.dynamicsroute.tech",
-        "https://dynamicsroute.tech",
-        "https://company.dynamicsroute.tech",
-        "https://admin.dynamicsroute.tech",
-        "https://queue.dynamicsroute.tech",
-        "https://account.dynamicsroute.tech",
-        "https://association.dynamicsroute.tech",
-        "http://localhost:5173",
-        "http://localhost:3000",
-      ],
+      origin: allowedOrigins(),
       credentials: true,
     },
     allowEIO3: true, // Allow Engine.IO v3 clients

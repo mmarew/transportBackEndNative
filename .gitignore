@@ -27,3 +27,7 @@ test-e2e.log
 .freebuff/desktop-v2.db-shm
 .freebuff/desktop-v2.db-wal
  
+.env.prod.sample
+.env.sample
+.env.dev.sample
+.env.sample

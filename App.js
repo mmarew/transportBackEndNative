@@ -16,6 +16,58 @@ const { setupProcessErrorHandlers } = require("./Config/ProcessErrorHandlers");
 const FORCE_SHUTDOWN_TIMEOUT_MS = 10000;
 const { currentDate } = require("./Utils/CurrentDate.js");
 
+/**
+ * Fail-closed guard: a production deployment refusing dev-stage settings.
+ * Catches a misconfigured prod (test OTP, localhost/dev origins) BEFORE the
+ * server starts, instead of silently running insecure. Dev sandbox keeps
+ * these, but prod must not.
+ */
+const assertProductionSafety = () => {
+  if (Config.NODE_ENV !== "production") return;
+
+  const violations = [];
+
+  if (Config.USE_TEST_OTP) {
+    violations.push(
+      "USE_TEST_OTP=true (every login uses the fixed test OTP '101010')",
+    );
+  }
+
+  if (process.env.ENABLE_LOCAL_DEV_ORIGINS === "true") {
+    violations.push(
+      "ENABLE_LOCAL_DEV_ORIGINS=true (localhost:5173/:3000 + dev.* origins allowed)",
+    );
+  }
+
+  const extra = (process.env.EXTRA_ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((origin) => origin.trim().toLowerCase())
+    .filter(Boolean);
+  if (
+    extra.some(
+      (origin) =>
+        origin.includes("localhost") ||
+        origin.startsWith("http://127.0.0.1") ||
+        origin.includes("dev.dynamicsroute.tech"),
+    )
+  ) {
+    violations.push(
+      "EXTRA_ALLOWED_ORIGINS contains a dev/localhost origin",
+    );
+  }
+
+  if (violations.length > 0) {
+    logger.error(
+      "PRODUCTION SAFETY BLOCK: refusing to start with dev-stage settings",
+      { violations },
+    );
+    throw new Error(
+      "Refusing to start in production with dev-stage settings: " +
+        violations.join("; "),
+    );
+  }
+};
+
 const onStartUp = async () => {
   try {
     // Initialize query performance monitoring
@@ -87,6 +139,8 @@ const onStartUp = async () => {
 
 const startServer = async () => {
   try {
+    // Fail fast in production if dev-stage settings are present.
+    assertProductionSafety();
     // Create HTTP server
     const httpServer = createHTTPServer(app);
 
