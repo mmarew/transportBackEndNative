@@ -12,6 +12,7 @@ const {
   createAttachedDocument
 } = require("../../Services/AttachedDocuments");
 const services = require("../../Services/User.service");
+const { setAuthCookie } = require("../../Utils/AuthCookie");
 const {
   uploadToFTP,
   deleteFromFTP
@@ -288,10 +289,13 @@ const updateUser = async (req, res, next) => {
       delete response.token;
       response.data = "Update successful. However, your phone is NOT verified. For security, your session remains revoked. Please verify your phone to receive a new session token.";
     } else {
-      // If verified or no token was generated, we can return the standard success message if data is still the user object
-      if (typeof response.data === "object") {
-        response.data = "User updated successfully";
-      }
+// If verified or no token was generated, we can return the standard success message if data is still the user object
+    if (response.token) {
+      setAuthCookie(res, response.token);
+    }
+    if (typeof response.data === "object") {
+      response.data = "User updated successfully";
+    }
     }
     return ServerResponder(res, response);
   } catch (error) {

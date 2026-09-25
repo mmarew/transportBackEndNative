@@ -9,12 +9,14 @@ const createJWT = (userData) => {
     const AppError = require("./AppError");
     throw new AppError("All fields are required to create jwt", AppError.BAD_REQUEST);
   }
-  // Create the token
+  // Create the token (24h expiry — sessions are short-lived; mobile apps
+  // refresh via OTP re-login, web apps via the matching 24h session cookie)
   const token = jwt.sign(
     {
       data: { userUniqueId, phoneNumber, roleId },
     },
     secretKey,
+    { expiresIn: "24h" },
   );
 
   return { token, message: "success" };

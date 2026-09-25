@@ -26,6 +26,14 @@ async function WSPusher({ socket }) {
     if (!token || !phoneNumber || !user) {
       const headers = socket.handshake.headers || {};
       token = token || headers.token || headers.authorization;
+      // Web apps authenticate via an httpOnly cookie (no JS-accessible token);
+      // read it from the WS handshake Cookie header when no auth/header token.
+      if (!token && headers.cookie) {
+        const match = headers.cookie.match(/(?:^|;\s*)token=([^;]+)/);
+        if (match) {
+          token = decodeURIComponent(match[1]);
+        }
+      }
       phoneNumber = phoneNumber || headers.phoneNumber || headers.phonenumber;
       user = user || headers.user;
     }

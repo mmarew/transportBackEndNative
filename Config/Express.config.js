@@ -1,6 +1,7 @@
 // Config/httpServer.js
 const express = require("express");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 const path = require("path");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
@@ -53,6 +54,11 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
+// CSRF defense-in-depth: rejects cross-site state-changing requests that would
+// otherwise ride the session cookie. Runs after CORS, before routes.
+const csrfOriginCheck = require("../Middleware/CsrfOriginCheck");
+app.use(csrfOriginCheck);
+
 // 3. Rate Limiting - Protect against brute-force/DoS attacks
 const limiter = rateLimit({
   windowMs: TIME.HOUR_MS, // 1 hour
@@ -91,6 +97,8 @@ app.use(requestLogger);
 // 4. Body Parsers - Reading data from body into req.body
 app.use(express.json({ limit: "1mb" })); // Increased to support base64-encoded signatures from react-native-signature-canvas
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+// Parse cookies so cookie-based session auth can read req.cookies.token
+app.use(cookieParser());
 
 // 5. Data Sanitization - Handled by Joi and Helmet
 

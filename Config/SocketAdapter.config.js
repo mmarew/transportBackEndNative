@@ -29,6 +29,7 @@ async function initSocket({ httpServer }) {
         "http://localhost:5173",
         "http://localhost:3000",
       ],
+      credentials: true,
     },
     allowEIO3: true, // Allow Engine.IO v3 clients
     transports: ["websocket", "polling"], // Support both transports

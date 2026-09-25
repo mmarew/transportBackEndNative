@@ -9,6 +9,7 @@ const AUTH_ENDPOINTS = {
   VERIFY_PHONE: `/api/user/verify-phone`,
   REPORT_WRONG_EMAIL: `/api/user/report-wrong-email`,
   VERIFICATION_LINK: `/api/user/verification-link`,
+  LOGOUT: `/api/user/logout`,
 };
 
 module.exports = {

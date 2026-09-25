@@ -1,6 +1,7 @@
 "use strict";
 
 const Config = require("../../Utils/Config");
+const { setAuthCookie, clearAuthCookie } = require("../../Utils/AuthCookie");
 
 const services = require("../../Services/User.service");
 const ServerResponder = require("../../Utils/ServerResponder");
@@ -277,6 +278,11 @@ const verifyUserByOTP = async (req, res, next) => {
     const result = await executeInTransaction(async () => {
       return await services.verifyUserByOTP(req);
     });
+    // Dual-mode auth: also set the session cookie (web apps) so the token is
+    // never stored in JS-accessible storage. Mobile apps keep using the body token.
+    if (result?.token) {
+      setAuthCookie(res, result.token);
+    }
     ServerResponder(res, result);
   } catch (error) {
     logger.error("Error in verifyUserByOTP", error);
@@ -333,6 +339,9 @@ const verifyPhone = async (req, res, next) => {
     const response = await services.verifyPhoneByToken(token);
 
     if (req.headers.accept?.includes("application/json") || req.method === "POST") {
+      if (response?.token) {
+        setAuthCookie(res, response.token);
+      }
       return ServerResponder(res, response);
     }
 
@@ -371,6 +380,23 @@ const getVerificationLinks = async (req, res, next) => {
   }
 };
 
+/**
+ * Logs the user out: clears the httpOnly session cookie. Accepts a valid
+ * Bearer header OR cookie so mobile + web both work. Always returns success
+ * (idempotent) so frontends can clear local state regardless of token validity.
+ */
+const logoutUser = async (req, res, next) => {
+  try {
+    clearAuthCookie(res);
+    return ServerResponder(res, {
+      message: "Logged out successfully",
+      data: null,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 module.exports = {
   createUser,
   createUserByAdminOrSuperAdmin,
@@ -380,5 +406,6 @@ module.exports = {
   verifyEmail,
   reportWrongEmail,
   verifyPhone,
-  getVerificationLinks
+  getVerificationLinks,
+  logoutUser
 };

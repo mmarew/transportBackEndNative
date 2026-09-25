@@ -83,6 +83,9 @@ router.get(AUTH_ENDPOINTS.VERIFY_PHONE, controller.verifyPhone);
 router.post(AUTH_ENDPOINTS.VERIFY_PHONE, controller.verifyPhone);
 router.get(AUTH_ENDPOINTS.REPORT_WRONG_EMAIL, controller.reportWrongEmail);
 
+// Logout — clears the httpOnly session cookie (works for web + mobile).
+router.post(AUTH_ENDPOINTS.LOGOUT, controller.logoutUser);
+
 // TEST/DEV ONLY — guarded by Config.EXPOSE_VERIFICATION_LINKS (off by default)
 router.get(
   AUTH_ENDPOINTS.VERIFICATION_LINK,

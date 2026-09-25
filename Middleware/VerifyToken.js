@@ -6,16 +6,36 @@ const { pool } = require("./Database.config");
 const Config = require("../Utils/Config");
 const secretKey = Config.SECRET_KEY;
 
-const verifyTokenOfAxios = async (req, res, next) => {
+/** Extracts a JWT from Authorization: Bearer <tok> or the session cookie. */
+const extractToken = (req) => {
   const authHeader = req?.headers?.authorization;
-  console.log('[VerifyToken] Request:', { method: req.method, url: req.url, hasAuth: !!authHeader });
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    return authHeader.split(" ")[1];
+  }
+  if (req?.cookies?.token) {
+    return req.cookies.token;
+  }
+  return undefined;
+};
 
-  if (!authHeader) {
-    console.log('[VerifyToken] No auth header');
+/** Normalizes a WS token: accepts "Bearer <tok>" or a raw JWT. */
+const extractWsToken = (tokenData) => {
+  if (!tokenData) return null;
+  const normalized = String(tokenData).trim();
+  if (normalized.startsWith("Bearer ")) {
+    return normalized.split(" ")[1];
+  }
+  return normalized;
+};
+
+const verifyTokenOfAxios = async (req, res, next) => {
+  const token = extractToken(req);
+  console.log('[VerifyToken] Request:', { method: req.method, url: req.url, hasAuth: !!token });
+
+  if (!token) {
+    console.log('[VerifyToken] No auth token');
     return next(new AppError("Authorization header missing", AppError.UNAUTHORIZED));
   }
-
-  const token = authHeader.split(" ")[1];
   try {
     const decoded = jwt.verify(token, secretKey);
     const data = decoded?.data;
@@ -70,7 +90,10 @@ const verifyTokenOfAxios = async (req, res, next) => {
 };
 
 const verifyTokenOfWS = async (tokenData) => {
-  const token = tokenData.split(" ")[1]; // Extract token from "Bearer <token>"
+  const token = extractWsToken(tokenData);
+  if (!token) {
+    return { valid: false, status: "error", error: "Token missing" };
+  }
   try {
     const decoded = jwt.verify(token, secretKey);
     decoded.valid = true;
@@ -96,12 +119,11 @@ const verifyTokenOfWS = async (tokenData) => {
 };
 
 const verifyIfUserIsSupperAdmin = async (req, res, next) => {
-  const authHeader = req?.headers?.authorization;
-  if (!authHeader) {
+  const token = extractToken(req);
+  if (!token) {
     return next();
   }
 
-  const token = authHeader.split(" ")[1];
   try {
     const decoded = jwt.verify(token, secretKey);
     const data = decoded?.data;
@@ -121,12 +143,11 @@ const verifyIfUserIsSupperAdmin = async (req, res, next) => {
 };
 
 const verifyIfUserIsAdminOrSupperAdmin = async (req, res, next) => {
-  const authHeader = req?.headers?.authorization;
-  if (!authHeader) {
+  const token = extractToken(req);
+  if (!token) {
     return next();
   }
 
-  const token = authHeader.split(" ")[1];
   try {
     const decoded = jwt.verify(token, secretKey);
     const data = decoded?.data;
@@ -149,12 +170,11 @@ const verifyIfUserIsAdminOrSupperAdmin = async (req, res, next) => {
 };
 
 const verifyIfUserIsAdminSuperAdminOrCompanyAdmin = async (req, res, next) => {
-  const authHeader = req?.headers?.authorization;
-  if (!authHeader) {
+  const token = extractToken(req);
+  if (!token) {
     return next();
   }
 
-  const token = authHeader.split(" ")[1];
   try {
     const decoded = jwt.verify(token, secretKey);
     const data = decoded?.data;
@@ -194,12 +214,11 @@ const verifyIfUserIsAdminSuperAdminOrCompanyAdmin = async (req, res, next) => {
  * @param {import('express').NextFunction} next - Express next.
  */
 const verifyIfUserIsQueueOrgAdmin = async (req, res, next) => {
-  const authHeader = req?.headers?.authorization;
-  if (!authHeader) {
+  const token = extractToken(req);
+  if (!token) {
     return next();
   }
 
-  const token = authHeader.split(" ")[1];
   try {
     const decoded = jwt.verify(token, secretKey);
     const data = decoded?.data;
@@ -275,12 +294,11 @@ const verifyIfUserIsAdminSuperAdminCompanyAdminOrQueueOrgAdmin = async (
   res,
   next,
 ) => {
-  const authHeader = req?.headers?.authorization;
-  if (!authHeader) {
+  const token = extractToken(req);
+  if (!token) {
     return next();
   }
 
-  const token = authHeader.split(" ")[1];
   try {
     const decoded = jwt.verify(token, secretKey);
     const data = decoded?.data;
@@ -312,4 +330,5 @@ module.exports = {
   verifyIfUserIsAdminSuperAdminOrCompanyAdmin,
   verifyIfUserIsQueueOrgAdmin,
   verifyIfUserIsAdminSuperAdminCompanyAdminOrQueueOrgAdmin,
+  extractWsToken,
 };
