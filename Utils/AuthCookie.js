@@ -10,8 +10,15 @@ const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24h, matches JWT expiry
  *
  * The cookie is host-only (no Domain attribute): each app sets it through
  * its own API host, preserving the existing per-app token isolation.
- * SameSite=Lax blocks cross-site form/script POSTs from carrying it (CSRF).
- * Secure is enabled only in production (localhost dev uses http).
+ *
+ * In production the cookie is SameSite=None + Secure + Partitioned so the
+ * shared hub (app.dynamicsroute.tech) can serve every frontend, including
+ * cross-site development from localhost:5173. Partitioned (CHIPS) keeps it
+ * working under Chromium's third-party cookie blocking. CSRF defense is
+ * enforced by the Origin/Referer allow-list (Middleware/CsrfOriginCheck.js).
+ *
+ * Outside production (local http backend) we use SameSite=Lax: localhost
+ * is same-site there, and None would be rejected without Secure over http.
  */
 const setAuthCookie = (res, token) => {
   if (!res || !token) return;
@@ -19,7 +26,8 @@ const setAuthCookie = (res, token) => {
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: "lax",
+    sameSite: isProduction ? "none" : "lax",
+    partitioned: isProduction,
     maxAge: SESSION_MAX_AGE_MS,
     path: "/",
   });
@@ -32,7 +40,8 @@ const clearAuthCookie = (res) => {
   res.clearCookie(COOKIE_NAME, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: "lax",
+    sameSite: isProduction ? "none" : "lax",
+    partitioned: isProduction,
     path: "/",
   });
 };

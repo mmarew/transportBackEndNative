@@ -6,11 +6,14 @@ const { cookieIsPresent } = require("../Utils/AuthCookie");
 /**
  * CSRF defense-in-depth for cookie-authenticated sessions.
  *
- * SameSite=Lax already blocks cross-site cookies on fetch/XHR. This adds a
- * belt-and-suspenders Origin/Referer check for state-changing requests that
- * arrive WITH the session cookie: the Origin (or Referer) host must match one
- * of our own frontend origins. Requests with no session cookie (e.g. the
- * mobile apps, which use a Bearer header instead) are passed through.
+ * The session cookie is SameSite=None in production so every frontend can
+ * reach the shared hub (app.dynamicsroute.tech), including cross-site dev
+ * from localhost:5173. With None we cannot rely on SameSite, so THIS
+ * Origin/Referer allow-list is the primary CSRF defense: for any
+ * state-changing request that arrives WITH the session cookie, the Origin
+ * (or Referer) host must match one of our own frontend origins. Requests
+ * with no session cookie (e.g. the mobile apps, which use a Bearer header
+ * instead) are passed through.
  */
 const csrfOriginCheck = (req, res, next) => {
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {

@@ -43,9 +43,6 @@ const allowedOrigins = [
   "https://account.dynamicsroute.tech",
   "https://association.dynamicsroute.tech",
 ];
-if (process.env.NODE_ENV !== "production") {
-  allowedOrigins.push("http://localhost:5173", "http://localhost:3000");
-}
 const corsOptions = {
   origin: allowedOrigins,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
