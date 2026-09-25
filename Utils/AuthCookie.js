@@ -11,23 +11,24 @@ const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24h, matches JWT expiry
  * The cookie is host-only (no Domain attribute): each app sets it through
  * its own API host, preserving the existing per-app token isolation.
  *
- * In production the cookie is SameSite=None + Secure + Partitioned so the
- * shared hub (app.dynamicsroute.tech) can serve every frontend, including
- * cross-site development from localhost:5173. Partitioned (CHIPS) keeps it
- * working under Chromium's third-party cookie blocking. CSRF defense is
- * enforced by the Origin/Referer allow-list (Middleware/CsrfOriginCheck.js).
- *
- * Outside production (local http backend) we use SameSite=Lax: localhost
- * is same-site there, and None would be rejected without Secure over http.
+ * Attributes follow the TRANSPORT, not NODE_ENV:
+ *  - HTTPS (the shared hub, app.dynamicsroute.tech, or any https deployment):
+ *    SameSite=None + Secure + Partitioned so every frontend can reach it,
+ *    including cross-site development from localhost:5173. Partitioned
+ *    (CHIPS) keeps it working under Chromium's third-party cookie blocking.
+ *    CSRF defense is enforced by the Origin/Referer allow-list
+ *    (Middleware/CsrfOriginCheck.js).
+ *  - HTTP (local backend, http://localhost:3000): SameSite=Lax, no Secure —
+ *    SameSite=None would be rejected without Secure over http.
  */
 const setAuthCookie = (res, token) => {
   if (!res || !token) return;
-  const isProduction = process.env.NODE_ENV === "production";
+  const secure = Boolean(res?.req?.secure);
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? "none" : "lax",
-    partitioned: isProduction,
+    secure,
+    sameSite: secure ? "none" : "lax",
+    partitioned: secure,
     maxAge: SESSION_MAX_AGE_MS,
     path: "/",
   });
@@ -36,12 +37,12 @@ const setAuthCookie = (res, token) => {
 /** Clears the session cookie (logout / phone-change revocation). */
 const clearAuthCookie = (res) => {
   if (!res || typeof res.clearCookie !== "function") return;
-  const isProduction = process.env.NODE_ENV === "production";
+  const secure = Boolean(res?.req?.secure);
   res.clearCookie(COOKIE_NAME, {
     httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? "none" : "lax",
-    partitioned: isProduction,
+    secure,
+    sameSite: secure ? "none" : "lax",
+    partitioned: secure,
     path: "/",
   });
 };

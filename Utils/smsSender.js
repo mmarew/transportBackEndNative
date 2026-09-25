@@ -9,6 +9,16 @@ const sendSms = async (
   otp = null,
   customMessage = null,
 ) => {
+  // DEV/TEST: when TEST_OTP_ENABLED is on the fixed test OTP (101010) is
+  // already known to the developer, so do NOT spend SMS credits. Production
+  // (TEST_OTP_ENABLED off) always dispatches the real gateway call.
+  if (Config.TEST_OTP_ENABLED) {
+    logger.info("[DEV] SMS dispatch skipped (TEST_OTP_ENABLED)", {
+      receiverPhoneNumber,
+    });
+    return { message: "success", data: "OTP sent successfully (test mode, no SMS)" };
+  }
+
   try {
     // Get configuration from centralized Config
     const {
@@ -92,8 +102,6 @@ const sendSms = async (
       Authorization: `Bearer ${token}`,
     };
 
-    //disable it when app is in development mode and enable it when app is in production mode
-   // return { message: "success", data: "OTP sent successfully" };
     const apiResponse = await axios.post(baseUrl, postfields, {
       headers,
       timeout: 30000,
