@@ -272,7 +272,6 @@ const loginUser = async (req, res, next) => {
       payload?.roleId !== null ? Number(payload.roleId) : payload?.roleId,
       payload?.email,
     );
-    console.log("🚀 ~ loginUser ~ response:", response);
 
     if (response?.deferredOTP) {
       const { sendSms } = require("../../Utils/smsSender");
