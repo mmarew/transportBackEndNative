@@ -28,7 +28,7 @@ const ServerResponder = (res, data, statusCode = null) => {
   try {
     // Normalize data to ensure both 'status' and 'message' are present for compatibility
     if (data && typeof data === "object" && !Array.isArray(data)) {
-      if (data.status && !data.message) {
+      if (data.status === "success" && !data.message) {
         data.message = "success";
       } else if (data.message && !data.status) {
         // data.status = data.message;
