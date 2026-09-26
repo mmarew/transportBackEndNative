@@ -168,6 +168,14 @@ const handleExistingUser = async ({
     message: "OTP sent successfully",
     data: publicUserProfile,
     messageDetail: "Verification data generated (Deferred)",
+    // Deferred delivery payload for the controller: the plaintext OTPs are
+    // consumed by sendSms/sendEmail AFTER the transaction commits and are
+    // deleted before the response reaches the client (never leaked).
+    deferredOTP: {
+      phoneVerificationOTP,
+      ...(isEmailVerified ? { emailVerificationOTP: OTP } : {}),
+      emailVerificationToken,
+    },
   };
 };
 

@@ -95,7 +95,8 @@ const Config = {
   //  - non-production environments default it ON (dev/E2E rely on 101010);
   //  - production requires an EXPLICIT USE_TEST_OTP=true opt-in, never a default.
   TEST_OTP_ENABLED:
-    process.env.NODE_ENV !== "production" || process.env.USE_TEST_OTP === "true",
+    process.env.NODE_ENV !== "production" ||
+    process.env.USE_TEST_OTP === "true",
 
   // Testing (CI/CD)
   TEST: {
@@ -107,8 +108,7 @@ const Config = {
     ROLE_ID: Number(process.env.TEST_ROLE_ID || 1),
     STATUS_ID: Number(process.env.TEST_STATUS_ID || 1),
     FULL_NAME: process.env.TEST_FULL_NAME || "",
-    USER_ROLE_STATUS_DESC:
-      process.env.TEST_USER_ROLE_STATUS_DESC || "",
+    USER_ROLE_STATUS_DESC: process.env.TEST_USER_ROLE_STATUS_DESC || "",
   },
 
   // Payment Gateway (SantimPay)

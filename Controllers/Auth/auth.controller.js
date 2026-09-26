@@ -11,7 +11,7 @@ const {
   getSuccessPhoneVerificationHtml,
   getEmailVerificationLinkMessage,
   getSuccessEmailVerificationHtml,
-  getAdminAssignmentMessage
+  getAdminAssignmentMessage,
 } = require("../../Utils/MessageTemplates");
 
 const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
@@ -24,7 +24,7 @@ const createUser = async (req, res, next) => {
     const response = await executeInTransaction(async () => {
       return await services.createUser({
         ...req?.body,
-        requestedFrom: "user"
+        requestedFrom: "user",
       });
     });
     // Handle deferred SMS and Email after transaction commit
@@ -32,15 +32,19 @@ const createUser = async (req, res, next) => {
       const { sendSms } = require("../../Utils/smsSender");
       const { sendEmail } = require("../../Utils/emailSender");
       const { phoneNumber, email, isEmailVerified } = response.data || {};
-      const { phoneVerificationOTP, emailVerificationOTP, emailVerificationToken } = response.deferredOTP;
-      
+      const {
+        phoneVerificationOTP,
+        emailVerificationOTP,
+        emailVerificationToken,
+      } = response.deferredOTP;
+
       // 1. Send SMS (Always OTP)
       if (phoneNumber && phoneVerificationOTP) {
         const phoneMsg = getOtpMessage(phoneVerificationOTP, "registration");
-        sendSms(phoneNumber, null, phoneMsg.sms).catch(err => {
+        sendSms(phoneNumber, null, phoneMsg.sms).catch((err) => {
           logger.warn("Deferred SMS sending failed", {
             phoneNumber,
-            error: err.message
+            error: err.message,
           });
         });
       }
@@ -49,10 +53,15 @@ const createUser = async (req, res, next) => {
       if (email) {
         if (isEmailVerified && emailVerificationOTP) {
           const emailMsg = getOtpMessage(emailVerificationOTP, "registration");
-          sendEmail(email, emailMsg.emailSubject, emailMsg.sms, emailMsg.emailHtml).catch(err => {
+          sendEmail(
+            email,
+            emailMsg.emailSubject,
+            emailMsg.sms,
+            emailMsg.emailHtml,
+          ).catch((err) => {
             logger.warn("Deferred Email OTP sending failed", {
               email,
-              error: err.message
+              error: err.message,
             });
           });
         } else if (emailVerificationToken) {
@@ -61,12 +70,17 @@ const createUser = async (req, res, next) => {
           const linkMsg = getEmailVerificationLinkMessage(link);
           logger.debug("Sending Deferred Email Verification Link", {
             to: email,
-            subject: linkMsg.emailSubject
+            subject: linkMsg.emailSubject,
           });
-          sendEmail(email, linkMsg.emailSubject, "Verify your email", linkMsg.emailHtml).catch(err => {
+          sendEmail(
+            email,
+            linkMsg.emailSubject,
+            "Verify your email",
+            linkMsg.emailHtml,
+          ).catch((err) => {
             logger.warn("Deferred Email Link sending failed", {
               email,
-              error: err.message
+              error: err.message,
             });
           });
         }
@@ -85,7 +99,7 @@ const createUserByAdminOrSuperAdmin = async (req, res, next) => {
     const response = await executeInTransaction(async () => {
       return await services.createUserByAdminOrSuperAdmin({
         body: req.body,
-        userUniqueId: req?.user?.userUniqueId
+        userUniqueId: req?.user?.userUniqueId,
       });
     });
 
@@ -94,7 +108,8 @@ const createUserByAdminOrSuperAdmin = async (req, res, next) => {
       const { sendEmail } = require("../../Utils/emailSender");
       const { phoneNumber, email, isEmailVerified } = response.data || {};
       const { roleId } = req.body;
-      const { phoneVerificationOTP, emailVerificationToken } = response.deferredOTP;
+      const { phoneVerificationOTP, emailVerificationToken } =
+        response.deferredOTP;
 
       if (phoneNumber && phoneVerificationOTP) {
         const roleNameMap = {
@@ -103,14 +118,17 @@ const createUserByAdminOrSuperAdmin = async (req, res, next) => {
           [usersRoles.adminRoleId]: "Admin",
           [usersRoles.vehicleOwnerRoleId]: "Vehicle Owner",
           [usersRoles.systemRoleId]: "System",
-          [usersRoles.supperAdminRoleId]: "Supper Admin"
+          [usersRoles.supperAdminRoleId]: "Supper Admin",
         };
         const roleName = roleNameMap[roleId] || "Admin";
-        const assignmentMsg = getAdminAssignmentMessage(phoneVerificationOTP, roleName);
-        sendSms(phoneNumber, null, assignmentMsg.sms).catch(err => {
+        const assignmentMsg = getAdminAssignmentMessage(
+          phoneVerificationOTP,
+          roleName,
+        );
+        sendSms(phoneNumber, null, assignmentMsg.sms).catch((err) => {
           logger.warn("Deferred Admin-Created SMS failed", {
             phoneNumber,
-            error: err.message
+            error: err.message,
           });
         });
       }
@@ -123,24 +141,37 @@ const createUserByAdminOrSuperAdmin = async (req, res, next) => {
             [usersRoles.adminRoleId]: "Admin",
             [usersRoles.vehicleOwnerRoleId]: "Vehicle Owner",
             [usersRoles.systemRoleId]: "System",
-            [usersRoles.supperAdminRoleId]: "Supper Admin"
+            [usersRoles.supperAdminRoleId]: "Supper Admin",
           };
           const roleName = roleNameMap[roleId] || "Admin";
-          const assignmentMsg = getAdminAssignmentMessage(phoneVerificationOTP, roleName);
-          sendEmail(email, assignmentMsg.emailSubject, assignmentMsg.sms, assignmentMsg.emailHtml).catch(err => {
+          const assignmentMsg = getAdminAssignmentMessage(
+            phoneVerificationOTP,
+            roleName,
+          );
+          sendEmail(
+            email,
+            assignmentMsg.emailSubject,
+            assignmentMsg.sms,
+            assignmentMsg.emailHtml,
+          ).catch((err) => {
             logger.warn("Deferred Admin-Created Email OTP failed", {
               email,
-              error: err.message
+              error: err.message,
             });
           });
         } else if (emailVerificationToken) {
           const baseUrl = Config.APP_API_URL;
           const link = `${baseUrl}/api/user/verify-email?token=${emailVerificationToken}`;
           const linkMsg = getEmailVerificationLinkMessage(link);
-          sendEmail(email, linkMsg.emailSubject, "Verify your email", linkMsg.emailHtml).catch(err => {
+          sendEmail(
+            email,
+            linkMsg.emailSubject,
+            "Verify your email",
+            linkMsg.emailHtml,
+          ).catch((err) => {
             logger.warn("Deferred Admin-Created Email Link failed", {
               email,
-              error: err.message
+              error: err.message,
             });
           });
         }
@@ -159,7 +190,7 @@ const createUserByQueueAdmin = async (req, res, next) => {
     const response = await executeInTransaction(async () => {
       return await services.createUserByQueueAdmin({
         body: req.body,
-        userUniqueId: req?.user?.userUniqueId
+        userUniqueId: req?.user?.userUniqueId,
       });
     });
 
@@ -167,41 +198,58 @@ const createUserByQueueAdmin = async (req, res, next) => {
       const { sendSms } = require("../../Utils/smsSender");
       const { sendEmail } = require("../../Utils/emailSender");
       const { phoneNumber, email, isEmailVerified } = response.data || {};
-      const { phoneVerificationOTP, emailVerificationToken } = response.deferredOTP;
+      const { phoneVerificationOTP, emailVerificationToken } =
+        response.deferredOTP;
       const { OTP } = req.body;
       const roleId = req.body.roleId;
       const roleNameMap = {
-        [usersRoles.queueDispatcherRoleId]: "Queue Dispatcher"
+        [usersRoles.queueDispatcherRoleId]: "Queue Dispatcher",
       };
       const roleName = roleNameMap[roleId] || "Queue Staff";
 
       if (phoneNumber && phoneVerificationOTP) {
-        const assignmentMsg = getAdminAssignmentMessage(phoneVerificationOTP, roleName);
-        sendSms(phoneNumber, null, assignmentMsg.sms).catch(err => {
+        const assignmentMsg = getAdminAssignmentMessage(
+          phoneVerificationOTP,
+          roleName,
+        );
+        sendSms(phoneNumber, null, assignmentMsg.sms).catch((err) => {
           logger.warn("Deferred Queue-Admin-Created SMS failed", {
             phoneNumber,
-            error: err.message
+            error: err.message,
           });
         });
       }
 
       if (email) {
         if (isEmailVerified) {
-          const assignmentMsg = getAdminAssignmentMessage(phoneVerificationOTP, roleName);
-          sendEmail(email, assignmentMsg.emailSubject, assignmentMsg.sms, assignmentMsg.emailHtml).catch(err => {
+          const assignmentMsg = getAdminAssignmentMessage(
+            phoneVerificationOTP,
+            roleName,
+          );
+          sendEmail(
+            email,
+            assignmentMsg.emailSubject,
+            assignmentMsg.sms,
+            assignmentMsg.emailHtml,
+          ).catch((err) => {
             logger.warn("Deferred Queue-Admin-Created Email OTP failed", {
               email,
-              error: err.message
+              error: err.message,
             });
           });
         } else if (emailVerificationToken) {
           const baseUrl = Config.APP_API_URL;
           const link = `${baseUrl}/api/user/verify-email?token=${emailVerificationToken}`;
           const linkMsg = getEmailVerificationLinkMessage(link);
-          sendEmail(email, linkMsg.emailSubject, "Verify your email", linkMsg.emailHtml).catch(err => {
+          sendEmail(
+            email,
+            linkMsg.emailSubject,
+            "Verify your email",
+            linkMsg.emailHtml,
+          ).catch((err) => {
             logger.warn("Deferred Queue-Admin-Created Email Link failed", {
               email,
-              error: err.message
+              error: err.message,
             });
           });
         }
@@ -217,49 +265,70 @@ const createUserByQueueAdmin = async (req, res, next) => {
 
 const loginUser = async (req, res, next) => {
   try {
-    const payload = req.body && Object.keys(req.body).length ? req.body : req.query;
-    const response = await services?.loginUser(payload?.phoneNumber, payload?.roleId !== null ? Number(payload.roleId) : payload?.roleId, payload?.email);
+    const payload =
+      req.body && Object.keys(req.body).length ? req.body : req.query;
+    const response = await services?.loginUser(
+      payload?.phoneNumber,
+      payload?.roleId !== null ? Number(payload.roleId) : payload?.roleId,
+      payload?.email,
+    );
+    console.log("🚀 ~ loginUser ~ response:", response);
 
     if (response?.deferredOTP) {
       const { sendSms } = require("../../Utils/smsSender");
       const { sendEmail } = require("../../Utils/emailSender");
       const { phoneNumber, email, isEmailVerified } = response.data || {};
-      const { phoneVerificationOTP, emailVerificationOTP, emailVerificationToken } = response.deferredOTP;
+      const {
+        phoneVerificationOTP,
+        emailVerificationOTP,
+        emailVerificationToken,
+      } = response.deferredOTP;
 
       if (phoneNumber && phoneVerificationOTP) {
-        logger.info("Initiating Login SMS Dispatch", { phoneNumber });
         const phoneMsg = getOtpMessage(phoneVerificationOTP, "login");
-        sendSms(phoneNumber, null, phoneMsg.sms).then(res => {
-          logger.info("Login SMS successfully dispatched", {
-            phoneNumber,
-            response: res
+        sendSms(phoneNumber, null, phoneMsg.sms)
+          .then((res) => {
+            logger.info("Login SMS successfully dispatched", {
+              phoneNumber,
+              response: res,
+            });
+            return res;
+          })
+          .catch((err) => {
+            logger.warn("Deferred Login SMS sending failed", {
+              phoneNumber,
+              error: err.message,
+            });
           });
-          return res;
-        }).catch(err => {
-          logger.warn("Deferred Login SMS sending failed", {
-            phoneNumber,
-            error: err.message
-          });
-        });
       }
 
       if (email) {
         if (isEmailVerified && emailVerificationOTP) {
           const emailMsg = getOtpMessage(emailVerificationOTP, "login");
-          sendEmail(email, emailMsg.emailSubject, emailMsg.sms, emailMsg.emailHtml).catch(err => {
+          sendEmail(
+            email,
+            emailMsg.emailSubject,
+            emailMsg.sms,
+            emailMsg.emailHtml,
+          ).catch((err) => {
             logger.warn("Deferred Login Email OTP sending failed", {
               email,
-              error: err.message
+              error: err.message,
             });
           });
         } else if (emailVerificationToken) {
           const baseUrl = Config.APP_API_URL;
           const link = `${baseUrl}/api/user/verify-email?token=${emailVerificationToken}`;
           const linkMsg = getEmailVerificationLinkMessage(link);
-          sendEmail(email, linkMsg.emailSubject, "Verify your email", linkMsg.emailHtml).catch(err => {
+          sendEmail(
+            email,
+            linkMsg.emailSubject,
+            "Verify your email",
+            linkMsg.emailHtml,
+          ).catch((err) => {
             logger.warn("Deferred Login Email Link sending failed", {
               email,
-              error: err.message
+              error: err.message,
             });
           });
         }
@@ -338,7 +407,10 @@ const verifyPhone = async (req, res, next) => {
     const token = req.query.token || req.body?.token;
     const response = await services.verifyPhoneByToken(token);
 
-    if (req.headers.accept?.includes("application/json") || req.method === "POST") {
+    if (
+      req.headers.accept?.includes("application/json") ||
+      req.method === "POST"
+    ) {
       if (response?.token) {
         setAuthCookie(res, response.token);
       }
@@ -347,7 +419,10 @@ const verifyPhone = async (req, res, next) => {
 
     res.send(getSuccessPhoneVerificationHtml());
   } catch (error) {
-    if (req.headers.accept?.includes("application/json") || req.method === "POST") {
+    if (
+      req.headers.accept?.includes("application/json") ||
+      req.method === "POST"
+    ) {
       return next(error);
     }
     res.status(error.statusCode || HTTP_STATUS.INTERNAL_SERVER_ERROR).send(`
@@ -407,5 +482,5 @@ module.exports = {
   reportWrongEmail,
   verifyPhone,
   getVerificationLinks,
-  logoutUser
+  logoutUser,
 };

@@ -16,7 +16,10 @@ const sendSms = async (
     logger.info("[DEV] SMS dispatch skipped (TEST_OTP_ENABLED)", {
       receiverPhoneNumber,
     });
-    return { message: "success", data: "OTP sent successfully (test mode, no SMS)" };
+    return {
+      message: "success",
+      data: "OTP sent successfully (test mode, no SMS)",
+    };
   }
 
   try {
@@ -29,25 +32,39 @@ const sendSms = async (
       CALLBACK: callback,
       OTP_TEMPLATE: otpTemplate,
     } = Config.SMS;
+    console.log("🚀 ~ sendSms ~ Config.SMS:", Config.SMS);
+
     logger.info("SMS Configuration Details:", {
       config: Config.SMS,
       receiverPhoneNumber,
     });
     // Validate required fields
     if (!token) {
-      throw new AppError("SMS_TOKEN is not configured", AppError.INTERNAL_SERVER_ERROR);
+      throw new AppError(
+        "SMS_TOKEN is not configured",
+        AppError.INTERNAL_SERVER_ERROR,
+      );
     }
 
     if (!baseUrl) {
-      throw new AppError("AFRO_BASE_URL is not configured", AppError.INTERNAL_SERVER_ERROR);
+      throw new AppError(
+        "AFRO_BASE_URL is not configured",
+        AppError.INTERNAL_SERVER_ERROR,
+      );
     }
 
     if (!sender) {
-      throw new AppError("SMS_SENDER is not configured", AppError.INTERNAL_SERVER_ERROR);
+      throw new AppError(
+        "SMS_SENDER is not configured",
+        AppError.INTERNAL_SERVER_ERROR,
+      );
     }
 
     if (!receiverPhoneNumber) {
-      throw new AppError("Receiver Phone Number is required", AppError.BAD_REQUEST);
+      throw new AppError(
+        "Receiver Phone Number is required",
+        AppError.BAD_REQUEST,
+      );
     }
 
     // Determine the message to send and track if it's OTP
@@ -63,7 +80,10 @@ const sendSms = async (
     else if (otp !== null && otp !== undefined) {
       isOtpMessage = true;
       if (!otpTemplate) {
-        throw new AppError("OTP_TEMPLATE is not configured", AppError.INTERNAL_SERVER_ERROR);
+        throw new AppError(
+          "OTP_TEMPLATE is not configured",
+          AppError.INTERNAL_SERVER_ERROR,
+        );
       }
 
       const otpString = String(otp);
@@ -75,7 +95,10 @@ const sendSms = async (
         message = otpTemplate.trim() + " " + otpString;
       }
     } else {
-      throw new AppError("Either OTP or custom message is required", AppError.BAD_REQUEST);
+      throw new AppError(
+        "Either OTP or custom message is required",
+        AppError.BAD_REQUEST,
+      );
     }
 
     const postfields = {
@@ -101,11 +124,17 @@ const sendSms = async (
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     };
-
-    const apiResponse = await axios.post(baseUrl, postfields, {
-      headers,
-      timeout: 30000,
-    });
+    console.log("🚀 ~ sendSms ~ baseUrl, postfields:", baseUrl, postfields);
+    let apiResponse = null;
+    try {
+      apiResponse = await axios.post(baseUrl, postfields, {
+        headers,
+        timeout: 30000,
+      });
+      console.log("🚀 ~ sendSms ~ apiResponse:", apiResponse.data);
+    } catch (error) {
+      console.log("🚀 ~ sendSms ~ error:", error);
+    }
     logger.info("SMS API Raw Response:", {
       status: apiResponse.status,
       data: apiResponse.data,
@@ -146,9 +175,15 @@ const sendSms = async (
         AppError.BAD_GATEWAY,
       );
     } else if (error.request) {
-      throw new AppError("SMS API: No response received from server", AppError.SERVICE_UNAVAILABLE);
+      throw new AppError(
+        "SMS API: No response received from server",
+        AppError.SERVICE_UNAVAILABLE,
+      );
     } else {
-      throw new AppError("SMS API request error: " + error.message, AppError.INTERNAL_SERVER_ERROR);
+      throw new AppError(
+        "SMS API request error: " + error.message,
+        AppError.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 };

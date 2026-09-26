@@ -17,10 +17,28 @@ const FORCE_SHUTDOWN_TIMEOUT_MS = 10000;
 const { currentDate } = require("./Utils/CurrentDate.js");
 
 /**
- * Fail-closed guard: a production deployment refusing dev-stage settings.
- * Catches a misconfigured prod (test OTP, localhost/dev origins) BEFORE the
- * server starts, instead of silently running insecure. Dev sandbox keeps
- * these, but prod must not.
+ * PRODUCTION SAFETY CHECK (fail-closed)
+ * =====================================
+ * This server runs in one of two modes:
+ *
+ *   PRODUCTION  -> app.dynamicsroute.tech  (real users, real data)
+ *   DEV/STAGING -> dev.dynamicsroute.tech  (test database, test OTP 101010,
+ *                  SMS disabled, localhost:5173 allowed)
+ *
+ * The mode is chosen by NODE_ENV=production / anything else. But a few
+ * variables are DESIGNED to work even on production and can turn the live
+ * hub into a dev sandbox by accident. The most common mistake: copying a
+ * development .env into the production Dokploy app.
+ *
+ * Before the server starts, THIS function refuses to boot in production if
+ * any of those "dev-only" switches are set. That way a misconfigured prod
+ * fails loudly at startup instead of silently accepting test OTPs or
+ * localhost connections.
+ *
+ * The blocked switches (dev/staging only, never on production):
+ *   1. USE_TEST_OTP=true        -> every login uses fixed OTP "101010"
+ *   2. ENABLE_LOCAL_DEV_ORIGINS=true -> localhost/dev.* origins are allowed
+ *   3. EXTRA_ALLOWED_ORIGINS that contain localhost / 127.0.0.1 / dev.*
  */
 const assertProductionSafety = () => {
   if (Config.NODE_ENV !== "production") return;
@@ -51,19 +69,21 @@ const assertProductionSafety = () => {
         origin.includes("dev.dynamicsroute.tech"),
     )
   ) {
-    violations.push(
-      "EXTRA_ALLOWED_ORIGINS contains a dev/localhost origin",
-    );
+    violations.push("EXTRA_ALLOWED_ORIGINS contains a dev/localhost origin");
   }
 
   if (violations.length > 0) {
+    const friendly = violations.join("\n  - ");
     logger.error(
       "PRODUCTION SAFETY BLOCK: refusing to start with dev-stage settings",
       { violations },
     );
     throw new Error(
-      "Refusing to start in production with dev-stage settings: " +
-        violations.join("; "),
+      "PRODUCTION SAFETY BLOCK\n" +
+        "This app is running as NODE_ENV=production (app.dynamicsroute.tech), but it has dev/staging settings enabled.\n" +
+        "Remove these from the deployed environment, then redeploy:\n  - " +
+        friendly +
+        "\nDEV/dokploy apps (dev.dynamicsroute.tech) may keep them.",
     );
   }
 };
