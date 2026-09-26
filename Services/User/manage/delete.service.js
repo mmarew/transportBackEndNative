@@ -27,12 +27,12 @@ const {
 const Config = require("../../../Utils/Config");
 
 // The system super-admin account is non-deletable. Protection is derived from
-// env config (SUPER_ADMIN_PHONE) OR from holding the super-admin role — no
-// hardcoded phone values in source. Rows are normalized to digits for the phone
-// comparison.
-const SUPER_ADMIN_PHONE_DIGITS = Config.SUPER_ADMIN.PHONE
-  ? Config.SUPER_ADMIN.PHONE.replace(/\D/g, "")
-  : null;
+// env config (SUPER_ADMIN_PHONES / SUPER_ADMIN_PHONE) OR from holding the
+// super-admin role — no hardcoded phone values in source. Rows are normalized
+// to digits for the phone comparison.
+const SUPER_ADMIN_PHONE_DIGITS_SET = new Set(
+  Config.SUPER_ADMIN.PHONES.map((phone) => phone.replace(/\D/g, "")).filter(Boolean),
+);
 
 
 
@@ -71,7 +71,10 @@ const deleteUser = async ({
   }
   const targetPhoneDigits = (targetRows[0]?.phoneNumber || "").replace(/\D/g, "");
   const holdsProtectedRole = Number(targetRows[0]?.protectedRoleCount || 0) > 0;
-  if (holdsProtectedRole || (SUPER_ADMIN_PHONE_DIGITS && targetPhoneDigits === SUPER_ADMIN_PHONE_DIGITS)) {
+  if (
+    holdsProtectedRole ||
+    (SUPER_ADMIN_PHONE_DIGITS_SET.has(targetPhoneDigits) && targetPhoneDigits)
+  ) {
     throw new AppError("The system super admin account cannot be deleted", AppError.FORBIDDEN);
   }
 

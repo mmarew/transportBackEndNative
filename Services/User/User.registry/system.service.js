@@ -3,6 +3,7 @@
 const logger = require("../../../Utils/logger");
 const Config = require("../../../Utils/Config");
 const { usersRoles, USER_STATUS } = require("../../../Utils/ListOfSeedData");
+const { getPlaceholderEmail } = require("../../../Utils/GetPlaceholderEmail");
 const { createUserByAdminOrSuperAdmin } = require("./admin.service");
 
 //some jobs can be done by system itself by written codes not by admin or supper admin or users
@@ -35,29 +36,40 @@ const createUserSystem = async () => {
   }
 
   const adminFullName = Config.SUPER_ADMIN.FULL_NAME;
-  const adminPhone = Config.SUPER_ADMIN.PHONE;
-  const adminEmail = Config.SUPER_ADMIN.EMAIL;
+  const adminEmails = (Config.SUPER_ADMIN.EMAIL || "")
+    .split(",")
+    .map((email) => email.trim())
+    .filter(Boolean);
+  const adminPhones = Config.SUPER_ADMIN.PHONES;
 
-  if (!adminPhone || !adminEmail) {
+  if (adminPhones.length === 0) {
     logger.warn(
-      "createUserSystem: SUPER_ADMIN_PHONE / SUPER_ADMIN_EMAIL not configured — skipping seed of the Super Admin user",
+      "createUserSystem: SUPER_ADMIN_PHONES / SUPER_ADMIN_PHONE not configured — skipping seed of the Super Admin user",
     );
     return;
   }
 
-  await createUserByAdminOrSuperAdmin({
-    body: {
-      fullName: adminFullName || "Supper Admin",
-      phoneNumber: adminPhone,
-      email: adminEmail,
-      roleId: usersRoles.supperAdminRoleId,
-      statusId: USER_STATUS.ACTIVE,
-      userRoleStatusDescription:
-        "Supper Admin can manage drivers shippers and admin using api requests",
-      rawPassword: Config.SUPER_ADMIN.TEMP_PASSWORD,
-    },
-    userUniqueId: "Supper Admin",
-  });
+  // Seed one Supper Admin per configured phone. Each admin gets a matching
+  // email: the configured SUPER_ADMIN_EMAIL (comma-separated, aligned by index)
+  // when provided, otherwise the standard phone-based placeholder. This lets a
+  // deployment declare `SUPER_ADMIN_PHONES=+251983222221,+251976640598` and have
+  // both accounts auto-seeded on boot instead of manual INSERTs.
+  for (let index = 0; index < adminPhones.length; index += 1) {
+    const adminPhone = adminPhones[index];
+    await createUserByAdminOrSuperAdmin({
+      body: {
+        fullName: adminFullName || "Supper Admin",
+        phoneNumber: adminPhone,
+        email: adminEmails[index] || getPlaceholderEmail(adminPhone),
+        roleId: usersRoles.supperAdminRoleId,
+        statusId: USER_STATUS.ACTIVE,
+        userRoleStatusDescription:
+          "Supper Admin can manage drivers shippers and admin using api requests",
+        rawPassword: Config.SUPER_ADMIN.TEMP_PASSWORD,
+      },
+      userUniqueId: "Supper Admin",
+    });
+  }
 };
 
 module.exports.createUserSystem = createUserSystem;

@@ -1,6 +1,7 @@
 "use strict";
 
 const Config = require("../../Utils/Config");
+const { getPlaceholderEmail } = require("../../Utils/GetPlaceholderEmail");
 const { sqlQuery, driverQueueHistoryDdl } = require("../../Database/Database");
 const { historyTablesDdl } = require("../../Database/HistoryTables");
 const { pool, config: dbConfig } = require("../../Middleware/Database.config");
@@ -940,30 +941,65 @@ const createTable = async () => {
     await adminConnection.end();
   }
 
-  // Insert Super Admin user first (minimal Users row) to use as createdBy for seeding
-  const superAdminId = uuidv4();
-  const superAdminFullName = Config.SUPER_ADMIN.FULL_NAME;
-  const superAdminPhone = Config.SUPER_ADMIN.PHONE;
-  const superAdminEmail = Config.SUPER_ADMIN.EMAIL;
-  await pool.query(
-    `INSERT INTO Users (userUniqueId, fullName, phoneNumber, email, userCreatedAt, userCreatedBy)
-     VALUES (?, ?, ?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE fullName=VALUES(fullName), phoneNumber=VALUES(phoneNumber), email=VALUES(email)`,
-    [
-      superAdminId,
-      superAdminFullName,
-      superAdminPhone,
-      superAdminEmail,
-      currentDate(),
-      superAdminId,
-    ],
-  );
-  // Resolve the actual super admin userUniqueId in DB (handles duplicates on phone/email)
-  const [superRows] = await pool.query(
-    `SELECT userUniqueId FROM Users WHERE email = ? OR phoneNumber = ? LIMIT 1`,
-    [superAdminEmail, superAdminPhone],
-  );
-  const effectiveSuperAdminId = superRows?.[0]?.userUniqueId || superAdminId;
+  // Insert Super Admin user(s) first (minimal Users rows) to use as createdBy
+  // for seeding. Every configured SUPER_ADMIN phone gets a row so a deployment
+  // with multiple super admins has valid userUniqueId references for the FK
+  // columns used while seeding Statuses/Roles below.
+  const superAdminFullNames = (Config.SUPER_ADMIN.FULL_NAME || "")
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
+  const superAdminEmails = (Config.SUPER_ADMIN.EMAIL || "")
+    .split(",")
+    .map((email) => email.trim())
+    .filter(Boolean);
+  const superAdminPhones = Config.SUPER_ADMIN.PHONES;
+
+  if (superAdminPhones.length === 0) {
+    logger.error(
+      "createTables: SUPER_ADMIN.PHONES empty — cannot bootstrap super admin, aborting startup",
+    );
+    throw new Error("SUPER_ADMIN_PHONES / SUPER_ADMIN_PHONE is not configured");
+  }
+
+  let effectiveSuperAdminId = null;
+  for (let index = 0; index < superAdminPhones.length; index += 1) {
+    const superAdminId = uuidv4();
+    const superAdminPhone = superAdminPhones[index];
+    const superAdminFullName =
+      superAdminFullNames[index] || "Supper Admin";
+    const superAdminEmail =
+      superAdminEmails[index] ||
+      getPlaceholderEmail(superAdminPhone);
+    await pool.query(
+      `INSERT INTO Users (userUniqueId, fullName, phoneNumber, email, userCreatedAt, userCreatedBy)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE fullName=VALUES(fullName), phoneNumber=VALUES(phoneNumber), email=VALUES(email)`,
+      [
+        superAdminId,
+        superAdminFullName,
+        superAdminPhone,
+        superAdminEmail,
+        currentDate(),
+        superAdminId,
+      ],
+    );
+    // Resolve the actual super admin userUniqueId in DB (handles duplicates on phone/email)
+    const [superRows] = await pool.query(
+      `SELECT userUniqueId FROM Users WHERE email = ? OR phoneNumber = ? LIMIT 1`,
+      [superAdminEmail, superAdminPhone],
+    );
+    if (index === 0) {
+      effectiveSuperAdminId = superRows?.[0]?.userUniqueId || superAdminId;
+    }
+  }
+
+  if (!effectiveSuperAdminId) {
+    logger.error(
+      "createTables: could not resolve a super admin userUniqueId, aborting startup",
+    );
+    throw new Error("Failed to bootstrap super admin user");
+  }
   await ensureCredentialForUser({
     userUniqueId: effectiveSuperAdminId,
     rawPassword: Config.SUPER_ADMIN.TEMP_PASSWORD,

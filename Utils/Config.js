@@ -59,8 +59,16 @@ const Config = {
   // System Admin (Initialization)
   SUPER_ADMIN: {
     FULL_NAME: process.env.SUPER_ADMIN_FULL_NAME,
+    // Backward-compatible single phone; kept for delete-protection + tooling.
     PHONE: process.env.SUPER_ADMIN_PHONE,
     EMAIL: process.env.SUPER_ADMIN_EMAIL,
+    // Multiple super admins: comma-separated list. Falls back to the single
+    // SUPER_ADMIN_PHONE when SUPER_ADMIN_PHONES is empty so existing setups
+    // keep seeding exactly one admin.
+    PHONES: (process.env.SUPER_ADMIN_PHONES || process.env.SUPER_ADMIN_PHONE || "")
+      .split(",")
+      .map((phone) => phone.trim())
+      .filter(Boolean),
     TEMP_PASSWORD: process.env.SUPER_ADMIN_TEMP_PASSWORD,
     SYSTEM_FULL_NAME: process.env.SYSTEM_FULL_NAME,
     SYSTEM_PHONE: process.env.SYSTEM_PHONE,
