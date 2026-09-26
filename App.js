@@ -149,8 +149,18 @@ const onStartUp = async () => {
       });
     }
 
-    // Add your startup logic here (e.g., DB connection)
-    // createTable();
+    // Ensure schema + seed super admin users run at startup (idempotent).
+    try {
+      const {
+        createTable,
+      } = require("./Services/Database/tableManage.service");
+      await createTable();
+      logger.info("Database schema + super admin seeding ensured at startup");
+    } catch (createTableError) {
+      logger.error("Startup createTable failed", {
+        message: createTableError.message,
+      });
+    }
   } catch (error) {
     logger.error("Startup Error", error);
     process.exit(1);
