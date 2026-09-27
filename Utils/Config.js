@@ -13,10 +13,15 @@ const Config = {
   PORT: process.env.PORT || 3000,
   NODE_ENV: process.env.NODE_ENV || "development",
   APP_API_URL: (
-    process.env.APP_API_URL || "https://dynamicsroute.tech"
+    process.env.APP_API_URL || "https://app.dynamicsroute.tech"
   ).replace(/\/+$/, ""),
   SECRET_KEY: process.env.SECRET_KEY,
   API_KEY: process.env.API_KEY,
+  // Session lifetime: system admins (roles 3 & 6) keep a short TTL; everyone
+  // else (drivers, shippers, company/queue admins, ...) gets the long TTL.
+  // Values are jsonwebtoken-compatible (e.g. "24h", "365d").
+  SESSION_TTL_ADMINS: process.env.SESSION_TTL_ADMINS || "24h",
+  SESSION_TTL_OTHERS: process.env.SESSION_TTL_OTHERS || "365d",
   // TEST/DEV ONLY: When true, GET /api/user/verification-link returns the
   // real email/phone verification tokens to the caller. MUST stay off in production.
   EXPOSE_VERIFICATION_LINKS: process.env.EXPOSE_VERIFICATION_LINKS === "true",
@@ -65,7 +70,11 @@ const Config = {
     // Multiple super admins: comma-separated list. Falls back to the single
     // SUPER_ADMIN_PHONE when SUPER_ADMIN_PHONES is empty so existing setups
     // keep seeding exactly one admin.
-    PHONES: (process.env.SUPER_ADMIN_PHONES || process.env.SUPER_ADMIN_PHONE || "")
+    PHONES: (
+      process.env.SUPER_ADMIN_PHONES ||
+      process.env.SUPER_ADMIN_PHONE ||
+      ""
+    )
       .split(",")
       .map((phone) => phone.trim())
       .filter(Boolean),

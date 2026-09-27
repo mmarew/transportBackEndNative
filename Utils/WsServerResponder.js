@@ -32,11 +32,17 @@ const emitMessage = ({ socketId, eventName, messageDetails }) => {
   const io = socketIO.io;
   if (!io) {
     const AppError = require("./AppError");
-    throw new AppError("message can't be sent successfully", AppError.INTERNAL_SERVER_ERROR);
+    throw new AppError(
+      "message can't be sent successfully",
+      AppError.INTERNAL_SERVER_ERROR,
+    );
   }
   if (!socketId) {
     const AppError = require("./AppError");
-    throw new AppError("message can't be sent successfully", AppError.INTERNAL_SERVER_ERROR);
+    throw new AppError(
+      "message can't be sent successfully",
+      AppError.INTERNAL_SERVER_ERROR,
+    );
   }
   io.to(socketId).emit(eventName, messageDetails);
 

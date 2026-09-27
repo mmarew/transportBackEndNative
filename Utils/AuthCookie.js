@@ -1,15 +1,20 @@
 "use strict";
 
+const jwt = require("jsonwebtoken");
 const Config = require("./Config");
+const { getSessionTtlMs } = require("./SessionPolicy");
 
 const COOKIE_NAME = "token";
-const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24h, matches JWT expiry
 
 /**
  * Sets the session token as an httpOnly cookie (dual-mode auth).
  *
  * The cookie is host-only (no Domain attribute): each app sets it through
  * its own API host, preserving the existing per-app token isolation.
+ *
+ * Lifetime follows the ROLE of the authenticated user (see SessionPolicy):
+ * system admins (roles 3 & 6) keep a short TTL, everyone else gets the long
+ * TTL — so the cookie expiry always matches the JWT expiry it carries.
  *
  * Attributes follow the TRANSPORT, not NODE_ENV:
  *  - HTTPS (the shared hub, app.dynamicsroute.tech, or any https deployment):
@@ -24,12 +29,24 @@ const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24h, matches JWT expiry
 const setAuthCookie = (res, token) => {
   if (!res || !token) return;
   const secure = Boolean(res?.req?.secure);
+
+  // Read roleId from the token payload (decode only — no verification needed
+  // here) so the cookie lifetime matches the JWT's role-based expiry.
+  let roleId;
+  try {
+    const decoded = jwt.decode(token);
+    roleId = decoded?.data?.roleId;
+  } catch {
+    roleId = undefined;
+  }
+  const maxAge = getSessionTtlMs(roleId);
+
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
     secure,
     sameSite: secure ? "none" : "lax",
     partitioned: secure,
-    maxAge: SESSION_MAX_AGE_MS,
+    maxAge,
     path: "/",
   });
 };
@@ -65,7 +82,6 @@ const cookieIsPresent = (req) =>
 
 module.exports = {
   COOKIE_NAME,
-  SESSION_MAX_AGE_MS,
   setAuthCookie,
   clearAuthCookie,
   getTokenFromRequest,
