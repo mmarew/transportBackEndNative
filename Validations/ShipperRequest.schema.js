@@ -146,6 +146,13 @@ exports.getShipperRequestQuery = Joi.object({
   vehicleTypeUniqueId: uuidSchema.optional(),
   shipperRequestBatchUniqueId: uuidSchema.optional(),
   queueOrganizationUniqueId: uuidSchema.optional(),
+  shipperRequestCreatedByRoleId: Joi.alternatives()
+    .try(
+      Joi.string(),
+      Joi.number(),
+      Joi.array().items(Joi.alternatives().try(Joi.string(), Joi.number()))
+    )
+    .optional(), // single roleId, comma-separated roleIds, or array of roleIds (service parses + sanitizes)
   hasUnansweredDriverRequest: Joi.alternatives()
     .try(Joi.boolean(), Joi.string())
     .optional(),

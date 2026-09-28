@@ -59,6 +59,7 @@ const createShipperRequest = async (req, res, next) => {
       async () => {
         if (
           shipperRequestCreatedByRoleId === usersRoles.adminRoleId ||
+          shipperRequestCreatedByRoleId === usersRoles.supperAdminRoleId ||
           shipperRequestCreatedByRoleId === usersRoles.queueOrgAdminRoleId
         ) {
           const { shipperPhoneNumber } = req.body;
@@ -172,9 +173,24 @@ const getShipperRequestByShipperRequestUniqueId = async (req, res, next) => {
 
 const getShipperRequest4allOrSingleUser = async (req, res, next) => {
   try {
-    const { target, limit, page, shipperUserUniqueId } = req.query;
-    let { userUniqueId } = req.user;
+    const { limit, page, shipperUserUniqueId } = req.query;
+    let target = req.query.target;
+    let userUniqueId = req.user.userUniqueId;
 
+    // Admins and super admins read cross-user by default: their own userUniqueId
+    // is not a shipper owner, so scoping to it would always return an empty list.
+    // They get the full list (optionally narrowed by shipperRequestCreatedByRoleId,
+    // e.g. ?shipperRequestCreatedByRoleId=3) unless they pass shipperUserUniqueId.
+    const isPrivilegedCaller =
+      req.user.roleId === usersRoles.adminRoleId ||
+      req.user.roleId === usersRoles.supperAdminRoleId;
+    if (isPrivilegedCaller && !shipperUserUniqueId) {
+      target = "all";
+      userUniqueId = undefined;
+    } else if (shipperUserUniqueId && shipperUserUniqueId !== "self") {
+      // Privileged caller (or anyone) inspecting one specific shipper
+      userUniqueId = shipperUserUniqueId;
+    }
     let journeyStatusIds = req.query.journeyStatusId;
     if (journeyStatusIds) {
       if (typeof journeyStatusIds === "string") {
@@ -205,10 +221,7 @@ const getShipperRequest4allOrSingleUser = async (req, res, next) => {
 
     const data = {
       filters,
-      userUniqueId:
-        shipperUserUniqueId === "self" || !shipperUserUniqueId
-          ? userUniqueId
-          : shipperUserUniqueId,
+      userUniqueId,
       target,
       limit,
       page,

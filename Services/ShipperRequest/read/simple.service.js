@@ -423,6 +423,40 @@ const getShipperRequest4allOrSingleUser = async ({ data }) => {
       queryParams.push(filters.shipperRequestBatchUniqueId);
       countParams.push(filters.shipperRequestBatchUniqueId);
     }
+    // Filter by the role of whoever created the request, e.g.
+    // shipperRequestCreatedByRoleId=3 (admin) or 3,6 (admin + super admin).
+    // Lets admins list requests that were created by admins/super admins via
+    // GET /api/user/getShipperRequest4allOrSingleUser?shipperRequestCreatedByRoleId=3
+    if (
+      filters?.shipperRequestCreatedByRoleId !== undefined &&
+      filters?.shipperRequestCreatedByRoleId !== ""
+    ) {
+      const createdByRoleIds = String(filters.shipperRequestCreatedByRoleId)
+        .split(",")
+        .map((id) => parseInt(id.trim(), 10));
+      if (
+        createdByRoleIds.length === 0 ||
+        createdByRoleIds.some((id) => !Number.isInteger(id) || id <= 0)
+      ) {
+        throw new AppError(
+          "shipperRequestCreatedByRoleId must be a positive integer or a comma-separated list of positive integers",
+          AppError.BAD_REQUEST,
+        );
+      }
+      whereClause += whereClause ? " AND " : " WHERE ";
+      if (createdByRoleIds.length === 1) {
+        // Single value for efficiency
+        whereClause += " ShipperRequest.shipperRequestCreatedByRoleId = ?";
+        queryParams.push(createdByRoleIds[0]);
+        countParams.push(createdByRoleIds[0]);
+      } else {
+        // Multiple values using IN clause
+        const placeholders = createdByRoleIds.map(() => "?").join(",");
+        whereClause += ` ShipperRequest.shipperRequestCreatedByRoleId IN (${placeholders})`;
+        queryParams.push(...createdByRoleIds);
+        countParams.push(...createdByRoleIds);
+      }
+    }
     // Only shipper requests that still have a driver request awaiting an
     // answer (DriverRequest.journeyStatusId = 2). Links via JourneyDecisions,
     // which holds both shipperRequestId and driverRequestId.
