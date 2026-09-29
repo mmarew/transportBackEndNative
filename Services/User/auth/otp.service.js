@@ -12,7 +12,10 @@ const {
 } = require("../../../Utils/Notifications");
 const { getData, performJoinSelect } = require("../../../CRUD/Read/ReadData");
 const { updateData } = require("../../../CRUD/Update/Data.update");
-const { phoneNumberVariants, areSamePhone } = require("../../../Utils/PhoneNumber");
+const {
+  phoneNumberVariants,
+  areSamePhone,
+} = require("../../../Utils/PhoneNumber");
 
 const {
   driversDocumentVehicleRequirement,
@@ -44,7 +47,10 @@ const {
 const verifyUserByOTP = async (req) => {
   const { phoneNumber, email, OTP, roleId } = req.body;
   if (!OTP || (!phoneNumber && !email)) {
-    throw new AppError("OTP and identity (phone/email) are required", AppError.BAD_REQUEST);
+    throw new AppError(
+      "OTP and identity (phone/email) are required",
+      AppError.BAD_REQUEST,
+    );
   }
   const conditions = {};
   if (phoneNumber) {
@@ -147,7 +153,7 @@ const verifyUserByOTP = async (req) => {
       logger.info("Test OTP accepted as fallback");
     } else {
       throw new AppError(
-        "Invalid OTP. Please check the code and try again.",
+        "Invalid OTP. Please check the OTP and try again.",
         AppError.UNAUTHORIZED,
       );
     }
@@ -216,7 +222,10 @@ const verifyUserByOTP = async (req) => {
       user: userRow,
     });
     if (docReq?.message === "error") {
-      throw new AppError(docReq.error || "Failed to check requirements", AppError.INTERNAL_SERVER_ERROR);
+      throw new AppError(
+        docReq.error || "Failed to check requirements",
+        AppError.INTERNAL_SERVER_ERROR,
+      );
     }
     const { unAttachedDocumentTypes, attachedDocumentsByStatus } = docReq;
     if (

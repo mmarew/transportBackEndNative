@@ -11,7 +11,11 @@ const locationSchema = Joi.object({
 
 exports.createShipperRequest = Joi.object({
   shipperRequestBatchUniqueId: uuidSchema.required(),
-  numberOfVehicles: Joi.number().integer().min(1).max(DOMAIN.MAX_REQUEST_VEHICLES).default(1),
+  numberOfVehicles: Joi.number()
+    .integer()
+    .min(1)
+    .max(DOMAIN.MAX_REQUEST_VEHICLES)
+    .default(1),
   shippingDate: Joi.date().iso().required(),
   deliveryDate: Joi.date().iso().required(),
   shippingCost: Joi.number().required(),
@@ -129,7 +133,11 @@ exports.markJourneyCompletionAsSeen = Joi.object({
 }).unknown(true); // Allow additional fields for future extensibility
 
 exports.verifyShipperStatusQuery = Joi.object({
-  pageSize: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).optional(),
+  pageSize: Joi.number()
+    .integer()
+    .min(1)
+    .max(PAGINATION.MAX_PAGE_SIZE)
+    .optional(),
   page: Joi.number().integer().min(1).optional(),
   queueOrganizationUniqueId: uuidSchema.optional(),
 }).unknown(true);
@@ -150,7 +158,7 @@ exports.getShipperRequestQuery = Joi.object({
     .try(
       Joi.string(),
       Joi.number(),
-      Joi.array().items(Joi.alternatives().try(Joi.string(), Joi.number()))
+      Joi.array().items(Joi.alternatives().try(Joi.string(), Joi.number())),
     )
     .optional(), // single roleId, comma-separated roleIds, or array of roleIds (service parses + sanitizes)
   hasUnansweredDriverRequest: Joi.alternatives()
