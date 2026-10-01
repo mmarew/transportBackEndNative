@@ -11,6 +11,9 @@ const checkDuplicateDocuments = require("../Middleware/CheckDuplicateDocuments")
 const {
   authorizeDocumentAccess,
 } = require("../Middleware/AuthorizeDocumentAccess");
+const {
+  resolveDocumentOwner,
+} = require("../Middleware/ResolveDocumentOwner");
 
 const { validator } = require("../Middleware/Validator");
 const {
@@ -108,25 +111,31 @@ router.get(
 );
 
 // ── Update a document ────────────────────────────────────────────────────────
+// Same owner-resolved authorization as delete: the document row decides whether
+// this is a user, company or vehicle document.
 router.put(
   ATTACHED_DOCUMENTS_ENDPOINTS.USER_UPDATE_DOCUMENT,
   verifyTokenOfAxios,
   validator(attachedDocumentParams, "params"),
-  (req, _res, next) => {
-    req.ownerType = "user";
-    next();
-  },
+  resolveDocumentOwner(),
   authorizeDocumentAccess(),
   upload.any(),
   attachedDocumentsController.updateAttachedDocument,
 );
 
-// ── Delete a document (admin / superAdmin only) ─────────────────────────────
+// ── Delete a document ────────────────────────────────────────────────────────
+// Ownership is resolved from the document row itself, then the shared
+// authorizeDocumentAccess() rules decide access:
+//   Admin (3) / SuperAdmin (6) → any document
+//   own user document            → its owner
+//   company document             → CompanyAdmin (7) / Dispatcher (10) who are
+//                                  active owner/manager/dispatcher members
 router.delete(
   ATTACHED_DOCUMENTS_ENDPOINTS.USER_DELETE_DOCUMENT,
   verifyTokenOfAxios,
-  verifyAdminsIdentity,
   validator(attachedDocumentParams, "params"),
+  resolveDocumentOwner(),
+  authorizeDocumentAccess(),
   attachedDocumentsController.deleteAttachedDocument,
 );
 

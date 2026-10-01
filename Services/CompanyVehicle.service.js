@@ -3,7 +3,12 @@
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
-const { db, paginate, paginatedQuery } = require("./CompanyHelper.service");
+const {
+  db,
+  paginate,
+  paginatedQuery,
+  assertCompanyAccess,
+} = require("./CompanyHelper.service");
 const { getData } = require("../CRUD/Read/ReadData");
 const { usersRoles } = require("../Utils/ListOfSeedData");
 const { insertHistoryRecord } = require("./History/History.service");
@@ -305,7 +310,9 @@ exports.getCompanyVehicles = async (filters = {}, user = {}) => {
   );
 };
 
-exports.removeVehicle = async (companyVehicleUniqueId, deletedBy) => {
+exports.removeVehicle = async (companyVehicleUniqueId, deletedBy, user = {}) => {
+  await assertCompanyVehicleAccess(user, companyVehicleUniqueId);
+
   await insertHistoryRecord({
     sourceTable: "CompanyVehicle",
     conditions: { companyVehicleUniqueId },
@@ -321,4 +328,79 @@ exports.removeVehicle = async (companyVehicleUniqueId, deletedBy) => {
   );
   if (res.affectedRows === 0) {throw new AppError("Fleet assignment not found or already removed", AppError.NOT_FOUND);}
   return { message: "Company vehicles list fetched", data: null };
+};
+
+// Resolve the owning company for a fleet row and verify the caller may touch it.
+async function assertCompanyVehicleAccess(user, companyVehicleUniqueId) {
+  const [rows] = await db().query(
+    `SELECT companyUniqueId FROM CompanyVehicle
+     WHERE companyVehicleUniqueId = ? AND companyVehicleDeletedAt IS NULL`,
+    [companyVehicleUniqueId],
+  );
+  if (!rows || rows.length === 0) {
+    throw new AppError(
+      "Fleet assignment not found or already removed",
+      AppError.NOT_FOUND,
+    );
+  }
+  return assertCompanyAccess(user, rows[0].companyUniqueId);
+}
+
+// Partial update of a fleet assignment's status and/or dates (D2).
+//
+// The console's vehicle edit form pointed at `/api/company/fleet/:id`, which the
+// backend never mounted — the real mount has no generic PATCH. Identity
+// (companyUniqueId / vehicleUniqueId) is fixed at assignment time, and removal
+// has its own DELETE endpoint, so only these three fields are editable here.
+const UPDATABLE_FLEET_COLUMNS = {
+  assignmentStatus: "assignmentStatus",
+  assignmentStartDate: "assignmentStartDate",
+  assignmentEndDate: "assignmentEndDate",
+};
+
+exports.updateCompanyVehicle = async (
+  companyVehicleUniqueId,
+  changes = {},
+  user = {},
+) => {
+  await assertCompanyVehicleAccess(user, companyVehicleUniqueId);
+
+  const setParts = [];
+  const values = [];
+  for (const [field, column] of Object.entries(UPDATABLE_FLEET_COLUMNS)) {
+    if (changes[field] !== undefined) {
+      setParts.push(`${column} = ?`);
+      values.push(changes[field]);
+    }
+  }
+  if (setParts.length === 0) {
+    throw new AppError(
+      "No updatable fields provided. Expected at least one of: assignmentStatus, assignmentStartDate, assignmentEndDate.",
+      AppError.BAD_REQUEST,
+    );
+  }
+
+  await insertHistoryRecord({
+    sourceTable: "CompanyVehicle",
+    conditions: { companyVehicleUniqueId },
+    changeType: "UPDATE",
+    changedByUserId: user.userUniqueId,
+  });
+
+  setParts.push("companyVehicleUpdatedBy = ?", "companyVehicleUpdatedAt = ?");
+  values.push(user.userUniqueId, currentDate(), companyVehicleUniqueId);
+
+  await db().query(
+    `UPDATE CompanyVehicle SET ${setParts.join(", ")} WHERE companyVehicleUniqueId = ?`,
+    values,
+  );
+
+  const [updated] = await db().query(
+    `SELECT companyVehicleUniqueId, companyUniqueId, vehicleUniqueId,
+            assignmentStatus, assignmentStartDate, assignmentEndDate,
+            companyVehicleUpdatedAt
+     FROM CompanyVehicle WHERE companyVehicleUniqueId = ?`,
+    [companyVehicleUniqueId],
+  );
+  return { message: "Fleet assignment updated successfully", data: updated?.[0] ?? null };
 };

@@ -4,6 +4,9 @@ const { DOMAIN, PAGINATION } = require("../Utils/Constants");
 const { usersRoles } = require("../Utils/ListOfSeedData");
 const { uuidSchema } = require("../Middleware/Validator");
 
+// Single source of truth for the org-type enum; mirrors the MySQL ENUM.
+const QUEUE_ORGANIZATION_TYPES = DOMAIN.QUEUE_ORGANIZATION_TYPES;
+
 /**
  * Schema for POST /api/queueOrganization (create).
  *
@@ -19,7 +22,7 @@ const { uuidSchema } = require("../Middleware/Validator");
 exports.createQueueOrganization = Joi.object({
   queueOrganizationName: Joi.string().max(DOMAIN.MAX_VARCHAR_LENGTH).required(),
   queueOrganizationType: Joi.string()
-    .valid("customs", "factory", "cement", "depot", "other")
+    .valid(...QUEUE_ORGANIZATION_TYPES)
     .default("other"),
   queueOrganizationPhone: Joi.string().max(DOMAIN.MAX_PHONE_LENGTH).optional().allow("", null),
   queueOrganizationAddress: Joi.string().max(DOMAIN.MAX_COMMENT_LENGTH).optional().allow("", null),
@@ -37,7 +40,7 @@ exports.createQueueOrganization = Joi.object({
 exports.updateQueueOrganization = Joi.object({
   queueOrganizationName: Joi.string().max(DOMAIN.MAX_VARCHAR_LENGTH).optional(),
   queueOrganizationType: Joi.string()
-    .valid("customs", "factory", "cement", "depot", "other")
+    .valid(...QUEUE_ORGANIZATION_TYPES)
     .optional(),
   queueOrganizationPhone: Joi.string().max(DOMAIN.MAX_PHONE_LENGTH).optional().allow("", null),
   queueOrganizationAddress: Joi.string().max(DOMAIN.MAX_COMMENT_LENGTH).optional().allow("", null),
@@ -61,7 +64,7 @@ exports.queueOrgParams = Joi.object({
 exports.getQueueOrganizationsQuery = Joi.object({
   queueOrganizationUniqueId: uuidSchema.optional(),
   queueOrganizationType: Joi.string()
-    .valid("customs", "factory", "cement", "depot", "other")
+    .valid(...QUEUE_ORGANIZATION_TYPES)
     .optional(),
   approvalStatus: Joi.string()
     .valid("pending", "approved", "rejected", "suspended")

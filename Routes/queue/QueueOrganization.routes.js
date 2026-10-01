@@ -105,7 +105,7 @@ router.delete(
 
 /**
  * @route   POST /api/queueOrganization/:queueOrganizationUniqueId/members
- * @desc    Add a member (role 11 QueueOrgAdmin, or 1 shipper) to the queue org
+ * @desc    Add a member (role 11 QueueOrgAdmin or role 12 QueueDispatcher) to the queue org
  * @access  Private (Admin / SuperAdmin / QueueOrgAdmin)
  */
 router.post(
@@ -131,7 +131,7 @@ router.get(
 
 /**
  * @route   PATCH /api/queueOrganization/:queueOrganizationUniqueId/members/:queueOrganizationMembershipUniqueId/reactivate
- * @desc    Reactivate a deactivated member (shipper customer / co-admin)
+ * @desc    Reactivate a deactivated member (QueueOrgAdmin or QueueDispatcher)
  * @access  Private (Admin / SuperAdmin / QueueOrgAdmin of that org)
  */
 router.patch(

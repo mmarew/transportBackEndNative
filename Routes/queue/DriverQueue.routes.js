@@ -360,6 +360,38 @@ router.get(
 // ===========================================================================
 
 const biddingSchema = require("../../Validations/DriverBid.schema");
+const driverDirectorySchema = require("../../Validations/DriverDirectory.schema");
+const driverDirectoryController = require("../../Controllers/DriverDirectory.controller");
+
+/**
+ * @route   GET /api/queue/driverDirectory
+ * @summary Search driver + vehicle pairs for manual check-in
+ *
+ * @description
+ * Manual check-in has to name a driver who may never have queued at this
+ * location, which the live queue payload cannot provide — so staff search this
+ * directory instead. Results are the assignment-level view (one row per
+ * driver/vehicle pair), restricted to ACTIVE assignments whose driver role is
+ * currently ACTIVE.
+ *
+ * Access: queue org staff (role 11 or 12) holding an active membership in
+ * `queueOrganizationUniqueId`, plus platform Admin/SuperAdmin.
+ *
+ * @query   {string}  queueOrganizationUniqueId  Scope of the search (required)
+ * @query   {string}  [phone]                    Partial phone match
+ * @query   {string}  [name]                     Partial name match
+ * @query   {string}  [vehicleTypeUniqueId]      Exact vehicle type
+ * @query   {number}  [page=1]
+ * @query   {number}  [limit=10]
+ *
+ * @returns {Object}  { message, data: [drivers], pagination }
+ */
+router.get(
+  EP.ROUTER.DRIVER_DIRECTORY,
+  verifyIfUserIsQueueOrgAdmin,
+  validator(driverDirectorySchema.driverDirectoryQuery, "query"),
+  driverDirectoryController.searchDriverDirectory,
+);
 
 /**
  * @route   POST /api/queue/bidding/approve
@@ -376,7 +408,10 @@ const biddingSchema = require("../../Validations/DriverBid.schema");
  *
  * On approval, only orders that are still WAITING (status 1) are matched.
  *
- * Access: the shipper who owns the orders (or SuperAdmin).
+ * Access: the shipper who owns the orders, a SuperAdmin, or an active
+ * QueueOrgAdmin (role 11) of the order's queue organization. NOTE role 12
+ * (QueueDispatcher) is deliberately NOT authorized here — a dispatcher runs
+ * the queue, it does not commit the shipper to an auction.
  *
  * @body    {string[]} shipperRequestUniqueIds  The orders to open/close (required, min 1)
  * @body    {boolean}  [approved=true]          TRUE opens the board, FALSE hides it
@@ -396,6 +431,9 @@ router.post(
  * @description
  * Lists DriverBid rows for a single queue order joined with the bidding
  * driver's profile, cheapest bid first. Paginated via query.
+ *
+ * Access: same fence as /bidding/approve — shipper owner, SuperAdmin, or an
+ * active QueueOrgAdmin (role 11) of the order's queue organization.
  *
  * @params  {string}  shipperRequestUniqueId  The order (required)
  * @query   {number}  [page=1]

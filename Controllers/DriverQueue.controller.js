@@ -169,6 +169,7 @@ exports.getBidsForOrder = async (req, res, next) => {
         shipperRequestUniqueId: req.params.shipperRequestUniqueId,
         page: req.query.page,
         limit: req.query.limit,
+        user: req.user,
       }),
     );
   } catch (e) {

@@ -48,6 +48,17 @@ router.patch(
 );
 
 /**
+ * @route   PATCH /api/company/memberships/:membershipUniqueId
+ * @desc    Partially update a member's company role and/or membership dates.
+ */
+router.patch(
+  EP.ROUTER.UPDATE_COMPANY_MEMBERSHIP,
+  validator(schema.memberParams, "params"),
+  validator(schema.updateMember),
+  controller.updateMember,
+);
+
+/**
  * @route   DELETE /api/company/memberships/:membershipUniqueId
  */
 router.delete(

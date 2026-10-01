@@ -35,6 +35,7 @@ exports.updateCompany = async (req, res, next) => {
         req.params.companyUniqueId,
         req.body,
         req.user.userUniqueId,
+        req.user,
       ),
     );
     ServerResponder(res, result);

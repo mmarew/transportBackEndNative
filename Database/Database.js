@@ -2163,7 +2163,7 @@ CREATE TABLE IF NOT EXISTS QueueOrganization (
     queueOrganizationId INT AUTO_INCREMENT PRIMARY KEY,
     queueOrganizationUniqueId VARCHAR(36) UNIQUE NOT NULL,       -- UUID
     queueOrganizationName VARCHAR(255) NOT NULL,                 -- "Mojo Kaliy", "National Cement", ...
-    queueOrganizationType ENUM('customs','factory','cement','depot','other') NOT NULL,
+    queueOrganizationType ENUM('customs','factory','cement','depot','mine','farm','port','other') NOT NULL,
     queueOrganizationPhone VARCHAR(20) NULL,
     queueOrganizationAddress VARCHAR(500) NULL,
     latitude DECIMAL(10, 8) NULL,                                -- site reference / order pickup point (NOT a check-in gate)
@@ -2205,7 +2205,7 @@ CREATE TABLE IF NOT EXISTS QueueOrganization (
 -- The legacy per-row ShipperRequest.queueOrganizationUniqueId column is intentionally
 -- dropped (see Task 1 migration); ensureQueueOrgReferences() drops it defensively.
 
--- QueueOrganizationMembership: Links users (QueueOrgAdmin role 11, shipper role 1)
+-- QueueOrganizationMembership: Links users (QueueOrgAdmin role 11, QueueDispatcher role 12)
 -- to a QueueOrganization, mirroring TransportCompany/CompanyMembership.
 -- One user can have one active membership per queue organization.
 
@@ -2213,8 +2213,8 @@ CREATE TABLE IF NOT EXISTS QueueOrganizationMembership (
     queueOrganizationMembershipId INT AUTO_INCREMENT PRIMARY KEY,
     queueOrganizationMembershipUniqueId VARCHAR(36) UNIQUE NOT NULL,
     queueOrganizationUniqueId VARCHAR(36) NOT NULL,             -- FK → QueueOrganization
-    userUniqueId VARCHAR(36) NOT NULL,                          -- FK → Users (QueueOrgAdmin / shipper of the org)
-    roleId INT NOT NULL,                                        -- FK → Roles (11 = queueOrgAdmin, 1 = shipper)
+    userUniqueId VARCHAR(36) NOT NULL,                          -- FK → Users (QueueOrgAdmin / QueueDispatcher of the org)
+    roleId INT NOT NULL,                                        -- FK → Roles (11 = queueOrgAdmin, 12 = queueDispatcher)
     isActive BOOLEAN NOT NULL DEFAULT TRUE,
     membershipStartDate DATETIME NOT NULL,
     membershipEndDate DATETIME NULL,

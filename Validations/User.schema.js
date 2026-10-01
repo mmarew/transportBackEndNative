@@ -86,8 +86,12 @@ exports.loginUser = Joi.object({
       usersRoles.companyAdminRoleId,
       usersRoles.queueOrgAdminRoleId,
       usersRoles.queueDispatcherRoleId,
-    )
-    .required(),
+    ),
+    // Optional: the queue console deliberately does not assert a role, and a
+    // dispatcher (12) must be able to request a login OTP without claiming to
+    // be the role-11 queue org admin. The service resolves the account's own
+    // role from UserRole when this is absent. Still validated against the known
+    // role list above when a client does send it.
 }).or("phoneNumber", "email"); // Login still allows either since they are in the DB
 
 exports.verifyUserByOTP = Joi.object({

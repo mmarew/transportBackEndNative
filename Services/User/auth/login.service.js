@@ -183,9 +183,12 @@ const loginUser = async (phoneNumber, roleId, email = null) => {
   if (!manageService) {
     manageService = require("../manage");
   }
-  if (!roleId) {
-    throw new AppError("Role ID is required.", AppError.BAD_REQUEST);
-  }
+  // roleId is OPTIONAL. When a client states it we honour it (all existing
+  // frontends do). When it is omitted we resolve the user's own role from
+  // UserRole, so a console never has to assert a role client-side — a queue
+  // dispatcher (role 12) could not otherwise sign in through a console that
+  // hardcoded 11. The role is never taken on trust: the JWT is only minted for
+  // a role the user actually holds (see otp.service.js verifyUserByOTP).
 
   // Check if at least one identity is provided
   if (!phoneNumber?.trim() && !email?.trim()) {
@@ -193,6 +196,22 @@ const loginUser = async (phoneNumber, roleId, email = null) => {
   }
 
   // PERFORMANCE FIX: Use exact match on indexed columns instead of wildcard search
+  const identityConditions = phoneNumber
+    ? {
+        // Same format-tolerance as registration: +251…, 251… and 0… all
+        // resolve to the single canonical +251… identity stored in Users.
+        "Users.phoneNumber": (() => {
+          const variants = phoneNumberVariants(phoneNumber);
+          return variants.length > 1 ? variants : phoneNumber;
+        })(),
+      }
+    : {
+        "Users.email": email,
+      };
+  if (roleId) {
+    identityConditions["UserRole.roleId"] = roleId;
+  }
+
   const userDataResult = await performJoinSelect({
     baseTable: "Users",
     joins: [
@@ -205,20 +224,7 @@ const loginUser = async (phoneNumber, roleId, email = null) => {
         on: "UserRole.userRoleId = UserRoleStatusCurrent.userRoleId",
       },
     ],
-    conditions: phoneNumber
-      ? {
-          // Same format-tolerance as registration: +251…, 251… and 0… all
-          // resolve to the single canonical +251… identity stored in Users.
-          "Users.phoneNumber": (() => {
-            const variants = phoneNumberVariants(phoneNumber);
-            return variants.length > 1 ? variants : phoneNumber;
-          })(),
-          "UserRole.roleId": roleId,
-        }
-      : {
-          "Users.email": email,
-          "UserRole.roleId": roleId,
-        },
+    conditions: identityConditions,
   });
   if (!userDataResult || userDataResult.length === 0) {
     throw new AppError(
@@ -235,6 +241,22 @@ const loginUser = async (phoneNumber, roleId, email = null) => {
   const userData = userDataResult[0]; // Core user info is same for all rows
   if (userData?.isDeleted || userData?.userDeletedAt) {
     throw new AppError("Account has been deleted", AppError.FORBIDDEN);
+  }
+
+  // Resolve which role this login is for. An explicit roleId was already used
+  // as a query filter above, so this only has to infer when it was omitted.
+  if (!roleId) {
+    const roleIds = [...new Set(userDataResult.map((row) => row.roleId))];
+    if (roleIds.length === 0) {
+      throw new AppError("No active role assigned to this account.", AppError.FORBIDDEN);
+    }
+    if (roleIds.length > 1) {
+      throw new AppError(
+        "This account holds multiple roles. Sign in from the application for the role you need.",
+        AppError.BAD_REQUEST,
+      );
+    }
+    roleId = roleIds[0];
   }
 
   // Find the specific role the user is trying to log into

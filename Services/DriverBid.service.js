@@ -213,20 +213,64 @@ exports.approveBidding = async ({
  * @param {number} [params.limit=20]
  * @returns {Promise<{message: string, data: Array, pagination: Object}>}
  */
-exports.getBidsForOrder = async ({ shipperRequestUniqueId, page = 1, limit = 20 }) => {
+exports.getBidsForOrder = async ({
+  shipperRequestUniqueId,
+  page = 1,
+  limit = 20,
+  user,
+}) => {
   const executor = db();
   const offset = (page - 1) * limit;
 
-  // Ensure the order exists.
+  // Ensure the order exists. Joined to its batch so we can apply the same
+  // ownership fence as approveBidding — without it this endpoint hands any
+  // authenticated caller every bidder's name, phone number and bid amount for
+  // any order id they can guess.
   const [orderRows] = await executor.query(
-    `SELECT shipperRequestUniqueId, journeyStatusId, requestMode
-       FROM ShipperRequest
-      WHERE shipperRequestUniqueId = ? AND shipperRequestDeletedAt IS NULL
+    `SELECT sr.shipperRequestUniqueId, sr.journeyStatusId, sr.requestMode,
+            srb.queueOrganizationUniqueId, srb.shipperUserUniqueId
+       FROM ShipperRequest sr
+       LEFT JOIN ShipperRequestBatch srb
+         ON srb.batchUniqueId = sr.shipperRequestBatchUniqueId
+      WHERE sr.shipperRequestUniqueId = ? AND sr.shipperRequestDeletedAt IS NULL
       LIMIT 1`,
     [shipperRequestUniqueId],
   );
   if (orderRows.length === 0) {
     throw new AppError("Order not found", AppError.NOT_FOUND);
+  }
+
+  // Mirrors the approveBidding fence: shipper owner, SuperAdmin, or an active
+  // QueueOrgAdmin (role 11) of the order's queue org.
+  const order = orderRows[0];
+  const isSuperAdmin = user?.roleId === usersRoles.supperAdminRoleId;
+  const ownsOrder = order.shipperUserUniqueId === user?.userUniqueId;
+  const isQueueOrgAdmin = user?.roleId === usersRoles.queueOrgAdminRoleId;
+  if (!isSuperAdmin && !ownsOrder && !isQueueOrgAdmin) {
+    throw new AppError(
+      "You are not authorized to view the bids for this order",
+      AppError.FORBIDDEN,
+    );
+  }
+  if (isQueueOrgAdmin && !ownsOrder && !isSuperAdmin) {
+    const [memberships] = await executor.query(
+      `SELECT 1 FROM QueueOrganizationMembership
+        WHERE queueOrganizationUniqueId = ?
+          AND userUniqueId = ? AND roleId = ? AND isActive = TRUE
+          AND membershipDeletedAt IS NULL
+        LIMIT 1`,
+      [
+        order.queueOrganizationUniqueId,
+        user.userUniqueId,
+        usersRoles.queueOrgAdminRoleId,
+      ],
+    );
+    if (memberships.length === 0) {
+      throw new AppError(
+        "You are not authorized to view the bids for this order",
+        AppError.FORBIDDEN,
+      );
+    }
   }
 
   const [[{ total }]] = await executor.query(

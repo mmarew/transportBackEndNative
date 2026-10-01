@@ -40,12 +40,16 @@ const {
  * @param {string} [req.body.phoneNumber] - The user's phone number.
  * @param {string} [req.body.email] - The user's email address.
  * @param {string} req.body.OTP - The user-provided 6-digit code.
- * @param {number} req.body.roleId - The requested role to log into.
+ * @param {number} [req.body.roleId] - The requested role to log into; when omitted, the user's single assigned role is used.
  * @returns {Promise<Object>} An object containing the JWT token, success message, and exact `verificationStatus` flags.
  * @throws {AppError} 401 Unauthorized if OTP doesn't match; 404 if user not found; 403 if deleted.
  */
 const verifyUserByOTP = async (req) => {
-  const { phoneNumber, email, OTP, roleId } = req.body;
+  const { phoneNumber, email, OTP } = req.body;
+  // `let`: the role is optional at the wire and resolved from the user's own
+  // roles below when the client does not assert one (a queue dispatcher must
+  // never be made to pretend it is the role-11 queue administrator).
+  let roleId = req.body.roleId;
   if (!OTP || (!phoneNumber && !email)) {
     throw new AppError(
       "OTP and identity (phone/email) are required",
@@ -176,14 +180,31 @@ const verifyUserByOTP = async (req) => {
       },
     });
   }
-  const userInRoleId = await getData({
+  // Resolve the role the token is minted for.
+  //
+  // The requested role is never trusted: it is only ever accepted if a
+  // UserRole row proves the user actually holds it. When the client omits
+  // roleId (a console that should not assert a role — a queue dispatcher is
+  // role 12, not 11) we resolve the user's own single role instead.
+  const userRoles = await getData({
     tableName: "UserRole",
     conditions: {
-      roleId,
       userUniqueId: userRow.userUniqueId,
     },
   });
-  if (userInRoleId.length === 0) {
+  if (!userRoles || userRoles.length === 0) {
+    throw new AppError("No active role assigned to this account.", AppError.FORBIDDEN);
+  }
+  if (!roleId) {
+    const roleIds = [...new Set(userRoles.map((row) => row.roleId))];
+    if (roleIds.length > 1) {
+      throw new AppError(
+        "This account holds multiple roles. Sign in from the application for the role you need.",
+        AppError.BAD_REQUEST,
+      );
+    }
+    roleId = roleIds[0];
+  } else if (!userRoles.some((row) => row.roleId === roleId)) {
     throw new AppError("user not found in this role", AppError.UNAUTHORIZED);
   }
   const tokenData = createJWT({

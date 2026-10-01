@@ -6,6 +6,22 @@ const { pool } = require("./Database.config");
 const Config = require("../Utils/Config");
 const secretKey = Config.SECRET_KEY;
 
+/**
+ * STATUS CODE CONVENTION FOR THE ROLE GUARDS BELOW
+ * -------------------------------------------------
+ * 401 UNAUTHORIZED — "we could not establish who you are" (missing, malformed,
+ *                    expired or revoked token).
+ * 403 FORBIDDEN    — "we know exactly who you are, and the answer is no"
+ *                    (role not permitted, membership inactive).
+ *
+ * Every role guard in this file returns 403 for a permission denial. Returning
+ * 401 there breaks web clients: queadmin-frontend (src/lib/redux/api/base.ts)
+ * dispatches logout() on ANY 401 from ANY endpoint, and AuthContext then POSTs
+ * /user/logout to clear the httpOnly cookie. A 401 therefore logs the user out
+ * and destroys the session, where a 403 shows an inline "not permitted" error.
+ * Keep 401 exclusively for identity failures.
+ */
+
 /** Extracts a JWT from Authorization: Bearer <tok> or the session cookie. */
 const extractToken = (req) => {
   const authHeader = req?.headers?.authorization;
@@ -129,7 +145,11 @@ const verifyIfUserIsSupperAdmin = async (req, res, next) => {
     const data = decoded?.data;
     const roleId = data?.roleId;
     if (roleId !== usersRoles.supperAdminRoleId) {
-      return next(new AppError("You are not allowed to do this action", AppError.UNAUTHORIZED));
+      // 403, not 401. The caller is authenticated; the answer is simply "no".
+      // Returning 401 here makes web clients treat a permission denial as an
+      // expired session and log the user out (queadmin-frontend
+      // src/lib/redux/api/base.ts dispatches logout() on any 401).
+      return next(new AppError("You are not allowed to do this action", AppError.FORBIDDEN));
     }
     next();
   } catch {
@@ -156,7 +176,7 @@ const verifyIfUserIsAdminOrSupperAdmin = async (req, res, next) => {
       roleId !== usersRoles.adminRoleId &&
       roleId !== usersRoles.supperAdminRoleId
     ) {
-      return next(new AppError("You are not allowed to do this action", AppError.UNAUTHORIZED));
+      return next(new AppError("You are not allowed to do this action", AppError.FORBIDDEN));
     }
     next();
   } catch {
@@ -184,7 +204,7 @@ const verifyIfUserIsAdminSuperAdminOrCompanyAdmin = async (req, res, next) => {
       roleId !== usersRoles.supperAdminRoleId &&
       roleId !== usersRoles.companyAdminRoleId
     ) {
-      return next(new AppError("You are not allowed to do this action", AppError.UNAUTHORIZED));
+      return next(new AppError("You are not allowed to do this action", AppError.FORBIDDEN));
     }
     next();
   } catch {
@@ -229,7 +249,7 @@ const verifyIfUserIsQueueOrgAdmin = async (req, res, next) => {
       roleId !== usersRoles.adminRoleId &&
       roleId !== usersRoles.supperAdminRoleId
     ) {
-      return next(new AppError("You are not allowed to do this action", AppError.UNAUTHORIZED));
+      return next(new AppError("You are not allowed to do this action", AppError.FORBIDDEN));
     }
 
     // Suspension enforcement: platform admins (3/6) are always allowed; org
@@ -309,7 +329,7 @@ const verifyIfUserIsAdminSuperAdminCompanyAdminOrQueueOrgAdmin = async (
       roleId !== usersRoles.companyAdminRoleId &&
       roleId !== usersRoles.queueOrgAdminRoleId
     ) {
-      return next(new AppError("You are not allowed to do this action", AppError.UNAUTHORIZED));
+      return next(new AppError("You are not allowed to do this action", AppError.FORBIDDEN));
     }
     next();
   } catch {

@@ -23,6 +23,19 @@ exports.memberParams = Joi.object({
   membershipUniqueId: uuidSchema.required(),
 });
 
+// Partial update (PATCH) — at least one updatable field must be present.
+exports.updateMember = Joi.object({
+  companyRoleUniqueId: uuidSchema.optional(),
+  membershipStartDate: Joi.date().iso().optional(),
+  membershipEndDate: Joi.date().iso().optional().allow(null),
+})
+  .min(1)
+  .unknown(false)
+  .messages({
+    "object.min": "Provide at least one field to update: companyRoleUniqueId, membershipStartDate or membershipEndDate",
+    "object.unknown": "Unknown field provided",
+  });
+
 exports.getMembersQuery = Joi.object({
   companyUniqueId: uuidSchema.optional(),
   userUniqueId: Joi.alternatives()

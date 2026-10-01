@@ -6,6 +6,7 @@ const COMPANY_MEMBERSHIP_ENDPOINTS = {
   GET_ALL_COMPANY_MEMBERSHIPS: "/api/company/memberships",
   REACTIVATE_COMPANY_MEMBERSHIP: "/api/company/memberships/:membershipUniqueId/reactivate",
   DEACTIVATE_COMPANY_MEMBERSHIP: "/api/company/memberships/:membershipUniqueId/deactivate",
+  UPDATE_COMPANY_MEMBERSHIP: "/api/company/memberships/:membershipUniqueId",
   DELETE_COMPANY_MEMBERSHIP: "/api/company/memberships/:membershipUniqueId",
 
   // Relative paths — used by Express router (already mounted at /api/company/memberships)
@@ -14,6 +15,7 @@ const COMPANY_MEMBERSHIP_ENDPOINTS = {
     GET_ALL_COMPANY_MEMBERSHIPS: "/",
     REACTIVATE_COMPANY_MEMBERSHIP: "/:membershipUniqueId/reactivate",
     DEACTIVATE_COMPANY_MEMBERSHIP: "/:membershipUniqueId/deactivate",
+    UPDATE_COMPANY_MEMBERSHIP: "/:membershipUniqueId",
     DELETE_COMPANY_MEMBERSHIP: "/:membershipUniqueId",
   },
 

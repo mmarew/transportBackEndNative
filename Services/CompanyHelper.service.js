@@ -3,7 +3,8 @@
 const { transactionStorage } = require("../Utils/TransactionContext");
 const { pool } = require("../Middleware/Database.config");
 const { PAGINATION } = require("../Utils/Constants");
-const { companyRoles } = require("../Utils/ListOfSeedData");
+const { companyRoles, usersRoles } = require("../Utils/ListOfSeedData");
+const AppError = require("../Utils/AppError");
 
 const db = () => transactionStorage.getStore() || pool;
 
@@ -82,10 +83,47 @@ async function resolveOwnerUserUniqueIds(companyUniqueIds) {
   return Object.fromEntries(rows.map((r) => [r.companyUniqueId, r.userUniqueId]));
 }
 
+// Ownership guard for company-scoped resources.
+//
+// Previously the membership lifecycle routes (activate/deactivate/delete) and
+// the console's member/vehicle edits trusted the id in the URL: any
+// authenticated user could mutate any company's data by guessing a UUID. Every
+// company-scoped mutation now resolves the owning company from the row itself
+// and checks the caller is a member of it (platform admins may act on any).
+//
+// `resolveCompanyForRow` is injected by the caller to keep this helper free of
+// any dependency on a particular table.
+async function assertCompanyAccess(user, ownedCompanyUniqueId) {
+  if (!ownedCompanyUniqueId) {
+    throw new AppError("Resource not found", AppError.NOT_FOUND);
+  }
+
+  const roleId = user?.roleId;
+  const isPlatformAdmin =
+    roleId === usersRoles.adminRoleId || roleId === usersRoles.supperAdminRoleId;
+  if (isPlatformAdmin) return ownedCompanyUniqueId;
+
+  const [rows] = await db().query(
+    `SELECT companyUniqueId FROM CompanyMembership
+     WHERE userUniqueId = ? AND companyUniqueId = ?
+       AND isActive = 1 AND membershipDeletedAt IS NULL
+     LIMIT 1`,
+    [user?.userUniqueId, ownedCompanyUniqueId],
+  );
+  if (!rows || rows.length === 0) {
+    throw new AppError(
+      `Access Denied: you are not an active member of the company that owns this resource`,
+      AppError.FORBIDDEN,
+    );
+  }
+  return ownedCompanyUniqueId;
+}
+
 module.exports = {
   db,
   paginate,
   paginatedQuery,
   resolveOwnerUserUniqueId,
   resolveOwnerUserUniqueIds,
+  assertCompanyAccess,
 };

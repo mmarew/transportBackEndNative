@@ -9,6 +9,7 @@ const DRIVER_QUEUE_ENDPOINTS = {
   REMOVE_ENTRY: "/api/queue/entry/:queueUniqueId",
   DISPATCH: "/api/queue/dispatch",
   ENTRY_HISTORY: "/api/queue/entry/:queueUniqueId/history",
+  DRIVER_DIRECTORY: "/api/queue/driverDirectory",
   APPROVE_BIDDING: "/api/queue/bidding/approve",
   GET_BIDS_FOR_ORDER: "/api/queue/bidding/order/:shipperRequestUniqueId/bids",
 
@@ -23,6 +24,7 @@ const DRIVER_QUEUE_ENDPOINTS = {
     REMOVE_ENTRY: "/entry/:queueUniqueId",
     DISPATCH: "/dispatch",
     ENTRY_HISTORY: "/entry/:queueUniqueId/history",
+    DRIVER_DIRECTORY: "/driverDirectory",
     APPROVE_BIDDING: "/bidding/approve",
     GET_BIDS_FOR_ORDER: "/bidding/order/:shipperRequestUniqueId/bids",
   },

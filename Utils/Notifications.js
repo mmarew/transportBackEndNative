@@ -60,9 +60,47 @@ const AppError = require("./AppError");
 const { db } = require("../Services/CompanyHelper.service");
 const { SocketUserTypes } = require("./SocketUserTypes");
 const { notifyQueueOrgAdmins } = require("./QueueSocket");
+const messageTypes = require("./MessageTypes");
 
 // Regular expression to validate phone numbers (only digits, between 9 and 15 digits)
 const phoneNumberRegex = /^[0-9]{9,15}$/;
+
+// The socket envelope has always carried only the human-readable copy
+// (`messageTypes.message`), never the canonical key from MessageTypes. Clients
+// were therefore forced to string-match on prose, which silently broke whenever
+// the copy changed — and failed outright for a few events whose prose the client
+// never matched at all. Build a reverse index from the very object the emitters
+// already reference and stamp the stable key onto the envelope.
+//
+// Prose is not unique: "Your bid was not selected" is shared by
+// `company_bid_not_selected` and `driver_bid_not_selected`. Resolution is
+// therefore scoped by recipient prefix so a company socket never receives (and
+// never keys on) the driver's variant.
+const messageTypeKeysByProse = new Map();
+for (const [key, value] of Object.entries(messageTypes)) {
+  const prose = value && value.message;
+  if (!prose) continue;
+  const bucket = messageTypeKeysByProse.get(prose);
+  if (bucket) bucket.push(key);
+  else messageTypeKeysByProse.set(prose, [key]);
+}
+
+const resolveMessageTypeKey = (prose, keyPrefix) => {
+  const keys = messageTypeKeysByProse.get(prose);
+  if (!keys || keys.length === 0) return undefined;
+  if (keys.length === 1) return keys[0];
+  const scoped = keyPrefix ? keys.find((k) => k.startsWith(keyPrefix)) : undefined;
+  return scoped || keys[0];
+};
+
+// Additive: the envelope keeps `messageTypes`, `message` and `data` untouched,
+// so existing consumers that match on prose keep working.
+const withMessageTypeKey = (message, keyPrefix) => {
+  if (!message || typeof message !== "object") return message;
+  if (typeof message.type === "string" && message.type) return message;
+  const key = resolveMessageTypeKey(message.messageTypes?.message, keyPrefix);
+  return key ? { ...message, type: key } : message;
+};
 
 // Clean phone number by removing non-digit characters
 const cleanPhoneNumber = (phoneNumber) => {
@@ -171,7 +209,7 @@ const sendSocketIONotificationToShipper = async ({
     });
     const res = await emitMessage({
       eventName: eventName || "messages",
-      messageDetails: JSON.stringify(message),
+      messageDetails: JSON.stringify(withMessageTypeKey(message, "shipper_")),
       socketId,
     });
 
@@ -227,7 +265,7 @@ const sendSocketIONotificationToAdmin = async ({ message, eventName }) => {
       try {
         const res = await emitMessage({
           eventName: eventName || "messages",
-          messageDetails: JSON.stringify(message),
+          messageDetails: JSON.stringify(withMessageTypeKey(message)),
           socketId,
         });
 
@@ -325,7 +363,7 @@ const sendSocketIONotificationToCompany = async ({
 
         const res = await emitMessage({
           eventName: eventName || "messages",
-          messageDetails: JSON.stringify(message),
+          messageDetails: JSON.stringify(withMessageTypeKey(message, "company_")),
           socketId,
         });
 

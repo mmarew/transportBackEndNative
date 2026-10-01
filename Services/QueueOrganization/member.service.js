@@ -110,7 +110,7 @@ const assertMembershipBelongsToOrg = async (
 };
 
 /**
- * Add a member (role 11 QueueOrgAdmin, or role 1 shipper) to a queue org.
+ * Add a member (role 11 QueueOrgAdmin or role 12 QueueDispatcher) to a queue org.
  * Mirrors CompanyMembership.addMember.
  */
 exports.addMember = async (
@@ -183,7 +183,7 @@ exports.addMember = async (
 /**
  * List queue organization members.
  * @param {string} queueOrganizationUniqueId
- * @param {object} [query] - Optional filters: roleId (1 shipper / 11 queueOrgAdmin),
+ * @param {object} [query] - Optional filters: roleId (11 queueOrgAdmin / 12 queueDispatcher),
  *                           isActive (boolean)
  * @param {object} [user] - Acting user. Platform admins (3/6) see any org;
  *                          QueueOrgAdmin (11) must be an active member of the org.

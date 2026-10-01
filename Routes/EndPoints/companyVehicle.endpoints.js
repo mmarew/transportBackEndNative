@@ -3,6 +3,7 @@ const COMPANY_VEHICLE_ENDPOINTS = {
   ASSIGN_VEHICLE: "/api/company/fleet",
   GET_COMPANY_VEHICLES: "/api/company/fleet",
   MOVE_VEHICLE: "/api/company/fleet",
+  UPDATE_VEHICLE: "/api/company/fleet/:companyVehicleUniqueId",
   REMOVE_VEHICLE: "/api/company/fleet/:companyVehicleUniqueId",
 
   // Relative paths — used by Express router (already mounted at /api/company/fleet)
@@ -10,6 +11,7 @@ const COMPANY_VEHICLE_ENDPOINTS = {
     ASSIGN_VEHICLE: "/",
     GET_COMPANY_VEHICLES: "/",
     MOVE_VEHICLE: "/",
+    UPDATE_VEHICLE: "/:companyVehicleUniqueId",
     REMOVE_VEHICLE: "/:companyVehicleUniqueId",
   },
 

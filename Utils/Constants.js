@@ -33,6 +33,25 @@ const HTTP_STATUS = {
 // Domain rules
 const DOMAIN = {
   OTP_LENGTH: 6,
+  /**
+   * QueueOrganization.queueOrganizationType. Keep in sync with the MySQL ENUM
+   * in Database/Database.js and scripts/migrate-queue-org-types.js.
+   *
+   * The original enum was derived from the sites that existed at the time
+   * (customs, cement), so mining sites and farms had nowhere to go but "other" —
+   * and nothing type-specific can attach to "other". `port` is the stated use
+   * case for the console and was equally missing.
+   */
+  QUEUE_ORGANIZATION_TYPES: [
+    "customs",
+    "factory",
+    "cement",
+    "depot",
+    "mine",
+    "farm",
+    "port",
+    "other",
+  ],
   MAX_RATING: 5,
   MAX_INDIVIDUAL_TARGET_VEHICLES: 9,
   USER_SEARCH_FIELD_COUNT: 9,

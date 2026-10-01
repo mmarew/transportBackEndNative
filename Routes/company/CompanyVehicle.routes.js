@@ -30,6 +30,17 @@ router.get(
 router.put(EP.ROUTER.MOVE_VEHICLE, validator(schema.moveVehicle), controller.moveVehicle);
 
 /**
+ * @route   PATCH /api/company/fleet/:companyVehicleUniqueId
+ * @desc    Partially update a fleet assignment's status and/or dates.
+ */
+router.patch(
+  EP.ROUTER.UPDATE_VEHICLE,
+  validator(schema.companyVehicleParams, "params"),
+  validator(schema.updateCompanyVehicle),
+  controller.updateCompanyVehicle,
+);
+
+/**
  * @route   DELETE /api/company/fleet/:companyVehicleUniqueId
  */
 router.delete(

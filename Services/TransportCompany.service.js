@@ -395,6 +395,62 @@ exports.getCompanies = async (filters = {}, user = {}) => {
 };
 
 /**
+ * Asserts the caller may modify the given company's profile.
+ *
+ * Platform Admin (3) / SuperAdmin (6) may edit any company. Everyone else must
+ * be an active member of that specific company, and hold a company role that
+ * can edit company-level data (owner / manager / dispatcher) — mirroring the
+ * rule AuthorizeDocumentAccess uses for company-owned documents.
+ *
+ * @param {string} companyUniqueId
+ * @param {Object} [user] - Authenticated user object ({ userUniqueId, roleId })
+ * @throws {AppError} 401 when no user, 403 when not permitted
+ * @returns {Promise<void>}
+ */
+const assertCompanyEditableBy = async (companyUniqueId, user) => {
+  if (!user?.userUniqueId) {
+    throw new AppError("Authentication required", AppError.UNAUTHORIZED);
+  }
+
+  const isPlatformAdmin =
+    user.roleId === usersRoles.adminRoleId ||
+    user.roleId === usersRoles.supperAdminRoleId;
+
+  if (isPlatformAdmin) return;
+
+  const [membershipRows] = await db().query(
+    `SELECT companyRoleUniqueId
+     FROM CompanyMembership
+     WHERE userUniqueId = ?
+       AND companyUniqueId = ?
+       AND isActive = 1
+       AND membershipDeletedAt IS NULL
+     LIMIT 1`,
+    [user.userUniqueId, companyUniqueId],
+  );
+
+  if (!membershipRows.length) {
+    throw new AppError(
+      "Forbidden: you are not an active member of this company.",
+      AppError.FORBIDDEN,
+    );
+  }
+
+  const editableCompanyRoles = new Set([
+    companyRoles.ownerUniqueId,
+    companyRoles.managerUniqueId,
+    companyRoles.dispatcherUniqueId,
+  ]);
+
+  if (!editableCompanyRoles.has(membershipRows[0].companyRoleUniqueId)) {
+    throw new AppError(
+      "Forbidden: your company role does not permit editing company details.",
+      AppError.FORBIDDEN,
+    );
+  }
+};
+
+/**
  * Updates an existing transport company's profile.
  * NOTE: Company Logo is now managed via the Documents system (Profile Photo ID 4).
  *
@@ -404,7 +460,12 @@ exports.getCompanies = async (filters = {}, user = {}) => {
  * @returns {Promise<Object>} Success message
  * @throws {AppError} 404 if not found, 409 on duplicate fields
  */
-exports.updateCompany = async (companyUniqueId, data, updatedBy) => {
+exports.updateCompany = async (companyUniqueId, data, updatedBy, user) => {
+  // The route guard only proves the caller holds the CompanyAdmin *role*. Without
+  // this membership check, any company admin could rewrite any other company's
+  // profile by guessing its id.
+  await assertCompanyEditableBy(companyUniqueId, user);
+
   const allowed = [
     "companyName",
     "companyRegistrationNumber",
@@ -492,7 +553,20 @@ exports.updateCompany = async (companyUniqueId, data, updatedBy) => {
     changedBy: updatedBy,
   });
 
-  return { message: "Company updated successfully", data: null };
+  // Return the persisted row. The frontend merges this response into its company
+  // cache and renders "Member since" from it, so returning `data: null` forced
+  // the client to trust its own optimistic copy and silently dropped any
+  // server-side normalization.
+  const [[updatedRow]] = await db().query(
+    // `documentCompliance` is a derived summary assembled in getCompanies(), not a
+    // column — selecting it here fails with ER_BAD_FIELD_ERROR.
+    `SELECT companyUniqueId, companyName, companyRegistrationNumber, companyPhone,
+            companyEmail, companyAddress, approvalStatus, companyCreatedAt
+     FROM TransportCompany WHERE companyUniqueId = ? AND isDeleted = 0 LIMIT 1`,
+    [companyUniqueId],
+  );
+
+  return { message: "Company updated successfully", data: updatedRow ?? null };
 };
 
 exports.approveCompany = async (

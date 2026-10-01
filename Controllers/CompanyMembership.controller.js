@@ -42,6 +42,7 @@ exports.activateMember = async (req, res, next) => {
       service.activateMember(
         req.params.membershipUniqueId,
         req.user.userUniqueId,
+        req.user,
       ),
     );
     ServerResponder(res, result);
@@ -56,7 +57,19 @@ exports.deactivateMember = async (req, res, next) => {
       service.deactivateMember(
         req.params.membershipUniqueId,
         req.user.userUniqueId,
+        req.user,
       ),
+    );
+    ServerResponder(res, result);
+  } catch (e) {
+    next(e);
+  }
+};
+
+exports.updateMember = async (req, res, next) => {
+  try {
+    const result = await executeInTransaction(() =>
+      service.updateMember(req.params.membershipUniqueId, req.body, req.user),
     );
     ServerResponder(res, result);
   } catch (e) {
@@ -70,6 +83,7 @@ exports.deleteMember = async (req, res, next) => {
       service.deleteMember(
         req.params.membershipUniqueId,
         req.user.userUniqueId,
+        req.user,
       ),
     );
     ServerResponder(res, result);

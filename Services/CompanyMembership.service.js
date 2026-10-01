@@ -3,7 +3,12 @@
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
-const { db, paginate, paginatedQuery } = require("./CompanyHelper.service");
+const {
+  db,
+  paginate,
+  paginatedQuery,
+  assertCompanyAccess,
+} = require("./CompanyHelper.service");
 const { getData } = require("../CRUD/Read/ReadData");
 const { usersRoles } = require("../Utils/ListOfSeedData");
 const { insertHistoryRecord } = require("./History/History.service");
@@ -136,12 +141,13 @@ exports.getMembers = async (filters = {}, user = {}) => {
   );
 };
 
-exports.activateMember = async (membershipUniqueId, updatedBy) => {
+exports.activateMember = async (membershipUniqueId, updatedBy, user = {}) => {
   const [existing] = await db().query(
-    "SELECT membershipUniqueId FROM CompanyMembership WHERE membershipUniqueId = ?",
+    "SELECT membershipUniqueId, companyUniqueId FROM CompanyMembership WHERE membershipUniqueId = ? AND membershipDeletedAt IS NULL",
     [membershipUniqueId],
   );
   if (existing.length === 0) {throw new AppError("Membership not found", AppError.NOT_FOUND);}
+  await assertCompanyAccess(user, existing[0].companyUniqueId);
 
   await insertHistoryRecord({
     sourceTable: "CompanyMembership",
@@ -159,12 +165,13 @@ exports.activateMember = async (membershipUniqueId, updatedBy) => {
   return { message: "Member activated successfully", data: null };
 };
 
-exports.deactivateMember = async (membershipUniqueId, updatedBy) => {
+exports.deactivateMember = async (membershipUniqueId, updatedBy, user = {}) => {
   const [existing] = await db().query(
-    "SELECT membershipUniqueId FROM CompanyMembership WHERE membershipUniqueId = ?",
+    "SELECT membershipUniqueId, companyUniqueId FROM CompanyMembership WHERE membershipUniqueId = ? AND membershipDeletedAt IS NULL",
     [membershipUniqueId],
   );
   if (existing.length === 0) {throw new AppError("Membership not found", AppError.NOT_FOUND);}
+  await assertCompanyAccess(user, existing[0].companyUniqueId);
 
   await insertHistoryRecord({
     sourceTable: "CompanyMembership",
@@ -182,12 +189,13 @@ exports.deactivateMember = async (membershipUniqueId, updatedBy) => {
   return { message: "Member deactivated successfully", data: null };
 };
 
-exports.deleteMember = async (membershipUniqueId, deletedBy) => {
+exports.deleteMember = async (membershipUniqueId, deletedBy, user = {}) => {
   const [existing] = await db().query(
-    "SELECT membershipUniqueId FROM CompanyMembership WHERE membershipUniqueId = ?",
+    "SELECT membershipUniqueId, companyUniqueId FROM CompanyMembership WHERE membershipUniqueId = ? AND membershipDeletedAt IS NULL",
     [membershipUniqueId],
   );
   if (existing.length === 0) {throw new AppError("Membership not found", AppError.NOT_FOUND);}
+  await assertCompanyAccess(user, existing[0].companyUniqueId);
 
   await insertHistoryRecord({
     sourceTable: "CompanyMembership",
@@ -203,4 +211,68 @@ exports.deleteMember = async (membershipUniqueId, deletedBy) => {
     [currentDate(), deletedBy, membershipUniqueId],
   );
   return { message: "Member deleted successfully", data: null };
+};
+
+// Partial update of a membership's role and/or dates (D1).
+//
+// The console's "edit member" form submitted to `/api/company/members/:id`,
+// which does not exist; the real mount is `/api/company/memberships` and it had
+// no generic update. Role and dates are the only fields a membership edit may
+// change — identity (companyUniqueId / userUniqueId) is fixed at creation, and
+// active/deleted state has dedicated activate/deactivate/delete endpoints.
+const UPDATABLE_COLUMNS = {
+  companyRoleUniqueId: "companyRoleUniqueId",
+  membershipStartDate: "membershipStartDate",
+  membershipEndDate: "membershipEndDate",
+};
+
+exports.updateMember = async (membershipUniqueId, changes = {}, user = {}) => {
+  const [existing] = await db().query(
+    `SELECT membershipUniqueId, companyUniqueId, membershipStartDate, membershipEndDate
+     FROM CompanyMembership
+     WHERE membershipUniqueId = ? AND membershipDeletedAt IS NULL`,
+    [membershipUniqueId],
+  );
+  if (existing.length === 0) {
+    throw new AppError("Membership not found", AppError.NOT_FOUND);
+  }
+  await assertCompanyAccess(user, existing[0].companyUniqueId);
+
+  const setParts = [];
+  const values = [];
+  for (const [field, column] of Object.entries(UPDATABLE_COLUMNS)) {
+    if (changes[field] !== undefined) {
+      setParts.push(`${column} = ?`);
+      values.push(changes[field]);
+    }
+  }
+  if (setParts.length === 0) {
+    throw new AppError(
+      "No updatable fields provided. Expected at least one of: companyRoleUniqueId, membershipStartDate, membershipEndDate.",
+      AppError.BAD_REQUEST,
+    );
+  }
+
+  await insertHistoryRecord({
+    sourceTable: "CompanyMembership",
+    conditions: { membershipUniqueId },
+    changeType: "UPDATE",
+    changedByUserId: user.userUniqueId,
+  });
+
+  setParts.push("membershipUpdatedBy = ?", "membershipUpdatedAt = ?");
+  values.push(user.userUniqueId, currentDate(), membershipUniqueId);
+
+  await db().query(
+    `UPDATE CompanyMembership SET ${setParts.join(", ")} WHERE membershipUniqueId = ?`,
+    values,
+  );
+
+  const [updated] = await db().query(
+    `SELECT membershipUniqueId, companyUniqueId, userUniqueId, companyRoleUniqueId,
+            isActive, membershipStartDate, membershipEndDate, membershipUpdatedAt
+     FROM CompanyMembership WHERE membershipUniqueId = ?`,
+    [membershipUniqueId],
+  );
+  return { message: "Member updated successfully", data: updated?.[0] ?? null };
 };

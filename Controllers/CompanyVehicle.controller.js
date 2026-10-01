@@ -46,12 +46,28 @@ exports.moveVehicle = async (req, res, next) => {
   }
 };
 
+exports.updateCompanyVehicle = async (req, res, next) => {
+  try {
+    const result = await executeInTransaction(() =>
+      service.updateCompanyVehicle(
+        req.params.companyVehicleUniqueId,
+        req.body,
+        req.user,
+      ),
+    );
+    ServerResponder(res, result);
+  } catch (e) {
+    next(e);
+  }
+};
+
 exports.removeVehicle = async (req, res, next) => {
   try {
     const result = await executeInTransaction(() =>
       service.removeVehicle(
         req.params.companyVehicleUniqueId,
         req.user.userUniqueId,
+        req.user,
       ),
     );
     ServerResponder(res, result);

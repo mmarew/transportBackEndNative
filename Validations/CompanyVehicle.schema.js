@@ -44,3 +44,16 @@ exports.moveVehicle = Joi.object({
     .optional(),
   assignmentEndDate: Joi.date().iso().optional().allow(null),
 }).unknown(true);
+
+// PATCH /api/company/fleet/:companyVehicleUniqueId — partial assignment update.
+exports.updateCompanyVehicle = Joi.object({
+  assignmentStatus: Joi.string().valid("active", "inactive").optional(),
+  assignmentStartDate: Joi.date().iso().optional(),
+  assignmentEndDate: Joi.date().iso().optional().allow(null),
+})
+  .min(1)
+  .unknown(false)
+  .messages({
+    "object.min": "Provide at least one field to update: assignmentStatus, assignmentStartDate or assignmentEndDate",
+    "object.unknown": "Unknown field provided",
+  });
