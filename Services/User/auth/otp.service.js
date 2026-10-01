@@ -193,7 +193,10 @@ const verifyUserByOTP = async (req) => {
     },
   });
   if (!userRoles || userRoles.length === 0) {
-    throw new AppError("No active role assigned to this account.", AppError.FORBIDDEN);
+    throw new AppError(
+      "No active role assigned to this account.",
+      AppError.FORBIDDEN,
+    );
   }
   if (!roleId) {
     const roleIds = [...new Set(userRoles.map((row) => row.roleId))];

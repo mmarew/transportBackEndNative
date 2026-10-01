@@ -31,4 +31,3 @@ test-e2e.log
 .env.sample
 .env.dev.sample
 .env.sample
-QUEUE_PREEMPTION_PLAN.md

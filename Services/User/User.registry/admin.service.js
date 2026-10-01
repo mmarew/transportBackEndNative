@@ -88,7 +88,7 @@ const createUserByAdminOrSuperAdmin = async ({
       }
       if (!isPlaceholderEmail(email)) {
         return {
-          message: "User operation completed",
+          message: "User created successfully",
           data: null,
         };
       }
@@ -104,7 +104,7 @@ const createUserByAdminOrSuperAdmin = async ({
         } else {
           // Same phone + Same placeholder = Same user. We're done.
           return {
-            message: "User operation completed",
+            message: "User created successfully",
             data: null,
           };
         }
@@ -154,7 +154,7 @@ const createUserByAdminOrSuperAdmin = async ({
       }
 
       return {
-        message: "User operation completed",
+        message: "User created successfully",
         data: null,
       };
     }

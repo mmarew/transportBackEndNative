@@ -70,7 +70,7 @@ const ensureCredentialForUser = async ({ userUniqueId, rawPassword }) => {
     if (upd?.affectedRows === 0) {
       throw new AppError("Unable to update credential", AppError.INTERNAL_SERVER_ERROR);
     }
-    return { message: "User operation completed" };
+    return { message: "Credentials updated successfully" };
   }
 
   const credentialColAndVal = {
@@ -95,7 +95,7 @@ const ensureCredentialForUser = async ({ userUniqueId, rawPassword }) => {
   if (ins?.affectedRows === 0) {
     throw new AppError("Unable to create credential", AppError.INTERNAL_SERVER_ERROR);
   }
-  return { message: "User operation completed" };
+  return { message: "Credentials updated successfully" };
 };
 /**
  * Assign a role to a user, creating the UserRole row and an initial
