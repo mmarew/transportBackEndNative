@@ -15,6 +15,7 @@ const CORE_USER_TYPES = [
   "queueOrgAdmin",
   "driver",
   "shipper",
+  "shipper2",
 ];
 
 const ensureCoreUsers = async ({ fetchAccount = true } = {}) => {

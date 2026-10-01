@@ -117,6 +117,28 @@ exports.dispatch = async (req, res, next) => {
 };
 
 /**
+ * GET /api/queue/entry/:queueUniqueId/yardPass
+ *
+ * Loading-yard gate verdict for one queue entry. PASS ⇔ the entry holds an
+ * active order (status 3/5/6/7/8); HOLD carries a machine-readable reason.
+ * See Services/DriverQueue/position.service.js (exports.yardPass).
+ *
+ * @param {import('express').Request} req - Express request (params.queueUniqueId).
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Express next.
+ */
+exports.yardPass = async (req, res, next) => {
+  try {
+    ServerResponder(
+      res,
+      await service.yardPass(req.params.queueUniqueId),
+    );
+  } catch (e) {
+    next(e);
+  }
+};
+
+/**
  * GET /api/queue/entry/:queueUniqueId/history
  *
  * Returns the snapshot audit trail for a queue entry. Each row is a FULL

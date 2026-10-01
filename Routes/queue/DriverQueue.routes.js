@@ -355,6 +355,46 @@ router.get(
   controller.getEntryHistory,
 );
 
+/**
+ * @route   GET /api/queue/entry/:queueUniqueId/yardPass
+ * @summary Yard-gate verdict for a queue entry (loading-yard authority)
+ *
+ * @description
+ * The loading yard's turn order is decided by WHO HOLDS A JOB, not by queue
+ * number: a driver whose entry has an active order (status 3 agreed → 8
+ * journeyStarted) may enter the yard regardless of their queueNumber, while
+ * waiting/reserved drivers must stay out until they receive and accept an
+ * order. This endpoint is the gate guard's source of truth — scan or type the
+ * entry UUID and get an authoritative PASS/HOLD with the reason, so a
+ * "queue number 1 says it's my turn" dispute is settled by the system.
+ *
+ * HOLD reasons:
+ *   - waiting_for_job_offer  — in line, no order offered yet
+ *   - offer_pending_accept   — an order is on the driver's screen but not
+ *                              accepted yet (no yard access until accept)
+ *   - reserved_not_assigned  — position reserved for a specific shipper who
+ *                              has not placed/assigned an order yet
+ *   - not_in_queue           — no live entry
+ *
+ * @access  Private (QueueOrgAdmin / Admin / SuperAdmin)
+ * @params  {string}  queueUniqueId  UUID of the queue entry (required)
+ *
+ * @returns {Object}  { message, data: { verdict: "PASS"|"HOLD", reason,
+ *                      queue: { queueUniqueId, queueNumber, status, stage },
+ *                      driver: { driverUserUniqueId, fullName, phoneNumber },
+ *                      vehicle: { licensePlate, vehicleTypeName },
+ *                      order: { shipperRequestUniqueId, shippableItemName,
+ *                               shipperName } | null } }
+ *
+ * @example GET /api/queue/entry/a1b2c3d4-.../yardPass
+ */
+router.get(
+  EP.ROUTER.YARD_PASS,
+  verifyIfUserIsQueueOrgAdmin,
+  validator(schema.entryParams, "params"),
+  controller.yardPass,
+);
+
 // ===========================================================================
 // BIDDING BOARD (flag-only — isBiddingApproved on the batch)
 // ===========================================================================

@@ -16,6 +16,7 @@ const logger = require("../../../Utils/logger");
 // Removed unused import: VerifyIfShipperRequestWasNotRejected
 // Removed unused import: VerifyIfShipperRequestWasNotRejected
 const { getVehicleDrivers } = require("../../VehicleDriver.service");
+const { pool } = require("../../../Middleware/Database.config");
 
 // Removed unused import: executeInTransaction
 // Import helpers from helpers.js
@@ -24,6 +25,26 @@ const { getVehicleDrivers } = require("../../VehicleDriver.service");
 
 const verifyDriverJourneyStatus = async ({ userUniqueId, activeRequest }) => {
   try {
+    // ── DRIVER QUEUE CONTEXT (Fix C) ──────────────────────────────
+    // One truth block for the app: the two-number model (immutable
+    // queueNumber + derived linePosition), hasActiveJob, activeOrder,
+    // reservation and the yard-gate verdict. Attached to EVERY response
+    // below — including the "no active request" ones, because a driver can
+    // be waiting in a queue (or merely reserved for a shipper) with no
+    // DriverRequest at all. Field name `driverQueue` avoids colliding with
+    // the existing `queue` org object that handleExistingJourney returns.
+    let driverQueue = null;
+    try {
+      const { driverQueueContext } = require("../../DriverQueue");
+      driverQueue = await driverQueueContext(pool, { userUniqueId });
+    } catch (queueError) {
+      logger.warn("driverQueueContext unavailable for verifyDriverJourneyStatus", {
+        error: queueError.message,
+        userUniqueId,
+      });
+    }
+    const withQueue = (payload) => ({ ...payload, driverQueue });
+
     // Step 1: Check if the driver has a vehicle via VehicleDriver relation
     const vdResult = await getVehicleDrivers({
       driverUserUniqueId: userUniqueId,
@@ -46,12 +67,12 @@ const verifyDriverJourneyStatus = async ({ userUniqueId, activeRequest }) => {
     const driverRequest = activeRequest?.[0];
     logger.debug("@driverRequest", driverRequest);
     if (!driverRequest) {
-      return {
+      return withQueue({
         message: "Driver journey status verified",
         data: null,
         status: null,
         vehicle,
-      };
+      });
     }
 
     // Step 3: Validate journey status
@@ -64,23 +85,25 @@ const verifyDriverJourneyStatus = async ({ userUniqueId, activeRequest }) => {
       notificationStatuses,
     );
     if (isTerminalStatus(journeyStatusId) && !shouldHandleStatus) {
-      return {
+      return withQueue({
         message: "No active driver request",
         data: null,
         status: null,
         vehicle,
         driver: null,
         shipper: null,
-      };
+      });
     }
     if (journeyStatusId === journeyStatusMap.waiting) {
-      return await handleJourneyStatusOne(
-        driverRequest,
-        vehicle,
-        vehicleTypeUniqueId,
+      return withQueue(
+        await handleJourneyStatusOne(
+          driverRequest,
+          vehicle,
+          vehicleTypeUniqueId,
+        ),
       );
     }
-    return await handleExistingJourney(driverRequest, vehicle);
+    return withQueue(await handleExistingJourney(driverRequest, vehicle));
   } catch (error) {
     logger.error("Error in verifyDriverJourneyStatus", {
       error: error.message,

@@ -2,6 +2,7 @@
 
 module.exports = {
   ...require("./helpers"),
+  ...require("./accept-linkage.service"),
   ...require("./dispatch-notify"),
   ...require("./dispatch-offer.service"),
   ...require("./dispatch.service"),

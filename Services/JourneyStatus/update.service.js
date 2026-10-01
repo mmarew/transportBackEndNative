@@ -493,6 +493,93 @@ const updateJourneyStatus = async body => {
     // Execute all updates in parallel and wait for all to complete
     const results = await Promise.all(updatePromises);
 
+    // ── QUEUE ACCEPT LINKAGE / LOSER RELEASE ───────────────────────────
+    // (root-cause fix for "has a job but queue says WAITING")
+    //
+    // acceptedByDriver (3): link the driver's live, UNLINKED DriverQueue
+    // entry to the accepted order and mark it AGREED. FIFO offers self-link
+    // at offer time and are finalized by markEntryAgreed (the internal guards
+    // skip entries already holding an order / orders already held elsewhere).
+    // BID-BASE / check-in-pull / distance offers never linked the entry — the
+    // driver stayed WAITING in the queue while holding an accepted job, so the
+    // yard, the board and every waitingAhead count were wrong.
+    //
+    // notSelectedInBid: a losing bidder who ACCEPTED the bid holds their entry
+    // AGREED-with-linkage; release it back to WAITING (position kept) so the
+    // phantom job holder does not block the line. Runs alongside the legacy
+    // releaseEntryForUnselectedBidder (REQUESTED-only) in the shipper-select
+    // flow — both are idempotent.
+    //
+    // Runs OUTSIDE the parallel update block: it resolves its own transaction
+    // context and never blocks on the callers' connections.
+    const isQueueAccept =
+      journeyStatusId === journeyStatusMap.acceptedByDriver;
+    const isBidLoser =
+      journeyStatusId === journeyStatusMap.notSelectedInBid;
+    if ((isQueueAccept || isBidLoser) && (shipperRequestUniqueId || driverRequestUniqueId)) {
+      try {
+        const {
+          linkQueueEntryOnAccept,
+          releaseAgreedEntryForUnselectedBidder,
+        } = require("../DriverQueue.service");
+        const hookExecutor = transactionStorage.getStore() ?? connection ?? pool;
+        // Resolve the order from the decision the driverRequest belongs to when
+        // the caller identified the accept/loss by driverRequest only.
+        const resolvedShipperRequestUniqueId =
+          shipperRequestUniqueId ||
+          (await (async () => {
+            const [rows] = await hookExecutor.query(
+              `SELECT sr.shipperRequestUniqueId
+               FROM DriverRequest dr
+               JOIN JourneyDecisions jd ON jd.driverRequestId = dr.driverRequestId
+               JOIN ShipperRequest sr   ON sr.shipperRequestId = jd.shipperRequestId
+               WHERE dr.driverRequestUniqueId = ?
+                 AND dr.driverRequestDeletedAt IS NULL
+               ORDER BY jd.journeyDecisionId DESC LIMIT 1`,
+              [driverRequestUniqueId],
+            );
+            return rows?.[0]?.shipperRequestUniqueId || null;
+          })());
+        // Resolve the acting driver when the caller did not name them.
+        const driverUserUniqueId =
+          body.driverUserUniqueId ||
+          (await (async () => {
+            if (!driverRequestUniqueId) return null;
+            const [rows] = await hookExecutor.query(
+              `SELECT userUniqueId FROM DriverRequest
+               WHERE driverRequestUniqueId = ?
+                 AND driverRequestDeletedAt IS NULL
+               LIMIT 1`,
+              [driverRequestUniqueId],
+            );
+            return rows?.[0]?.userUniqueId || null;
+          })());
+        if (resolvedShipperRequestUniqueId && driverUserUniqueId) {
+          if (isQueueAccept) {
+            await linkQueueEntryOnAccept({
+              shipperRequestUniqueId: resolvedShipperRequestUniqueId,
+              driverUserUniqueId,
+              actorUserUniqueId: body.journeyStatusUpdatedBy || body.userUniqueId || null,
+            });
+          } else {
+            await releaseAgreedEntryForUnselectedBidder({
+              shipperRequestUniqueId: resolvedShipperRequestUniqueId,
+              userUniqueId: driverUserUniqueId,
+              actorUserUniqueId: body.journeyStatusUpdatedBy || body.userUniqueId || null,
+            });
+          }
+        }
+      } catch (linkError) {
+        // Bookkeeping only — the status transition itself has already committed.
+        logger.error("Queue accept/loser linkage failed (status committed)", {
+          error: linkError.message,
+          shipperRequestUniqueId,
+          driverRequestUniqueId,
+          journeyStatusId,
+        });
+      }
+    }
+
     // Log summary of all updates
     logger.info("Journey status update completed", {
       journeyUniqueId,

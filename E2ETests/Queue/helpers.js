@@ -28,6 +28,7 @@ const { armExpect, disarmExpect } = require("../Expect");
 const superAdminToken = () => usersData.supperAdmin?.token;
 const adminToken = () => usersData.admin?.token;
 const shipperToken = () => usersData.shipper?.token;
+const shipper2Token = () => usersData.shipper2?.token;
 const driverToken = (driverKey) => usersData[driverKey]?.token;
 
 const ensureAdminTokens = async () => {
@@ -161,6 +162,19 @@ const ensureShipper = async () => {
   );
   usersData.shipper.accountData = account.data;
   queueState.shipper.userUniqueId =
+    account.data?.data?.userData?.userUniqueId ||
+    account.data?.data?.user?.userUniqueId ||
+    account.data?.userData?.userUniqueId;
+};
+
+const ensureShipper2 = async () => {
+  await ensureUser({ userType: "shipper2" });
+  const account = await axios.get(
+    backendURL + "/api/shipper/account",
+    authConfig(shipper2Token()),
+  );
+  usersData.shipper2.accountData = account.data;
+  queueState.shipper2.userUniqueId =
     account.data?.data?.userData?.userUniqueId ||
     account.data?.data?.user?.userUniqueId ||
     account.data?.userData?.userUniqueId;
@@ -513,6 +527,19 @@ const createQueueOrder = async ({ queueOrganizationUniqueId, vehicleTypeUniqueId
   return res.data;
 };
 
+/**
+ * Create a queue order as shipper2 (the second shipper used by the
+ * shipper-turn yard-rule tests). Same payload shape as createQueueOrder.
+ */
+const createQueueOrderAsShipper2 = async (params) => {
+  const res = await axios.post(
+    backendURL + SHIPPER_REQUEST_ENDPOINTS.CREATE_REQUEST,
+    buildQueueOrderPayload(params),
+    authConfig(shipper2Token()),
+  );
+  return res.data;
+};
+
 const rejectDriverOffer = async ({ shipperRequestUniqueId, driverRequestUniqueId, journeyDecisionUniqueId, shipperRequestId, journeyStatusId = journeyStatusMap.requested }) => {
   const res = await axios.put(
     backendURL + SHIPPER_REQUEST_ENDPOINTS.REJECT_DRIVER_OFFER,
@@ -529,9 +556,10 @@ const rejectDriverOffer = async ({ shipperRequestUniqueId, driverRequestUniqueId
 };
 
 const cancelOrder = async ({ orderUniqueId, cancelAs = "shipper" }) => {
-  const token =
-    cancelAs === "shipper" ? shipperToken() : cancelAs === "admin" ? adminToken() : superAdminToken();
-  const owner = cancelAs === "shipper" ? queueState.shipper.userUniqueId : queueState.shipper.userUniqueId;
+  const tokenByActor = { shipper: shipperToken(), shipper2: shipper2Token(), admin: adminToken() };
+  const token = tokenByActor[cancelAs] || superAdminToken();
+  const ownerShipperKey = cancelAs === "shipper2" ? "shipper2" : "shipper";
+  const owner = queueState[ownerShipperKey].userUniqueId;
   const res = await axios.put(
     backendURL +
       SHIPPER_REQUEST_ENDPOINTS.CANCEL_SHIPPER_REQUEST.replace(
@@ -593,14 +621,14 @@ const getQueueEntryByOrder = async ({ queueOrganizationUniqueId, orderUniqueId, 
   return rows[0] || null;
 };
 
-const getLatestOrders = async (count = 1) => {
+const getLatestOrders = async (count = 1, shipperKey = "shipper") => {
   const [rows] = await pool.query(
     `SELECT shipperRequestUniqueId, journeyStatusId
      FROM ShipperRequest
      WHERE shipperRequestCreatedBy = ?
      ORDER BY shipperRequestCreatedAt DESC, shipperRequestId DESC
      LIMIT ?`,
-    [queueState.shipper.userUniqueId, count],
+    [queueState[shipperKey].userUniqueId, count],
   );
   return rows;
 };
@@ -687,12 +715,14 @@ module.exports = {
   superAdminToken,
   adminToken,
   shipperToken,
+  shipper2Token,
   driverToken,
   ensureAdminTokens,
   getVehicleTypes,
   registerQueueDrivers,
   registerQueueOrgAdmin,
   ensureShipper,
+  ensureShipper2,
   onboardQueueDriver,
   activateQueueDriver,
   createQueueOrganization,
@@ -712,6 +742,7 @@ module.exports = {
   getEntryHistory,
   buildQueueOrderPayload,
   createQueueOrder,
+  createQueueOrderAsShipper2,
   rejectDriverOffer,
   cancelOrder,
   acceptOrder,

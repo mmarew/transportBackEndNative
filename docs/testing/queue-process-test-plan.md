@@ -641,6 +641,95 @@ Legend — **P**: priority (High/Med/Low). **Auth**: who executes. **Pre**: prec
 
 ---
 
+### 7.14 Yard Authority + Two-Number Queue Model (QYA)
+
+> Automated: `E2ETests/Queue/QueueYardAccess.js`. Design:
+> [queue-dispatch-design.md §12](../queue-dispatch-design.md). The loading
+> yard's turn = **who holds a job**, never the stored queueNumber; the
+> displayed turn is the derived `linePosition` over drivers still waiting.
+
+#### QYA-01 · FIFO accept renumbers the waiting line + loadingNow lane — **High**
+
+- **Pre:** org approved+enabled; d1/d2/d3 (typeA) checked in → queueNumbers 1/2/3; d4 (typeB) reserved for the shipper. FIFO order O offered to d1.
+- **Steps:** d2 and d3 poll `myPosition`; d1 accepts O; poll again; fetch `GET /api/queue/status`.
+- **Expected:**
+  - Pre-accept: d2 `waitingAhead=1, linePosition=2`; d3 `linePosition=3`; both `hasActiveJob=false`.
+  - Post-accept: d2 `waitingAhead=0, linePosition=1`; d3 `waitingAhead=1, linePosition=2`; stored `queueNumber` unchanged for both.
+  - d1 entry `status=3 (agreed)` with `shipperRequestUniqueId=O`.
+  - Board `lanes.<type>.loadingNow` contains d1; `waiting` shows d2 at `linePosition 1`; `statistics.loadingNow ≥ 1`.
+
+#### QYA-02 · yardPass — PASS for job holder, HOLD for waiting — **High**
+
+- **Steps:** `GET /api/queue/entry/:queueUniqueId/yardPass` for d1's entry, then d2's (QueueOrgAdmin token).
+- **Expected:** d1 → `verdict=PASS`, `order.shipperRequestUniqueId=O`, `vehicle.licensePlate` present. d2 → `verdict=HOLD`, `reason=waiting_for_job_offer`.
+
+#### QYA-03 · Reservation is NOT a job — **High**
+
+- **Pre:** d4 checked in with `shipperPhoneNumber` (reserved, never assigned an order).
+- **Steps:** d4 `myPosition` + `GET /api/driver/verifyDriverJourneyStatus`.
+- **Expected:** `hasActiveJob=false`; `yardAccess=HOLD(reserved_not_assigned)`; `reservation` visible on both responses; no waiting-line regression for other drivers.
+
+#### QYA-04 · Bid-base accept LINKS the queue entry (root-cause fix) — **High**
+
+- **Pre:** fresh org; d2/d3 checked in; bid-base order O2 (`isBiddingApproved=TRUE`) created NEAR the drivers → creation-time bid board invites both with bare decisions (entries stay `waiting`, unlinked — the incident state).
+- **Steps:** d2 accepts O2.
+- **Expected:**
+  - d2 entry flips `1 → 3 (agreed)` and carries `shipperRequestUniqueId=O2`.
+  - d2 `myPosition`: `hasActiveJob=true`, `yardAccess=PASS`, `activeOrder` set, `linePosition=null`.
+  - `verifyDriverJourneyStatus.driverQueue` agrees (`hasActiveJob=true`, `yardAccess=PASS`).
+
+#### QYA-05 · Shipper-select releases the losing bidder's AGREED entry — **High**
+
+- **Pre:** QYA-04 state, then d3 also accepts O2 (their entry AGREED+linked).
+- **Steps:** shipper selects d2 as winner (`PUT /api/shipper/acceptDriverOffer`).
+- **Expected:** winner d2 keeps linkage; loser d3 entry back to `waiting(1)`, linkage AND yard-entrance number cleared (`loadingOrderNumber` NULL), `queueNumber` preserved (position kept), `myPosition` shows `linePosition=1`, `hasActiveJob=false`.
+
+#### QYA-06 · `loadingOrderNumber` issued write-once at accept (continuous per org+day) — **High**
+
+> Automated in `QueueYardAccess.js` (Suite A). Requires migration
+> `scripts/migrate-loading-order.js` applied (env: `NODE_ENV=development node
+> scripts/migrate-loading-order.js`).
+
+- **Pre:** QYA-01 state — d1 accepted the FIFO order; d2/d3 waiting; d4 reserved.
+- **Steps:** read d1–d4 entries (DB `dq.*`) and d1 `myPosition`.
+- **Expected:**
+  - d1 entry `loadingOrderNumber = 1` (first number of the org+day sequence).
+  - d2/d3/d4 (no job held) `loadingOrderNumber IS NULL` — the number exists only once a job is held.
+  - `myPosition.queue.loadingOrderNumber = 1` — the read surfaces the PERSISTED column (no recomputation).
+
+#### QYA-07 · Shipper-turn gate — only the serving shipper's trucks enter — **High**
+
+> Automated in `QueueYardAccess.js` (Suite C, org3). Exercises BOTH levels of
+> the two-level yard rule.
+
+- **Pre:** fresh org; d1/d2/d3 checked in. Shipper1's order offered to d1 (accepts → shipper1 SERVING, entrance number 1). Shipper2's two orders taken by d2 then d3 (both accept → the day's sequence continues: 2 and 3). All three entries AGREED with linkage.
+- **Steps:** yardPass for all three entries; d1/d2 `myPosition`; `GET /api/queue/status`.
+- **Expected:**
+  - Numbers: d1 `=1` (shipper1, serving); d2 `=2`, d3 `=3` (shipper2's trucks continue the same sequence, despite their own queueNumbers).
+  - Gate: d1 → `PASS` with `servingShipper` = shipper1; d2/d3 → `HOLD reason=waiting_shipper_turn` with `queue.loadingOrderNumber` present and the same `servingShipper` named; `order` still identifies the held order.
+  - `myPosition`: d1 `yardAccess=PASS`; d2 `hasActiveJob=true` + `yardAccess=HOLD(waiting_shipper_turn)` — a job is still yard AUTHORITY, but the shipper turn closes the gate.
+  - Board: `data.shipperTurn.servingShipperUserUniqueId` = shipper1; `loadingNow` ordered d1(1) → d2(2) → d3(3) by the persisted numbers; the lane entries of shipper2's trucks show `yardAccess HOLD(waiting_shipper_turn)`.
+
+#### QYA-08 · Legacy AGREED-ghost checkout — **High**
+
+> Automated in `QueueYardAccess.js` (Suite C, after QYA-07).
+
+- **Pre:** QYA-07 state (d1 holds a LINKED order as the serving shipper).
+- **Steps:**
+  1. d1 calls `DELETE /api/queue/driver/checkout` while holding the linked job → refused.
+  2. Forge the legacy ghost (SQL: `shipperRequestUniqueId = NULL`, `agreedAt = NULL`, `loadingOrderNumber = NULL`, status stays 3) on d1's entry.
+  3. d1 calls checkout again.
+- **Expected:**
+  - Step 1 → `409` "You hold an active job — cancel the order or complete the journey before leaving the queue" (a real job must leave via cancel/complete, never checkout — the order must not be orphaned).
+  - Step 3 → success: entry soft-deleted, myPosition returns no live position. Previously this returned `404 Driver is not in the queue for today` (checkout only scanned waiting statuses) while `myPosition` still showed the phantom job holder — the exact incident report.
+
+#### QYA-09 · Multi-order loading line (A:40 vs B:15) — **Medium** (manual/SQL)
+
+- **Pre:** two orders (shipper A, shipper B) accepted by drivers at different times.
+- **Expected:** `GET /api/queue/status` `lanes.<type>.loadingNow` is ordered by the persisted `loadingOrderNumber` (ONE continuous sequence per org+day — A:1,2,3 → B:4,5,6,7; numberless legacy rows last by `agreedAt`), NOT by queueNumber — and `data.shipperTurn` names the shipper of the lowest live number as the serving one; their trucks PASS while the other shipper's AGREED trucks show `HOLD(waiting_shipper_turn)` until their turn.
+
+---
+
 ## 8. Entry Criteria
 
 - Code for queue process merged and deployable to test env.

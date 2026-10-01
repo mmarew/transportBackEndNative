@@ -441,3 +441,168 @@ The server record is the only truth. When "driver 1000 says I'm before you":
 - The earlier check-in wins. A driver cannot change their number; moving up
   requires re-joining (new number at the back) or a supervisor override (audit
   logged).
+
+## 12. Yard authority — the loading turn is the JOB, not the queueNumber
+
+> Status: **IMPLEMENTED** (plus a persisted `DriverQueue.loadingOrderNumber`
+> column for the yard-entrance number — see §12.6, migration
+> `scripts/migrate-loading-order.js`). Motivated by a real incident: driver #1
+> (waiting, no job) blocked driver #2 at the loading-yard gate because "queue
+> number 2 is below number 1 on the screen" — while driver #2 actually held an
+> accepted order.
+
+### 12.1 The three-number model
+
+| Number | What it is | Changes? |
+| ------ | ---------- | -------- |
+| `queueNumber` | Immutable **arrival** number per (org, date, vehicle type). Dispatch FIFO + audit/dispute anchor. | **Never** — no renumbering, ever. |
+| `linePosition` | **Derived** turn among drivers still WAITING (status 1/2/16/18): waiting drivers ahead + 1. | Recomputed on every read; the line renumbers itself automatically as drivers get jobs. |
+| `loadingOrderNumber` | **Persisted** yard-entrance number, issued write-once at accept: **ONE continuous sequence per (org, date)** — the first shipper's trucks take 1,2,3 and the next shipper's trucks continue 4,5,6,7, regardless of each truck's queueNumber. | **Never** while the job is held; issued once at accept, cleared when the entry is released back to waiting. §12.6. |
+
+With 100 vehicles where #30 took a job: #1–29 see no change, #31 now displays
+`linePosition 30`, #100 displays 99, and #30 shows in the loading lane with a
+`yardAccess PASS`. When #30 finishes and re-checks-in they get queueNumber 101
+at the back. The stored numbers keep full history; the displayed line renumbers
+itself.
+
+### 12.2 Job authority (computed, not stored)
+
+`hasActiveJob(status)` ⇔ status ∈ {3 agreed, 5 go-to-loading, 6 loading,
+7 loaded, 8 journey-started} (`JOB_STATUSES` in
+`Services/DriverQueue/helpers.js`). A driver with `hasActiveJob = true` has
+**left the waiting line** and may enter the loading yard regardless of their
+queueNumber. The complement (`IN_QUEUE_STATUSES` = 1/2/16/18) is the waiting
+set. Every live entry is exactly one of the two (`LIVE_ENTRY_STATUSES`).
+
+Yard verdict (`yardAccessForEntry`):
+
+| verdict | reason | meaning |
+| ------- | ------ | ------- |
+| `PASS` | — | holds a job → may enter the yard |
+| `HOLD` | `waiting_for_job_offer` | in line, nothing offered yet |
+| `HOLD` | `offer_pending_accept` | an order is on the driver's screen but NOT accepted yet |
+| `HOLD` | `reserved_not_assigned` | position reserved for a shipper (`targetedShipperUserUUID`) whose order has not been assigned — a **reservation is not a job** |
+| `HOLD` | `waiting_shipper_turn` | holds a job (AGREED, status 3) but ANOTHER shipper is being served at the yard — the shipper-turn overlay (§12.4); trucks already sent to the bay (status 5+) always PASS |
+| `HOLD` | `not_in_queue` | no live entry today |
+
+### 12.3 Where the fields are surfaced
+
+- `GET /api/driver/verifyDriverJourneyStatus` — every response now carries a
+  `driverQueue` block: `{ inQueue, queueNumber, linePosition, waitingAhead,
+  hasActiveJob, activeOrder, reservation, yardAccess }`. One poll answers
+  "do I have a job, what is my real turn, can I enter the yard".
+- `POST /api/queue/driver/checkin` + `GET /api/queue/driver/myPosition` — same
+  fields on the entry (`myPosition` now also reports job-holder entries, which
+  the street/market fences rely on).
+- `GET /api/queue/status` — each vehicle-type group additionally appears under
+  `data.lanes` as `{ loadingNow, waiting }` (plus `statistics.loadingNow`).
+  `queues` stays the flat array for backward compatibility. Waiting entries
+  carry their derived `linePosition`; job holders carry their persisted
+  `loadingOrderNumber`. `data.shipperTurn.servingShipperUserUniqueId` names
+  the shipper whose turn it is, and the loadingNow lane is **gated**: an
+  AGREED truck of a non-serving shipper shows `yardAccess HOLD
+  (waiting_shipper_turn)`.
+- **Gate check (new):** `GET /api/queue/entry/:queueUniqueId/yardPass`
+  (QueueOrgAdmin) — the guard scans/types the entry and gets an authoritative
+  `PASS { driver, vehicle, order }` or `HOLD { reason }`, both with the
+  `servingShipper` named and the entry's `loadingOrderNumber`. This is the
+  answer to "queue number 1 says it's my turn": the gate decides by job +
+  shipper turn, not by number.
+
+### 12.4 The two-level yard rule (shipper turn + continuous entrance sequence)
+
+Multiple shippers share one yard (e.g. shipper A ordered 40 vehicles, shipper B
+15). **Level 1 — the shipper's turn comes before the driver's order**: the
+shipper of the **lowest live yard-entrance number** is the **serving shipper**;
+only their job-holding vehicles may enter the yard, and the other shippers'
+agreed trucks wait outside the gate. **Level 2 — within the serving shipper's
+turn, trucks enter in entrance-number order** — even when those trucks checked
+in as queueNumbers 100/120/130.
+
+1. **Assignment** still comes from the single FIFO waiting line: the oldest
+   pending order is offered to the front waiting driver first, so assignments
+   interleave across orders by time (A → B → A → …).
+2. **The yard-entrance number (`loadingOrderNumber`) is issued write-once at
+   accept** — `MAX(existing)+1` scoped to (org, date), stamped in the same
+   UPDATE that flips the entry to AGREED. ONE continuous sequence for the day:
+   shipper A's trucks take 1,2,3 and shipper B's trucks continue 4,5,6,7.
+   Waiting entries carry NULL; a released bidder's number is cleared with the
+   linkage. Never recomputed on read — reads surface the stored column.
+3. **Serving shipper** = the shipper of the **lowest live loadingOrderNumber**
+   (status 3/5/6/7/8) for the org+day (`servingShipperFor`, one indexed
+   lookup; the sequence is continuous, so the lowest is unique and no
+   tie-break is needed). An AGREED (status 3) holder of another shipper HOLDs
+   at the gate with `waiting_shipper_turn`; trucks already sent to the loading
+   place or beyond (status 5/6/7/8) are inside by right of work and always
+   PASS.
+4. **The loading sequence = the persisted number**, then `agreedAt` for the
+   numberless legacy rows (fallback `joinedAt`, then `queueNumber`). No
+   per-read filtering/recomputation — the board reads the column.
+5. The queue-org admin can still reorder/remove via the existing supervisor
+   override endpoints (audit logged) for operational reality (bay sizes,
+   no-shows).
+
+### 12.5 Accept linkage — the root-cause fix
+
+BID-BASE orders (`isBiddingApproved = TRUE`) are matched on the bidding board
+(check-in pull / order-creation distance match), which creates a bare
+`JourneyDecision` and historically **never wrote the order onto the accepting
+driver's DriverQueue entry** — the driver kept status 1 (WAITING), still
+counted in everyone's `waitingAhead`, and the yard could not see their job.
+
+Fix: `updateJourneyStatus` (`Services/JourneyStatus/update.service.js`) — the
+choke point every accept flows through — now calls
+`linkQueueEntryOnAccept` (`Services/DriverQueue/accept-linkage.service.js`) on
+every transition to `acceptedByDriver (3)`. It links the driver's live,
+**unlinked** entry to the accepted order, marks it AGREED, and stamps
+`agreedAt` — guarded so FIFO offers (already linked) and orders already held by
+another entry are untouched. The mirror call on `notSelectedInBid`
+(`releaseAgreedEntryForUnselectedBidder`) releases a losing bidder's
+AGREED-linked entry back to WAITING (position kept) when the shipper selects
+another driver.
+
+With linkage in place, the existing lifecycle matches by
+`shipperRequestUniqueId` and works for these orders automatically: journey
+progress (5/6/7/8) mirrors onto the entry, completion closes it, and
+driver-cancel-after-accept forfeits the slot.
+
+**Legacy ghosts get a way out:** a pre-linkage entry can sit at status 3 with
+NO order linkage anywhere (the bid decision never resolved). Checkout used to
+scan only the waiting statuses (1/2/16/18) and told these drivers "Driver is
+not in the queue for today" (404) while `myPosition` still showed them as
+phantom job holders. `checkout` now scans ALL live statuses: a job holder
+WITH a resolvable order (direct or legacy-healed) is refused with 409 — the
+order must leave by cancel/complete — while a linkage-less AGREED ghost is
+released by checkout (QYA-08).
+
+Tests: `E2ETests/Queue/QueueYardAccess.js` (QYA-01..08).
+
+### 12.6 `loadingOrderNumber` — the persisted yard-entrance number
+
+> Migration: `NODE_ENV=development node scripts/migrate-loading-order.js`
+> (adds `DriverQueue.loadingOrderNumber INT NULL` + index
+> `idx_queue_loading_order (queueOrganizationUniqueId, queueDate,
+> loadingOrderNumber)`, then backfills live legacy entries: per org+day,
+> ordered by `agreedAt`, `queueId` — continuing after the highest already-
+> issued number so issued numbers are immutable).
+
+- **Issuance (write-once, at accept):**
+  `markEntryAgreed` (lifecycle.service.js, FIFO + bid fallback) and
+  `linkQueueEntryOnAccept` (accept-linkage.service.js, board/distance-match
+  accepts) both stamp `loadingOrderNumber =
+  COALESCE(MAX(loadingOrderNumber),0)+1` per (org, date) — one continuous
+  sequence, shippers included in accept order — in the same UPDATE as the
+  AGREED flip. The `FOR UPDATE` row locks on the entry serialize concurrent
+  issuers reading the same MAX.
+- **Clearing:** `releaseAgreedEntryForUnselectedBidder` (loser back to
+  WAITING) clears the number with the linkage. Terminal/soft-deleted rows
+  keep their number for the audit trail; the MAX deliberately includes them
+  so numbers are **never reused** within a shipper's day.
+- **Level-1 gate:** `yardAccessWithShipperTurn(executor, entry)` overlays the
+  shipper-turn verdict on top of the base job verdict (used by
+  `driverQueueContext`, `myPosition`, `yardPass`).
+- **Reads:** `publicEntry`/`buildQueueEntry`/`driverQueueContext` surface
+  `loadingOrderNumber`; `getQueueStatus` orders the loadingNow lane by the
+  stored number and names `shipperTurn.servingShipperUserUniqueId`;
+  DriverQueueHistory mirrors the column (snapshot SELECT + DDL kept in
+  equal-column lockstep).

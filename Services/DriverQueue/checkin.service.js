@@ -24,6 +24,7 @@ const {
   hasActiveJourney,
   getDriverQueueState,
   resolveActiveVehicleDriver,
+  driverQueueContext,
 } = require("./helpers");
 const { rescanPendingQueueOrder } = require("./dispatch.service");
 const { notifyShipperOfQueueReservation } = require("./dispatch-notify");
@@ -197,6 +198,14 @@ exports.checkin = async (data) => {
         performedBy: user.userUniqueId,
       });
     }
+    // Canonical shape: attach the driverQueue context (two-number model,
+    // hasActiveJob, reservation, yardAccess) so re-check-in answers the same
+    // questions myPosition/verifyDriverJourneyStatus answer.
+    const recheckQueueContext = await driverQueueContext(
+      executor,
+      user,
+      queueOrganizationUniqueId,
+    );
     return {
       message: "success",
       data: {
@@ -208,6 +217,7 @@ exports.checkin = async (data) => {
           targetedShipperUserUUID || active.targetedShipperUserUUID || null,
         queueOrganizationUniqueId: active.queueOrganizationUniqueId,
         queueOrganizationName: active.queueOrganizationName,
+        driverQueue: recheckQueueContext,
       },
     };
   }
@@ -342,6 +352,15 @@ exports.checkin = async (data) => {
     });
   }
 
+  // Canonical shape: the fresh entry carries the driverQueue context too
+  // (linePosition 1..N among waiting drivers, yardAccess HOLD until a job is
+  // assigned). Runs inside the check-in transaction so the fresh row is
+  // visible to the context query.
+  const freshQueueContext = await driverQueueContext(
+    executor,
+    user,
+    queueOrganizationUniqueId,
+  );
   return {
     message: "success",
     data: {
@@ -351,6 +370,7 @@ exports.checkin = async (data) => {
       queueNumber,
       position: queueNumber,
       vehicleTypeUniqueId: vehicleDriver.vehicleTypeUniqueId,
+      driverQueue: freshQueueContext,
     },
   };
 };

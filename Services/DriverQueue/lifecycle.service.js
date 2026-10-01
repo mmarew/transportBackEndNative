@@ -13,6 +13,7 @@ const {
   QUEUE_STATUS,
   HISTORY_EVENT,
   logQueueHistory,
+  nextLoadingNumber,
 } = require("./helpers");
 const { offerToNextDriver, applyRefusalPolicy } = require("./release.service");
 const { notifyShipperOfQueueEvent } = require("./dispatch-notify");
@@ -123,7 +124,7 @@ exports.updateQueueEntryOnJourneyProgress = async ({
   journeyStatusId,
 }) => {
   const executor = db();
-  const [rows] = await executor.query(
+  let [rows] = await executor.query(
     `SELECT queueId, queueUniqueId, queueOrganizationUniqueId, queueDate, status
      FROM DriverQueue
      WHERE shipperRequestUniqueId = ? AND status IN (
@@ -136,6 +137,21 @@ exports.updateQueueEntryOnJourneyProgress = async ({
      LIMIT 1`,
     [shipperRequestUniqueId],
   );
+  // LEGACY FALLBACK: entries AGREED by the pre-linkage bid path carry no
+  // shipperRequestUniqueId (driver-id only). They are job holders too — mirror
+  // their journey progress by driver id so they never stall on AGREED.
+  if (rows.length === 0 && userUniqueId) {
+    [rows] = await executor.query(
+      `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate, dq.status
+       FROM DriverQueue dq
+       JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+       WHERE vd.driverUserUniqueId = ? AND dq.status = ${QUEUE_STATUS.AGREED}
+         AND dq.shipperRequestUniqueId IS NULL
+         AND dq.queueDeletedAt IS NULL
+       ORDER BY dq.queueNumber DESC LIMIT 1`,
+      [userUniqueId],
+    );
+  }
   if (rows.length === 0 || rows[0].status === journeyStatusId) {
     return { updated: false };
   }
@@ -150,6 +166,9 @@ exports.updateQueueEntryOnJourneyProgress = async ({
     tableName: "DriverQueue",
     updateValues: {
       status: journeyStatusId,
+      // Backfill the linkage while we are here (no-op when already set) so
+      // later lifecycle steps and board reads resolve the entry by order.
+      shipperRequestUniqueId,
       queueUpdatedAt: currentDate(),
       queueUpdatedBy: userUniqueId || null,
     },
@@ -168,7 +187,7 @@ exports.closeEntryOnJourneyCompletion = async ({
   driverName = "",
 }) => {
   const executor = db();
-  const [rows] = await executor.query(
+  let [rows] = await executor.query(
     `SELECT queueId, queueUniqueId, queueOrganizationUniqueId, queueDate, status
      FROM DriverQueue
      WHERE shipperRequestUniqueId = ? AND status IN (
@@ -182,6 +201,21 @@ exports.closeEntryOnJourneyCompletion = async ({
      LIMIT 1`,
     [shipperRequestUniqueId],
   );
+  // LEGACY FALLBACK: pre-linkage AGREED entries carry no order linkage —
+  // resolve by driver id so a completed job still closes the slot instead of
+  // leaving a permanent loadingNow ghost.
+  if (rows.length === 0 && userUniqueId) {
+    [rows] = await executor.query(
+      `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate, dq.status
+       FROM DriverQueue dq
+       JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+       WHERE vd.driverUserUniqueId = ? AND dq.status = ${QUEUE_STATUS.AGREED}
+         AND dq.shipperRequestUniqueId IS NULL
+         AND dq.queueDeletedAt IS NULL
+       ORDER BY dq.queueNumber DESC LIMIT 1`,
+      [userUniqueId],
+    );
+  }
   if (rows.length === 0) {
     return { closed: false };
   }
@@ -293,6 +327,7 @@ exports.markEntryAgreed = async ({
   const executor = db();
   const [rows] = await executor.query(
     `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate, dq.status,
+            dq.loadingOrderNumber,
             vd.driverUserUniqueId, u.fullName AS driverName, u.phoneNumber AS driverPhoneNumber,
             v.licensePlate, vt.vehicleTypeName
      FROM DriverQueue dq
@@ -359,11 +394,33 @@ exports.markEntryAgreed = async ({
     event: HISTORY_EVENT.ACCEPT,
     performedBy: userUniqueId || null,
   });
+  // WRITE-ONCE yard-entrance number, issued AT ACCEPT — the same rule
+  // linkQueueEntryOnAccept applies on the non-FIFO paths, so EVERY accept
+  // stamps loadingOrderNumber. ONE continuous sequence per org+day: the
+  // first shipper's trucks take 1,2,3, the next shipper's continue 4,5,6,7.
+  // The FOR UPDATE row lock above serializes concurrent issuers reading MAX.
+  let loadingOrderNumber = entry.loadingOrderNumber ?? null;
+  if (loadingOrderNumber === null) {
+    loadingOrderNumber = await nextLoadingNumber(
+      executor,
+      entry.queueOrganizationUniqueId,
+      entry.queueDate,
+    );
+  }
   await updateData({
     tableName: "DriverQueue",
     updateValues: {
       status: QUEUE_STATUS.AGREED,
+      // Stamp the order linkage on the BID-ORDER fallback path too: the shipper
+      // selects a winner whose own entry was never linked (the board offer was a
+      // bare JourneyDecision). Without the linkage the board cannot show WHAT the
+      // winner is loading (activeOrder) and the journey-progress/completion
+      // mirror (which matches entries by shipperRequestUniqueId) never finds this
+      // entry — it would stay AGREED forever after the job ends. The FIFO path
+      // already carries the linkage, so this is a no-op there (same value).
+      shipperRequestUniqueId,
       agreedAt: currentDate(),
+      loadingOrderNumber,
       queueUpdatedAt: currentDate(),
       queueUpdatedBy: userUniqueId || null,
     },

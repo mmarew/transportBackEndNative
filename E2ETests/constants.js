@@ -96,6 +96,16 @@ const usersData = {
     OTP: 101010,
     token: null,
   },
+  // Second shipper — exercises the shipper-turn yard rule (loadingOrderNumber
+  // sequences are PER SHIPPER; only the serving shipper's trucks may enter).
+  shipper2: {
+    fullName: "Test Shipper Two",
+    email: `testshipper2+${runId}@test.com`,
+    phoneNumber: `+25198${runId}22`,
+    roleId: usersRoles.shipperRoleId,
+    OTP: 101010,
+    token: null,
+  },
   admin: {
     fullName: "Test Admin",
     email: `testadmin+${runId}@test.com`,

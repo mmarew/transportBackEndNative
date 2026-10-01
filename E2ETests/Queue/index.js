@@ -25,6 +25,7 @@ const { runReceiptPodTests } = require("../ReceiptPod");
 const { runActiveTransferTests } = require("./ActiveTransfer");
 const { runTimeoutReofferTests } = require("./TimeoutReoffer");
 const { runBidBasePlacementTests } = require("./BidBasePlacement");
+const { runQueueYardAccessTests } = require("./QueueYardAccess");
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
@@ -103,6 +104,8 @@ const runQueueTests = async ({ reset = true, silent = false } = {}) => {
   await runTimeoutReofferTests();
 
   await runBidBasePlacementTests();
+
+  await runQueueYardAccessTests();
 
   await testTQ04SoftDelete();
   await cleanupFenceOrg();

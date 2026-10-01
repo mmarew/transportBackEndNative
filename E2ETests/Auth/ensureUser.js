@@ -20,6 +20,7 @@ const { usersData } = require("../constants");
 const PUBLIC_CREATE_ROLES = new Set([
   "driver",
   "shipper",
+  "shipper2",
   "companyAdmin",
   "queueOrgAdmin",
 ]);

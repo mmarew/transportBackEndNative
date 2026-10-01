@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS DriverQueueHistory (
     status INT NULL,
     requestedAt DATETIME NULL,
     agreedAt DATETIME NULL,
+    loadingOrderNumber INT NULL,                              -- yard entrance number (write-once at AGREED; continuous sequence per org+date)
     queueCreatedAt DATETIME NULL,
     queueCreatedBy VARCHAR(36) NULL,
     queueUpdatedAt DATETIME NULL,
@@ -2277,6 +2278,13 @@ CREATE TABLE IF NOT EXISTS DriverQueue (
     status INT NOT NULL DEFAULT 1, -- journeyStatusMap id (1=waiting, 2=requested, 3=acceptedByDriver, 5/6/7 loading stages, 8=journeyStarted, 9=journeyCompleted, 10=cancelledByShipper, 12=cancelledByDriver, 13=cancelledByAdmin, 16=noAnswerFromDriver, 18=rejectedByDriver)
     requestedAt DATETIME NULL,
     agreedAt DATETIME NULL,
+    -- Yard entrance number, write-once when the entry flips to AGREED (driver
+    -- accepted the order): ONE continuous sequence 1,2,3… per (org, date) —
+    -- the first shipper's trucks take 1,2,3, the next shipper's continue
+    -- 4,5,6,7. The shipper of the lowest live number is the serving shipper;
+    -- their trucks enter in number order. Read THIS column directly — no
+    -- per-read recomputation/filtering. NULL while only waiting/reserved.
+    loadingOrderNumber INT NULL DEFAULT NULL,
     queueCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     queueCreatedBy VARCHAR(36) NOT NULL,
     queueUpdatedAt DATETIME NULL,
@@ -2289,6 +2297,7 @@ CREATE TABLE IF NOT EXISTS DriverQueue (
     INDEX idx_queue_vehicle (vehicleDriverUniqueId),
     INDEX idx_queue_shipperRequest (shipperRequestUniqueId),
     INDEX idx_queue_targeted_shipper (targetedShipperUserUUID),
+    INDEX idx_queue_loading_order (queueOrganizationUniqueId, queueDate, loadingOrderNumber),
     FOREIGN KEY (queueOrganizationUniqueId) REFERENCES QueueOrganization(queueOrganizationUniqueId),
     FOREIGN KEY (vehicleDriverUniqueId) REFERENCES VehicleDriver(vehicleDriverUniqueId),
     FOREIGN KEY (shipperRequestUniqueId) REFERENCES ShipperRequest(shipperRequestUniqueId),
