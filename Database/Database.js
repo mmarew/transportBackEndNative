@@ -2268,7 +2268,9 @@ CREATE TABLE IF NOT EXISTS DriverQueue (
     -- (shipperPhoneNumber param) or admin manual check-in. Cleared when the
     -- driver checks out or is removed. Prevents dispatch of orders from other
     -- shippers while the driver is in the queue. Tracked in DriverQueueHistory.
+
     targetedShipperUserUUID VARCHAR(36) NULL DEFAULT NULL,
+    
     -- Driver's GPS coordinates at check-in time. Used for proximity audit when
     -- checkinRadiusKm is set on the queue organization. Not updated after
     -- check-in — serves as the "where was the driver when they checked in" record.

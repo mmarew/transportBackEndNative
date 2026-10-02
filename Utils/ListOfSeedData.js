@@ -775,6 +775,46 @@ const activeJourneyStatuses = [
   journeyStatusMap.journeyStarted,
 ];
 
+// A JourneyDecision on one of these still evidences a live request.
+const supportingDecisionStatuses = [
+  journeyStatusMap.requested,
+  journeyStatusMap.acceptedByDriver,
+  journeyStatusMap.acceptedByShipper,
+  journeyStatusMap.goToLoadingPlace,
+  journeyStatusMap.loading,
+  journeyStatusMap.loaded,
+  journeyStatusMap.journeyStarted,
+  journeyStatusMap.journeyCompleted,
+];
+
+// Deliberate end states: the order reached a terminal outcome on purpose, so it
+// intentionally has no supporting (positive) JourneyDecision left. Never route
+// these through status reconciliation — rewriting one of them to `waiting`
+// resurrects a cancelled/completed order onto the offerable board.
+// `journeyCompleted` is deliberately absent: it is terminal too, but completed
+// rows still carry a supporting decision and need their journey/POD enrichment.
+const terminalJourneyStatuses = [
+  journeyStatusMap.cancelledByShipper,
+  journeyStatusMap.cancelledByDriver,
+  journeyStatusMap.cancelledByAdmin,
+  journeyStatusMap.completedByAdmin,
+  journeyStatusMap.cancelledBySystem,
+];
+
+// Read-path routing bucket: rendered as an inactive order with its linked
+// drivers/decisions instead of going through the active-status path.
+const inactiveJourneyStatuses = [journeyStatusMap.waiting, ...terminalJourneyStatuses];
+
+// Reconciliation may only rewrite requests that are still live. Anything outside
+// `activeJourneyStatuses` — cancelled, completed, rejected, or any status added
+// later — is off-limits. This whitelist is what keeps an admin-cancelled request
+// from being reset to `waiting` by a stale-status correction.
+const isActiveJourneyStatus = journeyStatusId =>
+  activeJourneyStatuses.includes(Number(journeyStatusId));
+
+const isTerminalJourneyStatus = journeyStatusId =>
+  terminalJourneyStatuses.includes(Number(journeyStatusId));
+
 // Cancellation reasons are tagged with `requestMode` to serve the right list
 // in the right context:
 //   'individual' → single driver-to-shipper request (street pickup style)
@@ -1219,6 +1259,11 @@ module.exports = {
   financialInstitutionAccount,
   listOfDocumentsTypeAndId,
   activeJourneyStatuses,
+  supportingDecisionStatuses,
+  terminalJourneyStatuses,
+  inactiveJourneyStatuses,
+  isActiveJourneyStatus,
+  isTerminalJourneyStatus,
   journeyStatusMap,
   vehicleStatusTypes,
   CommissionRates,

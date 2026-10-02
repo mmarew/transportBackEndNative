@@ -4,6 +4,9 @@ const { pool } = require("../../../Middleware/Database.config");
 const {
   journeyStatusMap,
   listOfDocumentsTypeAndId,
+  supportingDecisionStatuses,
+  inactiveJourneyStatuses,
+  isActiveJourneyStatus,
 } = require("../../../Utils/ListOfSeedData");
 const logger = require("../../../Utils/logger");
 const { transactionStorage } = require("../../../Utils/TransactionContext");
@@ -29,8 +32,11 @@ const {
  *  4. All driver profile photos (AttachedDocuments)
  *  5. Journey data (only for started/completed statuses)
  *
- * Auto-correction: If a sr has no matching decisions (all drivers cancelled/rejected),
- * it is reset to status 1 (waiting) and excluded from the response.
+ * Status handling (read-only): if a live sr has no matching decisions (all
+ * drivers cancelled/rejected) it is projected as status 1 (waiting) and rendered
+ * through the inactive bucket. A terminal status (cancelled, completed, ...) is
+ * never corrected — it is returned as stored. Nothing here writes to the
+ * database; the scheduled reconciler persists any correction.
  *
  * @param {Array<Object>} shipperRequests - Array of sr rows from the database
  * @returns {Promise<Array<Object>>} Array of enriched objects, each containing:
@@ -57,8 +63,11 @@ const {
  *  4. All driver profile photos (AttachedDocuments)
  *  5. Journey data (only for started/completed statuses)
  *
- * Auto-correction: If a sr has no matching decisions (all drivers cancelled/rejected),
- * it is reset to status 1 (waiting) and excluded from the response.
+ * Status handling (read-only): if a live sr has no matching decisions (all
+ * drivers cancelled/rejected) it is projected as status 1 (waiting) and rendered
+ * through the inactive bucket. A terminal status (cancelled, completed, ...) is
+ * never corrected — it is returned as stored. Nothing here writes to the
+ * database; the scheduled reconciler persists any correction.
  *
  * @param {Array<Object>} shipperRequests - Array of sr rows from the database
  * @returns {Promise<Array<Object>>} Array of enriched objects, each containing:
@@ -85,8 +94,11 @@ const {
  *  4. All driver profile photos (AttachedDocuments)
  *  5. Journey data (only for started/completed statuses)
  *
- * Auto-correction: If a sr has no matching decisions (all drivers cancelled/rejected),
- * it is reset to status 1 (waiting) and excluded from the response.
+ * Status handling (read-only): if a live sr has no matching decisions (all
+ * drivers cancelled/rejected) it is projected as status 1 (waiting) and rendered
+ * through the inactive bucket. A terminal status (cancelled, completed, ...) is
+ * never corrected — it is returned as stored. Nothing here writes to the
+ * database; the scheduled reconciler persists any correction.
  *
  * @param {Array<Object>} shipperRequests - Array of sr rows from the database
  * @returns {Promise<Array<Object>>} Array of enriched objects, each containing:
@@ -113,8 +125,11 @@ const {
  *  4. All driver profile photos (AttachedDocuments)
  *  5. Journey data (only for started/completed statuses)
  *
- * Auto-correction: If a sr has no matching decisions (all drivers cancelled/rejected),
- * it is reset to status 1 (waiting) and excluded from the response.
+ * Status handling (read-only): if a live sr has no matching decisions (all
+ * drivers cancelled/rejected) it is projected as status 1 (waiting) and rendered
+ * through the inactive bucket. A terminal status (cancelled, completed, ...) is
+ * never corrected — it is returned as stored. Nothing here writes to the
+ * database; the scheduled reconciler persists any correction.
  *
  * @param {Array<Object>} shipperRequests - Array of sr rows from the database
  * @returns {Promise<Array<Object>>} Array of enriched objects, each containing:
@@ -134,12 +149,11 @@ const getDetailedJourneyData = async (shipperRequests) => {
     const activeSRs = [];
 
     // --- Step 1: Pre-filter non-active PRs (no DB hit) ---
+    // Everything in `inactiveJourneyStatuses` (waiting + terminal outcomes such as
+    // cancelledByAdmin) is rendered through the inactive bucket below, so it never
+    // reaches the active-status reconciliation path.
     for (const sr of shipperRequests) {
-      if (
-        sr.journeyStatusId === journeyStatusMap.waiting ||
-        sr.journeyStatusId === journeyStatusMap.cancelledByShipper ||
-        sr.journeyStatusId === journeyStatusMap.cancelledByDriver
-      ) {
+      if (inactiveJourneyStatuses.includes(Number(sr.journeyStatusId))) {
         waitingSRs.push(sr);
         waitingResults.push({
           shipperRequest: sr,
@@ -160,16 +174,7 @@ const getDetailedJourneyData = async (shipperRequests) => {
     );
     // Loading stages (5/6/7) are active decisions too — without them a request
     // mid-loading would look decision-less and get auto-corrected to waiting.
-    const positiveStatuses = [
-      journeyStatusMap.requested,
-      journeyStatusMap.acceptedByDriver,
-      journeyStatusMap.acceptedByShipper,
-      journeyStatusMap.goToLoadingPlace,
-      journeyStatusMap.loading,
-      journeyStatusMap.loaded,
-      journeyStatusMap.journeyStarted,
-      journeyStatusMap.journeyCompleted,
-    ];
+    const positiveStatuses = supportingDecisionStatuses;
     const [allDecisionsRaw] = await executor.query(
       `SELECT * FROM JourneyDecisions WHERE shipperRequestId IN (?) AND journeyStatusId IN (?)`,
       [srIds, positiveStatuses],
@@ -185,28 +190,38 @@ const getDetailedJourneyData = async (shipperRequests) => {
       decisionsBySR.get(d.shipperRequestId).push(d);
     }
 
-    // --- Step 3: Auto-correct stale PRs and handle status mismatches ---
-    const staleSRIds = []; // PRs to reset to waiting
+    // --- Step 3: Resolve status mismatches (read-only) ---
+    // This function used to PERSIST its corrections here, which made every GET
+    // mutate the database. That silently rewrote admin-cancelled orders back to
+    // `waiting` (they carry no positive decision, so they looked "stale") and
+    // resurrected them onto the offerable board. Persistence now belongs to the
+    // scheduled reconciler (Services/ShipperRequest/reconcileStatus.service.js);
+    // here the corrected status is only projected onto the response.
+    const projectedSRs = []; // PRs rendered as `waiting` despite a stale status
     const validSRs = []; // PRs with matching decisions
-    const allDecisions = []; // Decisions matching current/updated status
+    const allDecisions = []; // Decisions matching current/projected status
 
     for (const sr of activeSRs) {
-      const decisions = decisionsBySR.get(sr.shipperRequestId) || [];
+      const decisions = decisionsBySR.get(sr.shipneyRequestId) || [];
       if (decisions.length === 0) {
-        // No matching active decisions — auto-correct to waiting if not already.
-        // acceptedByShipper (4) is a valid intentional state in the company-target
-        // flow: the batch was accepted but no driver assignment exists yet.
-        // Resetting it to waiting would silently drop the row from the current
-        // response (it's in activeSRs, not waitingSRs) and only reappear on the
-        // next call after the DB update.
+        // No matching active decisions. `acceptedByShipper` (4) is a valid
+        // intentional state in the company-target flow: the batch was accepted
+        // but no driver assignment exists yet.
         const isIntentionalStatus =
           sr.journeyStatusId === journeyStatusMap.waiting ||
           sr.journeyStatusId === journeyStatusMap.acceptedByShipper;
-        if (isIntentionalStatus) {
-          // Keep as valid — will appear in the response with empty decisions
+        // Guard: only a request that is still live may be corrected. A terminal
+        // status (cancelled, completed, rejected, ...) has no supporting decision
+        // by definition and must be left exactly as it is.
+        if (isIntentionalStatus || !isActiveJourneyStatus(sr.journeyStatusId)) {
           validSRs.push(sr);
         } else {
-          staleSRIds.push(sr.shipperRequestId);
+          logger.warn("@getDetailedJourneyData: stale active sr, projecting waiting", {
+            shipperRequestId: sr.shipperRequestId,
+            staleStatus: sr.journeyStatusId,
+          });
+          sr.journeyStatusId = journeyStatusMap.waiting; // Project only, no write
+          projectedSRs.push(sr);
         }
       } else {
         // Check if sr status needs advancement (status mismatch where decisions are ahead)
@@ -214,16 +229,12 @@ const getDetailedJourneyData = async (shipperRequests) => {
           ...decisions.map((d) => d.journeyStatusId),
         );
         if (maxDecisionStatus > sr.journeyStatusId) {
-          logger.warn("@getDetailedJourneyData: auto-advancing sr status", {
+          logger.warn("@getDetailedJourneyData: projecting advanced sr status", {
             shipperRequestId: sr.shipperRequestId,
             oldStatus: sr.journeyStatusId,
             newStatus: maxDecisionStatus,
           });
-          await executor.query(
-            "UPDATE ShipperRequest SET journeyStatusId = ? WHERE shipperRequestId = ?",
-            [maxDecisionStatus, sr.shipperRequestId],
-          );
-          sr.journeyStatusId = maxDecisionStatus; // Sync in-memory
+          sr.journeyStatusId = maxDecisionStatus; // Project only, no write
         }
 
         // Collect decisions matching the final status
@@ -233,19 +244,30 @@ const getDetailedJourneyData = async (shipperRequests) => {
         if (finalMatches.length > 0) {
           allDecisions.push(...finalMatches);
           validSRs.push(sr);
+        } else if (isActiveJourneyStatus(sr.journeyStatusId)) {
+          // If no decisions match even after projection, it's stale.
+          logger.warn("@getDetailedJourneyData: unmatched active sr, projecting waiting", {
+            shipperRequestId: sr.shipperRequestId,
+            staleStatus: sr.journeyStatusId,
+          });
+          sr.journeyStatusId = journeyStatusMap.waiting;
+          projectedSRs.push(sr);
         } else {
-          // If no decisions match even after possible advancement, it's stale
-          staleSRIds.push(sr.shipperRequestId);
+          validSRs.push(sr);
         }
       }
     }
 
-    // Batch update stale PRs to waiting
-    if (staleSRIds.length > 0) {
-      await executor.query(
-        `UPDATE ShipperRequest SET journeyStatusId = ? WHERE shipperRequestId IN (?)`,
-        [journeyStatusMap.waiting, staleSRIds],
-      );
+    // Rendered through the inactive bucket so they come back as `waiting`
+    // (with their linked drivers/decisions) instead of vanishing from this
+    // response while the reconciler catches up.
+    for (const sr of projectedSRs) {
+      waitingResults.push({
+        shipperRequest: sr,
+        driverRequests: [],
+        decisions: [],
+        journey: {},
+      });
     }
 
     // Drivers for active + waiting/cancelled PRs share one map. Waiting/

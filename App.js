@@ -117,6 +117,27 @@ const onStartUp = async () => {
     // Store control object for graceful shutdown
     global.timeoutServiceControl = timeoutServiceControl;
 
+    // Start ShipperRequest Status Reconciliation Service
+    // Advances live requests whose JourneyDecisions moved ahead of them and
+    // resets live requests whose supporting decisions are all terminal. This
+    // used to happen inside GET /getShipperRequest4allOrSingleUser, which made
+    // every read mutate the database and reverted admin-cancelled orders to
+    // `waiting`. Terminal statuses are excluded by `activeJourneyStatuses`.
+    const {
+      startStatusReconciliationService,
+    } = require("./Services/ShipperRequest/reconcileStatus.service");
+
+    const statusReconciliationControl = startStatusReconciliationService({
+      intervalSeconds: parseInt(Config.SHIPPER_STATUS_RECONCILE_INTERVAL, 10),
+      runImmediately: true,
+    });
+    global.statusReconciliationControl = statusReconciliationControl;
+
+    logger.info("ShipperRequest Status Reconciliation Service started", {
+      intervalSeconds: parseInt(Config.SHIPPER_STATUS_RECONCILE_INTERVAL, 10),
+      timestamp: currentDate(),
+    });
+
     // Start Telegram bot polling (approve/reject via the alert buttons).
     // No-op when Telegram isn't configured or TELEGRAM_POLLING=false.
     try {
@@ -200,6 +221,10 @@ const startServer = async () => {
       // Stop automatic timeout service if it's running
       if (global.timeoutServiceControl) {
         global.timeoutServiceControl.stop();
+      }
+      // Stop shipper request status reconciliation if it's running
+      if (global.statusReconciliationControl) {
+        global.statusReconciliationControl.stop();
       }
       // Stop Telegram bot polling if it's running
       if (global.telegramPollingControl) {

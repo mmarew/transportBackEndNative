@@ -61,6 +61,12 @@ const Config = {
   DRIVER_RESPONSE_TIMEOUT_MINUTES:
     process.env.DRIVER_RESPONSE_TIMEOUT_MINUTES || "5",
 
+  // ShipperRequest status reconciliation (advances/reset-styles stale live
+  // requests). The read path only projects these corrections; this job persists
+  // them so no GET mutates the database.
+  SHIPPER_STATUS_RECONCILE_INTERVAL:
+    process.env.SHIPPER_STATUS_RECONCILE_INTERVAL || "60",
+
   // System Admin (Initialization)
   SUPER_ADMIN: {
     FULL_NAME: process.env.SUPER_ADMIN_FULL_NAME,
