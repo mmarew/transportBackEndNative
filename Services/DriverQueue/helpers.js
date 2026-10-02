@@ -245,6 +245,29 @@ const logQueueHistory = async (
     executor,
   );
 };
+/**
+ * Next WAITING-LINE number for an org+day+vehicleType — the arrival counter
+ * for drivers who have not yet been given a job.
+ *
+ * Scoped per vehicle type: a 35-quintal truck and a 40-ton truck wait for
+ * different orders, so each type keeps its own 1..N line. (Unlike
+ * loadingOrderNumber, which is ONE sequence for the whole yard day because a
+ * single bay loads one truck at a time regardless of type.)
+ *
+ * MAX() deliberately spans soft-deleted rows too. A checked-out entry is
+ * still part of the day's history, so excluding it let the number be REISSUED
+ * — one day produced three separate drivers all holding "queueNumber 2",
+ * which destroys queueNumber as the audit/dispute anchor ("I was #2").
+ * Monotonic for the whole day, matching docs/queue-order-dispatch.md:137
+ * ("Driver agreed (left the line) may re-check-in the same day → new number
+ * at the back").
+ *
+ * @param {*} executor - DB executor (connection or transaction)
+ * @param {string} queueOrganizationUniqueId
+ * @param {string} queueDate - YYYY-MM-DD
+ * @param {string} vehicleTypeUniqueId
+ * @returns {Promise<number>} next arrival number for that vehicle type
+ */
 const nextQueueNumber = async (
   executor,
   queueOrganizationUniqueId,
@@ -257,7 +280,6 @@ const nextQueueNumber = async (
      JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
      JOIN Vehicle v          ON v.vehicleUniqueId        = vd.vehicleUniqueId
      WHERE dq.queueOrganizationUniqueId = ? AND dq.queueDate = ?
-       AND dq.queueDeletedAt IS NULL
        AND v.vehicleTypeUniqueId = ?`,
     [queueOrganizationUniqueId, queueDate, vehicleTypeUniqueId],
   );
