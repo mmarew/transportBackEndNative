@@ -202,7 +202,7 @@ const getDetailedJourneyData = async (shipperRequests) => {
     const allDecisions = []; // Decisions matching current/projected status
 
     for (const sr of activeSRs) {
-      const decisions = decisionsBySR.get(sr.shipneyRequestId) || [];
+      const decisions = decisionsBySR.get(sr.shipperRequestId) || [];
       if (decisions.length === 0) {
         // No matching active decisions. `acceptedByShipper` (4) is a valid
         // intentional state in the company-target flow: the batch was accepted
