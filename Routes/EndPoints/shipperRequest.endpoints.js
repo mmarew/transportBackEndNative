@@ -18,6 +18,10 @@ const SHIPPER_REQUEST_ENDPOINTS = {
   // ONLINE JOB NEWS FEED (drivers): streams every active job — non-queue jobs plus
   // bidding-board queue orders (isBiddingApproved = TRUE) — wherever the driver is.
   GET_ALL_ACTIVE_REQUESTS: "/api/shippingRequest/getAllActiveRequests",
+  // ROUTE-CORRIDOR JOB SEARCH (drivers): jobs whose pickup OR drop-off lies on
+  // the drivable route between the driver's current stand and their intended
+  // destination (e.g. Bahir Dar -> Djibouti surfaces Debretabor -> Semera).
+  GET_JOBS_ALONG_ROUTE: "/api/shippingRequest/getJobsAlongRoute",
 };
 
 module.exports = {

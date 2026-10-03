@@ -1,5 +1,6 @@
 "use strict";
 
+const getJobsAlongRouteService = require("./getJobsAlongRoute.service");
 const createService = require("./create.service");
 const readService = require("./read.service");
 const readActiveService = require("./readActive.service");
@@ -21,5 +22,6 @@ module.exports = {
   ...actionReject,
   ...actionCancel,
   ...statusVerification,
-  ...cancellation
+  ...cancellation,
+  ...getJobsAlongRouteService
 };

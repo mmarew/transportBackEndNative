@@ -480,6 +480,43 @@ const getAllActiveRequestsController = async (req, res, next) => {
   }
 };
 
+/**
+ * Route-corridor job search for drivers.
+ *
+ * The driver supplies where they are standing now and where they intend to end
+ * up (e.g. Bahir Dar -> Djibouti). The backend asks OSRM for the drivable route
+ * between them, samples a corridor along it, and returns live jobs whose pickup
+ * OR drop-off sits on that corridor (e.g. Debretabor -> Semera).
+ *
+ * Coordinates are used exactly as stored; this endpoint does not attempt to
+ * repair or re-geocode them.
+ */
+const getJobsAlongRouteController = async (req, res, next) => {
+  try {
+    const filters = {
+      startLat: req.query.startLat,
+      startLng: req.query.startLng,
+      endLat: req.query.endLat,
+      endLng: req.query.endLng,
+      vehicleTypeUniqueId: req.query.vehicleTypeUniqueId,
+      shippableItemName: req.query.shippableItemName,
+      requestMode: req.query.requestMode,
+      radiusKm: req.query.radiusKm ? Number(req.query.radiusKm) : undefined,
+      sampleKm: req.query.sampleKm ? Number(req.query.sampleKm) : undefined,
+      page: req.query.page ? parseInt(req.query.page, 10) : 1,
+      limit: req.query.limit
+        ? parseInt(req.query.limit, 10)
+        : PAGINATION.DEFAULT_PAGE_SIZE,
+    };
+
+    const result = await ShipperService.getJobsAlongRoute(filters);
+
+    return ServerResponder(res, result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   acceptDriverOffer,
   getShipperRequestByShipperRequestUniqueId,
@@ -495,4 +532,5 @@ module.exports = {
   getCancellationNotificationsController,
   markCancellationAsSeenController,
   getAllActiveRequestsController,
+  getJobsAlongRouteController,
 };

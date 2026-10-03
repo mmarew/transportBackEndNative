@@ -23,6 +23,7 @@ const {
   acceptDriverOfferBody,
   rejectDriverOfferBody,
   getAllActiveRequestsQuery,
+  getJobsAlongRouteQuery,
 } = require("../Validations/ShipperRequest.schema");
 const {
   SHIPPER_REQUEST_ENDPOINTS,
@@ -934,6 +935,50 @@ router.get(
   verifyTokenOfAxios,
   validator(getAllActiveRequestsQuery, "query"),
   controller.getAllActiveRequestsController,
+);
+
+/**
+ * @route   GET /api/shippingRequest/getJobsAlongRoute
+ * @desc    Route-corridor job search. Given where the driver is standing now and
+ *          where they intend to end up, the backend asks OSRM for the drivable
+ *          route, samples a corridor along it, and returns live jobs whose
+ *          pickup OR drop-off falls within `radiusKm` of that corridor.
+ *
+ *          Example: Bahir Dar -> Djibouti surfaces a Debretabor -> Semera load,
+ *          because both ends of that leg sit on the corridor.
+ *
+ * @access  Any authenticated role (not restricted to drivers on purpose — the
+ *          same corridor search is useful to company/queue admins).
+ *
+ * Query params:
+ * - startLat, startLng (required): driver's current standing location
+ * - endLat, endLng (required): intended destination
+ * - vehicleTypeUniqueId (optional): omit to see every vehicle type
+ * - shippableItemName (optional): cargo substring filter, min 2 chars
+ * - requestMode (optional): 'individual_target' | 'company_target'
+ * - radiusKm (optional, 1-100, default 25): corridor match radius
+ * - sampleKm (optional, 5-50, default 25): corridor sampling step
+ * - page, limit (optional): limit capped at PAGINATION.MAX_PAGE_SIZE
+ *
+ * Response:
+ * - data[]: jobs with distanceToCorridorKm, originOnCorridor,
+ *   destinationOnCorridor, plus the same shipper/vehicle/status/batch context
+ *   as the active-jobs feed
+ * - Ranked nearest-to-corridor first, newest first on ties
+ * - pagination: currentPage, totalPages, totalItems, limit
+ * - corridor: pointCount, sampleKm, radiusKm
+ *
+ * Notes:
+ * - Requires outbound access to Config.OSRM_BASE_URL; returns 400 if OSRM
+ *   cannot produce a route for the two points.
+ * - Uses stored coordinates as-is. Rows whose lat/lng are wrong will simply not
+ *   match the corridor; this endpoint does not re-geocode or repair them.
+ */
+router.get(
+  SHIPPER_REQUEST_ENDPOINTS.GET_JOBS_ALONG_ROUTE,
+  verifyTokenOfAxios,
+  validator(getJobsAlongRouteQuery, "query"),
+  controller.getJobsAlongRouteController,
 );
 
 module.exports = router;

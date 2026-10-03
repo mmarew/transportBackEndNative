@@ -15,6 +15,16 @@ const Config = {
   APP_API_URL: (
     process.env.APP_API_URL || "https://app.dynamicsroute.tech"
   ).replace(/\/+$/, ""),
+  // OSRM routing (used by the driver route-corridor job search). The same
+  // instance the mobile apps already call for route drawing.
+  OSRM_BASE_URL: (
+    process.env.OSRM_BASE_URL || "https://osrm.dynamicsroute.tech"
+  ).replace(/\/+$/, ""),
+  OSRM_TIMEOUT_MS: Number(process.env.OSRM_TIMEOUT_MS) || 8000,
+  // Distance between sampled corridor points, and how far from the corridor a
+  // job's pickup/drop-off may sit and still count as "along the route".
+  ROUTE_CORRIDOR_SAMPLE_KM: Number(process.env.ROUTE_CORRIDOR_SAMPLE_KM) || 25,
+  ROUTE_CORRIDOR_RADIUS_KM: Number(process.env.ROUTE_CORRIDOR_RADIUS_KM) || 25,
   SECRET_KEY: process.env.SECRET_KEY,
   API_KEY: process.env.API_KEY,
   // Session lifetime: system admins (roles 3 & 6) keep a short TTL; everyone

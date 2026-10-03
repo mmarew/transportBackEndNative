@@ -202,3 +202,46 @@ exports.getAllActiveRequestsQuery = Joi.object({
     .valid("individual_target", "company_target")
     .optional(),
 }).unknown(true);
+
+// ── Route-corridor job search (drivers) ──────────────────────────────────────
+// Only the fields the service actually honours are declared here. Results are
+// ranked by distance to the corridor, so there is deliberately no
+// sortBy/sortOrder for this endpoint.
+exports.getJobsAlongRouteQuery = Joi.object({
+  // Where the driver is standing now, and where they intend to end up.
+  startLat: Joi.number()
+    .min(DOMAIN.LATITUDE_MIN)
+    .max(DOMAIN.LATITUDE_MAX)
+    .required(),
+  startLng: Joi.number()
+    .min(DOMAIN.LONGITUDE_MIN)
+    .max(DOMAIN.LONGITUDE_MAX)
+    .required(),
+  endLat: Joi.number()
+    .min(DOMAIN.LATITUDE_MIN)
+    .max(DOMAIN.LATITUDE_MAX)
+    .required(),
+  endLng: Joi.number()
+    .min(DOMAIN.LONGITUDE_MIN)
+    .max(DOMAIN.LONGITUDE_MAX)
+    .required(),
+  // Optional: omit to see every vehicle type along the corridor.
+  vehicleTypeUniqueId: uuidSchema.optional(),
+  // Cargo is free text (ShipperRequest.shippableItemName), matched as substring.
+  shippableItemName: Joi.string().trim().min(2).max(100).optional(),
+  requestMode: Joi.string()
+    .valid("individual_target", "company_target")
+    .optional(),
+  // How far from the corridor a pickup/drop-off may sit and still count.
+  radiusKm: Joi.number().min(1).max(100).optional(),
+  // Corridor sampling step. Floored at 5 km: every candidate job is measured
+  // against every sample point, so a tiny step on a long route would explode
+  // the work per request.
+  sampleKm: Joi.number().min(5).max(50).optional(),
+  page: Joi.number().integer().min(1).optional(),
+  limit: Joi.number()
+    .integer()
+    .min(1)
+    .max(PAGINATION.MAX_PAGE_SIZE)
+    .optional(),
+}).unknown(true);
