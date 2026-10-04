@@ -15,12 +15,13 @@ const SHIPPER_REQUEST_ENDPOINTS = {
     "/api/shipperRequest/getCancellationNotifications",
   MARK_CANCELLATION_AS_SEEN: "/api/shipperRequest/markCancellationAsSeen",
   VERIFY_SHIPPER_STATUS: "/api/shipperRequest/verifyShipperStatus",
-  // ONLINE JOB NEWS FEED (drivers): streams every active job — non-queue jobs plus
-  // bidding-board queue orders (isBiddingApproved = TRUE) — wherever the driver is.
+  // ONLINE JOB NEWS FEED + ROUTE SEARCH (drivers): every active job — non-queue
+  // jobs plus bidding-board queue orders (isBiddingApproved = TRUE) — wherever the
+  // driver is. Add ?startLat=&startLng=&endLat=&endLng= to search along the
+  // drivable corridor instead (Debretabor on the way to Djibouti, and so on).
   GET_ALL_ACTIVE_REQUESTS: "/api/shippingRequest/getAllActiveRequests",
-  // ROUTE-CORRIDOR JOB SEARCH (drivers): jobs whose pickup OR drop-off lies on
-  // the drivable route between the driver's current stand and their intended
-  // destination (e.g. Bahir Dar -> Djibouti surfaces Debretabor -> Semera).
+  // DEPRECATED ALIAS for GET_ALL_ACTIVE_REQUESTS in route mode. Delegates to it;
+  // delete once driver builds are updated.
   GET_JOBS_ALONG_ROUTE: "/api/shippingRequest/getJobsAlongRoute",
 };
 

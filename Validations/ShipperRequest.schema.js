@@ -180,6 +180,44 @@ exports.rejectDriverOfferBody = Joi.object({
   journeyStatusId: Joi.number().integer().required(),
 }).unknown(true);
 
+// Columns a client may sort the active-jobs feed by. The service interpolates
+// this value straight into ORDER BY, so it is an allow-list and not a free
+// string — anything else would be an injection vector.
+const ACTIVE_REQUEST_SORT_COLUMNS = [
+  "shipperRequestCreatedAt",
+  "shipperRequestId",
+  "shippingDate",
+  "deliveryDate",
+  "originPlace",
+  "destinationPlace",
+  "journeyStatusId",
+];
+
+// The four points that switch getAllActiveRequests from feed mode into
+// route-corridor mode. All-or-nothing: a half-specified route would silently
+// degrade to the location-agnostic feed, which is exactly the wrong answer for
+// a driver who typed a destination.
+const routePointKeys = ["startLat", "startLng", "endLat", "endLng"];
+
+const routePointSchema = {
+  startLat: Joi.number()
+    .min(DOMAIN.LATITUDE_MIN)
+    .max(DOMAIN.LATITUDE_MAX)
+    .optional(),
+  startLng: Joi.number()
+    .min(DOMAIN.LONGITUDE_MIN)
+    .max(DOMAIN.LONGITUDE_MAX)
+    .optional(),
+  endLat: Joi.number()
+    .min(DOMAIN.LATITUDE_MIN)
+    .max(DOMAIN.LATITUDE_MAX)
+    .optional(),
+  endLng: Joi.number()
+    .min(DOMAIN.LONGITUDE_MIN)
+    .max(DOMAIN.LONGITUDE_MAX)
+    .optional(),
+};
+
 exports.getAllActiveRequestsQuery = Joi.object({
   userUniqueId: uuidSchema.optional(),
   email: Joi.string().optional(),
@@ -196,17 +234,63 @@ exports.getAllActiveRequestsQuery = Joi.object({
   deliveryDate: Joi.date().iso().optional(),
   page: Joi.number().integer().min(1).optional(),
   limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).optional(),
-  sortBy: Joi.string().optional(),
+  sortBy: Joi.string().valid(...ACTIVE_REQUEST_SORT_COLUMNS).optional(),
   sortOrder: Joi.string().valid("ASC", "DESC", "asc", "desc").optional(),
   requestMode: Joi.string()
     .valid("individual_target", "company_target")
     .optional(),
-}).unknown(true);
+  // ── Optional route-corridor search (drivers) ──
+  // Where the driver is standing now and where they intend to end up. When all
+  // four are present the endpoint asks OSRM for the drivable route between them
+  // and returns only jobs whose pickup OR drop-off sits on that corridor, so a
+  // driver heading Bahir Dar → Djibouti also sees Debretabor and Semera loads.
+  ...routePointSchema,
+  // How far from the corridor a pickup/drop-off may sit and still count as
+  // "along the route". Converted to a bounding-box margin, not a per-row
+  // distance, so the cost does not grow with the number of matched jobs.
+  radiusKm: Joi.number().min(1).max(100).optional(),
+  // Corridor sampling step. Floored at 5 km: the step decides how many points
+  // the corridor bbox is built from, and a tiny step on a long route would
+  // decode a huge polyline for no extra accuracy.
+  sampleKm: Joi.number().min(5).max(50).optional(),
+  // How far BEHIND the driver a pickup may be and still count as reachable.
+  // Results are filtered to pickups that are not behind them, so this is the
+  // grace zone for a driver who has just passed the turn-off. Default 25 km —
+  // roughly how far a loaded heavy truck can turn around.
+  behindKm: Joi.number().min(0).max(100).optional(),
+})
+  .custom((value, helpers) => {
+    const supplied = routePointKeys.filter((key) => value[key] !== undefined);
 
-// ── Route-corridor job search (drivers) ──────────────────────────────────────
-// Only the fields the service actually honours are declared here. Results are
-// ranked by distance to the corridor, so there is deliberately no
-// sortBy/sortOrder for this endpoint.
+    // Feed mode — no route requested.
+    if (supplied.length === 0) return value;
+
+    if (supplied.length !== routePointKeys.length) {
+      const missing = routePointKeys
+        .filter((key) => value[key] === undefined)
+        .join(", ");
+      return helpers.message(
+        `Route search needs all of ${routePointKeys.join(", ")}. Missing: ${missing}.`,
+      );
+    }
+
+    // OSRM would either loop or return nothing useful, and a zero-length
+    // corridor matches no jobs — reject before spending the call.
+    if (value.startLat === value.endLat && value.startLng === value.endLng) {
+      return helpers.message(
+        "Route search start point and end point must be different places.",
+      );
+    }
+
+    return value;
+  })
+  .unknown(true);
+
+// ── Route-corridor job search — DEPRECATED ───────────────────────────────────
+// Kept only for the /getJobsAlongRoute alias. The search itself now lives in
+// getAllActiveRequestsQuery above, which accepts these same points as OPTIONAL
+// (all four together switches it into route mode) and additionally honours the
+// whole feed filter set plus sortBy/sortOrder. New clients should use that.
 exports.getJobsAlongRouteQuery = Joi.object({
   // Where the driver is standing now, and where they intend to end up.
   startLat: Joi.number()
@@ -234,9 +318,9 @@ exports.getJobsAlongRouteQuery = Joi.object({
     .optional(),
   // How far from the corridor a pickup/drop-off may sit and still count.
   radiusKm: Joi.number().min(1).max(100).optional(),
-  // Corridor sampling step. Floored at 5 km: every candidate job is measured
-  // against every sample point, so a tiny step on a long route would explode
-  // the work per request.
+  // Corridor sampling step. Floored at 5 km: the step decides how many points the
+  // corridor boxes are built from, and a tiny step on a long route would decode a
+  // huge polyline for no extra accuracy.
   sampleKm: Joi.number().min(5).max(50).optional(),
   page: Joi.number().integer().min(1).optional(),
   limit: Joi.number()

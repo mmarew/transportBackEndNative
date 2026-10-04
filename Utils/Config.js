@@ -25,6 +25,10 @@ const Config = {
   // job's pickup/drop-off may sit and still count as "along the route".
   ROUTE_CORRIDOR_SAMPLE_KM: Number(process.env.ROUTE_CORRIDOR_SAMPLE_KM) || 25,
   ROUTE_CORRIDOR_RADIUS_KM: Number(process.env.ROUTE_CORRIDOR_RADIUS_KM) || 25,
+  // How far BEHIND the driver a pickup may still be and count as reachable. A
+  // loaded heavy truck needs road time to turn around, so 25 km of slack is about
+  // the honest limit — beyond that the job is simply in the wrong direction.
+  ROUTE_CORRIDOR_BEHIND_KM: Number(process.env.ROUTE_CORRIDOR_BEHIND_KM) || 25,
   SECRET_KEY: process.env.SECRET_KEY,
   API_KEY: process.env.API_KEY,
   // Session lifetime: system admins (roles 3 & 6) keep a short TTL; everyone

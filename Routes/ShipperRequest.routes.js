@@ -900,6 +900,36 @@ router.get(
  * - Includes pagination and sorting; returns detailed request info (user, vehicle
  *   type, journey status, batch).
  *
+ * TWO MODES, ONE ENDPOINT:
+ * Supplying all four route points switches it from the feed into a route search.
+ *
+ *   GET /api/shippingRequest/getAllActiveRequests
+ *       → mode "feed": every open job, nearest-first.
+ *
+ *   GET /api/shippingRequest/getAllActiveRequests?startLat=11.5936&startLng=37.3908
+ *       &endLat=11.5730&endLng=43.1450
+ *       → mode "route": only jobs whose pickup OR drop-off lies on the drivable
+ *         corridor between those two points. A driver running Bahir Dar → Djibouti
+ *         sees the Debretabor, Adama and Semera loads on the way, not only the ones
+ *         in Djibouti.
+ *
+ * The backend resolves the road with OSRM, samples it, and keeps only jobs whose
+ * PICKUP lies on that corridor — as a set of tiles grown by radiusKm, so the cost
+ * per request does not grow with the number of jobs or the length of the route.
+ *
+ * Pickup-ahead, not "near the road". Each pickup is projected onto the route to
+ * get how far along it sits, and anything behind the driver is dropped: a job that
+ * drops off where they are standing is not a job they can serve, because serving
+ * it means driving to its pickup first. `behindKm` (default 25, about how far a
+ * loaded heavy truck can turn around) is the grace zone for a pickup they have
+ * just passed. Rows carry `pickupKmAlongRoute` — "37 km further on" — and
+ * `behindByKm` on the few that needed the slack.
+ *
+ * All four points are required together: a half-filled route is rejected with 422
+ * rather than silently degrading to the unfiltered feed, and start == end is a 400.
+ * Same thing via the older /getJobsAlongRoute route, which is now a deprecated
+ * alias.
+ *
  * Query Parameters:
  * - userUniqueId: Filter by shipper user ID (optional)
  * - email: Filter by shipper email (partial match, optional)
@@ -914,9 +944,19 @@ router.get(
  * - endDate: Filter requests until this date (optional)
  * - shippingDate: Filter by shipping date (optional)
  * - deliveryDate: Filter by delivery date (optional)
+ * - startLat, startLng, endLat, endLng: Route mode. All four together, or none.
+ *   Order matters — start is where the driver is NOW, end is where they are going
+ * - radiusKm: Route mode. How far off the corridor a pickup may sit and
+ *   still count (optional, 1-100, default: 25)
+ * - sampleKm: Route mode. Corridor sampling step in km (optional, 5-50, default: 25)
+ * - behindKm: Route mode. How far back along the route a pickup may be and still
+ *   count as reachable (optional, 0-100, default: 25)
  * - page: Page number for pagination (optional, default: 1)
  * - limit: Number of results per page (optional, default: 10)
- * - sortBy: Field to sort by (optional, default: "shipperRequestCreatedAt")
+ * - sortBy: Field to sort by (optional, default: "shipperRequestCreatedAt"). When
+ *   omitted, results are ranked nearest-first. One of: shipperRequestCreatedAt,
+ *   shipperRequestId, shippingDate, deliveryDate, originPlace, destinationPlace,
+ *   journeyStatusId
  * - sortOrder: Sort direction "ASC" or "DESC" (optional, default: "DESC")
  * - requestMode: Filter by "individual_target" or "company_target" (optional)
  *
@@ -925,10 +965,14 @@ router.get(
  * - Typically used by drivers to find available journeys
  *
  * Response:
- * - Returns the active-jobs feed array with pagination info
+ * - Returns the active-jobs array with pagination info
  * - Each request includes shipper details, vehicle type, journey status, batch
  *   (batchId), and bidding context (isBiddingApproved, batchQueueOrganizationUniqueId)
  * - Includes pagination metadata (currentPage, totalPages, totalCount, etc.)
+ * - `mode` ("feed" or "route") and `distanceFrom` ("driver", "routeStart", or null)
+ *   say which search ran and what distanceKm was measured from; route mode adds a
+ *   `corridor` block (pointCount, tileCount, sampleKm, radiusKm, routeLengthKm,
+ *   driverKmAlongRoute, behindKm, direction)
  */
 router.get(
   SHIPPER_REQUEST_ENDPOINTS.GET_ALL_ACTIVE_REQUESTS,
@@ -939,13 +983,18 @@ router.get(
 
 /**
  * @route   GET /api/shippingRequest/getJobsAlongRoute
- * @desc    Route-corridor job search. Given where the driver is standing now and
- *          where they intend to end up, the backend asks OSRM for the drivable
- *          route, samples a corridor along it, and returns live jobs whose
- *          pickup OR drop-off falls within `radiusKm` of that corridor.
+ * @desc    DEPRECATED — use GET /getAllActiveRequests with the same query instead.
+ *          Kept so driver-app builds that have not shipped the switch keep working.
+ *          This route now delegates straight to the route mode of
+ *          getAllActiveRequests, so the two are guaranteed to agree; delete this
+ *          route (with its controller, validation schema and service file) once
+ *          those builds are retired.
  *
- *          Example: Bahir Dar -> Djibouti surfaces a Debretabor -> Semera load,
- *          because both ends of that leg sit on the corridor.
+ *          Original behaviour, now living in getAllActiveRequests: given where the
+ *          driver is standing now and where they intend to end up, the backend asks
+ *          OSRM for the drivable route, samples a corridor along it, and returns
+ *          live jobs whose pickup OR drop-off falls within `radiusKm` of it.
+ *          Example: Bahir Dar -> Djibouti surfaces a Debretabor -> Semera load.
  *
  * @access  Any authenticated role (not restricted to drivers on purpose — the
  *          same corridor search is useful to company/queue admins).
@@ -961,12 +1010,10 @@ router.get(
  * - page, limit (optional): limit capped at PAGINATION.MAX_PAGE_SIZE
  *
  * Response:
- * - data[]: jobs with distanceToCorridorKm, originOnCorridor,
- *   destinationOnCorridor, plus the same shipper/vehicle/status/batch context
- *   as the active-jobs feed
- * - Ranked nearest-to-corridor first, newest first on ties
- * - pagination: currentPage, totalPages, totalItems, limit
- * - corridor: pointCount, sampleKm, radiusKm
+ * - Identical to getAllActiveRequests in route mode: mode "route", data[] rows
+ *   tagged matchedBy (origin/both), pickupKmAlongRoute and behindByKm, ranked
+ *   nearest-first, pagination, and a corridor block with pointCount, tileCount,
+ *   sampleKm, radiusKm, routeLengthKm, driverKmAlongRoute, behindKm and direction.
  *
  * Notes:
  * - Requires outbound access to Config.OSRM_BASE_URL; returns 400 if OSRM

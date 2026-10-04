@@ -407,7 +407,8 @@ const markCancellationAsSeenController = async (req, res, next) => {
 };
 
 /**
- * GET ALL ACTIVE REQUESTS — online job news feed (drivers).
+ * GET ALL ACTIVE REQUESTS — online job news feed (drivers), with optional
+ * route-corridor search.
  *
  * Serves the driver-facing feed of currently open jobs. It is location-agnostic:
  * a driver sees every active job wherever they are, so it doubles as the app's
@@ -420,11 +421,22 @@ const markCancellationAsSeenController = async (req, res, next) => {
  *   distance-matched and grab-able by drivers like ordinary online jobs.
  * - FIFO-only queue orders are excluded by design (queue offer → accept only).
  *
+ * Two modes, one URL:
+ * - No route coordinates → the feed above, sorted nearest-first.
+ * - startLat/startLng/endLat/endLng all present → ROUTE MODE. The driver tells us
+ *   where they are and where they are headed; OSRM resolves the drivable route and
+ *   only jobs whose pickup OR drop-off sits on that corridor come back. Running
+ *   Bahir Dar → Djibouti surfaces the Debretabor and Semera loads on the way, not
+ *   just the ones sitting in Djibouti. Each row is tagged `matchedBy`
+ *   (origin/destination/both) and the response carries `mode: "route"` plus
+ *   `corridor` metadata. An unroutable or degenerate pair is a 400, not a 500.
+ *
  * Driver convenience:
  * - When the caller is a DRIVER (role 4), the controller resolves the driver's
  *   most recent known origin (last DriverRequest with lat/lng) and injects it as
- *   driverLatitude/driverLongitude so the feed sorts nearest-first via distanceKm.
- *   It never filters by that location — proximity is a sort hint, not a scope.
+ *   driverLatitude/driverLongitude so results sort nearest-first via distanceKm.
+ *   In feed mode it never filters by that location — proximity is a sort hint, not
+ *   a scope. An explicit `sortBy`/`sortOrder` always overrides it, in both modes.
  *
  * @param {Object} req - Express request (query params per getAllActiveRequestsQuery schema)
  * @param {Object} res - Express response
@@ -442,18 +454,33 @@ const getAllActiveRequestsController = async (req, res, next) => {
       shippableItemName: req.query.shippableItemName,
       originPlace: req.query.originPlace,
       destinationPlace: req.query.destinationPlace,
+      requestMode: req.query.requestMode,
+      // Route-corridor search. Passed through untouched: the service decides
+      // whether these four are complete enough to switch modes, so a partially
+      // filled search never silently degrades into the unfiltered feed.
+      startLat: req.query.startLat,
+      startLng: req.query.startLng,
+      endLat: req.query.endLat,
+      endLng: req.query.endLng,
+      radiusKm: req.query.radiusKm,
+      sampleKm: req.query.sampleKm,
       startDate: req.query.startDate,
       endDate: req.query.endDate,
       shippingDate: req.query.shippingDate,
       deliveryDate: req.query.deliveryDate,
       page: req.query.page ? parseInt(req.query.page) : 1,
       limit: req.query.limit ? parseInt(req.query.limit) : PAGINATION.DEFAULT_PAGE_SIZE,
-      sortBy: req.query.sortBy || "shipperRequestCreatedAt",
-      sortOrder: req.query.sortOrder || "DESC",
+      // Left undefined when absent on purpose — the service needs to tell
+      // "caller picked a sort" apart from "caller took the default", because
+      // route mode ranks differently when nobody has chosen.
+      sortBy: req.query.sortBy,
+      sortOrder: req.query.sortOrder,
     };
 
     // When the caller is a driver, resolve their most recent location so the
-    // active-requests list can be sorted by distance (nearest first).
+    // active-requests list can be sorted by distance (nearest first). This holds
+    // in route mode too: a driver halfway to Djibouti wants the next load on the
+    // way, not the one furthest ahead of them.
     if (req.user?.userUniqueId && req.user?.roleId === usersRoles.driverRoleId) {
       const { pool } = require("../Middleware/Database.config");
       const [[latest]] = await pool.query(
@@ -482,6 +509,11 @@ const getAllActiveRequestsController = async (req, res, next) => {
 
 /**
  * Route-corridor job search for drivers.
+ *
+ * @deprecated Kept only so existing driver-app builds keep working. The corridor
+ * search now lives in getAllActiveRequestsController under route mode — same URL,
+ * same `?startLat=&startLng=&endLat=&endLng=` query, plus every feed filter. Call
+ * that one and this endpoint can go.
  *
  * The driver supplies where they are standing now and where they intend to end
  * up (e.g. Bahir Dar -> Djibouti). The backend asks OSRM for the drivable route
