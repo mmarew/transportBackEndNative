@@ -67,6 +67,12 @@ const HISTORY_EVENT = {
   ADVANCE_RELEASE: "advance_release",
   NOT_SELECTED: "not_selected",
   SHIPPER_RESERVED: "shipper_reserved",
+  // Auto-enrollment: a bid winner who held NO queue row (they were matched by
+  // the distance/bid matcher while outside every line) gets a queue entry
+  // created directly in `agreed` at accept time, so they still receive a yard
+  // `loadingOrderNumber`. Distinct from CHECKIN so the audit trail can tell a
+  // real check-in from a synthesized one.
+  AUTO_ENROLLED: "auto_enrolled",
 };
 // Shared resolver: org → vehicle type via VehicleDriver → Vehicle
 /**
@@ -794,6 +800,147 @@ const getDriverQueueState = async (executor, driverUserUniqueId, queueDate) => {
   const active = rows.find((r) => IN_QUEUE_STATUSES.includes(r.status)) || null;
   return { active };
 };
+/**
+ * Driver busy-state fence — ONE definition of "this driver is already engaged,
+ * do not hand them a second job", shared by every path that can put a driver on
+ * an order.
+ *
+ * Before this existed the rule was scattered and incomplete: the auto-assigner
+ * excluded drivers only via `CompanyBidVehicleAssignment`, so a driver who had
+ * taken a QUEUE job (or bid individually — neither writes an assignment row) was
+ * invisible to it, and the manual create/bulk assignment paths had no driver-side
+ * guard at all. This helper closes that by asking both questions:
+ *
+ *  1. Journeys — any `JourneyDecisions` row for the driver at an
+ *     ACTIVE_JOURNEY_STATUSES id. This is the same set `hasActiveJourney` (the
+ *     check-in fence) uses, so "engaged" means one thing across the codebase. It
+ *     covers queue jobs, individual bids and company assignments alike, because
+ *     all three express themselves as a JourneyDecision.
+ *  2. Assignment rows — a `CompanyBidVehicleAssignment` that is not terminal.
+ *     Needed because an assignment exists from creation until its driver
+ *     confirms; between those points there may be no journey row yet.
+ *
+ * @param {object} executor Transaction executor.
+ * @param {string} driverUserUniqueId The driver being considered.
+ * @param {string} [vehicleUniqueId] Also treat the vehicle as taken — a truck
+ *   already on a trip cannot be paired again.
+ * @param {string} [ignoreShipperRequestUniqueId] Order to ignore. Lets a driver
+ *   re-confirm the SAME order (the confirm path resolves the order before the
+ *   decision row is promoted) without tripping its own fence.
+ * @returns {Promise<{busy: boolean, journey: object|null, assignment: object|null}>}
+ */
+const findDriverBusyState = async (
+  executor,
+  driverUserUniqueId,
+  vehicleUniqueId = null,
+  ignoreShipperRequestUniqueId = null,
+) => {
+  const [journeys] = await executor.query(
+    `SELECT jd.journeyDecisionUniqueId, jd.journeyStatusId,
+            sr.shipperRequestUniqueId
+       FROM JourneyDecisions jd
+       JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+       LEFT JOIN ShipperRequest sr ON sr.shipperRequestId = jd.shipperRequestId
+      WHERE dr.userUniqueId = ?
+        AND dr.driverRequestDeletedAt IS NULL
+        AND jd.journeyStatusId IN (${ACTIVE_JOURNEY_STATUSES.join(", ")})
+        ${ignoreShipperRequestUniqueId ? "AND (sr.shipperRequestUniqueId IS NULL OR sr.shipperRequestUniqueId <> ?)" : ""}
+      ORDER BY jd.journeyDecisionCreatedAt DESC
+      LIMIT 1`,
+    ignoreShipperRequestUniqueId
+      ? [driverUserUniqueId, ignoreShipperRequestUniqueId]
+      : [driverUserUniqueId],
+  );
+
+  const params = [driverUserUniqueId];
+  let vehicleClause = "";
+  if (vehicleUniqueId) {
+    vehicleClause = "OR cba.vehicleUniqueId = ?";
+    params.push(vehicleUniqueId);
+  }
+  const [assignments] = await executor.query(
+    `SELECT cba.assignmentUniqueId, cba.assignmentStatus, cba.shipperRequestUniqueId
+       FROM CompanyBidVehicleAssignment cba
+      WHERE (cba.driverUserUniqueId = ? ${vehicleClause})
+        AND cba.assignmentDeletedAt IS NULL
+        AND cba.assignmentStatus NOT IN (
+          'completed','cancelled_by_company','cancelled_by_shipper',
+          'cancelled_by_driver','rejected_by_driver'
+        )
+        ${ignoreShipperRequestUniqueId ? "AND (cba.shipperRequestUniqueId IS NULL OR cba.shipperRequestUniqueId <> ?)" : ""}
+      ORDER BY cba.assignmentCreatedAt DESC
+      LIMIT 1`,
+    ignoreShipperRequestUniqueId
+      ? [...params, ignoreShipperRequestUniqueId]
+      : params,
+  );
+
+  const journey = journeys?.[0] || null;
+  const assignment = assignments?.[0] || null;
+  return { busy: Boolean(journey || assignment), journey, assignment };
+};
+
+/**
+ * Fence that REFUSES to put an engaged driver on another order. Throws 409 with
+ * a message naming what already holds them, so the company dispatcher learns
+ * *why* the driver was skipped instead of silently losing a slot.
+ *
+ * Idempotent for the order in flight: pass `ignoreShipperRequestUniqueId` when
+ * re-processing the order the driver is already engaged on.
+ *
+ * @throws {AppError} 409 when the driver (or their vehicle) is already engaged.
+ */
+const assertDriverNotDoubleBooked = async ({
+  executor,
+  driverUserUniqueId,
+  vehicleUniqueId = null,
+  ignoreShipperRequestUniqueId = null,
+  actorLabel = "another job",
+}) => {
+  const { busy, journey, assignment } = await findDriverBusyState(
+    executor,
+    driverUserUniqueId,
+    vehicleUniqueId,
+    ignoreShipperRequestUniqueId,
+  );
+  if (!busy) {
+    return { busy: false };
+  }
+  const heldVia = journey
+    ? `an active journey (status ${journey.journeyStatusId}${
+        journey.shipperRequestUniqueId
+          ? ` on order ${journey.shipperRequestUniqueId}`
+          : ""
+      })`
+    : `assignment ${assignment.assignmentUniqueId} (status ${assignment.assignmentStatus})`;
+  throw new AppError(
+    `Driver is already engaged on ${heldVia} and cannot be given ${actorLabel}. One driver cannot hold two jobs at once.`,
+    AppError.CONFLICT,
+  );
+};
+
+/**
+ * Resolve a driver's MOST RECENT active vehicle assignment (newest
+ * `vehicleDriverCreatedAt` first) via the canonical VehicleDriver CRUD. Used by
+ * the bid-winner auto-enrollment, which must pick the truck a yard
+ * `loadingOrderNumber` is issued against without the client naming one.
+ * Returns `null` instead of throwing so the caller can surface a business
+ * rejection at accept time rather than a generic lookup failure.
+ */
+const resolveLatestActiveVehicleDriverForUser = async ({ driverUserUniqueId }) => {
+  const { data = [] } = await getVehicleDrivers({
+    driverUserUniqueId,
+    assignmentStatus: "active",
+    limit: 1,
+    sortBy: "createdAt",
+    sortOrder: "DESC",
+  });
+  const vehicleDriver = data[0];
+  if (!vehicleDriver || vehicleDriver.vehicleDriverDeletedAt) {
+    return null;
+  }
+  return vehicleDriver;
+};
 // Resolve the driver's ACTIVE vehicle assignment via the canonical VehicleDriver
 // CRUD (getVehicleDrivers). Rejects soft-deleted or absent assignments so
 // check-in only ever proceeds with a real, active vehicle-driver binding.
@@ -1040,8 +1187,11 @@ module.exports = {
   buildDriverPhotoMap,
   buildQueueEntry,
   hasActiveJourney,
+  findDriverBusyState,
+  assertDriverNotDoubleBooked,
   getDriverQueueState,
   resolveActiveVehicleDriver,
+  resolveLatestActiveVehicleDriverForUser,
   terminalizeQueueOrderRequest,
   driverQueueContext,
   nextLoadingNumber,

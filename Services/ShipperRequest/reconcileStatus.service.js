@@ -46,8 +46,14 @@ const DEFAULT_MAX_BATCHES = 50;
 const DEFAULT_INTERVAL_SECONDS = 60;
 const LOG_SAMPLE_SIZE = 10;
 
-/** Live requests whose decisions moved ahead of the request itself. */
-const findAdvanceableRequests = async (executor, limit) => {
+/**
+ * Live requests whose decisions moved ahead of the request itself.
+ *
+ * Keyset-paginated on `shipperRequestId` (see runPhase): without an ORDER BY +
+ * cursor every batch re-reads the same arbitrary page and the tail of the table
+ * is never reached.
+ */
+const findAdvanceableRequests = async (executor, limit, afterId = 0) => {
   const [rows] = await executor.query(
     `SELECT sr.shipperRequestId,
             sr.journeyStatusId AS currentStatus,
@@ -58,29 +64,48 @@ const findAdvanceableRequests = async (executor, limit) => {
      WHERE sr.journeyStatusId IN (?)
        AND sr.shipperRequestDeletedAt IS NULL
        AND jd.journeyStatusId IN (?)
+       AND sr.shipperRequestId > ?
      GROUP BY sr.shipperRequestId, sr.journeyStatusId
      HAVING maxDecisionStatus > sr.journeyStatusId
+     ORDER BY sr.shipperRequestId
      LIMIT ?`,
-    [activeJourneyStatuses, supportingDecisionStatuses, limit],
+    [activeJourneyStatuses, supportingDecisionStatuses, afterId, limit],
   );
   return rows;
 };
 
-/** Live requests whose supporting decisions are all gone. */
-const findStaleActiveRequests = async (executor, limit) => {
+/**
+ * Live requests whose supporting decisions are all gone.
+ *
+ * Keyset-paginated like findAdvanceableRequests, and rows already sitting at the
+ * reset target are excluded: `waiting` requests legitimately have no supporting
+ * decision, so leaving them in made every page self-poison — the row was skipped
+ * as a no-op, stayed in the result set, and permanently occupied the first page
+ * so later rows were never reached.
+ */
+const findStaleActiveRequests = async (executor, limit, afterId = 0) => {
   const [rows] = await executor.query(
     `SELECT sr.shipperRequestId, sr.journeyStatusId AS currentStatus
      FROM ShipperRequest sr
      WHERE sr.journeyStatusId IN (?)
        AND sr.shipperRequestDeletedAt IS NULL
+       AND sr.journeyStatusId <> ?
+       AND sr.shipperRequestId > ?
        AND NOT EXISTS (
          SELECT 1
          FROM JourneyDecisions jd
          WHERE jd.shipperRequestId = sr.shipperRequestId
            AND jd.journeyStatusId IN (?)
        )
+     ORDER BY sr.shipperRequestId
      LIMIT ?`,
-    [activeJourneyStatuses, supportingDecisionStatuses, limit],
+    [
+      activeJourneyStatuses,
+      journeyStatusMap.waiting,
+      afterId,
+      supportingDecisionStatuses,
+      limit,
+    ],
   );
   return rows;
 };
@@ -121,8 +146,13 @@ const reconcileShipperRequestStatuses = async ({
   const summary = { advanced: 0, reset: 0, skippedRace: 0, dryRun, details: [] };
 
   const runPhase = async ({ finder, toStatus, kind, shouldApply }) => {
+    // Keyset cursor: each batch must start where the previous one ended. Without
+    // it every iteration re-reads the same first page, so a page of rows that
+    // cannot change (already at target, or skipped) is re-processed maxBatches
+    // times and the rest of the table is never reconciled.
+    let cursor = 0;
     for (let batch = 0; batch < maxBatches; batch += 1) {
-      const rows = await finder(executor, batchSize);
+      const rows = await finder(executor, batchSize, cursor);
       if (rows.length === 0) break;
       for (const row of rows) {
         const nextStatus = shouldApply
@@ -156,7 +186,11 @@ const reconcileShipperRequestStatuses = async ({
           summary.skippedRace += 1;
         }
       }
-      if (rows.length < batchSize) break;
+      const lastId = rows[rows.length - 1].shipperRequestId;
+      // Guard against a finder that ignores the cursor: without this the loop
+      // would spin maxBatches times over one identical page.
+      if (rows.length < batchSize || lastId <= cursor) break;
+      cursor = lastId;
     }
   };
 

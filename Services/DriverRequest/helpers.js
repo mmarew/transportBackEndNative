@@ -311,7 +311,28 @@ const fetchJourneyNotificationData = async (
     });
 
     if (!shipperRequestData?.length) {
-      throw new AppError("Shipper request not found", AppError.NOT_FOUND);
+      // The JourneyDecision survived but the ShipperRequest row it points at was
+      // hard-deleted. That is corrupt data, not a bad request, and throwing here
+      // strands the driver: EVERY journey-status call reaches this helper, so a
+      // 404 means the driver app can never render or clear the journey.
+      //
+      // Both callers already handle a shipper-less payload — handleExistingJourney
+      // self-cancels the journey and returns the status, and the cancel service
+      // falls back to its "notificationData is not available" simple response —
+      // so degrade instead of throwing. `message: "error"` is the signal both
+      // branches already test for.
+      const logger = require("../../Utils/logger");
+      logger.warn(
+        "fetchJourneyNotificationData: shipper request row is missing, returning shipper-less payload",
+        { journeyDecisionUniqueId, shipperRequestId },
+      );
+      return {
+        message: "error",
+        shipperRequest: null,
+        journeyDecision: journeyDecisionDataNormalized,
+        driverInfo: null,
+        journeyData: null,
+      };
     }
 
     const shipperRequest = shipperRequestData[0];

@@ -158,18 +158,26 @@ const cancelDriverRequest = async (data) => {
         conditions: { shipperRequestId },
       });
 
-      if (!shipper || shipper.length === 0 || !shipper[0]?.phoneNumber) {
-        throw new AppError(
-          "Unable to fetch shipper details or phone number",
-          AppError.NOT_FOUND,
+      if (!shipper?.length) {
+        // The ShipperRequest row was hard-deleted while the driver's
+        // JourneyDecision still points at it. Do NOT 404 here: that leaves the
+        // driver permanently unable to cancel or clear their own request, which
+        // is a far worse outcome than a cancel with no shipper-side follow-up.
+        // The driver-side status update below is what actually releases them,
+        // and every shipper-dependent branch (status revert, re-dispatch,
+        // notifications) is guarded by shipperRequestUniqueId, so leaving it
+        // null skips exactly the work that is impossible anyway.
+        logger.warn(
+          "cancelDriverRequest: shipper request row is missing, cancelling driver side only",
+          { shipperRequestId, driverRequestId, journeyDecisionUniqueId },
         );
+        shipper = [];
+      } else {
+        shipperRequestUniqueId = shipper[0].shipperRequestUniqueId;
+        isCompanyTarget =
+          shipper[0].requestMode === "company_target" ||
+          shipper[0].targetCompanyUniqueId !== null;
       }
-
-      shipperRequestUniqueId = shipper?.[0].shipperRequestUniqueId;
-      isCompanyTarget =
-        shipper.length > 0 &&
-        (shipper[0].requestMode === "company_target" ||
-          shipper[0].targetCompanyUniqueId !== null);
     }
 
     // Individual-job guard: a cancellation reason tagged `requestMode: 'company'`

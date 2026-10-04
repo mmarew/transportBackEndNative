@@ -184,8 +184,10 @@ const acceptDriverOffer = async (body) => {
         // Bid offer that was surfaced through the queue (check-in pull) has a
         // LINKED DriverQueue entry (status REQUESTED). When the shipper accepts
         // this driver, the entry must leave the dispatch line (marked AGREED).
-        // Creation-path bids that were never linked fall back to marking the
-        // driver's OWN active entry agreed. Lazy require avoids a require cycle
+        // Creation-path bids that were never linked are AUTO-ENROLLED: the
+        // winning driver gets a fresh `agreed` entry plus the yard
+        // `loadingOrderNumber`, so a driver who bid from outside every line is
+        // still numbered at the yard. Lazy require avoids a require cycle
         // with DriverQueue.service (which pulls from statusVerification).
         if (isQueueOrder && isAccepted) {
           const { markEntryAgreed } = require("../DriverQueue.service");
@@ -193,6 +195,11 @@ const acceptDriverOffer = async (body) => {
             shipperRequestUniqueId: driver.shipperRequestUniqueId,
             userUniqueId: driver.driverUserUniqueId,
             bidOrder: true,
+            // Server-derived from the order's batch — never taken from the
+            // request body, so a client cannot enroll a driver into an org the
+            // order does not belong to.
+            queueOrganizationUniqueId: orderFlags.queueOrganizationUniqueId,
+            actorUserUniqueId: userUniqueId,
           });
         } else if (isQueueOrder) {
           // LOSERS must not keep holding the (now-lost) order via their linked

@@ -13,6 +13,7 @@ const axios = require("axios");
 const { backendURL, usersData, journeyStatusMap } = require("../constants");
 const { authConfig } = require("../Utils");
 const { pool } = require("../../Middleware/Database.config");
+const { ACTIVE_JOURNEY_STATUSES } = require("../../Services/DriverQueue/helpers");
 const uuid = () => require("uuid").v4();
 
 // Track test data for cleanup
@@ -37,8 +38,59 @@ const setupContext = async () => {
 };
 
 // ── Cleanup ──────────────────────────────────────────────────────────────────
+// Order matters: JourneyDecision rows reference BOTH a DriverRequest and a
+// ShipperRequest, and nothing cascades. Deleting ShipperRequest first leaves the
+// decision dangling, which strands the driver — every journey-status poll 404s
+// and they can never cancel or clear their own request. (53 such orphans
+// accumulated in the dev DB from this exact cleanup.)
+//
+// So: retire the journey first, then the driver request, and only then the
+// shipper rows. Retiring rather than deleting keeps the decision's history while
+// guaranteeing nothing can still be ACTIVE against a row that is about to go
+// away.
 const cleanup = async () => {
   for (const batchId of testBatchIds) {
+    // Collect the graph BEFORE deleting anything — once the ShipperRequest rows
+    // are gone the join below can no longer find the decisions.
+    const [srRows] = await pool.query(
+      `SELECT shipperRequestId FROM ShipperRequest WHERE shipperRequestBatchUniqueId = ?`,
+      [batchId],
+    );
+    const srIds = srRows.map((r) => r.shipperRequestId);
+
+    if (srIds.length) {
+      const [decisions] = await pool.query(
+        `SELECT jd.journeyDecisionId, jd.journeyStatusId, jd.driverRequestId
+           FROM JourneyDecisions jd
+          WHERE jd.shipperRequestId IN (?)`,
+        [srIds],
+      );
+
+      // Retire the live ones first: an ACTIVE decision must never survive the
+      // shipper row it points at. Keeping them (rather than deleting) preserves
+      // the decision's history while guaranteeing the driver is released.
+      const live = decisions.filter((d) => ACTIVE_JOURNEY_STATUSES.includes(d.journeyStatusId));
+      for (const d of live) {
+        await pool
+          .query(`UPDATE JourneyDecisions SET journeyStatusId = ? WHERE journeyDecisionId = ?`, [
+            journeyStatusMap.cancelledBySystem,
+            d.journeyDecisionId,
+          ])
+          .catch(() => {});
+        await pool
+          .query(`UPDATE DriverRequest SET journeyStatusId = ? WHERE driverRequestId = ?`, [
+            journeyStatusMap.cancelledBySystem,
+            d.driverRequestId,
+          ])
+          .catch(() => {});
+      }
+
+      // Then drop the decisions entirely so no historical row can dangle.
+      await pool
+        .query(`DELETE FROM JourneyDecisions WHERE shipperRequestId IN (?)`, [srIds])
+        .catch(() => {});
+    }
+
     await pool.query(`DELETE FROM ShipperRequest WHERE shipperRequestBatchUniqueId = ?`, [batchId]).catch(() => {});
     await pool.query(`DELETE FROM ShipperRequestBatch WHERE batchUniqueId = ?`, [batchId]).catch(() => {});
   }

@@ -95,6 +95,10 @@ const onboardQueueDriver = async ({ driverKey, vehicleTypeIndex }) => {
   queueState.drivers[driverKey] = {
     userUniqueId: account.data?.data?.userData?.userUniqueId || account.data?.userData?.userUniqueId,
     vehicleDriverUniqueId: row.vehicleDriverUniqueId,
+    // Recorded so company-assignment tests can hand this exact vehicle to a
+    // company fleet (the company must own a vehicle of the order's type before
+    // it may bid, and the assignment API takes a vehicleUniqueId).
+    vehicleUniqueId: row.vehicleUniqueId,
     vehicleTypeUniqueId: row.vehicleTypeUniqueId || vehicleTypeUniqueId,
   };
   return queueState.drivers[driverKey];
@@ -593,6 +597,37 @@ const rejectOrderByDriver = async (driverKey) => {
 
 // ── Read-only DB assertions ────────────────────────────────────────────────────
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Poll `fn` until it returns a truthy value (or throws).
+ *
+ * Assignment work is not always synchronous with the request that triggers it:
+ * the distance matcher and the dispatch sweeps run after the order is created,
+ * so asserting immediately after the POST is a race. Every "did the bidder get
+ * it?" style assertion must wait for the effect instead of sampling once.
+ *
+ * @param {Function} fn Polled until truthy; receives the attempt number.
+ * @param {object} [options]
+ * @param {number} [options.timeoutMs=15000] Give up after this long.
+ * @param {number} [options.intervalMs=400] Delay between attempts.
+ * @param {string} [options.label] Shown in the timeout error.
+ * @returns {Promise<any>} The first truthy value.
+ */
+const waitFor = async (fn, { timeoutMs = 15000, intervalMs = 400, label = "condition" } = {}) => {
+  const deadline = Date.now() + timeoutMs;
+  let attempt = 0;
+  for (;;) {
+    attempt += 1;
+    const value = await fn(attempt);
+    if (value) return value;
+    if (Date.now() >= deadline) {
+      throw new Error(`timed out after ${timeoutMs}ms waiting for ${label}`);
+    }
+    await sleep(intervalMs);
+  }
+};
+
 const dbToday = () => new Date().toISOString().slice(0, 10);
 
 const getQueueEntryByDriver = async ({ queueOrganizationUniqueId, driverKey, queueDate = dbToday() }) => {
@@ -748,6 +783,8 @@ module.exports = {
   acceptOrder,
   rejectOrderByDriver,
   dbToday,
+  sleep,
+  waitFor,
   getQueueEntryByDriver,
   getQueueEntryByOrder,
   getLatestOrders,

@@ -21,7 +21,7 @@
  * - TQ-H05: GET /entry/:queueUniqueId/history returns full snapshot trail for admin
  * - TQ-H06: driver can view own entry history
  * - TQ-H07: driver gets 403 on other driver's history
- * - TQ-H08: myPosition returns shipperHistory array
+ * - TQ-H08: myPosition returns driverQueueHistory array
  * - TQ-H09: override entry logs lane_override snapshot
  * - TQ-H10: remove entry logs remove snapshot
  * - TQ-H11: manualCheckin with shipper → history + QueueAuditLog
@@ -294,8 +294,8 @@ const testTQH07HistoryEndpointDriverOtherEntry = async () => {
 };
 
 /**
- * TQ-H08: shipperHistory in myPosition response.
- * Verifies that GET /api/queue/driver/myPosition includes a shipperHistory
+ * TQ-H08: driverQueueHistory in myPosition response.
+ * Verifies that GET /api/queue/driver/myPosition includes a driverQueueHistory
  * array with the last 10 targetedShipperUserUUID changes (oldValue + performedAt).
  */
 const testTQH08ShipperHistoryInMyPosition = async () => {
@@ -304,23 +304,23 @@ const testTQH08ShipperHistoryInMyPosition = async () => {
     if (!pos?.queue?.queueUniqueId) {
       throw new Error(`myPosition missing queue: ${JSON.stringify(pos)}`);
     }
-    if (!Array.isArray(pos.shipperHistory)) {
-      throw new Error(`myPosition missing shipperHistory array: ${JSON.stringify(pos)}`);
+    if (!Array.isArray(pos.driverQueueHistory)) {
+      throw new Error(`myPosition missing driverQueueHistory array: ${JSON.stringify(pos)}`);
     }
-    if (pos.shipperHistory.length === 0) {
-      throw new Error("shipperHistory should not be empty after setting shipper");
+    if (pos.driverQueueHistory.length === 0) {
+      throw new Error("driverQueueHistory should not be empty after setting shipper");
     }
 
     // Each entry should have a targetedShipperUserUUID snapshot and performedAt
-    for (const h of pos.shipperHistory) {
+    for (const h of pos.driverQueueHistory) {
       if (!h.performedAt) {
-        throw new Error(`shipperHistory entry missing performedAt: ${JSON.stringify(h)}`);
+        throw new Error(`driverQueueHistory entry missing performedAt: ${JSON.stringify(h)}`);
       }
     }
 
-    report.pass("TQ-H08: myPosition returns shipperHistory array with change timeline");
+    report.pass("TQ-H08: myPosition returns driverQueueHistory array with change timeline");
   } catch (error) {
-    report.fail("TQ-H08: shipperHistory in myPosition", error);
+    report.fail("TQ-H08: driverQueueHistory in myPosition", error);
   }
 };
 

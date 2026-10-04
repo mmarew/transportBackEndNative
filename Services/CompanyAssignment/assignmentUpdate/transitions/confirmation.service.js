@@ -4,7 +4,11 @@ const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../../../../Utils/CurrentDate");
 const AppError = require("../../../../Utils/AppError");
 const { db } = require("../../../CompanyHelper.service");
-const { journeyStatusMap, usersRoles } = require("../../../../Utils/ListOfSeedData");
+const {
+  journeyStatusMap,
+  usersRoles,
+  activeJourneyStatuses,
+} = require("../../../../Utils/ListOfSeedData");
 const { getShipperRequestByUniqueId } = require("../../../ShipperRequest");
 const { updateJourneyStatus } = require("../../../JourneyStatus");
 const { sendFCMNotificationToUser } = require("../../../Firebase.service");
@@ -87,10 +91,52 @@ const handleDriverConfirmation = async ({
     // createJourneyDecisionForAssignment(). The promise below promotes it to
     // status 4 (acceptedByShipper = all parties agreed). If the decision
     // doesn't exist yet (legacy record), create it first.
+    //
+    // The lookup MUST be scoped to this assignment's own ShipperRequest.
+    // Scoping by driverRequestId alone adopts whatever decision the driver
+    // happens to be holding — including one from an unrelated order they were
+    // offered in the meantime (individual bid, street order). That silently
+    // re-points the foreign decision at this company order, leaves the company
+    // ShipperRequest stuck at `waiting`, and makes the driver look double-booked
+    // to every downstream fence (including the queue enrolment below, which then
+    // reports 'double_booked' and creates no DriverQueue row).
     const [existingDecision] = await db().query(
-      "SELECT journeyDecisionUniqueId FROM JourneyDecisions WHERE driverRequestId = ? LIMIT 1",
-      [drRows[0].driverRequestId],
+      `SELECT jd.journeyDecisionUniqueId
+         FROM JourneyDecisions jd
+        WHERE jd.driverRequestId = ?
+          AND jd.shipperRequestId = ?
+          AND jd.journeyDecisionDeletedAt IS NULL
+        ORDER BY jd.journeyDecisionId DESC
+        LIMIT 1`,
+      [drRows[0].driverRequestId, prRow.shipperRequestId],
     );
+
+    // No decision for THIS order — but are they already engaged on another one?
+    // Confirming must never overwrite that; the driver has to finish or cancel it.
+    if (!existingDecision || existingDecision.length === 0) {
+      const [foreignDecision] = await db().query(
+        `SELECT jd.journeyDecisionUniqueId, sr.shipperRequestUniqueId
+           FROM JourneyDecisions jd
+           LEFT JOIN ShipperRequest sr ON sr.shipperRequestId = jd.shipperRequestId
+          WHERE jd.driverRequestId = ?
+            AND jd.journeyDecisionDeletedAt IS NULL
+            AND jd.shipperRequestId <> ?
+            AND jd.journeyStatusId IN (${activeJourneyStatuses.join(", ")})
+          ORDER BY jd.journeyDecisionId DESC
+          LIMIT 1`,
+        [drRows[0].driverRequestId, prRow.shipperRequestId],
+      );
+      if (foreignDecision && foreignDecision.length > 0) {
+        throw new AppError(
+          `Driver is already engaged on another active order${
+            foreignDecision[0].shipperRequestUniqueId
+              ? ` (${foreignDecision[0].shipperRequestUniqueId})`
+              : ""
+          } and cannot confirm this assignment`,
+          AppError.CONFLICT,
+        );
+      }
+    }
 
     if (existingDecision && existingDecision.length > 0) {
       journeyDecisionUniqueId = existingDecision[0].journeyDecisionUniqueId;
@@ -306,6 +352,29 @@ const handleDriverConfirmation = async ({
       "company",
       assignment.driverRequestUniqueId,
     );
+
+    // ── Phase 2: Queue bookkeeping for the accepted job ───────────────────
+    // Must run AFTER releaseConflictingOffers so the offers it just released
+    // don't trip the orchestrator's double-booking check.
+    //
+    // A queue job needs a DriverQueue row. This confirmation path never had one:
+    // it promotes the decision to status 4, while the hook inside
+    // JourneyStatus/update.service.js only fires on status 3 — so
+    // linkQueueEntryOnAccept() was never reached and a driver who was waiting in
+    // the FIFO kept a WAITING row while holding the job.
+    //
+    // ensureQueueEntryForAcceptedJob reuses their existing FIFO position (only
+    // the linkage + loadingOrderNumber change), or creates the row through the
+    // shared check-in writer if they were never queued. If they still hold a job
+    // on another order it does nothing and reports 'double_booked' rather than
+    // retiring the old entry or creating a second one. Best-effort: the job is
+    // already confirmed, so a queue-bookkeeping failure must not fail the accept.
+    const { ensureQueueEntryForAcceptedJob } = require("../../../DriverQueue/accept-linkage.service");
+    await ensureQueueEntryForAcceptedJob({
+      shipperRequestUniqueId: assignment.shipperRequestUniqueId,
+      driverUserUniqueId: assignment.driverUserUniqueId,
+      actorUserUniqueId: assignment.driverUserUniqueId,
+    });
 
     setParts.push("journeyDecisionUniqueId = ?");
     vals.push(journeyDecisionUniqueId);

@@ -25,6 +25,7 @@ const { runReceiptPodTests } = require("../ReceiptPod");
 const { runActiveTransferTests } = require("./ActiveTransfer");
 const { runTimeoutReofferTests } = require("./TimeoutReoffer");
 const { runBidBasePlacementTests } = require("./BidBasePlacement");
+const { runCompanyAssignmentQueueTests } = require("./CompanyAssignmentQueue");
 const { runQueueYardAccessTests } = require("./QueueYardAccess");
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
@@ -104,6 +105,10 @@ const runQueueTests = async ({ reset = true, silent = false } = {}) => {
   await runTimeoutReofferTests();
 
   await runBidBasePlacementTests();
+
+  // CAQ: a driver who gets the job through a transport company must land in the
+  // yard on confirm, reusing the FIFO position they already hold.
+  await runCompanyAssignmentQueueTests();
 
   await runQueueYardAccessTests();
 

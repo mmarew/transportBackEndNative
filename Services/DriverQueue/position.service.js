@@ -143,14 +143,36 @@ exports.myPosition = async (queueOrganizationUniqueId, user) => {
     }
   }
 
-  const [shipperHistory] = await executor.query(
-    `SELECT h.targetedShipperUserUUID, h.performedAt
+  // Driver's own queue-event trail for this yard+day — every event on their
+   // entry, starting from check-in.
+   //
+   // This deliberately does NOT filter on `targetedShipperUserUUID`. An earlier
+   // version did, which silently dropped the driver's own check-in and the
+   // checkouts before a shipper was attached — so a driver asking "I checked in
+   // at 13:18, why does my history start at 13:25?" had no answer, since the
+   // reservation was the very thing being hidden. `targetedShipperUserUUID` is
+   // still projected (null before reservation) so a consumer can tell which
+   // events were shipper-related.
+   //
+   // `historyEvent` and `status` are part of the projection because performedAt
+   // is only second-precision — several DIFFERENT events routinely share a
+   // timestamp (e.g. `refusal` + `driver_cancel_after_accept` in the same second),
+   // and without the event name/status those rows render as byte-identical
+   // duplicates, which reads like a double-write bug. `status` is the entry
+   // snapshot at that moment, which separates a repeat of the same event from a
+   // genuinely new one.
+   const [driverQueueHistory] = await executor.query(
+    `SELECT h.historyEvent,
+            h.performedAt,
+            h.targetedShipperUserUUID,
+            h.queueNumber,
+            h.status,
+            h.shipperRequestUniqueId
      FROM DriverQueueHistory h
      JOIN DriverQueue dq ON dq.queueUniqueId = h.queueUniqueId
      JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
-     WHERE vd.driverUserUniqueId = ? AND dq.queueOrganizationUniqueId = ? AND dq.queueDate = ?
-       AND h.targetedShipperUserUUID IS NOT NULL
-     ORDER BY h.performedAt DESC LIMIT 10`,
+WHERE vd.driverUserUniqueId = ? AND dq.queueOrganizationUniqueId = ? AND dq.queueDate = ?
+      ORDER BY h.performedAt DESC, h.historyId DESC LIMIT 10`,
     [rows[0].driverUserUniqueId, orgId, queueDate],
   );
 
@@ -208,7 +230,7 @@ exports.myPosition = async (queueOrganizationUniqueId, user) => {
           : null,
       },
       shipper,
-      shipperHistory,
+      driverQueueHistory,
       organization: orgRows[0] || null,
     },
   };

@@ -15,6 +15,7 @@ const {
   IN_QUEUE_STATUSES,
   logQueueHistory,
   nextLoadingNumber,
+  findDriverBusyState,
 } = require("./helpers");
 
 /**
@@ -64,17 +65,22 @@ const {
  * @param {string} params.driverUserUniqueId - The accepting driver.
  * @param {string} [params.actorUserUniqueId] - Who performed the accept
  *   (recorded in history/audit); defaults to the driver.
+ * @param {object} [params.executor] - Transaction executor; defaults to the
+ *   ambient pool. Callers that already hold a transaction (e.g.
+ *   `ensureQueueEntryForAcceptedJob`) must pass it so the fences, the linkage
+ *   and the yard-number read all run inside ONE transaction.
  * @returns {Promise<{linked: boolean, queueUniqueId: string|null}>}
  */
 const linkQueueEntryOnAccept = async ({
   shipperRequestUniqueId,
   driverUserUniqueId,
   actorUserUniqueId,
+  executor: injectedExecutor = null,
 }) => {
   if (!shipperRequestUniqueId || !driverUserUniqueId) {
     return { linked: false, queueUniqueId: null };
   }
-  const executor = db();
+  const executor = injectedExecutor || db();
   const queueDate = today();
   const actor = actorUserUniqueId || driverUserUniqueId;
 
@@ -198,6 +204,169 @@ const linkQueueEntryOnAccept = async ({
 };
 
 /**
+ * ENSURE A QUEUE ENTRY FOR AN ACCEPTED JOB — the single entry point every
+ * "this driver now has the job" flow calls once the job is committed.
+ *
+ * WHY: a queue job needs a DriverQueue row to exist at all. FIFO offers self-link
+ * at offer time, but a driver who reached the job some other way has no row:
+ *   - won an individual bid (distance matcher / bidding board), or
+ *   - was assigned by a COMPANY (CompanyBidVehicleAssignment) and just confirmed.
+ * The company case never reached the queue at all: its confirm promotes the
+ * JourneyDecision to `acceptedByShipper` (4), while the hook in
+ * JourneyStatus/update.service.js only fires on `acceptedByDriver` (3) — so
+ * `linkQueueEntryOnAccept` was never called and the driver's entry (if they had
+ * one) stayed WAITING while they held a job.
+ *
+ * Resolution order, cheapest first:
+ *  1. REFUSE if the driver is already engaged on a DIFFERENT order. One driver
+ *     cannot hold two jobs. `ignoreShipperRequestUniqueId` keeps the order being
+ *     confirmed from tripping its own fence, since its decision was just
+ *     promoted to an active status.
+ *  2. REUSE their FIFO position. If they were waiting in the line without a job,
+ *     `linkQueueEntryOnAccept` marks that existing entry AGREED, links the order
+ *     and stamps `loadingOrderNumber` — no new row, and their queueNumber is
+ *     preserved.
+ *  3. CHECK OUT a live position in another org (inside autoEnrollBidWinner).
+ *  4. CREATE the entry via the shared check-in writer, for a driver who was
+ *     never in any line.
+ *
+ * Best-effort by design: queue bookkeeping must never fail a job acceptance that
+ * has already been committed, so errors are logged and reported through the
+ * return value. The double-booking check in step 1 is a BACKSTOP — the real
+ * fence is `assertDriverNotDoubleBooked`, which runs at assignment time so a busy
+ * driver is never handed the second job in the first place.
+ *
+ * @param {Object} params
+ * @param {string} params.shipperRequestUniqueId - The accepted order.
+ * @param {string} params.driverUserUniqueId - The driver who holds the job.
+ * @param {string} [params.actorUserUniqueId] - Who committed the job; recorded
+ *   as `queueUpdatedBy` / `queueCreatedBy`.
+ * @param {object} [params.executor] - Transaction executor; defaults to the
+ *   ambient pool, matching `autoEnrollBidWinner`.
+ * @returns {Promise<{handled: boolean, outcome: string, queueUniqueId: string|null,
+ *   loadingOrderNumber: number|null, reason?: string}>} `outcome` is one of
+ *   'linked' (reused their FIFO entry), 'enrolled' (row created),
+ *   'not_queue_order', 'double_booked' or 'failed'.
+ */
+const ensureQueueEntryForAcceptedJob = async ({
+  shipperRequestUniqueId,
+  driverUserUniqueId,
+  actorUserUniqueId = null,
+  executor: injectedExecutor = null,
+}) => {
+  if (!shipperRequestUniqueId || !driverUserUniqueId) {
+    return {
+      handled: false,
+      outcome: "failed",
+      queueUniqueId: null,
+      loadingOrderNumber: null,
+      reason: "missing identifiers",
+    };
+  }
+  const executor = injectedExecutor || db();
+  const actor = actorUserUniqueId || driverUserUniqueId;
+
+  try {
+    // (1) One driver, one job.
+    const { busy, journey } = await findDriverBusyState(
+      executor,
+      driverUserUniqueId,
+      null,
+      shipperRequestUniqueId,
+    );
+    if (busy) {
+      return {
+        handled: false,
+        outcome: "double_booked",
+        queueUniqueId: null,
+        loadingOrderNumber: null,
+        reason: journey?.shipperRequestUniqueId
+          ? `already engaged on order ${journey.shipperRequestUniqueId}`
+          : "already engaged on an active journey",
+      };
+    }
+
+    // (2) Reuse a FIFO position if they have one.
+    const linked = await linkQueueEntryOnAccept({
+      shipperRequestUniqueId,
+      driverUserUniqueId,
+      actorUserUniqueId: actor,
+      executor,
+    });
+    if (linked?.linked) {
+      const [rows] = await executor.query(
+        `SELECT dq.loadingOrderNumber
+           FROM DriverQueue dq
+          WHERE dq.queueUniqueId = ? AND dq.queueDeletedAt IS NULL
+          LIMIT 1`,
+        [linked.queueUniqueId],
+      );
+      return {
+        handled: true,
+        outcome: "linked",
+        queueUniqueId: linked.queueUniqueId,
+        loadingOrderNumber: rows?.[0]?.loadingOrderNumber ?? null,
+      };
+    }
+
+    // (3)+(4) Not in a queue here. Only auto-create for a queue-org order —
+    // street/nearby orders never have DriverQueue rows.
+    const [[order]] = await executor.query(
+      `SELECT srb.queueOrganizationUniqueId
+         FROM ShipperRequest sr
+         LEFT JOIN ShipperRequestBatch srb
+           ON srb.batchUniqueId = sr.shipperRequestBatchUniqueId
+        WHERE sr.shipperRequestUniqueId = ?
+          AND sr.shipperRequestDeletedAt IS NULL
+        LIMIT 1`,
+      [shipperRequestUniqueId],
+    );
+    if (!order?.queueOrganizationUniqueId) {
+      return {
+        handled: false,
+        outcome: "not_queue_order",
+        queueUniqueId: null,
+        loadingOrderNumber: null,
+      };
+    }
+
+    // Lazy require breaks the accept-linkage → lifecycle cycle.
+    const { autoEnrollBidWinner } = require("./lifecycle.service");
+    const enrolled = await autoEnrollBidWinner({
+      executor,
+      shipperRequestUniqueId,
+      driverUserUniqueId,
+      queueOrganizationUniqueId: order.queueOrganizationUniqueId,
+      actorUserUniqueId: actor,
+    });
+    return {
+      handled: true,
+      outcome: "enrolled",
+      queueUniqueId: enrolled.queueUniqueId,
+      loadingOrderNumber: enrolled.loadingOrderNumber ?? null,
+    };
+  } catch (error) {
+    // Same contract as linkQueueEntryOnAccept: the job is already committed, so
+    // a queue-bookkeeping failure is logged, never thrown.
+    logger.error(
+      "ensureQueueEntryForAcceptedJob failed (job accepted, queue row not ensured)",
+      {
+        error: error.message,
+        shipperRequestUniqueId,
+        driverUserUniqueId,
+      },
+    );
+    return {
+      handled: false,
+      outcome: "failed",
+      queueUniqueId: null,
+      loadingOrderNumber: null,
+      reason: error.message,
+    };
+  }
+};
+
+/**
  * LOSER RELEASE — generalized counterpart for the bidding board.
  *
  * When the shipper selects a winner, every OTHER driver whose queue entry
@@ -283,4 +452,5 @@ const releaseAgreedEntryForUnselectedBidder = async ({
 module.exports = {
   linkQueueEntryOnAccept,
   releaseAgreedEntryForUnselectedBidder,
+  ensureQueueEntryForAcceptedJob,
 };

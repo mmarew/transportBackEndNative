@@ -10,6 +10,10 @@ const MAX_RADIUS_KM = 20;
 const DEGREE_BUFFER = MAX_RADIUS_KM / 111 + 0.01; // eslint-disable-line no-magic-numbers -- km-per-degree and buffer padding // ≈ 0.19°
 
 const findNearbyDrivers = async ({ shipperRequest }) => {
+  // Lazy require: Services/DriverQueue/helpers.js pulls in VehicleDriver.service,
+  // which requires this module's barrel — a top-level import would resolve a
+  // half-initialized ReadData and leave getData undefined.
+  const { ACTIVE_JOURNEY_STATUSES } = require("../../Services/DriverQueue/helpers");
   // Queue orders are dispatched exclusively via queue FIFO (handleQueueDispatch)
   // — never by distance — EXCEPT when an individual order's bidding board is open
   // (isBiddingApproved=TRUE on the ShipperRequest row), which makes it distance-
@@ -106,6 +110,21 @@ const findNearbyDrivers = async ({ shipperRequest }) => {
                WHERE dr2.userUniqueId = Users.userUniqueId
                  AND sr2.shipperRequestBatchUniqueId = ?
                  AND jd2.journeyStatusId IN (${journeyStatusMap.requested}, ${journeyStatusMap.acceptedByDriver})
+             )
+             AND NOT EXISTS (
+               -- CROSS-ORDER fence: never bid a driver who is ALREADY on a job.
+               -- The candidate pool is DriverRequest rows at waiting /
+               -- rejectedByDriver, and a driver carries one row per market
+               -- request — so a driver mid-job on order X still has a separate
+               -- waiting row that would qualify them here. The batch guard
+               -- above cannot catch that (different batch). ACTIVE_JOURNEY_
+               -- STATUSES also subsumes the same-batch requested /
+               -- acceptedByDriver cases; statuses are inlined like the guards
+               -- above so the values array is unchanged.
+               SELECT 1 FROM JourneyDecisions jd3
+               JOIN DriverRequest dr3 ON dr3.driverRequestId = jd3.driverRequestId
+               WHERE dr3.userUniqueId = Users.userUniqueId
+                 AND jd3.journeyStatusId IN (${ACTIVE_JOURNEY_STATUSES.join(", ")})
              )`
             : ""
         }

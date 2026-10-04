@@ -6,6 +6,9 @@ const AppError = require("../../Utils/AppError");
 const { db } = require("../CompanyHelper.service");
 const { getData } = require("../../CRUD/Read/ReadData");
 const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
+const {
+  ACTIVE_JOURNEY_STATUSES,
+} = require("../DriverQueue/helpers");
 const messageTypes = require("../../Utils/MessageTypes");
 const { sendFCMNotificationToUser } = require("../Firebase.service");
 const {
@@ -111,6 +114,12 @@ exports.autoAssignBatch = async (data) => {
   // Two-layer exclusion:
   //   Layer 1 (global):  Skip drivers/vehicles that have any ACTIVE assignment
   //                      anywhere (not completed/cancelled/rejected).
+  //   Layer 1b (journey): Skip drivers/vehicles already on a JOB that is not
+  //                      represented by an assignment row at all — a queue job
+  //                      or an individual bid. Layer 1 alone was blind to these,
+  //                      which is how a driver could be auto-assigned a company
+  //                      job while still working a queue one. Same
+  //                      ACTIVE_JOURNEY_STATUSES the check-in fence uses.
   //   Layer 2 (per-batch): Skip drivers who already REJECTED this specific batch.
   //                        Once a driver declines, they should not be re-offered
   //                        the same job even after auto-reassign is triggered.
@@ -131,6 +140,25 @@ exports.autoAssignBatch = async (data) => {
          WHERE (cba.vehicleUniqueId = cv.vehicleUniqueId OR cba.driverUserUniqueId = vd.driverUserUniqueId)
            AND cba.assignmentStatus NOT IN ('completed', 'cancelled_by_company', 'cancelled_by_shipper', 'cancelled_by_driver', 'rejected_by_driver')
            AND cba.assignmentDeletedAt IS NULL
+       )
+       -- Layer 1b: no active journey (queue job / individual bid) on this driver
+       AND NOT EXISTS (
+         SELECT 1 FROM JourneyDecisions jd
+         JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+         WHERE dr.userUniqueId = vd.driverUserUniqueId
+           AND dr.driverRequestDeletedAt IS NULL
+           AND jd.journeyStatusId IN (${ACTIVE_JOURNEY_STATUSES.join(", ")})
+       )
+       -- Layer 1b (vehicle): the truck itself is already out on a trip.
+       -- CompanyBidVehicleAssignment has no driverRequestId; the journey it
+       -- created is linked by journeyDecisionUniqueId.
+       AND NOT EXISTS (
+         SELECT 1 FROM CompanyBidVehicleAssignment cba2
+         JOIN JourneyDecisions jd2 ON jd2.journeyDecisionUniqueId = cba2.journeyDecisionUniqueId
+         WHERE cba2.vehicleUniqueId = cv.vehicleUniqueId
+           AND cba2.assignmentDeletedAt IS NULL
+           AND jd2.journeyDecisionDeletedAt IS NULL
+           AND jd2.journeyStatusId IN (${ACTIVE_JOURNEY_STATUSES.join(", ")})
        )`,
     [companyUniqueId, bid.vehicleTypeUniqueId],
   );

@@ -54,12 +54,21 @@ async function createJourneyDecisionForAssignment(
     );
   }
 
-  // Idempotency: if a JD already exists for this driverRequestId, return it.
-  // Option B creates a NEW DriverRequest (old one is soft-deleted), so the new
-  // DR will never collide with the cancelled individual JD's old DR.
+  // Idempotency: if a JD already exists for this driverRequestId AND this
+  // ShipperRequest, return it. The ShipperRequest scoping is load-bearing —
+  // matching on driverRequestId alone returns a decision belonging to some
+  // other order the driver is holding, and the caller then mutates THAT row
+  // (promoting its status, stamping it on this assignment) while leaving this
+  // order with no decision at all.
   const [[existing]] = await db().query(
-    "SELECT journeyDecisionUniqueId FROM JourneyDecisions WHERE driverRequestId = ? LIMIT 1",
-    [drRow.driverRequestId],
+    `SELECT journeyDecisionUniqueId
+       FROM JourneyDecisions
+      WHERE driverRequestId = ?
+        AND shipperRequestId = ?
+        AND journeyDecisionDeletedAt IS NULL
+      ORDER BY journeyDecisionId DESC
+      LIMIT 1`,
+    [drRow.driverRequestId, prRow.shipperRequestId],
   );
   if (existing) {
     return existing.journeyDecisionUniqueId;

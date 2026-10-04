@@ -26,6 +26,12 @@ const logger = require("../../../Utils/logger");
 const { currentDate } = require("../../../Utils/CurrentDate");
 const { transactionStorage } = require("../../../Utils/TransactionContext");
 const { BATCH_DECLINED_JOURNEY_STATUSES } = require("./constants");
+// Single source of truth for "this driver is engaged" — the same set
+// DriverQueue's hasActiveJourney fence uses, so a driver can never be offered a
+// job the queue layer would consider them busy for.
+const {
+  ACTIVE_JOURNEY_STATUSES,
+} = require("../../DriverQueue/helpers");
 const { ensureWaitingDriverRequest } = require("./matching.service");
 const { sendShipperNotification } = require("./notify.service");
 
@@ -246,6 +252,29 @@ const pullPendingBidOrderForDriver = async ({
       return { offered: false, data: null };
     }
     const executor = transactionStorage.getStore() || pool;
+
+    // DRIVER-LEVEL fence before touching the board: a driver who is already on
+    // a job must not be pulled a bid at all. The per-order guard below is
+    // BATCH-scoped (it only blocks orders of a batch this driver already
+    // engaged with), so it cannot see a job the driver holds on a DIFFERENT
+    // batch/org — which is exactly how a driver ends up booked twice. One query
+    // for the whole board, not per order.
+    const [activeJourneyRows] = await executor.query(
+      `SELECT 1
+         FROM JourneyDecisions jd
+         JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+        WHERE dr.userUniqueId = ?
+          AND jd.journeyStatusId IN (${ACTIVE_JOURNEY_STATUSES.join(", ")})
+        LIMIT 1`,
+      [driverUserUniqueId],
+    );
+    if (activeJourneyRows.length > 0) {
+      logger.debug(
+        "pullPendingBidOrderForDriver: driver on an active journey, skipping board",
+        { driverUserUniqueId, queueOrganizationUniqueId },
+      );
+      return { offered: false, data: null };
+    }
 
     const nearByShippers = await findNearbyShippers({
       originLatitude: driverLatitude,

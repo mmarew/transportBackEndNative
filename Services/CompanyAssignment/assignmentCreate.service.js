@@ -6,6 +6,9 @@ const AppError = require("../../Utils/AppError");
 const { db } = require("../CompanyHelper.service");
 const { getData } = require("../../CRUD/Read/ReadData");
 const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
+const {
+  assertDriverNotDoubleBooked,
+} = require("../DriverQueue/helpers");
 
 const logger = require("../../Utils/logger");
 const messageTypes = require("../../Utils/MessageTypes");
@@ -122,6 +125,20 @@ exports.createAssignment = async (data) => {
       AppError.CONFLICT,
     );
   }
+
+  // ── Double-booking fence ─────────────────────────────────────────────
+  // One driver cannot hold two jobs at once. Before this the only driver-side
+  // guard lived in the auto-assigner and it looked only at
+  // CompanyBidVehicleAssignment — so a driver who had already taken a QUEUE job
+  // (or bid individually; neither writes an assignment row) could be assigned a
+  // second company job on top of it. Reuses the shared queue-layer definition of
+  // "engaged" so the rule is identical across check-in, dispatch and assignment.
+  await assertDriverNotDoubleBooked({
+    executor: db(),
+    driverUserUniqueId,
+    vehicleUniqueId: vehicleUniqueId ?? null,
+    actorLabel: "another company assignment",
+  });
 
   // ── Upsert DriverRequest — status 2 (requested): company is requesting
   //    the driver. Status advances to 4 (acceptedByShipper = all agreed)
@@ -248,6 +265,16 @@ exports.createBulkAssignments = async (data) => {
         AppError.CONFLICT,
       );
     }
+
+    // ── Double-booking fence (bulk) ────────────────────────────────────
+    // Same rule as the single-create path above, applied per item so one busy
+    // driver fails their own row and the rest of the batch still processes.
+    await assertDriverNotDoubleBooked({
+      executor: db(),
+      driverUserUniqueId,
+      vehicleUniqueId: vehicleUniqueId ?? null,
+      actorLabel: "another company assignment",
+    });
 
     // Upsert DriverRequest — status 2 (requested): company is requesting the
     // driver. Status advances to 4 when driver confirms.

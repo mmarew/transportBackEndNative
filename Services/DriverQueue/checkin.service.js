@@ -30,6 +30,95 @@ const { rescanPendingQueueOrder } = require("./dispatch.service");
 const { notifyShipperOfQueueReservation } = require("./dispatch-notify");
 
 /**
+ * Single writer for a DriverQueue row — the shared core of check-in and the
+ * bid-winner auto-enrollment, so the numbering, insert, duplicate handling and
+ * history audit can never drift between the two.
+ *
+ * Allocates `queueNumber` per (org, date, vehicle type) and inserts the row at
+ * the given `status`. Callers own the POLICY fences (idempotent re-check-in,
+ * one-queue-per-day, active-engagement) — this function only writes.
+ *
+ * @param {object} params
+ * @param {import("pool").PoolConnection} params.executor Transaction executor.
+ * @param {string} params.queueOrganizationUniqueId FK → QueueOrganization.
+ * @param {string} params.queueDate YYYY-MM-DD the entry belongs to.
+ * @param {object} params.vehicleDriver Resolved active VehicleDriver row.
+ * @param {string} params.createdBy Actor userUniqueId (driver, or admin/auto).
+ * @param {number} [params.status] QUEUE_STATUS to insert at. Defaults WAITING
+ *   (a driver joining the line); auto-enrollment passes AGREED so the driver
+ *   never transiently appears as a waiting driver to board readers.
+ * @param {string} [params.historyEvent] History vocabulary for the snapshot.
+ * @returns {Promise<{queueUniqueId: string, queueNumber: number, duplicate: boolean}>}
+ *   `duplicate: true` means the unique key rejected the insert because a
+ *   concurrent transaction already created the entry.
+ */
+const insertQueueEntryRow = async ({
+  executor,
+  queueOrganizationUniqueId,
+  queueDate,
+  vehicleDriver,
+  createdBy,
+  status = QUEUE_STATUS.WAITING,
+  historyEvent = HISTORY_EVENT.CHECKIN,
+  targetedShipperUserUUID = null,
+  driverLatitude = null,
+  driverLongitude = null,
+  loadingOrderNumber = null,
+  shipperRequestUniqueId = null,
+  agreedAt = null,
+}) => {
+  const queueUniqueId = uuidv4();
+  const queueNumber = await nextQueueNumber(
+    executor,
+    queueOrganizationUniqueId,
+    queueDate,
+    vehicleDriver.vehicleTypeUniqueId,
+  );
+
+  try {
+    await createData({
+      tableName: "DriverQueue",
+      insertValues: {
+        queueUniqueId,
+        queueOrganizationUniqueId,
+        queueDate,
+        queueNumber,
+        vehicleDriverUniqueId: vehicleDriver.vehicleDriverUniqueId,
+        targetedShipperUserUUID,
+        driverLatitude,
+        driverLongitude,
+        joinedAt: currentDate(),
+        status,
+        // Written only when the caller supplies them (auto-enrollment); a normal
+        // check-in leaves them NULL so the yard number is still issued at accept.
+        ...(loadingOrderNumber !== null
+          ? { loadingOrderNumber, agreedAt, shipperRequestUniqueId }
+          : {}),
+        queueCreatedBy: createdBy,
+      },
+    });
+  } catch (error) {
+    // ER_DUP_ENTRY = the (org, date, vehicleType, queueNumber) unique key lost a
+    // race with a concurrent enrollment. Reported, not thrown, so the caller
+    // decides whether that is a conflict (check-in) or an idempotent no-op.
+    if (error.code === "ER_DUP_ENTRY") {
+      return { queueUniqueId, queueNumber, duplicate: true };
+    }
+    throw error;
+  }
+
+  await logQueueHistory(executor, {
+    queueUniqueId,
+    event: historyEvent,
+    performedBy: createdBy,
+  });
+
+  return { queueUniqueId, queueNumber, duplicate: false };
+};
+
+exports.insertQueueEntryRow = insertQueueEntryRow;
+
+/**
  * Driver joins the queue — virtual check-in from anywhere. Server stamps the
  * position per (queueOrganizationUniqueId, queueDate, vehicleTypeUniqueId).
  *
@@ -230,48 +319,31 @@ exports.checkin = async (data) => {
   // directly (no prior same-day entry to carry a reservation over from).
   const preserveTarget = targetedShipperUserUUID || null;
 
-  const queueUniqueId = uuidv4();
-  const queueNumber = await nextQueueNumber(
+  // Shared row writer (also used by the bid-winner auto-enrollment) owns the
+  // queueNumber allocation, the insert, the duplicate check and the history
+  // snapshot.
+  const {
+    queueUniqueId,
+    queueNumber,
+    duplicate,
+  } = await insertQueueEntryRow({
     executor,
     queueOrganizationUniqueId,
     queueDate,
-    vehicleDriver.vehicleTypeUniqueId,
-  );
-
-  try {
-    await createData({
-      tableName: "DriverQueue",
-      insertValues: {
-        queueUniqueId,
-        queueOrganizationUniqueId,
-        queueDate,
-        queueNumber,
-        vehicleDriverUniqueId,
-        targetedShipperUserUUID: preserveTarget,
-        driverLatitude: checkInLat,
-        driverLongitude: checkInLng,
-        joinedAt: currentDate(),
-        status: QUEUE_STATUS.WAITING,
-        queueCreatedBy: user.userUniqueId,
-      },
-    });
-  } catch (error) {
-    if (error.code === "ER_DUP_ENTRY") {
-      throw new AppError(
-        "Driver is already in the queue for this day",
-        AppError.CONFLICT,
-      );
-    }
-    throw error;
-  }
-
-  // Audit for the fresh entry: creation status + any shipper reservation applied
-  // at check-in. One snapshot holds the entire created row.
-  await logQueueHistory(executor, {
-    queueUniqueId,
-    event: HISTORY_EVENT.CHECKIN,
-    performedBy: user.userUniqueId,
+    vehicleDriver,
+    createdBy: user.userUniqueId,
+    status: QUEUE_STATUS.WAITING,
+    historyEvent: HISTORY_EVENT.CHECKIN,
+    targetedShipperUserUUID: preserveTarget,
+    driverLatitude: checkInLat,
+    driverLongitude: checkInLng,
   });
+  if (duplicate) {
+    throw new AppError(
+      "Driver is already in the queue for this day",
+      AppError.CONFLICT,
+    );
+  }
 
   // Check-in auto-offer: pair the oldest pending queue order of this driver's
   // vehicle type with the FRONT waiting driver (FIFO, one order per check-in).

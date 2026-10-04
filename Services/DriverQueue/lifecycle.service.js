@@ -12,8 +12,11 @@ const {
   today,
   QUEUE_STATUS,
   HISTORY_EVENT,
+  LIVE_ENTRY_STATUSES,
+  JOB_STATUSES,
   logQueueHistory,
   nextLoadingNumber,
+  resolveLatestActiveVehicleDriverForUser,
 } = require("./helpers");
 const { offerToNextDriver, applyRefusalPolicy } = require("./release.service");
 const { notifyShipperOfQueueEvent } = require("./dispatch-notify");
@@ -303,6 +306,218 @@ const assertQueueOfferAcceptable = async ({
 };
 
 exports.assertQueueOfferAcceptable = assertQueueOfferAcceptable;
+
+/**
+ * AUTO-ENROLL A BID WINNER — create a queue entry for a driver who wins a bid
+ * WITHOUT ever holding a queue row.
+ *
+ * The problem: a bid-base order (ShipperRequest.isBiddingApproved = TRUE) is
+ * matched by the distance matcher / bidding board, not by FIFO, and those paths
+ * create a bare JourneyDecision and NEVER write the order onto a DriverQueue
+ * row. So the winning driver has no queue row at all when the shipper (or queue
+ * org admin) accepts their bid. Before this function that accept silently
+ * no-op'd the queue bookkeeping, and the driver got NO yard number — invisible
+ * to the yard board while holding a job for that very org.
+ *
+ * How the queue entry is created, in order:
+ *  1. Resolve the winning org from the ORDER via its ShipperRequestBatch row
+ *     (batch-canonical — the per-order column was dropped). `queueOrganization-
+ *     UniqueId` is only a fast path when the caller already resolved it; it is
+ *     NEVER taken from the request body, so a client cannot enroll a driver
+ *     into an org the order does not belong to. The order's shipper is read in
+ *     the same query and becomes the entry's `targetedShipperUserUUID`.
+ *  2. Read EVERY live entry the driver holds today, in any org, under FOR UPDATE
+ *     (`LIVE_ENTRY_STATUSES` — not `IN_QUEUE_STATUSES`, whose narrower set
+ *     cannot see a driver who is already mid-job).
+ *  3. Fence: if any of those entries is a JOB status (3/5/6/7/8) carrying an
+ *     order, refuse with 409. Already booked — never double-book. An `agreed`
+ *     row with NO linkage is the legacy ghost and stays checkout-able.
+ *  4. Fence: if the driver holds a live position in ANOTHER org, `checkout()`
+ *     it first. Reusing the canonical checkout (not a hand-rolled retire) means
+ *     a `requested` / `noAnswerFromDriver` order they were holding is properly
+ *     terminalized and re-offered to the next driver instead of being
+ *     stranded. This is what keeps one-queue-per-driver-per-day true.
+ *  5. Fence: resolve the driver's most recent ACTIVE vehicle assignment. A yard
+ *     number is per-truck and DriverQueue requires a `vehicleDriverUniqueId`,
+ *     so with none there is nothing to number — refuse with 409.
+ *  6. Issue the WRITE-ONCE yard `loadingOrderNumber` via `nextLoadingNumber`,
+ *     from the same one-continuous-sequence-per-org+day counter every other
+ *     accept path uses.
+ *  7. Insert through the SHARED check-in writer (`insertQueueEntryRow`), status
+ *     `agreed` in a single statement. It is never written as `waiting` and then
+ *     updated: a transient waiting row would count the winner in everyone
+ *     else's `waitingAhead` between the insert and the update. The writer also
+ *     allocates `queueNumber` per (org, date, vehicle type) and snapshots the
+ *     row into DriverQueueHistory under the `auto_enrolled` event, so the audit
+ *     trail distinguishes a synthesized entry from a real check-in.
+ *
+ * Effect: the winner is in the yard exactly like any other accepted driver —
+ * `agreed`, carrying the order linkage and a yard number — so the board shows
+ * what they are loading and the journey-progress/completion mirror (which
+ * matches entries by `shipperRequestUniqueId`) picks the entry up from the
+ * start instead of never finding it.
+ *
+ * Deliberately fail-closed: the two 409s above propagate and roll back the
+ * accept transaction, because handing a job to a driver who is already booked
+ * or has no truck is worse than refusing the accept.
+ *
+ * @param {Object} params
+ * @param {import("pool").PoolConnection} params.executor - Transaction
+ *   executor; the caller's accept transaction.
+ * @param {string} params.shipperRequestUniqueId - The order won.
+ * @param {string} params.driverUserUniqueId - The winning driver.
+ * @param {string} [params.queueOrganizationUniqueId] - Pre-resolved winning org
+ *   (the caller already has it); re-resolved from the order when omitted.
+ * @param {string} [params.actorUserUniqueId] - Who performed the accept
+ *   (shipper or queue org admin), recorded as `queueCreatedBy`.
+ * @returns {Promise<{queueUniqueId: string, queueNumber: number,
+ *   loadingOrderNumber: number, vehicleTypeUniqueId: string,
+ *   checkedOutOrganizationUniqueId: string|null}>} The created entry. Rejects
+ *   (409) when the driver is already on a job or has no active vehicle.
+ */
+const autoEnrollBidWinner = async ({
+  executor,
+  shipperRequestUniqueId,
+  driverUserUniqueId,
+  queueOrganizationUniqueId,
+  actorUserUniqueId,
+}) => {
+  // Resolve the winning org from the ORDER (batch-canonical), never from the
+  // client, and carry the shipper so the new entry reserves the position for
+  // them exactly like a check-in made on their behalf.
+  let orgUniqueId = queueOrganizationUniqueId || null;
+  let shipperUserUniqueId = null;
+  const [[orderRow]] = await executor.query(
+    `SELECT srb.queueOrganizationUniqueId, sr.userUniqueId AS shipperUserUniqueId
+       FROM ShipperRequest sr
+       LEFT JOIN ShipperRequestBatch srb
+         ON sr.shipperRequestBatchUniqueId = srb.batchUniqueId
+      WHERE sr.shipperRequestUniqueId = ?
+        AND sr.shipperRequestDeletedAt IS NULL`,
+    [shipperRequestUniqueId],
+  );
+  orgUniqueId = orgUniqueId || orderRow?.queueOrganizationUniqueId || null;
+  shipperUserUniqueId = orderRow?.shipperUserUniqueId || null;
+  if (!orgUniqueId) {
+    throw new AppError(
+      "Order is not a queue order; cannot enroll its driver into the queue",
+      AppError.CONFLICT,
+    );
+  }
+
+  const queueDate = today();
+
+  // Every live entry the driver holds today, in ANY org. LIVE_ENTRY_STATUSES —
+  // not IN_QUEUE_STATUSES — because the job statuses must be visible here to
+  // catch a driver who is already carrying an order.
+  const [liveEntries] = await executor.query(
+    `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.status,
+            dq.shipperRequestUniqueId
+       FROM DriverQueue dq
+       JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+      WHERE dq.queueDate = ? AND vd.driverUserUniqueId = ?
+        AND dq.status IN (${LIVE_ENTRY_STATUSES.join(", ")})
+        AND dq.queueDeletedAt IS NULL
+      ORDER BY dq.queueId DESC
+      FOR UPDATE`,
+    [queueDate, driverUserUniqueId],
+  );
+
+  // (1) Already holding a job — refuse rather than double-book.
+  const jobEntry = liveEntries.find(
+    (r) => JOB_STATUSES.includes(r.status) && r.shipperRequestUniqueId,
+  );
+  if (jobEntry) {
+    throw new AppError(
+      "Driver is already on an active job and cannot take this one",
+      AppError.CONFLICT,
+    );
+  }
+
+  // (2) Holding a live position in another org — check it out first. Reuses the
+  // canonical checkout, which releases/re-offers a REQUESTED or NO_ANSWER order
+  // to the next driver before soft-deleting the row.
+  const foreignEntry = liveEntries.find(
+    (r) => r.queueOrganizationUniqueId !== orgUniqueId,
+  );
+  if (foreignEntry) {
+    // Lazy require breaks the lifecycle → position cycle.
+    const { checkout } = require("./position.service");
+    await checkout(foreignEntry.queueOrganizationUniqueId, {
+      userUniqueId: driverUserUniqueId,
+    });
+  }
+
+  // (3) A yard number is per-truck; without an active assignment there is no
+  // row to hang it on.
+  const vehicleDriver = await resolveLatestActiveVehicleDriverForUser({
+    driverUserUniqueId,
+  });
+  if (!vehicleDriver) {
+    throw new AppError(
+      "Driver has no active vehicle, so no yard number can be issued",
+      AppError.CONFLICT,
+    );
+  }
+
+  // WRITE-ONCE yard number, issued here for the auto-enrolled path exactly as
+  // the linked paths issue it at accept — one continuous sequence per org+day.
+  const loadingOrderNumber = await nextLoadingNumber(
+    executor,
+    orgUniqueId,
+    queueDate,
+  );
+
+  // Lazy require: checkin.service pulls in the dispatch stack.
+  const { insertQueueEntryRow } = require("./checkin.service");
+  const created = await insertQueueEntryRow({
+    executor,
+    queueOrganizationUniqueId: orgUniqueId,
+    queueDate,
+    vehicleDriver,
+    createdBy: actorUserUniqueId || driverUserUniqueId,
+    // Insert as AGREED, never WAITING-then-update: a transient WAITING row
+    // would count the winner in everyone else's waitingAhead for the moment
+    // between insert and update.
+    status: QUEUE_STATUS.AGREED,
+    historyEvent: HISTORY_EVENT.AUTO_ENROLLED,
+    targetedShipperUserUUID: shipperUserUniqueId,
+    // Accept happens server-side from the admin's phone; no driver GPS here.
+    driverLatitude: null,
+    driverLongitude: null,
+    loadingOrderNumber,
+    shipperRequestUniqueId,
+    // The entry is born AGREED with the order already attached, so the accept
+    // instant must be stamped here — the normal check-in path leaves agreedAt
+    // NULL because it only agrees later, in linkQueueEntryOnAccept.
+    agreedAt: currentDate(),
+  });
+  // ER_DUP_ENTRY means the (org, date, vehicleType, queueNumber) key lost a race
+  // with a concurrent enrollment, so NO row was written. Report it as a conflict
+  // instead of returning a queueUniqueId that does not exist — the caller's
+  // transaction rolls back and the accept can be retried.
+  if (created.duplicate) {
+    throw new AppError(
+      "Could not allocate a queue position for this bid winner (concurrent queue join). Please retry.",
+      AppError.CONFLICT,
+    );
+  }
+
+  await emitQueueSnapshot({ queueOrganizationUniqueId: orgUniqueId, queueDate });
+
+  return {
+    queueUniqueId: created.queueUniqueId,
+    queueNumber: created.queueNumber,
+    loadingOrderNumber,
+    vehicleTypeUniqueId: vehicleDriver.vehicleTypeUniqueId,
+    checkedOutOrganizationUniqueId: foreignEntry
+      ? foreignEntry.queueOrganizationUniqueId
+      : null,
+  };
+};
+
+exports.autoEnrollBidWinner = autoEnrollBidWinner;
+
 /**
  * Driver accepts the queue offer → the entry is marked `agreed` (leaves the
  * dispatch line; journey progress is tracked on the driver's JourneyDecisions /
@@ -315,14 +530,17 @@ exports.assertQueueOfferAcceptable = assertQueueOfferAcceptable;
  * between the pre-check and here. A REQUESTED holder that was already
  * reassigned (order on another driver's entry now) fails with a 409; a
  * NO_ANSWER holder whose order nobody else took successfully late-accepts.
- * BID-BASE orders with neither a linked entry nor a live own entry (offer was
- * surfaced by the creation/distance matcher while the driver was not in any
- * line) are a no-op — nothing to mark, so the shipper's accept is not blocked.
+ * BID-BASE orders with neither a linked entry nor a live own entry are
+ * AUTO-ENROLLED (autoEnrollBidWinner) so the winner still gets a queue row and
+ * yard number; a bid whose org cannot be resolved still no-ops, so the shipper's
+ * accept is never blocked by queue bookkeeping.
  */
 exports.markEntryAgreed = async ({
   shipperRequestUniqueId,
   userUniqueId,
   bidOrder = false,
+  queueOrganizationUniqueId = null,
+  actorUserUniqueId = null,
 }) => {
   const executor = db();
   const [rows] = await executor.query(
@@ -377,11 +595,21 @@ exports.markEntryAgreed = async ({
   }
   // BID-BASE order with NO linked entry AND no live waiting entry for the
   // driver: the offer was surfaced by the creation/distance matcher while the
-  // driver was NOT in any line (or their line row is already terminal). There
-  // is nothing to mark agreed — entry bookkeeping is a no-op so the shipper's
-  // accept of the driver's bid is NOT blocked by a missing queue row.
+  // driver was NOT in any line. Auto-enroll them so the winner still receives a
+  // queue row and the yard `loadingOrderNumber` every other accept path issues.
+  // The enrollment is allowed to fail closed on a genuine conflict (driver
+  // already on a job, or no active vehicle) — those must not silently hand out a
+  // job the driver cannot perform.
   if (entry === null) {
-    return { updated: false };
+    // Reaching here implies bidOrder === true (the guard above throws otherwise).
+    const enrolled = await autoEnrollBidWinner({
+      executor,
+      shipperRequestUniqueId,
+      driverUserUniqueId: userUniqueId,
+      queueOrganizationUniqueId,
+      actorUserUniqueId,
+    });
+    return { updated: true, autoEnrolled: true, ...enrolled };
   }
   if (entry.driverUserUniqueId !== userUniqueId) {
     throw new AppError(
