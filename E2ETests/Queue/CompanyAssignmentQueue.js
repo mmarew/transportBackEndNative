@@ -60,6 +60,7 @@ const {
   checkin,
   dbToday,
   resetDriverQueueDay,
+  resetDriverJourneyDay,
   getQueueEntryByDriver,
   expectStatus,
 } = require("./helpers");
@@ -281,6 +282,7 @@ const runCompanyAssignmentQueueTests = async () => {
       );
     }
     await resetDriverQueueDay(DRIVER_KEY);
+    await resetDriverJourneyDay(DRIVER_KEY);
     await checkin(DRIVER_KEY, orgUniqueId);
     const before = await getQueueEntryByDriver({
       queueOrganizationUniqueId: orgUniqueId,

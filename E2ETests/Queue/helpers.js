@@ -664,21 +664,36 @@ const resetDriverQueueDay = async (driverKey) => {
  * treats statuses 3,4,5,6,7,8 as in-flight and status 2 as an unresolved queue
  * offer; both block a fresh check-in, so both are retired here.
  *
+ * BOTH tables are needed, and the order matters:
+ *  - `JourneyDecisions` is what hasActiveJourney actually reads
+ *    (Services/DriverQueue/helpers.js:768), and
+ *  - `DriverRequest.activeRequestGuard` is a STORED GENERATED column derived
+ *    from DriverRequest.journeyStatusId, so it only releases once the request
+ *    itself reaches a terminal status.
  * Status 13 (cancelledByAdmin) is the terminal the other queue suites already
- * leave behind, and `DriverRequest.activeRequestGuard` is a STORED GENERATED
- * column derived from journeyStatusId — moving to a terminal status releases the
- * guard automatically. ShipperRequest rows are intentionally left alone: they
- * belong to the throwaway org of whichever suite created them.
+ * leave behind. ShipperRequest rows are intentionally left alone: they belong to
+ * the throwaway org of whichever suite created them.
  */
 const resetDriverJourneyDay = async (driverKey) => {
+  const phone = usersData[driverKey].phoneNumber;
+  await pool.query(
+    `UPDATE JourneyDecisions jd
+        JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+        JOIN Users u          ON u.userUniqueId      = dr.userUniqueId
+        SET jd.journeyStatusId = 13,
+            jd.journeyDecisionUpdatedAt = NOW()
+      WHERE u.phoneNumber = ?
+        AND jd.journeyStatusId IN (2, 3, 4, 5, 6, 7, 8)`,
+    [phone],
+  );
   await pool.query(
     `UPDATE DriverRequest dr
-       JOIN Users u ON u.userUniqueId = dr.userUniqueId
+        JOIN Users u ON u.userUniqueId = dr.userUniqueId
         SET dr.journeyStatusId = 13,
             dr.driverRequestUpdatedAt = NOW()
       WHERE u.phoneNumber = ?
         AND dr.journeyStatusId IN (2, 3, 4, 5, 6, 7, 8)`,
-    [usersData[driverKey].phoneNumber],
+    [phone],
   );
 };
 

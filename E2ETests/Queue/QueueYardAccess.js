@@ -685,11 +685,25 @@ const runQueueYardAccessTests = async () => {
       token: superAdminToken(),
     });
     // d4 joins RESERVED for the test shipper (reservation lane, typeB).
-    await checkinWithShipper(
+    const d4Checkin = await checkinWithShipper(
       "queueDriver4",
       org1Id,
       usersData.shipper?.phoneNumber,
     );
+    // Fail HERE, at the cause, rather than 40 lines later inside QYA-03/06 with
+    // a misleading "no live entry". check-in answers 200 for two non-joining
+    // cases (same-org idempotent re-check-in, and `alreadyInJourney` for a
+    // driver mid-journey), so a 2xx alone proves nothing.
+    const d4Entry = await getQueueEntryByDriver({
+      queueOrganizationUniqueId: org1Id,
+      driverKey: "queueDriver4",
+    });
+    if (!d4Entry) {
+      throw new Error(
+        `d4 reservation check-in did not create an entry in org1 — ` +
+          `response: ${JSON.stringify(d4Checkin)}`,
+      );
+    }
     // d1/d2/d3 join general (typeA).
     await checkin("queueDriver1", org1Id);
     await checkin("queueDriver2", org1Id);
