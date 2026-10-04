@@ -630,6 +630,58 @@ const waitFor = async (fn, { timeoutMs = 15000, intervalMs = 400, label = "condi
 
 const dbToday = () => new Date().toISOString().slice(0, 10);
 
+/**
+ * Soft-delete every queue row this driver holds today.
+ *
+ * "One queue per driver per day" is enforced SYSTEM-WIDE (checkin.service.js
+ * rejects a check-in into a second org), so a driver left in the line by an
+ * earlier suite cannot join a throwaway org — and a best-effort checkout sweep
+ * silently fails whenever the driver still holds an active job (409). Clearing
+ * the day directly is what makes a suite self-contained and ORDER-INDEPENDENT:
+ * run it before creating the throwaway org, never as a mid-suite rescue.
+ */
+const resetDriverQueueDay = async (driverKey) => {
+  await pool.query(
+    `UPDATE DriverQueue dq
+        JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+        JOIN Users u          ON u.userUniqueId           = vd.driverUserUniqueId
+       SET dq.queueDeletedAt = NOW()
+     WHERE u.phoneNumber = ?
+       AND dq.queueDate = ?
+       AND dq.queueDeletedAt IS NULL`,
+    [usersData[driverKey].phoneNumber, dbToday()],
+  );
+};
+
+/**
+ * Terminate every IN-FLIGHT journey this driver still holds.
+ *
+ * Clearing DriverQueue rows alone is not enough. checkin.service.js answers a
+ * driver who is mid-journey with `200 { alreadyInJourney: true }` and NO queue
+ * row (deliberate: idempotent reporting instead of throwing), so the check-in
+ * looks successful while the driver never joins the line — the failure then
+ * surfaces far away as "no live entry" inside a later assertion. `hasActiveJourney`
+ * treats statuses 3,4,5,6,7,8 as in-flight and status 2 as an unresolved queue
+ * offer; both block a fresh check-in, so both are retired here.
+ *
+ * Status 13 (cancelledByAdmin) is the terminal the other queue suites already
+ * leave behind, and `DriverRequest.activeRequestGuard` is a STORED GENERATED
+ * column derived from journeyStatusId — moving to a terminal status releases the
+ * guard automatically. ShipperRequest rows are intentionally left alone: they
+ * belong to the throwaway org of whichever suite created them.
+ */
+const resetDriverJourneyDay = async (driverKey) => {
+  await pool.query(
+    `UPDATE DriverRequest dr
+       JOIN Users u ON u.userUniqueId = dr.userUniqueId
+        SET dr.journeyStatusId = 13,
+            dr.driverRequestUpdatedAt = NOW()
+      WHERE u.phoneNumber = ?
+        AND dr.journeyStatusId IN (2, 3, 4, 5, 6, 7, 8)`,
+    [usersData[driverKey].phoneNumber],
+  );
+};
+
 const getQueueEntryByDriver = async ({ queueOrganizationUniqueId, driverKey, queueDate = dbToday() }) => {
   const [rows] = await pool.query(
     `SELECT dq.*
@@ -783,6 +835,8 @@ module.exports = {
   acceptOrder,
   rejectOrderByDriver,
   dbToday,
+  resetDriverQueueDay,
+  resetDriverJourneyDay,
   sleep,
   waitFor,
   getQueueEntryByDriver,

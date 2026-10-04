@@ -30,7 +30,10 @@
 //   QYA-08  LEGACY AGREED GHOST checkout: a status-3 entry with no order
 //           linkage anywhere is stuck as a phantom job holder — checkout must
 //           accept it (releases the fence), while a REAL job holder with a
-//           linked order gets 409 (cancel/complete first).
+//           linked order gets 409 (cancel/complete first). The order is
+//           therefore cancelled BEFORE the ghost is forged: checkout resolves
+//           a live order through resolveActiveOrderForDriver() even when
+//           DriverQueue carries no linkage.
 
 const axios = require("axios");
 const {
@@ -52,6 +55,8 @@ const {
   checkin,
   checkinWithShipper,
   checkout,
+  resetDriverQueueDay,
+  resetDriverJourneyDay,
   myPosition,
   getQueueStatus,
   createQueueOrder,
@@ -80,10 +85,23 @@ const fenceSweep = async (driverKey) => {
       backendURL + "/api/queue/driver/checkout",
       authConfig(driverToken(driverKey)),
     );
-  } catch (_) {
+  } catch {
     // no live entry — fine
   }
 };
+
+/**
+ * Board lanes are keyed by VEHICLE TYPE NAME and inserted in row order, so
+ * `Object.values(lanes)[0]` is whichever driver checked in FIRST — not
+ * necessarily the lane under test (Suite A checks d4 in as typeB before d1..d3
+ * as typeA). Resolve the lane that actually holds an entry instead.
+ */
+const laneOf = (board, queueUniqueId) =>
+  Object.values(board?.lanes || {}).find(
+    (lane) =>
+      lane.loadingNow.some((e) => e.queue.queueUniqueId === queueUniqueId) ||
+      lane.waiting.some((e) => e.queue.queueUniqueId === queueUniqueId),
+  );
 
 const QYA = () => queueState.yardAccess;
 
@@ -149,7 +167,12 @@ const testQYA01FifoAcceptRenumbers = async ({ org, orderUniqueId }) => {
 
   // Board lanes: d1 in loadingNow, d2 (linePosition 1) + d3 in waiting.
   const board = await getQueueStatus(org);
-  const typeA = Object.values(board.lanes || {})[0];
+  const typeA = laneOf(board, d1Entry.queueUniqueId);
+  if (!typeA) {
+    throw new Error(
+      `board has no lane for d1's entry ${d1Entry.queueUniqueId}, got ${JSON.stringify(Object.keys(board.lanes || {}))}`,
+    );
+  }
   if (!typeA?.loadingNow?.length) {
     throw new Error("board lanes missing a loadingNow entry after accept");
   }
@@ -306,31 +329,57 @@ const testQYA04BidAcceptLinksEntry = async ({ org, orderUniqueId }) => {
 // ── QYA-05 ────────────────────────────────────────────────────────────────────
 // Shipper selects the winner → the losing bidder's AGREED entry is released.
 const testQYA05LoserRelease = async ({ org, orderUniqueId }) => {
-  // d3 also accepted the bid → their entry is AGREED + linked too.
+  // d3 must not be a holder: linkQueueEntryOnAccept() Guard 3 allows only ONE
+  // live entry per order, and the shipper-select 409s once the loser has
+  // accepted ("Driver is already on an active job"). So the loser keeps only
+  // an outstanding offer on the bid board.
   const d3Pre = await getQueueEntryByDriver({
     queueOrganizationUniqueId: org,
     driverKey: "queueDriver3",
   });
-  if (!d3Pre || d3Pre.status !== journeyStatusMap.acceptedByDriver) {
+  if (!d3Pre) {
+    throw new Error("pre-select d3 must hold a live entry in the org");
+  }
+  if (d3Pre.shipperRequestUniqueId !== null) {
     throw new Error(
-      `pre-select d3 entry should be agreed(3), got ${d3Pre?.status}`,
+      `pre-select d3 entry must be UNLINKED — only one holder per order, got ${d3Pre.shipperRequestUniqueId}`,
+    );
+  }
+  const d3PreStatus = d3Pre.status;
+  if (
+    d3PreStatus !== journeyStatusMap.waiting &&
+    d3PreStatus !== journeyStatusMap.requested
+  ) {
+    throw new Error(
+      `pre-select d3 should hold only an outstanding offer (waiting/requested), got ${d3PreStatus}`,
     );
   }
 
   // Shipper picks d2 as the winner (loser decisions → notSelectedInBid).
+  // Refresh the winner ids for THIS order — the cached ones belong to the
+  // order QYA-04 already consumed.
+  await getDriverJourneyStatus({ userType: "queueDriver2" });
   const winnerIds = usersData.queueDriver2?.journeyStatus?.uniqueIds;
   if (!winnerIds?.driverRequestUniqueId || !winnerIds?.journeyDecisionUniqueId) {
     throw new Error("missing winner uniqueIds — call getDriverJourneyStatus first");
   }
-  await axios.put(
-    backendURL + SHIPPER_REQUEST_ENDPOINTS.ACCEPT_DRIVER_OFFER,
-    {
-      driverRequestUniqueId: winnerIds.driverRequestUniqueId,
-      journeyDecisionUniqueId: winnerIds.journeyDecisionUniqueId,
-      shipperRequestUniqueId: orderUniqueId,
-    },
-    authConfig(shipperToken()),
-  );
+  await axios
+    .put(
+      backendURL + SHIPPER_REQUEST_ENDPOINTS.ACCEPT_DRIVER_OFFER,
+      {
+        driverRequestUniqueId: winnerIds.driverRequestUniqueId,
+        journeyDecisionUniqueId: winnerIds.journeyDecisionUniqueId,
+        shipperRequestUniqueId: orderUniqueId,
+      },
+      authConfig(shipperToken()),
+    )
+    .catch((error) => {
+      // Surface the server's reason — a bare 409 here hides whether the order
+      // was already accepted, already assigned, or the decision was stale.
+      throw new Error(
+        `shipper select failed: HTTP ${error.response?.status} ${JSON.stringify(error.response?.data)}`,
+      );
+    });
 
   // Winner keeps the job; the loser is back to WAITING with linkage cleared.
   const d2Entry = await getQueueEntryByDriver({
@@ -496,7 +545,12 @@ const testQYA07ShipperTurnGate = async ({ org }) => {
       `board should name the serving shipper, got ${JSON.stringify(board.shipperTurn)}`,
     );
   }
-  const typeA = Object.values(board.lanes || {})[0];
+  const typeA = laneOf(board, d1.queueUniqueId);
+  if (!typeA) {
+    throw new Error(
+      `board has no lane for d1's entry ${d1.queueUniqueId}, got ${JSON.stringify(Object.keys(board.lanes || {}))}`,
+    );
+  }
   if (typeA?.loadingNow?.length !== 3) {
     throw new Error(
       `loadingNow lane should hold all three job holders, got ${typeA?.loadingNow?.length}`,
@@ -528,13 +582,13 @@ const testQYA07ShipperTurnGate = async ({ org }) => {
 // Legacy AGREED GHOST (status 3, no linkage anywhere): checkout must release
 // it instead of 404ing "Driver is not in the queue for today"; a REAL job
 // holder must still be refused with 409.
-const testQYA08GhostCheckout = async ({ org }) => {
+const testQYA08GhostCheckout = async ({ org, orderUniqueId }) => {
   // A REAL job holder (d1, linked order) cannot checkout their job away.
   const linkedEntry = await getQueueEntryByDriver({
     queueOrganizationUniqueId: org,
     driverKey: "queueDriver1",
   });
-  if (!linkedEntry || linkedEntry.shipperRequestUniqueId == null) {
+  if (!linkedEntry || linkedEntry.shipperRequestUniqueId === null || linkedEntry.shipperRequestUniqueId === undefined) {
     throw new Error("pre: d1 must hold a LINKED order for this test");
   }
   const refused = await expectStatus(
@@ -546,12 +600,22 @@ const testQYA08GhostCheckout = async ({ org }) => {
     throw new Error(`real job holder checkout should 409 with a job message, got ${JSON.stringify(refused.data)}`);
   }
 
-  // Forge the legacy ghost: strip the linkage + agreedAt from d1's entry
-  // (status stays 3). This is the pre-fix incident state.
+  // End the real job BEFORE forging the ghost. checkout resolves the active
+  // order via resolveActiveOrderForDriver() when DriverQueue has no linkage, so
+  // a still-open order would keep answering 409 and the ghost could never be
+  // reached. Cancelling first also lets us re-assert the ghost shape below,
+  // because the cancel may itself release d1's AGREED entry.
+  await cancelOrder({ orderUniqueId, cancelAs: "shipper" });
+
+  // Forge the legacy ghost: status stays 3, but no linkage anywhere.
+  // This is the pre-fix incident state. The cancel above released (soft
+  // deleted) d1's entry, so clear queueDeletedAt too — otherwise there is no
+  // LIVE entry left for checkout to find and it 404s instead of releasing.
   await pool.query(
-    `UPDATE DriverQueue SET shipperRequestUniqueId = NULL, agreedAt = NULL,
-       loadingOrderNumber = NULL WHERE queueId = ?`,
-    [linkedEntry.queueId],
+    `UPDATE DriverQueue SET status = ?, shipperRequestUniqueId = NULL, agreedAt = NULL,
+       loadingOrderNumber = NULL, queueDeletedAt = NULL, queueDeletedBy = NULL
+     WHERE queueId = ?`,
+    [journeyStatusMap.acceptedByDriver, linkedEntry.queueId],
   );
   const ghostEntry = await getQueueEntryByDriver({
     queueOrganizationUniqueId: org,
@@ -588,15 +652,23 @@ const testQYA08GhostCheckout = async ({ org }) => {
 const runQueueYardAccessTests = async () => {
   console.log("───── Yard authority + two-number queue (QYA) ─────");
   try {
-    // Start from a clean fence: whatever live entries earlier suites left
-    // behind would 409 the check-ins below (one queue per driver per day).
+    // ORDER: clear each driver's queue AND journey day BEFORE creating the orgs
+    // below. Both fences are system-wide, so state left by an earlier suite
+    // breaks these check-ins in two different silent ways:
+    //   1. a live DriverQueue row elsewhere -> check-in 409s on the one-queue
+    //      fence (or returns the OLD org's position as if it succeeded);
+    //   2. an in-flight journey (status 2-8) -> check-in answers 200
+    //      { alreadyInJourney: true } with NO queue row at all.
+    // Neither is fixable by a checkout sweep (it 409s on an active job), and
+    // both surfaced downstream as "d4 should have a live entry" in QYA-03/06.
     for (const driverKey of [
       "queueDriver1",
       "queueDriver2",
       "queueDriver3",
       "queueDriver4",
     ]) {
-      await fenceSweep(driverKey);
+      await resetDriverQueueDay(driverKey);
+      await resetDriverJourneyDay(driverKey);
     }
 
     // ── Suite A: FIFO renumber + yardPass (throwaway org #1) ──
@@ -702,17 +774,54 @@ const runQueueYardAccessTests = async () => {
     } catch (error) {
       report.fail("QYA-04: bid-base accept linkage", error);
     }
-    try {
-      await testQYA05LoserRelease({ org: org2Id, orderUniqueId: order2 });
-    } catch (error) {
-      report.fail("QYA-05: loser release on shipper select", error);
-    }
 
-    // Free d2 (winner, AGREED on order2) + d3 for Suite C.
+    // ORDER MATTERS: QYA-04's accept leaves d2 ON AN ACTIVE JOB, and
+    // acceptDriverOffer() 409s a driver who already holds one
+    // ("Driver is already on an active job and cannot take this one"). An order
+    // is therefore EITHER accepted by a driver OR selected by the shipper —
+    // never both. End order2 and free d2/d3 before running the select.
     try {
       await cancelOrder({ orderUniqueId: order2, cancelAs: "shipper" });
     } catch (error) {
       console.log(`  ⚠ QYA early cancel order2 skipped: ${error?.message}`);
+    }
+    for (const driverKey of ["queueDriver2", "queueDriver3"]) {
+      try {
+        await checkout(driverKey, org2Id);
+      } catch (error) {
+        // 404 just means the cancel above already released their entry, so
+        // there is nothing left to clear — only report real failures.
+        if (error?.response?.status !== 404) {
+          console.log(
+            `  ⚠ QYA re-checkin-prep ${driverKey} skipped: ${error?.message}`,
+          );
+        }
+      }
+    }
+    await checkin("queueDriver2", org2Id);
+    await checkin("queueDriver3", org2Id);
+
+    // QYA-05 gets its OWN bid-board order so the shipper-select has a winner
+    // who is not already carrying a job.
+    await createQueueOrder({
+      queueOrganizationUniqueId: org2Id,
+      vehicleTypeUniqueId: queueState.drivers.queueDriver2.vehicleTypeUniqueId,
+      isBiddingApproved: true,
+      origin: { latitude: 9.03, longitude: 38.74, description: "Addis Ababa (near)" },
+    });
+    const [latest2b] = await getLatestOrders(1);
+    const order2b = latest2b.shipperRequestUniqueId;
+    try {
+      await testQYA05LoserRelease({ org: org2Id, orderUniqueId: order2b });
+    } catch (error) {
+      report.fail("QYA-05: loser release on shipper select", error);
+    }
+
+    // Free d2/d3 for Suite C.
+    try {
+      await cancelOrder({ orderUniqueId: order2b, cancelAs: "shipper" });
+    } catch (error) {
+      console.log(`  ⚠ QYA early cancel order2b skipped: ${error?.message}`);
     }
     for (const driverKey of ["queueDriver1", "queueDriver2", "queueDriver3"]) {
       await fenceSweep(driverKey);
@@ -767,7 +876,7 @@ const runQueueYardAccessTests = async () => {
       report.fail("QYA-07: shipper-turn gate", error);
     }
     try {
-      await testQYA08GhostCheckout({ org: org3Id });
+      await testQYA08GhostCheckout({ org: org3Id, orderUniqueId: order3 });
     } catch (error) {
       report.fail("QYA-08: ghost checkout", error);
     }
@@ -807,7 +916,7 @@ const runQueueYardAccessTests = async () => {
         if (!org) continue;
         try {
           await checkout(driverKey, org);
-        } catch (_) {
+        } catch {
           // no live entry for this driver in this org — fine
         }
       }

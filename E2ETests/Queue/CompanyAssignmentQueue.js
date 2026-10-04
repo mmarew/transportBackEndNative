@@ -59,6 +59,7 @@ const {
   deleteQueueOrganization,
   checkin,
   dbToday,
+  resetDriverQueueDay,
   getQueueEntryByDriver,
   expectStatus,
 } = require("./helpers");
@@ -81,28 +82,6 @@ const dbError = (error) => {
     return `${error.message} :: ${JSON.stringify(body).slice(0, 400)}`;
   }
   return error?.message || String(error);
-};
-
-/**
- * Soft-delete whatever queue rows this driver already holds today.
- *
- * "One queue per driver per day" is enforced SYSTEM-WIDE (checkin.service.js
- * rejects a check-in into a second org), so a driver left in the line by an
- * earlier section of this same suite cannot join the throwaway CAQ org. Each
- * section re-checks-in the drivers it needs, so clearing the day up front is
- * what makes this file self-contained and order-independent.
- */
-const resetDriverQueueDay = async (driverKey) => {
-  await pool.query(
-    `UPDATE DriverQueue dq
-        JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
-        JOIN Users u          ON u.userUniqueId           = vd.driverUserUniqueId
-       SET dq.queueDeletedAt = NOW()
-     WHERE u.phoneNumber = ?
-       AND dq.queueDate = ?
-       AND dq.queueDeletedAt IS NULL`,
-    [usersData[driverKey].phoneNumber, dbToday()],
-  );
 };
 
 /** Live (non-deleted) DriverQueue rows this driver holds today. */
