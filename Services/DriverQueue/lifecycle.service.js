@@ -423,9 +423,15 @@ const autoEnrollBidWinner = async ({
     [queueDate, driverUserUniqueId],
   );
 
-  // (1) Already holding a job — refuse rather than double-book.
+  // (1) Already holding a DIFFERENT job — refuse rather than double-book. The
+  // entry already holding THIS order is not a conflict: a winner who accepted the
+  // bid first holds their own order here (AGREED + linkage), and counting it
+  // made the shipper's 3 → 4 accept impossible whenever enrollment was reached.
   const jobEntry = liveEntries.find(
-    (r) => JOB_STATUSES.includes(r.status) && r.shipperRequestUniqueId,
+    (r) =>
+      JOB_STATUSES.includes(r.status) &&
+      r.shipperRequestUniqueId &&
+      r.shipperRequestUniqueId !== shipperRequestUniqueId,
   );
   if (jobEntry) {
     throw new AppError(
@@ -554,20 +560,23 @@ exports.markEntryAgreed = async ({
      JOIN Vehicle v          ON v.vehicleUniqueId         = vd.vehicleUniqueId
      JOIN VehicleTypes vt    ON vt.vehicleTypeUniqueId    = v.vehicleTypeUniqueId
      WHERE dq.shipperRequestUniqueId = ?
-       AND dq.status IN (${QUEUE_STATUS.REQUESTED}, ${QUEUE_STATUS.NO_ANSWER_FROM_DRIVER})
+       AND dq.status IN (${QUEUE_STATUS.REQUESTED}, ${QUEUE_STATUS.AGREED}, ${QUEUE_STATUS.NO_ANSWER_FROM_DRIVER})
        AND dq.queueDeletedAt IS NULL
-     ORDER BY dq.queueNumber ASC LIMIT 1
+     ORDER BY (dq.status = ${QUEUE_STATUS.AGREED}) DESC, dq.queueNumber ASC LIMIT 1
      FOR UPDATE`,
     [shipperRequestUniqueId],
   );
   let entry = rows[0] || null;
   if (!entry && bidOrder) {
-    // BID-BASE orders never link a DriverQueue row (the offer lives on the
-    // JourneyDecision, see findNearbyDrivers/handleWaitingRequest), so the
-    // linked-entry lookup above always misses. Fall back to the accepting
-    // driver's OWN active entry (they leave the line by taking a job either
-    // way). No order linkage is written — the bid offer's lifecycle follows
-    // the JourneyDecision, not the entry.
+    // BID-BASE orders reach here when the winner's DriverQueue row is still
+    // UNLINKED. Older comment claimed bid orders never link a row at all — no
+    // longer true: linkQueueEntryOnAccept (accept-linkage.service.js) links the
+    // winner's own entry to the order at ACCEPT, so a driver who already accepted
+    // is found by the lookup above (AGREED + linkage) and never needs enrollment.
+    // This fallback covers the driver who took the bid WITHOUT a queue row (the
+    // offer was a bare JourneyDecision surfaced by the creation/distance matcher
+    // while they stood outside any line). No linkage is written here beyond the
+    // UPDATE below; the bid offer's lifecycle follows the JourneyDecision.
     const [ownRows] = await executor.query(
       `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate, dq.status,
               vd.driverUserUniqueId, u.fullName AS driverName, u.phoneNumber AS driverPhoneNumber,

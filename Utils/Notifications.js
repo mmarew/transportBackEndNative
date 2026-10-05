@@ -58,6 +58,7 @@ const { getSocket, getAllSockets } = require("./WsConnectionStore");
 const logger = require("./logger");
 const AppError = require("./AppError");
 const { db } = require("../Services/CompanyHelper.service");
+const { journeyStatusMap } = require("./ListOfSeedData");
 const { SocketUserTypes } = require("./SocketUserTypes");
 const { notifyQueueOrgAdmins } = require("./QueueSocket");
 const messageTypes = require("./MessageTypes");
@@ -102,6 +103,46 @@ const withMessageTypeKey = (message, keyPrefix) => {
   return key ? { ...message, type: key } : message;
 };
 
+// Canonical MessageTypes key per journey status, so a caller that does not hand
+// us a bespoke envelope still produces a client-keyable one (the `type` stamp
+// above resolves from `messageTypes.message`).
+const JOURNEY_STATUS_MESSAGE_KEYS = {
+  [journeyStatusMap.journeyStarted]: "driver_started_journey",
+  [journeyStatusMap.journeyCompleted]: "driver_completed_journey",
+};
+
+/**
+ * Always return a well-formed socket envelope.
+ *
+ * Callers pass `message` in three different shapes — a full envelope (object),
+ * a bare success STRING (loading.service.js), or nothing at all (start/complete
+ * .service.js, which relied on the `message = null` default). The senders
+ * dereference it unguarded, so the null case threw
+ * "Cannot read properties of null (reading 'messageTypes')" and silently cost
+ * the driver and shipper their live journey update: `lane()` swallows the
+ * rejection, so the journey still completed while both apps sat stale.
+ *
+ * Normalise all three into the documented envelope
+ * ({ message, messageTypes: { message, details }, data }) using the canonical
+ * MessageTypes entry for the status, keeping any caller-supplied object as-is.
+ */
+const buildJourneyStatusMessage = ({ message, journeyStatusId, envelope }) => {
+  const key = JOURNEY_STATUS_MESSAGE_KEYS[journeyStatusId];
+  const canonical = key ? messageTypes[key] : null;
+
+  // A caller-supplied envelope is already in the right shape.
+  if (message && typeof message === "object") {
+    return { ...canonical, ...message };
+  }
+
+  const text = typeof message === "string" && message ? message : null;
+  return {
+    message: "success",
+    messageTypes: canonical || { message: text || "success", details: text || "" },
+    data: envelope,
+  };
+};
+
 // Clean phone number by removing non-digit characters
 const cleanPhoneNumber = (phoneNumber) => {
   return phoneNumber?.replace(/\D/g, "");
@@ -127,6 +168,21 @@ const sendSocketIONotificationToDriver = async ({
   }
 
   try {
+    // Defensive: this used to throw "Cannot read properties of null (reading
+    // 'messageTypes')" and, because lane() swallows rejections, the driver
+    // silently missed the update. A missing envelope is a caller bug, not a
+    // reason to lose the notification outright.
+    if (!message || typeof message !== "object") {
+      logger.warn("Skipping driver notification: message envelope missing", {
+        phoneNumber: cleanedPhoneNumber,
+      });
+      return {
+        status: "error",
+        message: "Message envelope missing",
+        skipped: true,
+      };
+    }
+
     logger.debug("@sendSocketIONotificationToDriver", {
       messageTypes: message.messageTypes,
       phoneNumber,
@@ -429,6 +485,13 @@ const broadcastJourneyStatusChanged = async ({
 }) => {
   const results = [];
   const envelope = { journeyUniqueId, journeyStatusId, data };
+  // Never forward the raw `message` argument to the senders: it defaults to null
+  // and two of the three callers omit it. See buildJourneyStatusMessage.
+  const journeyStatusMessage = buildJourneyStatusMessage({
+    message,
+    journeyStatusId,
+    envelope,
+  });
 
   const lane = (label, fn) =>
     fn()
@@ -473,12 +536,20 @@ const broadcastJourneyStatusChanged = async ({
 
   if (driverPhoneNumber) {
     await lane("driver", () =>
-      sendSocketIONotificationToDriver({ message, phoneNumber: driverPhoneNumber, eventName }),
+      sendSocketIONotificationToDriver({
+        message: journeyStatusMessage,
+        phoneNumber: driverPhoneNumber,
+        eventName,
+      }),
     );
   }
   if (shipperPhoneNumber) {
     await lane("shipper", () =>
-      sendSocketIONotificationToShipper({ message, phoneNumber: shipperPhoneNumber, eventName }),
+      sendSocketIONotificationToShipper({
+        message: journeyStatusMessage,
+        phoneNumber: shipperPhoneNumber,
+        eventName,
+      }),
     );
   }
   if (companyUniqueId) {
@@ -487,7 +558,11 @@ const broadcastJourneyStatusChanged = async ({
     // journey has no company involvement). Skipping here = never page a company
     // that has no stake in this journey's bid.
     await lane("company", () =>
-      sendSocketIONotificationToCompany({ message, companyUniqueId, eventName }),
+      sendSocketIONotificationToCompany({
+        message: journeyStatusMessage,
+        companyUniqueId,
+        eventName,
+      }),
     );
   }
   if (queueOrganizationUniqueId) {
