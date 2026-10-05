@@ -220,7 +220,8 @@ exports.releaseEntryOnOrderCancel = async ({
   const executor = db();
   const [rows] = await executor.query(
     `SELECT dq.queueId, dq.queueUniqueId, dq.queueNumber, dq.queueOrganizationUniqueId, dq.queueDate,
-            dq.vehicleDriverUniqueId, vd.driverUserUniqueId, dq.status, u.phoneNumber AS driverPhoneNumber
+            dq.vehicleDriverUniqueId, vd.driverUserUniqueId, dq.status, dq.loadingOrderNumber,
+            u.phoneNumber AS driverPhoneNumber
      FROM DriverQueue dq
      JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
      JOIN Users u          ON u.userUniqueId           = vd.driverUserUniqueId
@@ -314,6 +315,7 @@ exports.releaseEntryOnOrderCancel = async ({
           queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
           queueUniqueId: entry.queueUniqueId,
           queueNumber: entry.queueNumber,
+          loadingOrderNumber: entry.loadingOrderNumber ?? null,
           status: QUEUE_STATUS.CANCELLED_AFTER_ACCEPT,
         },
         shipper: null,

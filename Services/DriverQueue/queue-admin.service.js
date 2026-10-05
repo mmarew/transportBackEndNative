@@ -109,6 +109,7 @@ exports.manualCheckin = async (data) => {
         alreadyCheckedIn: true,
         queueUniqueId: active.queueUniqueId,
         queueNumber: active.queueNumber,
+        loadingOrderNumber: active.loadingOrderNumber ?? null,
         status: active.status,
         queueOrganizationUniqueId: active.queueOrganizationUniqueId,
         queueOrganizationName: active.queueOrganizationName,
@@ -434,7 +435,7 @@ exports.getEntryHistory = async (queueUniqueId, user, view) => {
             queueId, queueUniqueId, queueOrganizationUniqueId, queueDate, queueNumber,
             queueRefusalCount, vehicleDriverUniqueId, shipperRequestUniqueId,
             targetedShipperUserUUID, driverLatitude, driverLongitude, joinedAt,
-            status, requestedAt, agreedAt,
+            status, requestedAt, agreedAt, loadingOrderNumber,
             queueCreatedAt, queueCreatedBy, queueUpdatedAt, queueUpdatedBy,
             queueDeletedAt, queueDeletedBy
      FROM DriverQueueHistory
@@ -453,7 +454,7 @@ exports.getEntryHistory = async (queueUniqueId, user, view) => {
       `SELECT queueId, queueUniqueId, queueOrganizationUniqueId, queueDate, queueNumber,
               queueRefusalCount, vehicleDriverUniqueId, shipperRequestUniqueId,
               targetedShipperUserUUID, driverLatitude, driverLongitude, joinedAt,
-              status, requestedAt, agreedAt,
+              status, requestedAt, agreedAt, loadingOrderNumber,
               queueCreatedAt, queueCreatedBy, queueUpdatedAt, queueUpdatedBy,
               queueDeletedAt, queueDeletedBy
        FROM DriverQueue

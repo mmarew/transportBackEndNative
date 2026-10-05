@@ -670,6 +670,12 @@ exports.markEntryAgreed = async ({
   notifyQueueOrgAdmins({
     queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
     messageType: "queue_order_assigned",
+    message: {
+      queueUniqueId: entry.queueUniqueId,
+      // Minted by the update just above — first moment the yard number exists.
+      loadingOrderNumber,
+      shipperRequestUniqueId,
+    },
   });
   await notifyShipperOfQueueEvent({
     executor,
@@ -690,6 +696,7 @@ exports.markEntryAgreed = async ({
       queue: {
         queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
         queueDate: entry.queueDate,
+        loadingOrderNumber,
       },
     },
   });

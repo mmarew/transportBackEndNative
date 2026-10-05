@@ -787,6 +787,7 @@ const hasActiveJourney = async (executor, driverUserUniqueId) => {
 const getDriverQueueState = async (executor, driverUserUniqueId, queueDate) => {
   const [rows] = await executor.query(
     `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueNumber, dq.status,
+            dq.loadingOrderNumber,
             dq.targetedShipperUserUUID, dq.driverLatitude, dq.driverLongitude,
             o.queueOrganizationName
      FROM DriverQueue dq

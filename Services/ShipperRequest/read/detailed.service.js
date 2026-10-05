@@ -532,6 +532,11 @@ const getDetailedJourneyData = async (shipperRequests) => {
 
     // Map each shipper request → its driver's current DriverQueue entry for that
     // order (active offer if requested, otherwise the entry holding the job).
+    // loadingOrderNumber rides along here because it is stamped on that same row:
+    // the write-once yard sequence position issued when a driver joins the queue
+    // for this order (DriverQueue/lifecycle.service.js → nextLoadingNumber). It
+    // is NULL until a driver actually joins, and stays on the entry afterwards —
+    // superseded entries are soft-deleted, so at most one live row per order.
     const orderUniqueIds = shipperRequests
       .map((sr) => sr.shipperRequestUniqueId)
       .filter(Boolean);
@@ -539,8 +544,8 @@ const getDetailedJourneyData = async (shipperRequests) => {
     if (orderUniqueIds.length > 0) {
       const [entryRows] = await executor.query(
         `SELECT dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate,
-                dq.queueNumber, dq.status, dq.requestedAt, dq.agreedAt,
-                dq.queueRefusalCount, dq.targetedShipperUserUUID,
+                dq.queueNumber, dq.loadingOrderNumber, dq.status, dq.requestedAt,
+                dq.agreedAt, dq.queueRefusalCount, dq.targetedShipperUserUUID,
                 dq.shipperRequestUniqueId, vd.vehicleDriverUniqueId, u.fullName,
                 u.phoneNumber
          FROM DriverQueue dq

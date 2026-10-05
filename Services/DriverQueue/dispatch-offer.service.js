@@ -570,6 +570,7 @@ const offerToDriver = async ({
           data: {
             queueUniqueId: entry.queueUniqueId,
             queueNumber: entry.queueNumber,
+            loadingOrderNumber: entry.loadingOrderNumber ?? null,
             driverUserUniqueId: entry.driverUserUniqueId,
             journeyDecisionUniqueId: existingDecision.journeyDecisionUniqueId,
             status: QUEUE_STATUS.REQUESTED,
@@ -707,6 +708,7 @@ const offerToDriver = async ({
           queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
           queueUniqueId: entry.queueUniqueId,
           queueNumber: entry.queueNumber,
+          loadingOrderNumber: entry.loadingOrderNumber ?? null,
           offerWindowMinutes: QUEUE_OFFER_WINDOW_MINUTES,
         },
       },
@@ -717,6 +719,7 @@ const offerToDriver = async ({
       data: {
         queueUniqueId: entry.queueUniqueId,
         queueNumber: entry.queueNumber,
+        loadingOrderNumber: entry.loadingOrderNumber ?? null,
         driverUserUniqueId: entry.driverUserUniqueId,
         journeyDecisionUniqueId: offerResult.journeyDecisionUniqueId,
         status: QUEUE_STATUS.REQUESTED,

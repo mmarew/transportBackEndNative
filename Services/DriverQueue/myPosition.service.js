@@ -147,6 +147,7 @@ exports.myPosition = async (queueOrganizationUniqueId, user) => {
             h.performedAt,
             h.targetedShipperUserUUID,
             h.queueNumber,
+            h.loadingOrderNumber,
             h.status,
             h.shipperRequestUniqueId
      FROM DriverQueueHistory h

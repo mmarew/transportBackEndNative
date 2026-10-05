@@ -178,6 +178,9 @@ const linkQueueEntryOnAccept = async ({
       messageType: "queue_order_assigned",
       message: {
         queueUniqueId: entry.queueUniqueId,
+        // Minted a few lines above: this notification is the first moment the
+        // yard number exists, so it has to ride along here.
+        loadingOrderNumber,
         driverUserUniqueId,
         shipperRequestUniqueId,
       },

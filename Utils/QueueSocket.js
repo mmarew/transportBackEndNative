@@ -63,7 +63,8 @@ const emitQueueSnapshot = async ({
 }) => {
   try {
     const [rows] = await db().query(
-      `SELECT dq.queueUniqueId, dq.queueNumber, dq.joinedAt, dq.status,
+      `SELECT dq.queueUniqueId, dq.queueNumber, dq.loadingOrderNumber, dq.joinedAt,
+              dq.status,
               vd.driverUserUniqueId, v.vehicleTypeUniqueId, u.fullName, u.phoneNumber,
               sr.shipperRequestUniqueId
        FROM DriverQueue dq
