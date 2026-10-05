@@ -23,6 +23,16 @@
  *   2. reset   — a live request whose supporting decisions have all gone
  *                terminal returns to `waiting` so it can be re-offered.
  *
+ * EXEMPTION (company_target)
+ * --------------------------
+ * A company_target slot is `acceptedByShipper` from the moment the shipper picks
+ * the winning company until the company assigns a driver — and its
+ * JourneyDecision is only created at assignment time. It therefore has no
+ * supporting decision for that whole window, which rule 2 read as staleness and
+ * reset to `waiting`, un-slotting the batch within a reconcile tick. Slots whose
+ * batch still has a live `accepted_by_shipper` company bid are exempt; the
+ * exemption lifts as soon as that bid is cancelled/rejected/expired.
+ *
  * SAFETY
  * ------
  * Both operations are restricted to `activeJourneyStatuses`, so a cancelled,
@@ -97,6 +107,28 @@ const findStaleActiveRequests = async (executor, limit, afterId = 0) => {
          WHERE jd.shipperRequestId = sr.shipperRequestId
            AND jd.journeyStatusId IN (?)
        )
+       -- EXEMPTION: a company_target slot is acceptedByShipper BEFORE any driver
+       -- is assigned to it, so "no supporting decision" is its normal state while
+       -- it waits for the company to pick a driver — not staleness. Resetting it
+       -- to waiting silently un-slot the batch: /api/company/assignments/auto
+       -- only discovers slots at acceptedByShipper, so it answered "No unassigned
+       -- slots available" for a batch whose every slot was still unassigned.
+       -- Scoped to a live accepted bid, so cancelling/rejecting/expiring that bid
+       -- withdraws the exemption and the slots reconcile back to waiting on their
+       -- own (bidUpdate.service.js drives that transition explicitly).
+       AND NOT (
+         sr.journeyStatusId = ?
+         AND EXISTS (
+           SELECT 1
+           FROM ShipperRequestBatch b
+           JOIN CompanyBidRequest cbr
+             ON cbr.shipperRequestBatchUniqueId = b.batchUniqueId
+           WHERE b.batchUniqueId = sr.shipperRequestBatchUniqueId
+             AND b.requestMode = 'company_target'
+             AND cbr.bidStatus = 'accepted_by_shipper'
+             AND cbr.companyBidRequestDeletedAt IS NULL
+         )
+       )
      ORDER BY sr.shipperRequestId
      LIMIT ?`,
     [
@@ -104,6 +136,7 @@ const findStaleActiveRequests = async (executor, limit, afterId = 0) => {
       journeyStatusMap.waiting,
       afterId,
       supportingDecisionStatuses,
+      journeyStatusMap.acceptedByShipper,
       limit,
     ],
   );
