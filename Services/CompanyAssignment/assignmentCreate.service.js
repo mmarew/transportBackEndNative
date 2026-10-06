@@ -3,7 +3,7 @@
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
-const { db } = require("../CompanyHelper.service");
+const { db, assertCompanyAccess } = require("../CompanyHelper.service");
 const { getData } = require("../../CRUD/Read/ReadData");
 const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
 const {
@@ -62,6 +62,11 @@ exports.createAssignment = async (data) => {
       AppError.BAD_REQUEST,
     );
   }
+  // Only the owning company (or a platform admin) may assign against this bid.
+  // Without this, any authenticated user holding a bid UUID could push drivers
+  // onto another company's job — the "job is bound to its own company" promise
+  // only holds if assignment enforces membership too.
+  await assertCompanyAccess(data.user || { userUniqueId: createdByUserUniqueId }, bid.companyUniqueId);
 
   let shipperRequestUniqueId = inputPRUniqueId;
   let sr;
@@ -237,6 +242,10 @@ exports.createBulkAssignments = async (data) => {
       AppError.BAD_REQUEST,
     );
   }
+  await assertCompanyAccess(
+    data.user || { userUniqueId: createdByUserUniqueId },
+    bid.companyUniqueId,
+  );
 
   // 2. Optimized: Cache status IDs for the loop
   // const acceptedStatusId = journeyStatusMap.acceptedByDriver;

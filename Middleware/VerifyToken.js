@@ -218,6 +218,54 @@ const verifyIfUserIsAdminSuperAdminOrCompanyAdmin = async (req, res, next) => {
 };
 
 /**
+ * Roles allowed to CREATE an assignment (pair a company's slot with one of its
+ * vehicles/driver): platform admin (3), platform super admin (6), company admin
+ * (7) and company dispatcher (10).
+ *
+ * Driver/shipper/queue-staff memberships never grant this — a driver who is a
+ * member of the company cannot hand work to themselves or to a colleague.
+ */
+const ASSIGNMENT_DISPATCH_ROLE_IDS = [
+  usersRoles.adminRoleId,
+  usersRoles.supperAdminRoleId,
+  usersRoles.companyAdminRoleId,
+  usersRoles.dispatcherRoleId,
+];
+
+/**
+ * Middleware: restricts assignment-CREATING endpoints to the company's own
+ * dispatchers.
+ *
+ * Applied to `POST /api/company/assignments`, `/bulk` and `/auto`. It deliberately
+ * does NOT cover `PATCH /api/company/assignments/:id/status` — that is the DRIVER's
+ * confirm route (assignmentStatus `confirmed_by_driver`), and gating it here would
+ * break every driver confirm.
+ *
+ * Runs after `verifyTokenOfAxios`, so `req.user` is already loaded from the DB.
+ * 401 when identity is missing, 403 when the role is not permitted (never 401 for
+ * a permission denial — see the status code convention at the top of this file).
+ *
+ * @param {import('express').Request} req - Express request.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Express next.
+ */
+const verifyIfUserIsAdminSuperAdminCompanyAdminOrDispatcher = async (req, res, next) => {
+  const roleId = Number(req?.user?.roleId);
+
+  if (!Number.isInteger(roleId)) {
+    return next(new AppError("Authorization header missing", AppError.UNAUTHORIZED));
+  }
+
+  if (!ASSIGNMENT_DISPATCH_ROLE_IDS.includes(roleId)) {
+    return next(
+      new AppError("Only a company admin or dispatcher can assign drivers", AppError.FORBIDDEN),
+    );
+  }
+
+  next();
+};
+
+/**
  * Middleware: verify the caller has queue organization admin privileges.
  *
  * Checks the JWT's `roleId` against the allowed roles:
@@ -348,6 +396,7 @@ module.exports = {
   verifyIfUserIsSupperAdmin,
   verifyIfUserIsAdminOrSupperAdmin,
   verifyIfUserIsAdminSuperAdminOrCompanyAdmin,
+  verifyIfUserIsAdminSuperAdminCompanyAdminOrDispatcher,
   verifyIfUserIsQueueOrgAdmin,
   verifyIfUserIsAdminSuperAdminCompanyAdminOrQueueOrgAdmin,
   extractWsToken,

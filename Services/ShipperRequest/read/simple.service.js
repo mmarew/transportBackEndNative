@@ -346,7 +346,20 @@ const getShipperRequest4allOrSingleUser = async ({ data }) => {
     const isQueueStaff =
       roleId === usersRoles.queueOrgAdminRoleId ||
       roleId === usersRoles.queueDispatcherRoleId;
-    if (isQueueStaff) {
+    // Transport-company staff (7/10) read the jobs THEY created. The default
+    // owner filter below (ShipperRequest.userUniqueId = caller) is wrong for them
+    // in both directions: with target=all they saw every shipper's rows, and with
+    // target=any they saw nothing, because the owner is the shipper they created
+    // on behalf of — not the company staff member. Scope to the creator column
+    // instead, which is recorded at creation time (shipperRequestCreatedBy).
+    const isCompanyStaff =
+      roleId === usersRoles.companyAdminRoleId ||
+      roleId === usersRoles.dispatcherRoleId;
+    if (isCompanyStaff && userUniqueId) {
+      whereClause = " WHERE ShipperRequest.shipperRequestCreatedBy = ?";
+      queryParams = [userUniqueId];
+      countParams = [userUniqueId];
+    } else if (isQueueStaff) {
       // Queue staff (11/12) act on behalf of shippers. They operate inside
       // exactly ONE queue org at a time — the controller resolves and injects
       // filters.queueOrganizationUniqueId (auto-resolve single membership /

@@ -7,6 +7,9 @@ const { pool } = require("../../Middleware/Database.config");
 const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
 const logger = require("../../Utils/logger");
 const AppError = require("../../Utils/AppError");
+const { assertCompanyAccess } = require("../CompanyHelper.service");
+const { v4: uuidv4 } = require("uuid");
+const { currentDate } = require("../../Utils/CurrentDate");
 const { transactionStorage } = require("../../Utils/TransactionContext");
 
 // verifyShipperStatus removed - only available via API endpoint to reduce heavy operations
@@ -125,6 +128,51 @@ const createShipperRequest = async (body, journeyStatusId) => {
       );
     }
 
+    // Transport-company staff (roles 7/10) self-dispatch: they create a job for a
+    // shipper that their OWN company executes — no bidding round, no other
+    // company can bid on it. Everything that makes "own company only" true is
+    // forced here rather than trusted from the body, and it MUST happen before
+    // the batch-header reuse check below (that check rejects a batch whose stored
+    // requestMode differs from the incoming one).
+    const isSelfDispatch =
+      body?.shipperRequestCreatedByRoleId === usersRoles.companyAdminRoleId ||
+      body?.shipperRequestCreatedByRoleId === usersRoles.dispatcherRoleId;
+    if (isSelfDispatch) {
+      const targetCompanyUniqueId = body?.targetCompanyUniqueId;
+      if (!targetCompanyUniqueId) {
+        throw new AppError(
+          "targetCompanyUniqueId is required when a transport company creates a request",
+          AppError.BAD_REQUEST,
+        );
+      }
+      // Reuses the existing ownership guard (CompanyHelper.service.js:96): active
+      // membership of that company, platform admins pass through. This is the
+      // "creating company binds the job to itself" line.
+      await assertCompanyAccess(
+        {
+          userUniqueId: body.shipperRequestCreatedBy,
+          roleId: body.shipperRequestCreatedByRoleId,
+        },
+        targetCompanyUniqueId,
+      );
+      if (body?.queueOrganizationUniqueId) {
+        throw new AppError(
+          "queueOrganizationUniqueId cannot be used for a company's own self-dispatched request",
+          AppError.BAD_REQUEST,
+        );
+      }
+      if (body?.isBiddingApproved) {
+        throw new AppError(
+          "isBiddingApproved cannot be used for a company's own self-dispatched request",
+          AppError.BAD_REQUEST,
+        );
+      }
+      // company_target is what keeps it away from distance matching and from
+      // every other driver/company: rows are excluded from the waiting-request
+      // pass further down, and no queue org means no FIFO dispatch.
+      body.requestMode = "company_target";
+    }
+
     const numberOfVehicles = body?.numberOfVehicles || 1;
 
     // First check if the user has an active request based on shipperRequestBatchUniqueId
@@ -231,7 +279,12 @@ const createShipperRequest = async (body, journeyStatusId) => {
       //       3. No race conditions during bid acceptance
       const isCompanyTarget =
         (body.requestMode || "individual_target") === "company_target";
-      if (isCompanyTarget) {
+      // Self-dispatch does NOT defer. Normal company_target rows are minted
+      // lazily when the shipper accepts a bid (updateBidStatus → accepted_by_shipper),
+      // but a self-dispatched job has no acceptance moment — nobody bids on it.
+      // So the rows are created eagerly below, already at acceptedByShipper,
+      // which is exactly the state /api/company/assignments needs.
+      if (isCompanyTarget && !isSelfDispatch) {
         logger.info(
           "company_target batch created (PR rows deferred to bid acceptance)",
           {
@@ -267,6 +320,97 @@ const createShipperRequest = async (body, journeyStatusId) => {
           newRequests.push(result.data[0]);
         }
       });
+    }
+
+    // ── Self-dispatch terminal branch ─────────────────────────────────────────
+    // A job a transport company created for a shipper, and executes itself, never
+    // reaches driver finding: it is company_target (so it is already excluded from
+    // the waiting-request pass below) and every row is at acceptedByShipper.
+    //
+    // It still needs a CompanyBidRequest, because EVERY assignment entry point
+    // resolves its slots through an accepted bid — assignmentCreate.service.js:51-64
+    // and assignmentAuto.service.js:52-63 both 400/404 without one. Nobody bids on
+    // a self-dispatched job, so the bid is minted here already at
+    // 'accepted_by_shipper'. That is what leaves both assignment services unchanged.
+    if (isSelfDispatch) {
+      const companyUniqueId = body.targetCompanyUniqueId;
+      const vehicleTypeUniqueId = body.vehicle?.vehicleTypeUniqueId ?? null;
+      const shippingCost = body.shippingCost ?? null;
+      const proposedCostPerVehicle =
+        shippingCost !== null && numberOfVehicles > 0
+          ? shippingCost / numberOfVehicles
+          : null;
+      const actor = body.shipperRequestCreatedBy;
+
+      // UNIQUE (companyUniqueId, shipperRequestBatchUniqueId) — topping up an
+      // existing self-dispatch batch must reuse the row, not insert a duplicate.
+      const [existingBids] = await executor.query(
+        `SELECT companyBidRequestUniqueId FROM CompanyBidRequest
+          WHERE shipperRequestBatchUniqueId = ? AND companyUniqueId = ?
+            AND companyBidRequestDeletedAt IS NULL
+          LIMIT 1`,
+        [shipperRequestBatchUniqueId, companyUniqueId],
+      );
+
+      let companyBidRequestUniqueId;
+      if (existingBids.length > 0) {
+        companyBidRequestUniqueId = existingBids[0].companyBidRequestUniqueId;
+        await executor.query(
+          `UPDATE CompanyBidRequest
+              SET numberOfVehiclesOffered = ?, proposedTotalCost = ?,
+                  proposedCostPerVehicle = ?, proposedShippingDate = ?,
+                  proposedDeliveryDate = ?, bidStatus = 'accepted_by_shipper',
+                  journeyStatusId = ?, companyBidRequestUpdatedAt = ?,
+                  companyBidRequestUpdatedBy = ?
+            WHERE companyBidRequestUniqueId = ?`,
+          [
+            numberOfVehicles,
+            shippingCost,
+            proposedCostPerVehicle,
+            body.shippingDate || null,
+            body.deliveryDate || null,
+            journeyStatusMap.acceptedByShipper,
+            currentDate(),
+            actor,
+            companyBidRequestUniqueId,
+          ],
+        );
+      } else {
+        companyBidRequestUniqueId = uuidv4();
+        await executor.query(
+          `INSERT INTO CompanyBidRequest
+            (companyBidRequestUniqueId, shipperRequestBatchUniqueId, companyUniqueId,
+             bidSubmittedByUserUniqueId, numberOfVehiclesOffered, vehicleTypeUniqueId,
+             proposedCostPerVehicle, proposedTotalCost, proposedShippingDate,
+             proposedDeliveryDate, bidStatus, journeyStatusId,
+             companyBidRequestCreatedBy, companyBidRequestCreatedAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'accepted_by_shipper', ?, ?, ?)`,
+          [
+            companyBidRequestUniqueId,
+            shipperRequestBatchUniqueId,
+            companyUniqueId,
+            actor,
+            numberOfVehicles,
+            vehicleTypeUniqueId,
+            proposedCostPerVehicle,
+            shippingCost,
+            body.shippingDate || null,
+            body.deliveryDate || null,
+            journeyStatusMap.acceptedByShipper,
+            actor,
+            currentDate(),
+          ],
+        );
+      }
+
+      return {
+        message: "Shipper request created and bound to your company",
+        data: {
+          shipperRequestBatchUniqueId,
+          companyBidRequestUniqueId,
+          requests: newRequests,
+        },
+      };
     }
 
     // Step 2: Process driver finding in parallel for all waiting requests

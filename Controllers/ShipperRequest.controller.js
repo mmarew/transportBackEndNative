@@ -60,7 +60,15 @@ const createShipperRequest = async (req, res, next) => {
         if (
           shipperRequestCreatedByRoleId === usersRoles.adminRoleId ||
           shipperRequestCreatedByRoleId === usersRoles.supperAdminRoleId ||
-          shipperRequestCreatedByRoleId === usersRoles.queueOrgAdminRoleId
+          shipperRequestCreatedByRoleId === usersRoles.queueOrgAdminRoleId ||
+          // Transport-company staff create on behalf of a shipper too: the job is
+          // bound to THEIR OWN company (self-dispatch, no bidding round). The shipper
+          // is identified the same way — by phone — so createUser below still runs
+          // and sets req.body.userUniqueId (without this branch roles 7/10 fall
+          // through with no owner and create.service.js rejects "userUniqueId is
+          // required").
+          shipperRequestCreatedByRoleId === usersRoles.companyAdminRoleId ||
+          shipperRequestCreatedByRoleId === usersRoles.dispatcherRoleId
         ) {
           const { shipperPhoneNumber } = req.body;
           if (!shipperPhoneNumber) {
@@ -100,9 +108,22 @@ const createShipperRequest = async (req, res, next) => {
           req.body.userUniqueId = userUniqueId;
         }
 
+        // Self-dispatch (transport company creating for a shipper) is born
+        // ACCEPTED: the shipper already agreed and the company that created it is
+        // the company that executes it, so there is no bidding round to wait on.
+        // Both the batch header (create.service.js:219 → batchCreate) and every
+        // ShipperRequest row take their initial status from this single argument,
+        // so both land on acceptedByShipper together. This mirrors bid acceptance,
+        // where bidUpdate.service.js:341-345 also syncs the header to 4.
+        const isSelfDispatch =
+          shipperRequestCreatedByRoleId === usersRoles.companyAdminRoleId ||
+          shipperRequestCreatedByRoleId === usersRoles.dispatcherRoleId;
+
         return await ShipperService.createShipperRequest(
           req.body,
-          journeyStatusMap.waiting,
+          isSelfDispatch
+            ? journeyStatusMap.acceptedByShipper
+            : journeyStatusMap.waiting,
         );
       },
       {

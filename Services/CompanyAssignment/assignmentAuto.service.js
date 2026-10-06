@@ -3,7 +3,7 @@
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
-const { db } = require("../CompanyHelper.service");
+const { db, assertCompanyAccess } = require("../CompanyHelper.service");
 const { getData } = require("../../CRUD/Read/ReadData");
 const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
 const {
@@ -61,6 +61,12 @@ exports.autoAssignBatch = async (data) => {
       AppError.BAD_REQUEST,
     );
   }
+  // Only the owning company (or a platform admin) may assign against this bid —
+  // a bid UUID alone must not let a stranger dispatch drivers onto the job.
+  await assertCompanyAccess(
+    data.user || { userUniqueId: createdByUserUniqueId },
+    bid.companyUniqueId,
+  );
 
   const { shipperRequestBatchUniqueId, companyUniqueId } = bid;
 

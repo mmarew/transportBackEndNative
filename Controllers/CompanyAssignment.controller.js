@@ -10,6 +10,9 @@ exports.createAssignment = async (req, res, next) => {
       service.createAssignment({
         ...req.body,
         createdByUserUniqueId: req.user.userUniqueId,
+        // Full user (userUniqueId + roleId) — assertCompanyAccess needs roleId to
+        // let platform admins through instead of 403ing them on membership.
+        user: req.user,
       }),
     );
     ServerResponder(res, result, HTTP_STATUS.CREATED);
@@ -24,6 +27,7 @@ exports.createBulkAssignments = async (req, res, next) => {
       service.createBulkAssignments({
         ...req.body,
         createdByUserUniqueId: req.user.userUniqueId,
+        user: req.user,
       }),
     );
     ServerResponder(res, result, HTTP_STATUS.CREATED);
@@ -38,6 +42,7 @@ exports.autoAssignBatch = async (req, res, next) => {
       service.autoAssignBatch({
         ...req.body,
         createdByUserUniqueId: req.user.userUniqueId,
+        user: req.user,
       }),
     );
     ServerResponder(res, result, HTTP_STATUS.CREATED);
