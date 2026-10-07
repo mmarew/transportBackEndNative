@@ -10,6 +10,13 @@ exports.createAssignment = Joi.object({
   driverUserUniqueId: uuidSchema.required(),
 }).unknown(true);
 
+// Replacement driver on an existing assignment — the old row is recalled
+// (cancelled_by_company) and this one is opened on the same slot as `reassigned`.
+exports.replaceAssignment = Joi.object({
+  vehicleUniqueId: uuidSchema.required(),
+  driverUserUniqueId: uuidSchema.required(),
+}).unknown(true);
+
 exports.updateAssignmentStatus = Joi.object({
   assignmentStatus: Joi.string()
     .valid(

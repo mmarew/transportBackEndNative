@@ -252,14 +252,16 @@ const cancelBatch = async ({
   //    contextId must be the integer batchId — the contextId column is INT.
   //    Uses contextType 'ShipperRequestBatch' so it is separate from
   //    per-vehicle ShipperRequest cancellation records.
-  //    Duplicate guard: only insert if no record exists yet.
-  const existingBatchCancel = await getData({
-    tableName: "CanceledJourneys",
-    conditions: {
-      contextId: batch.batchId,
-      contextType: "ShipperRequestBatch",
-    },
-  });
+  //    Duplicate guard: only insert if no record exists yet. The time floor
+  //    guards against batchId reuse — a ghost row left by a hard-deleted
+  //    batch with the same id must not suppress the current insert.
+  const [existingBatchCancel] = await db().query(
+    `SELECT canceledJourneyId FROM CanceledJourneys
+      WHERE contextId = ? AND contextType = 'ShipperRequestBatch'
+        AND canceledJourneyCreatedAt >= ?
+      LIMIT 1`,
+    [batch.batchId, batch.batchCreatedAt],
+  );
   if (existingBatchCancel.length === 0) {
     await createCanceledJourney({
       canceledBy: userUniqueId,

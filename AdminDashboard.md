@@ -378,7 +378,7 @@ GET /company/assignments
 | Param | Type | Description |
 |-------|------|-------------|
 | `companyBidRequestUniqueId` | string (uuid) | Filter by bid |
-| `assignmentStatus` | string | `assigned`, `confirmed_by_driver`, `rejected_by_driver`, `completed`, `cancelled` |
+| `assignmentStatus` | string | `assigned`, `reassigned`, `confirmed_by_driver`, `rejected_by_driver`, `completed`, `cancelled_by_company`, `cancelled_by_driver` |
 
 **Response `200`:**
 
@@ -399,6 +399,35 @@ GET /company/assignments
   ]
 }
 ```
+
+### Replace Assignment
+
+Swaps the driver **and** truck of a live assignment in one atomic call
+(roles: companyAdmin / dispatcher only). The previous row becomes
+`cancelled_by_company` and a new row is created with status `reassigned`;
+the replaced driver is freed and the old truck is pulled to `inactive`
+(re-free it later via `PATCH /api/company/fleet/:companyVehicleUniqueId`).
+
+```
+POST /company/assignments/:assignmentUniqueId/replace
+```
+
+**Request Body:**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `vehicleUniqueId` | string (uuid) | Replacement truck — must be `active` in the company fleet |
+| `driverUserUniqueId` | string (uuid) | Replacement driver — must not hold another active assignment |
+
+**Responses:**
+
+| Status | Meaning |
+|--------|---------|
+| `201` | Replaced — response carries `previousAssignmentUniqueId`, new `assignmentUniqueId` (`reassigned`) |
+| `400` | Same driver **and** truck as the current row, or body failed validation |
+| `403` | Caller lacks the dispatcher/admin role, or vehicle belongs to another company |
+| `404` | Assignment, vehicle, or bid not found |
+| `409` | Assignment not live (already terminal), vehicle `inactive`, or driver double-booked |
 
 ---
 

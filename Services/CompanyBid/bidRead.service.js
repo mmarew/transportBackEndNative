@@ -290,13 +290,13 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
     offersByBatchId.get(offer.shipperRequestBatchUniqueId).push(offer);
   }
 
+  // NOTE: no `acceptedOffer` mirror here — `offers` carries every offer with its
+  // own `bidStatus` (`accepted_by_shipper` / `rejected_by_shipper`), so the caller
+  // picks the accepted one by filtering. One source of truth, no duplicate payload.
   const grouped = batches.map((batch) => {
     const batchOffers = offersByBatchId.get(batch.batchUniqueId) || [];
-    const acceptedOffer =
-      batchOffers.find((o) => o.bidStatus === "accepted_by_shipper") || null;
     return {
       ...batch,
-      acceptedOffer,
       offerCount: batchOffers.length,
       offers: batchOffers,
     };

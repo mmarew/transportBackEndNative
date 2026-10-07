@@ -5,6 +5,7 @@ const COMPANY_ASSIGNMENT_ENDPOINTS = {
   AUTO_ASSIGN: "/api/company/assignments/auto",
   GET_ASSIGNMENTS: "/api/company/assignments",
   UPDATE_ASSIGNMENT_STATUS: "/api/company/assignments/:assignmentUniqueId/status",
+  REPLACE_ASSIGNMENT: "/api/company/assignments/:assignmentUniqueId/replace",
   DELETE_ASSIGNMENT: "/api/company/assignments/:assignmentUniqueId",
 
   // Relative paths — used by Express router (already mounted at /api/company/assignments)
@@ -14,6 +15,7 @@ const COMPANY_ASSIGNMENT_ENDPOINTS = {
     AUTO_ASSIGN: "/auto",
     GET_ASSIGNMENTS: "/",
     UPDATE_ASSIGNMENT_STATUS: "/:assignmentUniqueId/status",
+    REPLACE_ASSIGNMENT: "/:assignmentUniqueId/replace",
     DELETE_ASSIGNMENT: "/:assignmentUniqueId",
   },
 

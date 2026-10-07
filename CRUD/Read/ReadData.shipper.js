@@ -373,7 +373,8 @@ const getActiveRequestsCount = async (
   // INCLUDED (active pipeline — shows in dashboard badges)
   // -------------------------------------------------------
   //   notAssigned      — slot is free, never had a driver;  company must assign one
-  //   needsReassignment— slot is free again; previous driver cancelled; reassign needed
+  //   needsReassignment— slot is free again; previous driver left (cancelled by
+  //                      driver, recalled by company, or refused) → reassign
   //   assigned         — driver notified, waiting for driver to confirm
   //   driverConfirmed  — driver confirmed / heading to loading point
   //   journeyStarted   — goods loaded, driver in transit
@@ -410,11 +411,14 @@ const getActiveRequestsCount = async (
             SELECT 1 FROM CompanyBidVehicleAssignment cba2
             WHERE cba2.shipperRequestUniqueId = sr.shipperRequestUniqueId
               AND cba2.assignmentDeletedAt IS NULL
-              AND cba2.assignmentStatus = 'cancelled_by_driver'
+              AND cba2.assignmentStatus IN (
+                'cancelled_by_driver','cancelled_by_company','rejected_by_driver'
+              )
           )
         THEN sr.shipperRequestId END) AS notAssigned,
 
-      -- needsReassignment: driver cancelled, slot is free again
+      -- needsReassignment: a driver left the slot (cancelled after accepting,
+      -- recalled by the company, or refused) so the slot is free again
       COUNT(DISTINCT CASE
         WHEN sr.journeyStatusId = ?
           AND NOT EXISTS (
@@ -430,17 +434,20 @@ const getActiveRequestsCount = async (
             SELECT 1 FROM CompanyBidVehicleAssignment cba2
             WHERE cba2.shipperRequestUniqueId = sr.shipperRequestUniqueId
               AND cba2.assignmentDeletedAt IS NULL
-              AND cba2.assignmentStatus = 'cancelled_by_driver'
+              AND cba2.assignmentStatus IN (
+                'cancelled_by_driver','cancelled_by_company','rejected_by_driver'
+              )
           )
         THEN sr.shipperRequestId END) AS needsReassignment,
 
       -- assigned: driver notified, waiting for driver to confirm
+      -- ('reassigned' is the replacement row's status — same lifecycle stage)
       COUNT(DISTINCT CASE
         WHEN EXISTS (
           SELECT 1 FROM CompanyBidVehicleAssignment cba
           WHERE cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
             AND cba.assignmentDeletedAt IS NULL
-            AND cba.assignmentStatus = 'assigned'
+            AND cba.assignmentStatus IN ('assigned','reassigned')
         )
         THEN sr.shipperRequestId END) AS assigned,
 

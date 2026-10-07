@@ -251,6 +251,11 @@ const messageTypes = {
     details:
       "When a dispatcher assigns a driver to a freight job via company bid. Driver must confirm or reject.",
   },
+  company_driver_recalled: {
+    message: "Assignment removed",
+    details:
+      "When a dispatcher pulls a driver off a company freight job (recall / replace) before the job is finished.",
+  },
   bidding_board_approved: {
     message: "Order(s) opened to bidding",
     details:

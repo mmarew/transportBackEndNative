@@ -213,6 +213,7 @@ exports.autoAssignBatch = async (data) => {
       originLat: item.origin.lat,
       originLng: item.origin.lng,
       originPlace: item.origin.place ?? "Auto-assigned",
+      shipperRequestUniqueId: item.shipperRequestUniqueId,
     });
 
     // ── Create JourneyDecision at assignment time (status 2) ───────────────

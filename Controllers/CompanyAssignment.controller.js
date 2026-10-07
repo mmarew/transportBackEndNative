@@ -80,10 +80,30 @@ exports.deleteAssignment = async (req, res, next) => {
     const result = await executeInTransaction(() =>
       service.deleteAssignment(
         req.params.assignmentUniqueId,
-        req.user.userUniqueId,
+        // Full user (userUniqueId + roleId) — the service runs
+        // assertCompanyAccess so a member of another company cannot recall
+        // this assignment, and platform admins pass through.
+        req.user,
       ),
     );
     ServerResponder(res, result);
+  } catch (e) {
+    next(e);
+  }
+};
+
+exports.replaceAssignment = async (req, res, next) => {
+  try {
+    const result = await executeInTransaction(() =>
+      service.replaceAssignment({
+        assignmentUniqueId: req.params.assignmentUniqueId,
+        vehicleUniqueId: req.body.vehicleUniqueId,
+        driverUserUniqueId: req.body.driverUserUniqueId,
+        createdByUserUniqueId: req.user.userUniqueId,
+        user: req.user,
+      }),
+    );
+    ServerResponder(res, result, HTTP_STATUS.CREATED);
   } catch (e) {
     next(e);
   }

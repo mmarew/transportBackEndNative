@@ -5,6 +5,7 @@ const assignmentRead = require("./assignmentRead.service");
 const assignmentUpdate = require("./assignmentUpdate.service");
 const assignmentAuto = require("./assignmentAuto.service");
 const assignmentDelete = require("./assignmentDelete.service");
+const assignmentReplace = require("./assignmentReplace.service");
 
 module.exports = {
   createAssignment: assignmentCreate.createAssignment,
@@ -13,4 +14,5 @@ module.exports = {
   updateAssignmentStatus: assignmentUpdate.updateAssignmentStatus,
   autoAssignBatch: assignmentAuto.autoAssignBatch,
   deleteAssignment: assignmentDelete.deleteAssignment,
+  replaceAssignment: assignmentReplace.replaceAssignment,
 };

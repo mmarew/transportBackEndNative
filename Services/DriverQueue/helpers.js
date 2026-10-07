@@ -61,6 +61,10 @@ const HISTORY_EVENT = {
   ACCEPT: "accept",
   ORDER_CANCELLED: "order_cancelled",
   DRIVER_CANCEL_AFTER_ACCEPT: "driver_cancel_after_accept",
+  // Company dispatcher pulled a driver who had already accepted the order
+  // (recall / replace). Distinct from DRIVER_CANCEL_AFTER_ACCEPT because no
+  // refusal penalty is counted — the driver did not refuse the job.
+  COMPANY_RECALL: "company_recall",
   JOURNEY_PROGRESS: "journey_progress",
   JOURNEY_COMPLETED: "journey_completed",
   REFUSAL: "refusal",

@@ -95,10 +95,19 @@ CREATE TABLE IF NOT EXISTS CompanyBidRequest (
 --     → System creates JourneyDecision using shipperRequestId + driverRequestId
 --     → journeyDecisionUniqueId is then stored in this table
 --
---   Step 3 — If driver rejects (assignmentStatus → rejected_by_driver):
---     → The DriverRequest status is updated to cancelledByDriver
---     → Dispatcher must create a new assignment row (status = reassigned)
---     → A fresh DriverRequest is created for the replacement driver
+--   Step 3 — Driver leaves the job (rejects, cancels post-confirm, or is recalled):
+--     → The old assignment row goes terminal (rejected_by_driver / cancelled_by_driver
+--       / cancelled_by_company) and the DriverRequest keeps its old JourneyDecision
+--       as history — JourneyDecisions.driverRequestId is UNIQUE, so the old
+--       driverRequestUniqueId can never hold a second decision (a fresh DriverRequest
+--       is inserted instead: Services/CompanyAssignment/assignmentHelper/driver-request.service.js,
+--       driverRequestMustStartFresh).
+--     → Dispatchers replace a LIVE row atomically via
+--       POST /api/company/assignments/:assignmentUniqueId/replace:
+--       old row → cancelled_by_company, new row → 'reassigned',
+--       replaced driver freed, old truck pulled to inactive in the same transaction.
+--     → A pulled truck re-enters the pool only through the manual
+--       PATCH /api/company/fleet/:companyVehicleUniqueId (assignmentStatus: active).
 
 CREATE TABLE IF NOT EXISTS CompanyBidVehicleAssignment (
     assignmentId INT AUTO_INCREMENT PRIMARY KEY,
@@ -121,6 +130,8 @@ CREATE TABLE IF NOT EXISTS CompanyBidVehicleAssignment (
     assignmentStatus ENUM(
         'assigned',            -- Dispatcher assigned; DriverRequest created; waiting for driver to confirm
         'confirmed_by_driver', -- Driver confirmed; JourneyDecision advanced to status 4
+        'going_to_loading',    -- Driver heading to the loading point (PATCH /assignments/:id/status)
+        'journey_started',     -- Cargo loaded, driver en route (PATCH /assignments/:id/status)
         'rejected_by_driver',  -- Driver refused BEFORE confirming; dispatcher must reassign
         'cancelled_by_driver', -- Driver cancelled AFTER confirming (mid-job cancellation)
         'reassigned',          -- Replacement row after a rejection

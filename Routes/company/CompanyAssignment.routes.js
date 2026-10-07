@@ -67,10 +67,29 @@ router.patch(
 );
 
 /**
+ * @route   POST /api/company/assignments/:assignmentUniqueId/replace
+ * @body    { "driverUserUniqueId": "UUID", "vehicleUniqueId": "UUID" }
+ * @note    Swap the driver on a live assignment in one transaction: old row →
+ *          `cancelled_by_company` (old driver + truck released), new row →
+ *          `reassigned` on the same slot. Dispatchers only — same gate as create.
+ */
+router.post(
+  EP.ROUTER.REPLACE_ASSIGNMENT,
+  mayAssignDrivers,
+  validator(schema.assignmentParams, "params"),
+  validator(schema.replaceAssignment),
+  controller.replaceAssignment,
+);
+
+/**
  * @route   DELETE /api/company/assignments/:assignmentUniqueId
+ * @note    Recall: while the assignment is live it is terminalized as
+ *          `cancelled_by_company` (driver released, slot freed) before the row
+ *          is soft-deleted — so it is gated exactly like the create paths.
  */
 router.delete(
   EP.ROUTER.DELETE_ASSIGNMENT,
+  mayAssignDrivers,
   validator(schema.assignmentParams, "params"),
   controller.deleteAssignment,
 );

@@ -341,8 +341,10 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
   // Maps directly to the breakdown categories in verifyShipperStatus.company:
   //
   //   notAssigned       — status=4, no active assignment, never had a driver
-  //   needsReassignment — status=4, no active assignment, previous driver cancelled
-  //   assigned          — active assignment with assignmentStatus='assigned'
+  //   needsReassignment — status=4, no active assignment, a driver already left
+  //                       (cancelled after accepting, recalled by the company,
+  //                       or refused) → the company must assign another
+  //   assigned          — active assignment with assignmentStatus assigned/reassigned
   //   driverConfirmed   — active assignment confirmed or heading to loading
   //
   // Use ?slotState=notAssigned to get the list behind the notAssigned counter.
@@ -365,7 +367,9 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
              SELECT 1 FROM CompanyBidVehicleAssignment cba2
              WHERE cba2.shipperRequestUniqueId = sr.shipperRequestUniqueId
                AND cba2.assignmentDeletedAt IS NULL
-               AND cba2.assignmentStatus = 'cancelled_by_driver'
+               AND cba2.assignmentStatus IN (
+                 'cancelled_by_driver','cancelled_by_company','rejected_by_driver'
+               )
            )`,
         );
         params.push(journeyStatusMap.acceptedByShipper);
@@ -388,20 +392,23 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
              SELECT 1 FROM CompanyBidVehicleAssignment cba2
              WHERE cba2.shipperRequestUniqueId = sr.shipperRequestUniqueId
                AND cba2.assignmentDeletedAt IS NULL
-               AND cba2.assignmentStatus = 'cancelled_by_driver'
+               AND cba2.assignmentStatus IN (
+                 'cancelled_by_driver','cancelled_by_company','rejected_by_driver'
+               )
            )`,
         );
         params.push(journeyStatusMap.acceptedByShipper);
         break;
 
       case "assigned":
-        // Driver notified, waiting for confirmation
+        // Driver notified, waiting for confirmation (`reassigned` = replacement
+        // row, same lifecycle stage)
         clauses.push(
           `EXISTS (
              SELECT 1 FROM CompanyBidVehicleAssignment cba
              WHERE cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
                AND cba.assignmentDeletedAt IS NULL
-               AND cba.assignmentStatus = 'assigned'
+               AND cba.assignmentStatus IN ('assigned','reassigned')
            )`,
         );
         break;

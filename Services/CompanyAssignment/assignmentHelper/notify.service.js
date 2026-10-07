@@ -271,5 +271,120 @@ const notifyCompanyOnDriverAction = async ({
   }
 };
 
+/**
+ * ### Tell a driver they were pulled off a company assignment.
+ *
+ * Sent by the company recall path (`recallAssignment`) — dispatcher removed the
+ * driver before the job finished, so their job card must clear immediately
+ * instead of waiting for the next poll. Mirrors `notifyAssignedDriver`: FCM to
+ * wake the app, WebSocket (with the same payload the next poll would return)
+ * for instant refresh when the app is open.
+ *
+ * Best-effort: notification failures are logged, never thrown — the recall
+ * itself has already committed.
+ *
+ * @param {Object} opts
+ * @param {string} opts.driverUserUniqueId
+ * @param {string} opts.assignmentUniqueId
+ * @param {string} [opts.shipperRequestUniqueId]
+ * @param {string} [opts.companyBidRequestUniqueId]
+ */
+const notifyDriverOfRecall = async ({
+  driverUserUniqueId,
+  assignmentUniqueId,
+  shipperRequestUniqueId = null,
+  companyBidRequestUniqueId = null,
+}) => {
+  if (!driverUserUniqueId) return;
+
+  const notificationData = {
+    type: "company_driver_recalled",
+    assignmentUniqueId,
+    shipperRequestUniqueId,
+    companyBidRequestUniqueId,
+  };
+
+  // 1. FCM
+  sendFCMNotificationToUser({
+    userUniqueId: driverUserUniqueId,
+    roleId: usersRoles.driverRoleId,
+    notification: {
+      title: "Assignment removed",
+      body: "The dispatcher removed you from this freight job. Check your job list for the next assignment.",
+    },
+    data: notificationData,
+  }).catch((e) =>
+    logger.error("FCM failed for driver recall", {
+      error: e.message,
+      driverUserUniqueId,
+      assignmentUniqueId,
+    }),
+  );
+
+  // 2. WebSocket — refresh the driver's live status payload
+  try {
+    const [userRows] = await db().query(
+      "SELECT phoneNumber FROM Users WHERE userUniqueId = ? LIMIT 1",
+      [driverUserUniqueId],
+    );
+    const phoneNumber = userRows?.[0]?.phoneNumber;
+
+    if (phoneNumber) {
+      let wsPayload;
+      try {
+        const statusResult = await verifyDriverJourneyStatus({
+          userUniqueId: driverUserUniqueId,
+        });
+        wsPayload = {
+          messageTypes: messageTypes.company_driver_recalled,
+          message: "You were removed from this assignment",
+          ...statusResult,
+        };
+      } catch (verifyErr) {
+        logger.warn(
+          "verifyDriverJourneyStatus failed in notifyDriverOfRecall, using fallback payload",
+          {
+            error: verifyErr.message,
+            driverUserUniqueId,
+            assignmentUniqueId,
+          },
+        );
+        wsPayload = {
+          messageTypes: messageTypes.company_driver_recalled,
+          message: "You were removed from this assignment",
+          status: journeyStatusMap.waiting,
+          companyAssignment: {
+            assignmentUniqueId,
+            driverRequestUniqueId: null,
+            shipperRequestUniqueId,
+            companyBidRequestUniqueId,
+          },
+          driver: null,
+          shipper: null,
+          journey: null,
+          decision: null,
+        };
+      }
+
+      sendSocketIONotificationToDriver({
+        phoneNumber,
+        message: wsPayload,
+      }).catch((e) =>
+        logger.warn("WebSocket failed for driver recall (driver may be offline)", {
+          error: e.message,
+          driverUserUniqueId,
+          assignmentUniqueId,
+        }),
+      );
+    }
+  } catch (e) {
+    logger.warn("Could not fetch driver phone for recall notification", {
+      error: e.message,
+      driverUserUniqueId,
+    });
+  }
+};
+
 module.exports.notifyAssignedDriver = notifyAssignedDriver;
 module.exports.notifyCompanyOnDriverAction = notifyCompanyOnDriverAction;
+module.exports.notifyDriverOfRecall = notifyDriverOfRecall;

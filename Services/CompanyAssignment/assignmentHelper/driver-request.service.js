@@ -8,6 +8,7 @@ const {
   usersRoles,
   CANCELED_JOURNEY_CONTEXTS,
   COMPANY_REPLACED_INDIVIDUAL_REASON,
+  isTerminalJourneyStatus,
 } = require("../../../Utils/ListOfSeedData");
 const { createCanceledJourney } = require("../../CanceledJourneys");
 const { getCancellationReasonIdByName } = require("../../Cancellation.service");
@@ -49,8 +50,86 @@ const { updateData } = require("../../../CRUD/Update/Data.update");
  * @param {number} opts.originLat
  * @param {number} opts.originLng
  * @param {string} opts.originPlace
+ * @param {string} [opts.shipperRequestUniqueId] - slot being assigned; enables the
+ *        one-decision-per-DR guard in `driverRequestMustStartFresh`
  * @returns {Promise<string>} The driverRequestUniqueId to link in the assignment.
  */
+
+/**
+ * driverRequestMustStartFresh
+ * ───────────────────────────
+ * `JourneyDecisions.driverRequestId` is UNIQUE (Database/schema/06_driver_orders.js:50),
+ * so one DriverRequest carries at most ONE decision for its whole life — and
+ * `createJourneyDecisionForAssignment` returns that decision verbatim whenever
+ * the slot matches. Two situations must therefore NOT reuse the driver's
+ * current DR row:
+ *
+ *  - the linked decision belongs to a DIFFERENT slot → the fresh INSERT blows
+ *    up with ER_DUP_ENTRY (this is the pre-existing `POST /assignments/auto`
+ *    500: a driver cancelled a company job, DR went back to waiting with the
+ *    old decision still attached, and auto-assign tried to reuse it);
+ *  - the linked decision is TERMINAL for THIS slot (driver cancel / company
+ *    recall leaves exactly that state) → the new assignment would silently be
+ *    stamped with a dead decision and the driver would see a cancelled
+ *    journey instead of the replacement.
+ *
+ * In both cases the old DR+JD pair is kept as history and a fresh DR is
+ * inserted below, so the new job gets its own decision.
+ *
+ * Returns false when there is no slot context, no linked decision, the status
+ * is `rejectedByDriver` (its own branch also notifies the driver), or an active
+ * INDIVIDUAL decision on another slot (the individual-cancellation branch must
+ * process that one — it also returns the individual slot to waiting).
+ *
+ * @param {Object} opts
+ * @param {string} opts.existingUniqueId
+ * @param {number} opts.existingStatus
+ * @param {string} [opts.shipperRequestUniqueId]
+ * @returns {Promise<boolean>}
+ */
+async function driverRequestMustStartFresh({
+  existingUniqueId,
+  existingStatus,
+  shipperRequestUniqueId,
+}) {
+  if (!shipperRequestUniqueId) return false;
+
+  const [rows] = await db().query(
+    `SELECT jd.journeyDecisionUniqueId, jd.journeyStatusId,
+            sr.shipperRequestUniqueId
+       FROM JourneyDecisions jd
+       JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+       LEFT JOIN ShipperRequest sr ON sr.shipperRequestId = jd.shipperRequestId
+      WHERE dr.driverRequestUniqueId = ?
+      LIMIT 1`,
+    [existingUniqueId],
+  );
+  const linked = rows?.[0];
+  if (!linked?.journeyDecisionUniqueId) return false;
+  if (Number(existingStatus) === journeyStatusMap.rejectedByDriver) {
+    return false; // handled by the terminal-individual branch below (notifies the driver)
+  }
+
+  const individualStatuses = [
+    journeyStatusMap.waiting,    // 1
+    journeyStatusMap.requested,  // 2
+    journeyStatusMap.acceptedByDriver, // 3
+  ];
+
+  if (linked.shipperRequestUniqueId === shipperRequestUniqueId) {
+    // Same slot: reuse only while the decision is still live (idempotent
+    // retry); a terminal one must be replaced by a fresh decision.
+    return isTerminalJourneyStatus(linked.journeyStatusId);
+  }
+
+  // Different slot: delegate only when the individual-cancellation branch
+  // below will actually process it (active individual DR + active individual
+  // decision); in every other case the row cannot be reused.
+  const handledByIndividualBranch =
+    individualStatuses.includes(Number(linked.journeyStatusId)) &&
+    individualStatuses.includes(Number(existingStatus));
+  return !handledByIndividualBranch;
+}
 
 const upsertDriverRequest = async ({
   driverUserUniqueId,
@@ -58,6 +137,7 @@ const upsertDriverRequest = async ({
   originLat,
   originLng,
   originPlace,
+  shipperRequestUniqueId,
 }) => {
   // Fetch the most recent active row — no status filter so offline drivers (0 rows) fall through
   // to the INSERT path, and drivers with 1+ rows are updated in-place.
@@ -74,6 +154,34 @@ const upsertDriverRequest = async ({
   if (existingRows && existingRows.length > 0) {
     const existingUniqueId = existingRows[0].driverRequestUniqueId;
     const existingStatus   = existingRows[0].journeyStatusId;
+
+    // ── One decision per DriverRequest guard ─────────────────────────────────
+    // See driverRequestMustStartFresh: a decision that belongs to another slot
+    // (ER_DUP_ENTRY) or a terminal decision on this slot (stale cancelled
+    // journey) both disqualify the row from reuse. Soft-delete it and fall
+    // through to the INSERT path so the new job gets a fresh decision.
+    const mustStartFresh = await driverRequestMustStartFresh({
+      existingUniqueId,
+      existingStatus,
+      shipperRequestUniqueId,
+    });
+
+    if (mustStartFresh) {
+      await updateData({
+        tableName: "DriverRequest",
+        conditions: { driverRequestUniqueId: existingUniqueId },
+        updateValues: {
+          journeyStatusId: journeyStatusMap.replacedByCompanyAssignment,
+          driverRequestDeletedAt: currentDate(),
+          driverRequestUpdatedAt: currentDate(),
+        },
+      });
+      logger.info("DriverRequest soft-deleted (linked decision belongs to another or finished job)", {
+        driverRequestUniqueId: existingUniqueId,
+        driverUserUniqueId,
+        shipperRequestUniqueId,
+      });
+    }
 
     // ── Terminal individual status → soft-delete & fresh INSERT ──────────────
     // If the driver's existing DR has a terminal status from a previous
@@ -93,7 +201,7 @@ const upsertDriverRequest = async ({
       journeyStatusMap.acceptedByDriver, // 3
     ];
 
-    if (terminalIndividualStatuses.includes(existingStatus)) {
+    if (!mustStartFresh && terminalIndividualStatuses.includes(existingStatus)) {
       await updateData({
         tableName: "DriverRequest",
         conditions: { driverRequestUniqueId: existingUniqueId },
@@ -184,7 +292,7 @@ const upsertDriverRequest = async ({
 
       // Fall through to INSERT path below →
 
-    } else if (activeIndividualStatuses.includes(existingStatus)) {
+    } else if (!mustStartFresh && activeIndividualStatuses.includes(existingStatus)) {
       // Find all active JourneyDecisions for this DriverRequest
       const [activeDecisions] = await db().query(
         `SELECT jd.journeyDecisionUniqueId, jd.shipperRequestId,
@@ -394,7 +502,7 @@ const upsertDriverRequest = async ({
         });
         return existingUniqueId;
       }
-    } else {
+    } else if (!mustStartFresh) {
       // Status 4+ (shipper accepted, journey started, etc.) or non-individual status
       // — just update the existing DR in-place for the company assignment.
       await updateData({
@@ -476,3 +584,4 @@ async function findActiveAssignmentForSlot(
 
 module.exports.upsertDriverRequest = upsertDriverRequest;
 module.exports.findActiveAssignmentForSlot = findActiveAssignmentForSlot;
+module.exports.driverRequestMustStartFresh = driverRequestMustStartFresh;

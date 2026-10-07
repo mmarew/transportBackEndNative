@@ -552,9 +552,19 @@ Admin approves documents --> Dispatcher is ACTIVE
 4. Monitor all assignment statuses:
    GET /api/company/assignments?companyBidRequestUniqueId=uuid
 
-5. Handle driver rejections:
-   DELETE /api/company/assignments/:id   (cancel rejected slot)
-   POST /api/company/assignments         (assign a replacement driver)
+5. Handle driver rejections and post-confirm cancellations:
+   DELETE /api/company/assignments/:id   (recall — old row cancelled_by_company,
+                                          the truck is pulled to inactive)
+   PATCH /api/company/fleet/:companyVehicleUniqueId
+                                          (manual re-free of the pulled truck —
+                                           assignmentStatus: active|inactive)
+
+6. Replace a live assignment atomically (driver + truck swap in one call):
+   POST /api/company/assignments/:assignmentUniqueId/replace
+     body: { vehicleUniqueId, driverUserUniqueId }   (roles: companyAdmin/dispatcher)
+     → old row cancelled_by_company, new row 'reassigned',
+       replaced driver freed, truck of the old row pulled to inactive,
+       slot stays acceptedByShipper(4)
 ```
 
 ---

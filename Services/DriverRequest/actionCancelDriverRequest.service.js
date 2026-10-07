@@ -313,6 +313,27 @@ const cancelDriverRequest = async (data) => {
              AND assignmentStatus NOT IN ('completed', 'cancelled_by_company', 'cancelled_by_shipper', 'cancelled_by_driver', 'rejected_by_driver')`,
           [assignmentStatusStr, currentDate(), driverRequestId],
         );
+
+        // 6b. POST-CONFIRM ONLY: when a driver backs out AFTER accepting, their
+        //     truck leaves the assignable pool until a dispatcher re-frees it
+        //     (`PATCH /api/company/fleet/:vehicleUniqueId`). A pre-confirm
+        //     refusal (`rejected_by_driver`) never touched the job, so the
+        //     vehicle stays `active` and the driver can simply be re-offered.
+        if (assignmentStatusStr === "cancelled_by_driver") {
+          await connection.query(
+            `UPDATE CompanyVehicle cv
+               JOIN CompanyBidVehicleAssignment cba
+                 ON cba.vehicleUniqueId = cv.vehicleUniqueId
+              SET cv.assignmentStatus = 'inactive'
+             WHERE cba.driverRequestUniqueId = (
+                     SELECT driverRequestUniqueId FROM DriverRequest WHERE driverRequestId = ? LIMIT 1
+                   )
+               AND cba.assignmentStatus = 'cancelled_by_driver'
+               AND cba.assignmentDeletedAt IS NULL
+               AND cv.companyVehicleDeletedAt IS NULL`,
+            [driverRequestId],
+          );
+        }
       },
       {
         timeout: 20000, // 20 second timeout for cancellation operations

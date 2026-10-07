@@ -23,6 +23,7 @@ const {
   upsertDriverRequest,
   findActiveAssignmentForSlot,
   getAssignmentsData,
+  assertAssignableVehicle,
 } = require("./assignmentHelper");
 
 /**
@@ -67,6 +68,16 @@ exports.createAssignment = async (data) => {
   // onto another company's job — the "job is bound to its own company" promise
   // only holds if assignment enforces membership too.
   await assertCompanyAccess(data.user || { userUniqueId: createdByUserUniqueId }, bid.companyUniqueId);
+
+  // ── Fleet gate ───────────────────────────────────────────────────────
+  // The truck must belong to this company's fleet AND still be `active`.
+  // `inactive` is the dispatcher-controlled pool flag (a vehicle goes inactive
+  // when its driver is pulled off a job), so an inactive truck cannot be
+  // handed to another driver until a dispatcher re-frees it.
+  await assertAssignableVehicle({
+    companyUniqueId: bid.companyUniqueId,
+    vehicleUniqueId,
+  });
 
   let shipperRequestUniqueId = inputPRUniqueId;
   let sr;
@@ -156,6 +167,7 @@ exports.createAssignment = async (data) => {
     originLat: sr.originLatitude,
     originLng: sr.originLongitude,
     originPlace: sr.originPlace,
+    shipperRequestUniqueId,
   });
 
   // ── Create JourneyDecision at assignment time (status 2) ─────────────────
@@ -257,6 +269,14 @@ exports.createBulkAssignments = async (data) => {
     const { shipperRequestUniqueId, vehicleUniqueId, driverUserUniqueId } =
       item;
 
+    // ── Fleet gate (per row) ────────────────────────────────────────────
+    // Same rule as the single-create path: the truck must be this company's
+    // and still `active`. One bad row fails the whole atomic batch.
+    await assertAssignableVehicle({
+      companyUniqueId: bid.companyUniqueId,
+      vehicleUniqueId,
+    });
+
     // Check if slot belongs to the batch — uses the dedicated service function
     const sr = await getShipperRequestByUniqueId(
       shipperRequestUniqueId,
@@ -293,6 +313,7 @@ exports.createBulkAssignments = async (data) => {
       originLat: sr.originLatitude,
       originLng: sr.originLongitude,
       originPlace: sr.originPlace ?? "Bulk assigned",
+      shipperRequestUniqueId,
     });
 
     // ── Create JourneyDecision at assignment time (status 2) ───────────────

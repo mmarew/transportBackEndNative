@@ -448,6 +448,90 @@ exports.releaseEntryForUnselectedBidder = async ({
   return { released: true };
 };
 
+/**
+ * Company recall of a driver who was already HOLDING a queue order (agreed /
+ * loading / in transit): closes their entry so the order stops showing as theirs
+ * and the driver loses the queued slot, exactly like a post-accept cancel.
+ *
+ * Two deliberate differences from `releaseQueueEntryAfterDriverCancel`:
+ *   - NO refusal penalty — the driver did not refuse the job, the company
+ *     pulled them off it, so their refusal count must not move.
+ *   - NO `offerToNextDriver` — the dispatcher who ordered the recall also
+ *     picks the replacement, so the order must wait for them instead of being
+ *     offered to the next driver in line.
+ *
+ * No-op (`{ released: false }`) for non-queue orders and for entries that are
+ * already released. Idempotent.
+ *
+ * @param {Object} opts
+ * @param {string} opts.shipperRequestUniqueId
+ * @param {string} [opts.driverUserUniqueId] - recalled driver; narrows the
+ *   update to their entry (there is one holder per order, this is belt+braces)
+ * @param {string} [opts.actorUserUniqueId] - dispatcher who ordered the recall
+ * @returns {Promise<{released: boolean}>}
+ */
+exports.releaseQueueEntryForCompanyRecall = async ({
+  shipperRequestUniqueId,
+  driverUserUniqueId = null,
+  actorUserUniqueId = null,
+}) => {
+  if (!shipperRequestUniqueId) return { released: false };
+
+  const executor = db();
+  const [rows] = await executor.query(
+    `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate
+     FROM DriverQueue dq
+     JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+     WHERE dq.shipperRequestUniqueId = ?
+       AND dq.status IN (
+         ${QUEUE_STATUS.AGREED},
+         ${QUEUE_STATUS.GO_TO_LOADING_PLACE},
+         ${QUEUE_STATUS.LOADING},
+         ${QUEUE_STATUS.LOADED},
+         ${QUEUE_STATUS.JOURNEY_STARTED}
+       )
+       AND dq.queueDeletedAt IS NULL
+       ${driverUserUniqueId ? "AND vd.driverUserUniqueId = ?" : ""}
+     ORDER BY dq.queueNumber ASC
+     LIMIT 1
+     FOR UPDATE`,
+    driverUserUniqueId
+      ? [shipperRequestUniqueId, driverUserUniqueId]
+      : [shipperRequestUniqueId],
+  );
+
+  if (rows.length === 0) return { released: false };
+
+  const entry = rows[0];
+
+  await logQueueHistory(executor, {
+    queueUniqueId: entry.queueUniqueId,
+    event: HISTORY_EVENT.COMPANY_RECALL,
+    performedBy: actorUserUniqueId,
+  });
+
+  await updateData({
+    tableName: "DriverQueue",
+    updateValues: {
+      status: QUEUE_STATUS.CANCELLED_AFTER_ACCEPT,
+      requestedAt: null,
+      shipperRequestUniqueId: null,
+      queueUpdatedAt: currentDate(),
+      queueUpdatedBy: actorUserUniqueId,
+      queueDeletedAt: currentDate(),
+      queueDeletedBy: actorUserUniqueId,
+    },
+    conditions: { queueId: entry.queueId },
+  });
+
+  await emitQueueSnapshot({
+    queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+    queueDate: entry.queueDate,
+  });
+
+  return { released: true };
+};
+
 module.exports.offerToNextDriver = offerToNextDriver;
 module.exports.applyRefusalPolicy = applyRefusalPolicy;
 module.exports.resetOrderToWaitingIfUnheld = resetOrderToWaitingIfUnheld;

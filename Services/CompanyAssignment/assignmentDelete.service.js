@@ -11,6 +11,10 @@ const {
   createJourneyDecisionForAssignment,
   notifyAssignedDriver,
   upsertDriverRequest,
+  readAssignmentForUpdate,
+  recallAssignment,
+  assertRecallAccess,
+  notifyDriverOfRecall,
 } = require("./assignmentHelper");
 
 /**
@@ -166,6 +170,7 @@ exports.autoAssignBatch = async (data) => {
       originLat: item.origin.lat,
       originLng: item.origin.lng,
       originPlace: item.origin.place ?? "Auto-assigned",
+      shipperRequestUniqueId: item.shipperRequestUniqueId,
     });
 
     // ── Create JourneyDecision at assignment time (status 2) ───────────────
@@ -230,15 +235,59 @@ exports.autoAssignBatch = async (data) => {
   };
 };
 
-exports.deleteAssignment = async (assignmentUniqueId, deletedBy) => {
-  const [res] = await db().query(
+/**
+ * deleteAssignment
+ * ────────────────
+ * Dispatcher-initiated recall ("pull this driver off the job") with the row
+ * retired afterwards.
+ *
+ * While the assignment is still active this runs the full `recallAssignment`
+ * state change — assignment → `cancelled_by_company`, driver released from
+ * DriverRequest/JourneyDecision/Journey, slot back to `acceptedByShipper`, queue
+ * holder entry closed — and only then soft-deletes the row. A row that was
+ * already terminal is just retired, never rewritten.
+ *
+ * Access: the caller must be an active member of the company that submitted the
+ * bid (platform admins bypass membership); otherwise 403.
+ *
+ * @param {string} assignmentUniqueId
+ * @param {object} user - authenticated caller (userUniqueId + roleId)
+ * @returns {Promise<{message: string, data: object}>}
+ */
+exports.deleteAssignment = async (assignmentUniqueId, user) => {
+  const actorUserUniqueId = user?.userUniqueId;
+
+  const assignment = await readAssignmentForUpdate(assignmentUniqueId);
+  await assertRecallAccess(user, assignment);
+
+  const { recalled } = await recallAssignment({
+    assignment,
+    actorUserUniqueId,
+  });
+
+  await db().query(
     `UPDATE CompanyBidVehicleAssignment
-     SET assignmentDeletedAt = ?, assignmentDeletedBy = ?
+      SET assignmentDeletedAt = ?, assignmentDeletedBy = ?
      WHERE assignmentUniqueId = ? AND assignmentDeletedAt IS NULL`,
-    [currentDate(), deletedBy, assignmentUniqueId],
+    [currentDate(), actorUserUniqueId, assignmentUniqueId],
   );
-  if (res.affectedRows === 0) {
-    throw new AppError("Assignment not found or already deleted", AppError.NOT_FOUND);
+
+  if (recalled) {
+    notifyDriverOfRecall({
+      driverUserUniqueId: assignment.driverUserUniqueId,
+      assignmentUniqueId,
+      shipperRequestUniqueId: assignment.shipperRequestUniqueId,
+      companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
+    });
   }
-  return { message: "Auto-assignment completed", data: null };
+
+  return {
+    message: recalled
+      ? "Assignment recalled by company"
+      : "Assignment deleted",
+    data: {
+      assignmentUniqueId,
+      recalled,
+    },
+  };
 };

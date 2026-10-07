@@ -397,14 +397,18 @@ const cancelShipperRequest = async body => {
       });
     }
 
-    // Check if cancellation is already registered
-    const canceledJourneyBefore = await getData({
-      tableName: "CanceledJourneys",
-      conditions: {
-        contextId: shipperRequestId,
-        contextType: "ShipperRequest"
-      }
-    });
+    // Check if cancellation is already registered FOR THIS ORDER. The time
+    // floor guards against shipperRequestId reuse: a hard-deleted
+    // ShipperRequest frees its auto-increment id, and a ghost CanceledJourneys
+    // row left behind by a previous order that had the same id must not
+    // suppress the insert for the current order (regression: TQ-27).
+    const [canceledJourneyBefore] = await pool.query(
+      `SELECT canceledJourneyId FROM CanceledJourneys
+        WHERE contextId = ? AND contextType = 'ShipperRequest'
+          AND canceledJourneyCreatedAt >= ?
+        LIMIT 1`,
+      [shipperRequestId, shipperRequest.shipperRequestCreatedAt],
+    );
     if (canceledJourneyBefore.length === 0) {
       // Create new cancellation record
       await createCanceledJourney({

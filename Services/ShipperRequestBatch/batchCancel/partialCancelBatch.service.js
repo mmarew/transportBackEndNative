@@ -191,13 +191,17 @@ const partialCancelBatch = async ({
 
   // 7. Audit record per cancelled slot
   for (const slot of slots) {
-    const existingCancel = await getData({
-      tableName: "CanceledJourneys",
-      conditions: {
-        contextId: slot.shipperRequestId,
-        contextType: "ShipperRequest",
-      },
-    });
+    // Time floor guards against shipperRequestId reuse: a ghost row left by a
+    // hard-deleted order with the same id must not suppress this insert.
+    const [existingCancel] = await db().query(
+      `SELECT canceledJourneyId FROM CanceledJourneys
+        WHERE contextId = ? AND contextType = 'ShipperRequest'
+          AND canceledJourneyCreatedAt >= (
+                SELECT shipperRequestCreatedAt FROM ShipperRequest
+                 WHERE shipperRequestId = ?)
+        LIMIT 1`,
+      [slot.shipperRequestId, slot.shipperRequestId],
+    );
     if (existingCancel.length === 0) {
       await createCanceledJourney({
         canceledBy: userUniqueId,

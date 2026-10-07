@@ -51,7 +51,7 @@ const releaseConflictingOffers = async (
         `SELECT assignmentUniqueId, driverRequestUniqueId, shipperRequestUniqueId
          FROM CompanyBidVehicleAssignment
          WHERE driverUserUniqueId = ?
-           AND assignmentStatus IN ('assigned')
+           AND assignmentStatus IN ('assigned','reassigned')
            AND assignmentDeletedAt IS NULL`,
         [driverUserUniqueId],
       );

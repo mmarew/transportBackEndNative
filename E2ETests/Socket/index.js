@@ -119,12 +119,19 @@ const testSocketNotifications = async () => {
     );
 
     // Step 0b: Close all stale shipper requests (acceptedByShipper=4, journeyStarted=5)
-    // statuses 1-3 also closed to ensure fresh matching for this test
+    // statuses 1-3 also closed to ensure fresh matching for this test.
+    // SCOPED TO E2E ACCOUNTS ONLY (@test.com): this used to be a global UPDATE
+    // with no user filter, which force-cancelled EVERY active ShipperRequest in
+    // the database — real shippers' live jobs (company batch slots sitting at
+    // acceptedByShipper) were silently flipped to cancelledByDriver on every
+    // suite run, breaking their list/verify endpoints.
     await pool.query(
-      `UPDATE ShipperRequest
-       SET journeyStatusId = ?
-       WHERE journeyStatusId IN (?, ?, ?, ?, ?)
-         AND shipperRequestDeletedAt IS NULL`,
+      `UPDATE ShipperRequest sr
+       JOIN Users u ON u.userUniqueId = sr.userUniqueId
+       SET sr.journeyStatusId = ?
+       WHERE u.email LIKE '%@test.com'
+         AND sr.journeyStatusId IN (?, ?, ?, ?, ?)
+         AND sr.shipperRequestDeletedAt IS NULL`,
       [
         journeyStatusMap.cancelledByDriver,
         journeyStatusMap.waiting,

@@ -214,10 +214,31 @@ const acceptDriverOffer = async (body) => {
           });
         }
 
-        // Verification of driver journey status (lazy required/internal check)
-        const driverStatus = await verifyDriverJourneyStatus({
-          userUniqueId: driver?.driverUserUniqueId,
-        });
+        // Verification of driver journey status (lazy required/internal check).
+        // `connectedDrivers` is scoped to ALL of this shipper's open bids (see
+        // `orderCondition` above), not just `shipperRequestUniqueId` — so this
+        // loop also touches drivers bidding on the shipper's OTHER, unrelated
+        // orders. Those drivers only need a best-effort "not selected" socket
+        // notification; a missing/expired vehicle on one of them must not roll
+        // back the acceptance of the actual winning bid on this order.
+        // The accepted driver is still held to the strict check — they are the
+        // one actually being dispatched, so a missing vehicle is a real error.
+        let driverStatus = null;
+        try {
+          driverStatus = await verifyDriverJourneyStatus({
+            userUniqueId: driver?.driverUserUniqueId,
+          });
+        } catch (statusError) {
+          if (isAccepted) throw statusError;
+          logger.warn(
+            "Skipping journey-status notification for a non-selected driver whose status could not be verified",
+            {
+              driverUserUniqueId: driver?.driverUserUniqueId,
+              shipperRequestUniqueId: driver?.shipperRequestUniqueId,
+              error: statusError.message,
+            },
+          );
+        }
         const notification = {
           title: isAccepted ? "Offer accepted" : "Offer not selected",
           body: isAccepted
