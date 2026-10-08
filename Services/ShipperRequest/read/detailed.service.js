@@ -244,6 +244,18 @@ const getDetailedJourneyData = async (shipperRequests) => {
         if (finalMatches.length > 0) {
           allDecisions.push(...finalMatches);
           validSRs.push(sr);
+        } else if (
+          sr.requestMode === "company_target" &&
+          isActiveJourneyStatus(sr.journeyStatusId)
+        ) {
+          // Company assignment: the slot stays at acceptedByShipper (4) while
+          // the assigned driver's DR/JD sit at requested (2) / acceptedByDriver
+          // (3) until confirmation, so no decision can equal the slot status
+          // yet — that is a pending offer, not a stale row. Keep the slot
+          // status and surface its assigned driver instead of rewriting the
+          // row to waiting with an empty driver list.
+          allDecisions.push(...decisions);
+          validSRs.push(sr);
         } else if (isActiveJourneyStatus(sr.journeyStatusId)) {
           // If no decisions match even after projection, it's stale.
           logger.warn("@getDetailedJourneyData: unmatched active sr, projecting waiting", {

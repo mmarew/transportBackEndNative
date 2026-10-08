@@ -171,7 +171,9 @@ const notifyCompanyOnDriverAction = async ({
     if (!assignment) return;
 
     // Fetch full record matching GET /api/company/assignments response shape
-    const fullAssignment = await getFullAssignmentData(assignment.assignmentUniqueId);
+    const fullAssignment = await getFullAssignmentData(
+      assignment.assignmentUniqueId,
+    );
 
     const actionConfig = {
       going_to_loading_place: {
@@ -370,11 +372,14 @@ const notifyDriverOfRecall = async ({
         phoneNumber,
         message: wsPayload,
       }).catch((e) =>
-        logger.warn("WebSocket failed for driver recall (driver may be offline)", {
-          error: e.message,
-          driverUserUniqueId,
-          assignmentUniqueId,
-        }),
+        logger.warn(
+          "WebSocket failed for driver recall (driver may be offline)",
+          {
+            error: e.message,
+            driverUserUniqueId,
+            assignmentUniqueId,
+          },
+        ),
       );
     }
   } catch (e) {

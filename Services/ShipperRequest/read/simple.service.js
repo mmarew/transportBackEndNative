@@ -2,7 +2,10 @@
 
 const { performJoinSelect } = require("../../../CRUD/Read/ReadData");
 const { pool } = require("../../../Middleware/Database.config");
-const { usersRoles } = require("../../../Utils/ListOfSeedData");
+const {
+  usersRoles,
+  supportingDecisionStatuses,
+} = require("../../../Utils/ListOfSeedData");
 const AppError = require("../../../Utils/AppError");
 const {
   getDetailedJourneyData,
@@ -536,8 +539,19 @@ const getShipperRequest4allOrSingleUser = async ({ data }) => {
       countParams.push(filters.endDate);
     }
 
-    // Add sorting
-    let orderBy = "ORDER BY ShipperRequest.shipperRequestId DESC";
+    // Add sorting — default puts driver-connected rows first, then newest.
+    // A live JourneyDecision + DriverRequest marks a slot a driver is actually
+    // on; ShipperRequest.journeyStatusId cannot express this (company-target
+    // slots sit at acceptedByShipper = 4 whether or not anyone is assigned),
+    // so status-based ordering would never surface connected rows. An explicit
+    // sortBy still overrides this entirely below.
+    let orderBy = `ORDER BY EXISTS (
+        SELECT 1 FROM JourneyDecisions jd
+        JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+        WHERE jd.shipperRequestId = ShipperRequest.shipperRequestId
+          AND jd.journeyStatusId IN (${supportingDecisionStatuses.join(",")})
+      ) DESC,
+      ShipperRequest.shipperRequestId DESC`;
     if (filters?.sortBy) {
       const validSortColumns = [
         "shipperRequestCreatedAt",
