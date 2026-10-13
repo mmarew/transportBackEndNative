@@ -1,0 +1,7 @@
+{
+  "note": "Real capture (development mode). Production error handling is described in the TDD conventions document.",
+  "response": {
+    "statusCode": 404,
+    "body": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /api/definitelyNotAPath</pre>\n</body>\n</html>\n"
+  }
+}

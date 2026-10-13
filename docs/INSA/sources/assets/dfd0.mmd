@@ -1,0 +1,41 @@
+graph LR
+    subgraph Clients["Client applications"]
+        SW["Shipper Web App"]
+        DM["Driver Mobile App"]
+        CC["Company / Dispatcher Console"]
+        AC["Admin Console"]
+    end
+
+    subgraph Platform["Dynamics Transport Platform"]
+        API["Transport Backend API<br/>Node 20 · Express 5<br/>204 routes / 285 operations"]
+        WS["Socket.IO Gateway<br/>rooms · location relay · typed messages"]
+    end
+
+    subgraph Infra["Infrastructure"]
+        DB[("MySQL 8<br/>103 tables")]
+        RD[("Redis<br/>cache · pub/sub adapter")]
+    end
+
+    subgraph External["External services"]
+        SMS["SMS Gateway<br/>OTP · alerts"]
+        SMTP["SMTP E-mail<br/>verification · notices"]
+        FCM["Firebase Cloud<br/>Messaging push"]
+        PAY["SantimPay<br/>payment gateway"]
+    end
+
+    SW -- "1. register · login · create / manage requests (HTTPS, JSON)" --> API
+    DM -- "2. offers · bids · loading stages · POD · GPS (HTTPS, JSON)" --> API
+    CC -- "3. company bids · fleet · assignments (HTTPS, JSON)" --> API
+    AC -- "4. governance · analytics · maintenance (HTTPS, JSON)" --> API
+
+    WS -- "5. queue boards · notifications · live location (WSS)" --> SW
+    WS -- "6. offers · status changes · location of driver (WSS)" --> DM
+    WS -- "7. dispatch updates (WSS)" --> CC
+
+    API -- "8. parameterized queries · transactions" --> DB
+    API -- "9. cache · socket fan-out across nodes" --> RD
+
+    API -- "10. OTP and alert SMS" --> SMS
+    API -- "11. verification and transactional e-mail" --> SMTP
+    API -- "12. push to offline users" --> FCM
+    PAY -- "13. signed deposit webhook" --> API

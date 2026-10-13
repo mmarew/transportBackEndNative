@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SRS — Transport Management System API v1.0.0</title>
+    <style>
+      /* ---------- Print-first design (aligned with DriverLoadNow docs/insa) ---------- */
+      @page {
+        size: A4;
+        margin: 20mm 16mm 18mm 16mm;
+      }
+
+      :root {
+        --ink: #14181d;
+        --muted: #5a6472;
+        --line: #c9d1da;
+        --soft: #f2f4f7;
+        --accent: #1f4e79;
+        --warn: #8a5a00;
+        --warn-bg: #fdf6e6;
+        --ok: #1c6b45;
+        --ok-bg: #eef7f2;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      body {
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-size: 10.2pt;
+        line-height: 1.5;
+        color: var(--ink);
+        margin: 0;
+        padding-left: 6mm;
+        padding-right: 6mm;
+      }
+
+      h1,
+      h2,
+      h3 {
+        color: var(--accent);
+        page-break-after: avoid;
+        break-after: avoid;
+      }
+
+      h1 {
+        font-size: 17pt;
+        margin: 0 0 4mm;
+      }
+
+      h2 {
+        font-size: 13pt;
+        margin: 0 0 3mm;
+        padding-bottom: 1.4mm;
+        border-bottom: 1pt solid var(--accent);
+      }
+
+      h3 {
+        font-size: 10.8pt;
+        margin: 5mm 0 2mm;
+      }
+
+      p {
+        margin: 0 0 2.6mm;
+        text-align: justify;
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      code,
+      .mono {
+        font-family: 'SF Mono', Menlo, Consolas, monospace;
+        font-size: 8.6pt;
+        background: var(--soft);
+        padding: 0.3mm 0.9mm;
+        border-radius: 1mm;
+      }
+
+      section {
+        page-break-before: always;
+        break-before: page;
+      }
+
+      section.cover {
+        page-break-before: auto;
+        break-before: auto;
+      }
+
+      /* ---------- Cover ---------- */
+      .cover-rule {
+        height: 3.5mm;
+        background: var(--accent);
+        margin-bottom: 14mm;
+      }
+
+      .cover-title {
+        font-size: 25pt;
+        line-height: 1.15;
+        color: var(--ink);
+        margin: 0 0 4mm;
+        font-weight: 700;
+      }
+
+      .cover-sub {
+        font-size: 12.5pt;
+        color: var(--muted);
+        margin-bottom: 16mm;
+      }
+
+      .meta {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 8mm;
+      }
+
+      .meta td {
+        padding: 2.4mm 2mm;
+        border-bottom: 0.4pt solid var(--line);
+        vertical-align: top;
+        font-size: 9.6pt;
+      }
+
+      .meta td:first-child {
+        width: 38mm;
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      /* ---------- Tables ---------- */
+      table.grid {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0 0 4mm;
+        font-size: 8.9pt;
+      }
+
+      table.grid th {
+        background: var(--accent);
+        color: #fff;
+        text-align: left;
+        padding: 1.8mm 2mm;
+        font-weight: 600;
+        border: 0.4pt solid var(--accent);
+      }
+
+      table.grid td {
+        border: 0.4pt solid var(--line);
+        padding: 1.8mm 2mm;
+        vertical-align: top;
+      }
+
+      table.grid tr:nth-child(even) td {
+        background: var(--soft);
+      }
+
+      thead {
+        display: table-header-group;
+      }
+
+      tr {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      /* ---------- Callouts ---------- */
+      .box {
+        border: 0.5pt solid var(--line);
+        border-left: 2.2pt solid var(--accent);
+        background: var(--soft);
+        padding: 3mm 3.5mm;
+        margin: 0 0 4mm;
+        page-break-inside: avoid;
+      }
+
+      .box.warn {
+        border-left-color: var(--warn);
+        background: var(--warn-bg);
+      }
+
+      .box.ok {
+        border-left-color: var(--ok);
+        background: var(--ok-bg);
+      }
+
+      .box p:last-child {
+        margin-bottom: 0;
+      }
+
+      .box .t {
+        font-weight: 700;
+        display: block;
+        margin-bottom: 1.4mm;
+      }
+
+      ul,
+      ol {
+        margin: 0 0 3mm;
+        padding-left: 5.5mm;
+      }
+
+      li {
+        margin-bottom: 1.2mm;
+      }
+
+      .toc td {
+        padding: 1.5mm 2mm;
+        border-bottom: 0.4pt dotted var(--line);
+        font-size: 9.4pt;
+      }
+
+      .toc td:first-child {
+        width: 12mm;
+        color: var(--muted);
+      }
+
+      .fill {
+        color: var(--warn);
+        font-weight: 600;
+      }
+
+      pre {
+        font-family: 'SF Mono', Menlo, Consolas, monospace;
+        font-size: 8.4pt;
+        background: var(--soft);
+        border: 0.4pt solid var(--line);
+        border-left: 2.2pt solid var(--accent);
+        padding: 2.4mm 3mm;
+        margin: 0 0 3.5mm;
+        white-space: pre-wrap;
+        page-break-inside: avoid;
+      }
+
+      /* ---------- Figures ---------- */
+      figure {
+        margin: 0 0 5mm;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      figure img {
+        width: 100%;
+        border: 0.4pt solid var(--line);
+        background: #fff;
+        display: block;
+      }
+
+      figcaption {
+        font-size: 8.4pt;
+        color: var(--muted);
+        margin-top: 1.6mm;
+        text-align: center;
+      }
+
+      .pagebreak {
+        page-break-before: always;
+        break-before: page;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ============ COVER ============ -->
+    <section class="cover">
+      <div class="cover-rule"></div>
+      <div class="cover-title">Software Requirements<br />Specification</div>
+      <div class="cover-sub">
+        Transport Management System — Backend API (REST + WebSocket), version 1.0.0
+      </div>
+
+      <table class="meta">
+        <tr>
+          <td>Document</td>
+          <td><strong>SRS-1.0.0</strong> — API Requirements Documentation</td>
+        </tr>
+        <tr>
+          <td>Asset</td>
+          <td>
+            Name <strong>transport</strong>, type <strong>API</strong>, asset code
+            <strong>TRANSPORT-API-001</strong>, version <strong>1.0.0</strong>
+          </td>
+        </tr>
+        <tr>
+          <td>System</td>
+          <td>
+            Freight/transport management backend serving shipper, driver, company/dispatcher
+            and admin clients — 204 routes / 285 operations, 103 database tables, real-time
+            Socket.IO layer
+          </td>
+        </tr>
+        <tr>
+          <td>Platform</td>
+          <td>Node.js ≥ 20 · Express 5 · MySQL 8 · Redis · Socket.IO v4 · PM2</td>
+        </tr>
+        <tr>
+          <td>Environments</td>
+          <td>
+            Production <code>https://app.dynamicsroute.tech</code> · staging
+            <code>https://dev.dynamicsroute.tech</code>
+          </td>
+        </tr>
+        <tr>
+          <td>Related documents</td>
+          <td>
+            System &amp; Architecture Design (SDD); API Technical Specifications (TDD/LLD)
+            package; Request/Response package with endpoint inventory and live captures
+          </td>
+        </tr>
+        <tr>
+          <td>Submitting entity</td>
+          <td class="fill">[ LEGAL NAME OF COMPANY / LICENCEE ]</td>
+        </tr>
+        <tr>
+          <td>Contact person</td>
+          <td class="fill">[ NAME, TITLE, EMAIL, TELEPHONE ]</td>
+        </tr>
+        <tr>
+          <td>Date of submission</td>
+          <td class="fill">[ DD MONTH YYYY ]</td>
+        </tr>
+      </table>
+
+      <div class="box warn">
+        <span class="t">Status of this document</span>
+        <p>
+          This specification describes the API <em>as implemented</em> in the deployed
+          service. Every requirement listed here is present in the running system; no
+          forward-looking features are specified. Fields shown in
+          <span class="fill">amber</span> are administrative placeholders that the
+          submitting entity completes before submission.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ TOC ============ -->
+    <section>
+      <h1>Contents</h1>
+      <table class="toc">
+        <tr><td>1</td><td>Introduction</td></tr>
+        <tr><td>2</td><td>Overall description</td></tr>
+        <tr><td>3</td><td>Functional requirements</td></tr>
+        <tr><td>4</td><td>External interface requirements</td></tr>
+        <tr><td>5</td><td>Data requirements</td></tr>
+        <tr><td>6</td><td>Non-functional requirements</td></tr>
+        <tr><td>7</td><td>Business rules and journey state model</td></tr>
+        <tr><td>8</td><td>Requirements traceability</td></tr>
+        <tr><td>A</td><td>Appendix A — glossary of acronyms</td></tr>
+      </table>
+
+      <h3>How to read this document</h3>
+      <p>
+        §3 contains the numbered functional requirements (prefix <code>FR-</code>), grouped by
+        subsystem, each with a priority. §4 specifies every external interface of the system
+        (REST, WebSocket, files, third-party services). §6 contains non-functional requirements
+        (<code>NFR-</code>). §7 defines the journey state model that most functional
+        requirements refer to, and §8 traces each requirement group to its design section in
+        the companion SDD and to its verification evidence. Requirement identifiers are stable
+        so a reviewer can follow a requirement from this document to its design element and to
+        its implementation.
+      </p>
+
+      <div class="box">
+        <span class="t">Verification baseline</span>
+        <p>
+          All counts in this document were extracted from the source and validated against a
+          running instance of the API: <strong>204 distinct routes / 285 operations</strong>
+          (probe-verified, only non-404 routes counted), <strong>103 MySQL tables</strong>,
+          <strong>20 journey statuses</strong>, <strong>12 user roles</strong>,
+          <strong>78 typed real-time message kinds</strong>. The full route table ships in the
+          Request/Response package (<code>endpoints.md</code>).
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ 1. INTRODUCTION ============ -->
+    <section>
+      <h1>1. Introduction</h1>
+
+      <h3>1.1 Purpose</h3>
+      <p>
+        This document specifies the requirements for the <strong>Transport Management System
+        Backend API</strong> (the “system”), the server-side component of a freight/transport
+        management platform. It is the API Requirements Documentation (SRS) for the asset
+        <strong>transport</strong> version 1.0.0 submitted for asset registration, and it is
+        written for external review as well as for the project's own development and test
+        baseline.
+      </p>
+
+      <h3>1.2 Scope</h3>
+      <p>
+        The system provides the complete server-side functionality of the platform:
+      </p>
+      <ul>
+        <li>
+          Identity: registration, contact verification by one-time password (OTP),
+          authentication (JWT) and role-based authorization for 12 platform roles.
+        </li>
+        <li>
+          Transport demand: shipper requests with a 20-state journey lifecycle, driver
+          bidding, company-target batch dispatch, assignment and replacement workflows.
+        </li>
+        <li>
+          Journey execution: loading stages, GPS route tracking, proof of delivery and
+          delivery confirmation with photo evidence.
+        </li>
+        <li>
+          Supply: company registration and approval, memberships and roles, fleet and
+          driver–vehicle assignment, a FIFO dispatch queue for queue organizations.
+        </li>
+        <li>
+          Real-time features: location exchange between driver and shipper, queue boards,
+          typed in-app notifications over Socket.IO.
+        </li>
+        <li>
+          Finance: deposits completed by payment-gateway webhook, balances, commissions,
+          refunds and tariff rates.
+        </li>
+        <li>
+          Supporting functions: document/media management, SMS/e-mail/FCM notifications,
+          ratings, delinquency governance, subscriptions, administration and health
+          endpoints.
+        </li>
+      </ul>
+      <p>
+        Out of scope: the web and mobile client applications (separate systems that consume
+        this API) and the external payment, SMS, e-mail and push providers themselves. All
+        business records of account — journey state, permissions, financial entries — are held
+        by this system; clients hold no business logic of record.
+      </p>
+
+      <h3>1.3 Definitions and acronyms</h3>
+      <table class="grid">
+        <thead>
+          <tr><th>Term</th><th>Meaning</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Shipper</td><td>Cargo owner who posts transport requests (role 1).</td></tr>
+          <tr><td>Driver</td><td>Person who receives or bids on transport requests (role 2).</td></tr>
+          <tr><td>Company</td><td>Transport company bidding on batched orders; operates fleet and staff (roles 7/8/10).</td></tr>
+          <tr><td>Journey</td><td>Execution record of one accepted transport, from loading through delivery to proof of delivery.</td></tr>
+          <tr><td>Journey status</td><td>One of 20 states (<code>journeyStatusId</code> 1–20) that every request moves through; defined in §7.</td></tr>
+          <tr><td>Request mode</td><td><code>individual</code> (offer to single drivers) or <code>company_target</code> (companies bid on a batch).</td></tr>
+          <tr><td>Batch</td><td>A multi-vehicle order (<code>ShipperRequestBatch</code>) split into vehicle slots, each a request with its own status.</td></tr>
+          <tr><td>Decision</td><td>Immutable server-side record of a status move by an actor (<code>JourneyDecisions</code>).</td></tr>
+          <tr><td>POD</td><td>Proof of delivery: receiver identity, photos and confirmation captured at drop-off.</td></tr>
+          <tr><td>OTP / JWT</td><td>One-time password (second authentication factor) / JSON Web Token (bearer credential, 24 h).</td></tr>
+          <tr><td>Queue organization</td><td>Organization operating a FIFO dispatch queue for drivers (roles 11/12).</td></tr>
+          <tr><td>SRS / SDD / TDD</td><td>Requirements / System &amp; Architecture Design / Technical (low-level) design documents of this package.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>1.4 References</h3>
+      <ul>
+        <li>API Endpoint Inventory — 204 routes / 285 operations, probe-validated (Request/Response package).</li>
+        <li>API System &amp; Architecture Design Document (SDD) — companion document of this package.</li>
+        <li>API Technical Specifications (TDD/LLD) package — conventions, data model, status machine, socket protocol.</li>
+        <li>Request/Response package — six live request/response captures (redacted).</li>
+      </ul>
+    </section>
+
+    <!-- ============ 2. OVERALL DESCRIPTION ============ -->
+    <section>
+      <h1>2. Overall description</h1>
+
+      <h3>2.1 Product perspective</h3>
+      <p>
+        The system is a self-contained backend service executed under PM2 behind an Nginx TLS
+        terminator. It persists data in MySQL (103 tables), uses Redis for caching and for
+        scaling Socket.IO across nodes, and integrates outboundly with SMS, e-mail, push and
+        payment services. It is the single authority for all business state of the platform:
+        clients render, the server decides.
+      </p>
+      <figure>
+        <img src="assets/dfd0.svg" alt="Level 0 context diagram of the transport API" />
+        <figcaption>
+          Figure 2.1 — Level 0 context: clients, platform, infrastructure and external
+          services with numbered data flows
+        </figcaption>
+      </figure>
+
+      <h3>2.2 User classes and actors</h3>
+      <table class="grid">
+        <thead>
+          <tr><th style="width: 24%">Actor</th><th style="width: 12%">Role id</th><th>Primary capabilities through the API</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Shipper</td><td>1</td><td>Create/cancel transport requests, select bids, confirm delivery, manage documents, deposits.</td></tr>
+          <tr><td>Driver</td><td>2</td><td>Receive offers, bid/accept/reject, drive loading stages, report location, queue check-in, view earnings.</td></tr>
+          <tr><td>Admin / super admin</td><td>3 / 6</td><td>User and role governance, force status changes, delinquency decisions, system maintenance, analytics.</td></tr>
+          <tr><td>Vehicle owner</td><td>4</td><td>Register vehicles, assign drivers, maintain vehicle documents.</td></tr>
+          <tr><td>Company admin / staff / dispatcher</td><td>7 / 8 / 10</td><td>Company profile, memberships and roles, fleet, bids, assignments, dispatch.</td></tr>
+          <tr><td>Queue org admin / dispatcher</td><td>11 / 12</td><td>Operate the dispatch queue: orders, driver check-in/out, FIFO offers, audit trail.</td></tr>
+          <tr><td>Payment provider</td><td>—</td><td>Delivers signed webhooks for deposit completion (public endpoint).</td></tr>
+          <tr><td>Monitoring system</td><td>—</td><td>Polls health endpoints (public).</td></tr>
+        </tbody>
+      </table>
+
+      <h3>2.3 Operating environment</h3>
+      <ul>
+        <li>Runtime: Node.js ≥ 20, Express 5, PM2 process manager, Linux server (production).</li>
+        <li>Data stores: MySQL 8 (primary), Redis/Upstash over TLS (cache + Socket.IO adapter).</li>
+        <li>Clients: browser SPA and React Native mobile app over HTTPS and WSS.</li>
+        <li>Environments: production (<code>app.dynamicsroute.tech</code>), staging
+          (<code>dev.dynamicsroute.tech</code>), local development.</li>
+      </ul>
+
+      <h3>2.4 Constraints</h3>
+      <ul>
+        <li>All traffic over TLS; JSON bodies (1 MB limit), multipart only for uploads.</li>
+        <li>JWT lifetime fixed at 24 hours; no refresh-token endpoint in v1.0.0.</li>
+        <li>Personal data (names, phones, e-mail, GPS traces) processed under access control;
+          production error responses must never expose stack traces.</li>
+        <li>Status transitions and financial postings must be transactional and audited.</li>
+      </ul>
+
+      <h3>2.5 Assumptions and dependencies</h3>
+      <ul>
+        <li>Clients enforce UI validation; the server remains the authority for all rules.</li>
+        <li>SMS/e-mail delivery is provided by configured providers; outside production the
+          test OTP <code>101010</code> is used.</li>
+        <li>MySQL, Redis, SMTP, SMS, FCM and the payment gateway are external availability
+          dependencies; the design degrades gracefully (see NFR-04).</li>
+      </ul>
+    </section>
+
+    <!-- ============ 3. FUNCTIONAL REQUIREMENTS ============ -->
+    <section>
+      <h1>3. Functional requirements</h1>
+      <p>
+        Priority: <strong>M</strong> = must (release-blocking), <strong>H</strong> = high.
+        All requirements below are implemented in version 1.0.0; identifiers are stable and
+        referenced by the SDD (§12 traceability) and by the automated test suites.
+      </p>
+
+      <h3>3.1 Identity and access — FR-01</h3>
+      <table class="grid">
+        <thead><tr><th style="width: 11%">ID</th><th>Requirement</th><th style="width: 7%">Pri</th></tr></thead>
+        <tbody>
+          <tr><td>FR-01.1</td><td>The system shall allow self-registration with name, phone, e-mail and password, creating the user, credential and role-mapping records. <code>POST /api/user/createUser</code></td><td>M</td></tr>
+          <tr><td>FR-01.2</td><td>The system shall verify e-mail and phone ownership via OTP delivered by e-mail/SMS, with resend and “wrong e-mail” reporting. <code>/api/user/verify-email</code>, <code>/api/user/verify-phone</code>, <code>/api/user/report-wrong-email</code></td><td>M</td></tr>
+          <tr><td>FR-01.3</td><td>The system shall authenticate by password hash and complete login with a second-factor OTP, issuing a signed JWT of 24 hours. <code>POST /api/user/loginUser</code>, <code>POST /api/user/verifyUserByOTP</code></td><td>M</td></tr>
+          <tr><td>FR-01.4</td><td>The system shall reject calls to protected endpoints without a valid bearer token with <code>401</code>. Exactly 17 of 285 operations are public (listed in §4.1).</td><td>M</td></tr>
+          <tr><td>FR-01.5</td><td>The system shall authorize actions by role (12 roles), by ownership and by company scope, denying with <code>401/403</code>.</td><td>M</td></tr>
+          <tr><td>FR-01.6</td><td>The system shall support logout and forced logout on phone change (typed notification <code>force_logout_phone_change</code>). <code>POST /api/user/logout</code></td><td>M</td></tr>
+          <tr><td>FR-01.7</td><td>The system shall track per-role account status (active/suspended) with full history, so a suspension takes effect without deleting the user.</td><td>H</td></tr>
+        </tbody>
+      </table>
+
+      <h3>3.2 Shipper requests — FR-02</h3>
+      <table class="grid">
+        <thead><tr><th style="width: 11%">ID</th><th>Requirement</th><th style="width: 7%">Pri</th></tr></thead>
+        <tbody>
+          <tr><td>FR-02.1</td><td>The system shall let a shipper create a transport request: origin/destination with coordinates, item name, quantity in quintal, shipping/delivery dates, individual or company-target mode, POD requirement.</td><td>M</td></tr>
+          <tr><td>FR-02.2</td><td>The system shall list a shipper's requests with pagination and sorting, defaulting to <em>connected-first</em> order (rows with a connected driver first), each row carrying request, status, driver, decisions and batch context. <code>GET /api/user/getShipperRequest4allOrSingleUser</code></td><td>M</td></tr>
+          <tr><td>FR-02.3</td><td>The system shall allow updating a request while it is active, and deletion only when the status permits it.</td><td>M</td></tr>
+          <tr><td>FR-02.4</td><td>The system shall cancel requests per actor — shipper, driver, admin, system — producing distinct statuses (10/12/13/15) with actor-tagged cancellation reasons served per context (<code>individual | company | both</code>).</td><td>M</td></tr>
+          <tr><td>FR-02.5</td><td>The system shall create batches of vehicle slots for company-target orders and support partial batch cancellation: batch status <code>partiallyCancelled</code> (20) while each slot keeps its own terminal status.</td><td>M</td></tr>
+        </tbody>
+      </table>
+
+      <h3>3.3 Bidding and assignment — FR-03</h3>
+      <table class="grid">
+        <thead><tr><th style="width: 11%">ID</th><th>Requirement</th><th style="width: 7%">Pri</th></tr></thead>
+        <tbody>
+          <tr><td>FR-03.1</td><td>The system shall dispatch an offer to a driver (status 2) and record accept, reject and no-answer outcomes (3/18/16), automatically re-offering after a no-answer.</td><td>M</td></tr>
+          <tr><td>FR-03.2</td><td>The system shall accept a driver's acceptance together with a bidding price, moving the request to status 3 and storing the bid amount.</td><td>M</td></tr>
+          <tr><td>FR-03.3</td><td>The system shall let the shipper select one bid (status 4) while marking the others <code>notSelectedInBid</code> (17) or <code>rejectedByShipper</code> (11).</td><td>M</td></tr>
+          <tr><td>FR-03.4</td><td>The system shall let companies submit, view and manage bids on batches (mark-as-seen, status transitions); the shipper awards a company which assigns drivers and vehicles per slot.</td><td>M</td></tr>
+          <tr><td>FR-03.5</td><td>The system shall support driver replacement under company assignment (status 19) and bulk/automatic assignment operations for companies.</td><td>H</td></tr>
+        </tbody>
+      </table>
+
+      <h3>3.4 Journey execution — FR-04</h3>
+      <table class="grid">
+        <thead><tr><th style="width: 11%">ID</th><th>Requirement</th><th style="width: 7%">Pri</th></tr></thead>
+        <tbody>
+          <tr><td>FR-04.1</td><td>The system shall enforce the 20-state journey status model: transitions occur only through dedicated action endpoints executed inside database transactions; clients cannot write the status column.</td><td>M</td></tr>
+          <tr><td>FR-04.2</td><td>The system shall drive the loading stages <code>goToLoadingPlace → loading → loaded</code> (5→6→7) and <code>journeyStarted</code> (8), stamping time and GPS coordinates on the journey record.</td><td>M</td></tr>
+          <tr><td>FR-04.3</td><td>The system shall record every decision — actor, time, resulting status, shipping/delivery dates and cost — in the decision log, and every status mutation in history tables.</td><td>M</td></tr>
+          <tr><td>FR-04.4</td><td>The system shall capture proof of delivery with receiver identity and photo evidence, producing status 9 <code>journeyCompleted</code>.</td><td>M</td></tr>
+          <tr><td>FR-04.5</td><td>The system shall record the driver's route as GPS points and expose ongoing/completed journey queries.</td><td>H</td></tr>
+          <tr><td>FR-04.6</td><td>The system shall reconcile stale statuses automatically for <em>active</em> requests only; terminal statuses are never rewritten, so a cancelled order cannot be resurrected onto the offerable board.</td><td>M</td></tr>
+          <tr><td>FR-04.7</td><td>The system shall support administrative overrides: cancel (13) and force-complete (14).</td><td>M</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h1>3. Functional requirements (continued)</h1>
+
+      <h3>3.5 Company and fleet — FR-05</h3>
+      <table class="grid">
+        <thead><tr><th style="width: 11%">ID</th><th>Requirement</th><th style="width: 7%">Pri</th></tr></thead>
+        <tbody>
+          <tr><td>FR-05.1</td><td>The system shall register companies with an admin approval workflow and profile history.</td><td>M</td></tr>
+          <tr><td>FR-05.2</td><td>The system shall manage company memberships (invite, reactivate, deactivate) and company-defined roles.</td><td>M</td></tr>
+          <tr><td>FR-05.3</td><td>The system shall manage the fleet: vehicles, vehicle types, vehicle status types, ownership, and active/inactive driver–vehicle assignments with date ranges.</td><td>M</td></tr>
+          <tr><td>FR-05.4</td><td>The system shall compute and expose company ratings and enforce company bans and delinquency blocking.</td><td>H</td></tr>
+        </tbody>
+      </table>
+
+      <h3>3.6 Dispatch queue — FR-06</h3>
+      <table class="grid">
+        <thead><tr><th style="width: 11%">ID</th><th>Requirement</th><th style="width: 7%">Pri</th></tr></thead>
+        <tbody>
+          <tr><td>FR-06.1</td><td>The system shall manage queue organizations with admin/dispatcher memberships.</td><td>M</td></tr>
+          <tr><td>FR-06.2</td><td>The system shall maintain a FIFO driver queue with entry/exit operations, broadcasting every board change to subscribed sockets in organization and day rooms.</td><td>M</td></tr>
+          <tr><td>FR-06.3</td><td>The system shall audit queue operations (who entered/left/reordered, when).</td><td>H</td></tr>
+        </tbody>
+      </table>
+
+      <h3>3.7 Finance — FR-07</h3>
+      <table class="grid">
+        <thead><tr><th style="width: 11%">ID</th><th>Requirement</th><th style="width: 7%">Pri</th></tr></thead>
+        <tbody>
+          <tr><td>FR-07.1</td><td>The system shall accept deposit-completion webhooks from the payment provider on a public, signature-verified endpoint and credit the user balance idempotently. <code>POST /api/finance/userDeposit/santimPay/webhook</code></td><td>M</td></tr>
+          <tr><td>FR-07.2</td><td>The system shall manage deposit requests, refund flows, balance transfers and financial-institution accounts.</td><td>M</td></tr>
+          <tr><td>FR-07.3</td><td>The system shall apply commission rules (rates → user/company commissions) and tariff rates per vehicle type.</td><td>H</td></tr>
+          <tr><td>FR-07.4</td><td>The system shall record journey payments linked to journeys.</td><td>H</td></tr>
+        </tbody>
+      </table>
+
+      <h3>3.8 Document and media management — FR-08</h3>
+      <table class="grid">
+        <thead><tr><th style="width: 11%">ID</th><th>Requirement</th><th style="width: 7%">Pri</th></tr></thead>
+        <tbody>
+          <tr><td>FR-08.1</td><td>The system shall accept multipart uploads, re-encode images, and serve files under access control from <code>/uploads</code> and <code>/Assets</code>.</td><td>M</td></tr>
+          <tr><td>FR-08.2</td><td>The system shall validate documents against per-role document requirements, rejecting duplicate and wrong-type documents.</td><td>M</td></tr>
+          <tr><td>FR-08.3</td><td>The system shall keep a history of document changes.</td><td>H</td></tr>
+        </tbody>
+      </table>
+
+      <h3>3.9 Notifications — FR-09</h3>
+      <table class="grid">
+        <thead><tr><th style="width: 11%">ID</th><th>Requirement</th><th style="width: 7%">Pri</th></tr></thead>
+        <tbody>
+          <tr><td>FR-09.1</td><td>The system shall deliver in-app notifications over Socket.IO on the <code>messages</code> channel using a catalog of 78 typed message payloads (e.g. <code>driver_accepted_shipper_request</code>).</td><td>M</td></tr>
+          <tr><td>FR-09.2</td><td>The system shall send FCM push to registered device tokens for users without a live socket.</td><td>H</td></tr>
+          <tr><td>FR-09.3</td><td>The system shall send transactional e-mail and SMS (OTP, verification, alerts).</td><td>M</td></tr>
+          <tr><td>FR-09.4</td><td>The system shall notify the shipper of every journey status change in real time.</td><td>M</td></tr>
+        </tbody>
+      </table>
+
+      <h3>3.10 Administration and governance — FR-10</h3>
+      <table class="grid">
+        <thead><tr><th style="width: 11%">ID</th><th>Requirement</th><th style="width: 7%">Pri</th></tr></thead>
+        <tbody>
+          <tr><td>FR-10.1</td><td>The system shall expose admin endpoints for user/role management, online/offline driver views, database statistics and table maintenance.</td><td>M</td></tr>
+          <tr><td>FR-10.2</td><td>The system shall implement a delinquency lifecycle: types, user and company delinquencies with responses, admin decisions, bans.</td><td>H</td></tr>
+          <tr><td>FR-10.3</td><td>The system shall record entity history for every create/update in paired history tables.</td><td>M</td></tr>
+          <tr><td>FR-10.4</td><td>The system shall expose health endpoints for liveness and database checks (public, used by monitoring). <code>GET /api/health</code>, <code>GET /api/health/database</code></td><td>M</td></tr>
+        </tbody>
+      </table>
+
+      <h3>3.11 Ratings — FR-11 · 3.12 Subscriptions — FR-12</h3>
+      <table class="grid">
+        <thead><tr><th style="width: 11%">ID</th><th>Requirement</th><th style="width: 7%">Pri</th></tr></thead>
+        <tbody>
+          <tr><td>FR-11.1</td><td>The system shall capture ratings between parties after journeys and expose company ratings.</td><td>H</td></tr>
+          <tr><td>FR-12.1</td><td>The system shall manage subscription plans, pricing and user subscriptions with history.</td><td>H</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============ 4. EXTERNAL INTERFACE ============ -->
+    <section>
+      <h1>4. External interface requirements</h1>
+
+      <h3>4.1 REST API — IR-01</h3>
+      <ul>
+        <li><strong>Volume:</strong> 204 distinct routes / 285 operations in 27 groups
+          (<code>/api/user</code>, <code>/api/company</code>, <code>/api/finance</code>,
+          <code>/api/queue…</code>, <code>/api/admin</code>, <code>/api/vehicle</code>, plus
+          root-mounted utility routes). The full table with an auth column per route ships as
+          <code>endpoints.md</code> in the Request/Response package.</li>
+        <li><strong>Protocol:</strong> HTTPS, JSON bodies (UTF-8); multipart/form-data for
+          uploads; production base <code>https://app.dynamicsroute.tech</code>.</li>
+        <li><strong>Authentication:</strong>
+          <code>Authorization: Bearer &lt;JWT&gt;</code>. 17 operations are public:
+          registration/verification/login/OTP/logout, two health endpoints, the SantimPay
+          webhook, and a small set of maintenance endpoints (database stats, cache clear,
+          create/drop-table helpers, role-status helper).</li>
+        <li><strong>Success envelope:</strong> HTTP 2xx with at least a
+          <code>message</code> field plus resource data.</li>
+        <li><strong>Error envelope:</strong>
+          <code>{ status:"fail", message, error:{ statusCode, status, isOperational } }</code>
+          for 400/401/403/404/409/429/5xx; stack traces only in development.</li>
+        <li><strong>Pagination and sorting:</strong> <code>page</code>, <code>limit</code>,
+          <code>sortBy</code>, <code>sortOrder</code>.</li>
+        <li><strong>Validation:</strong> Joi schemas per route — all violations reported at
+          once, unknown fields stripped, empty POST body rejected with 400.</li>
+        <li><strong>Rate limits:</strong> a global limiter plus a stricter limiter on
+          <code>/api/user</code> auth routes; 429 when exceeded.</li>
+      </ul>
+
+      <h3>4.2 WebSocket — IR-02</h3>
+      <ul>
+        <li>Socket.IO over <code>/socket.io</code> (websocket and polling transports,
+          Engine.IO v3 compatible), JWT supplied in the handshake auth, CORS allow-list,
+          optional Redis adapter for multi-node fan-out.</li>
+        <li>Client→server: <code>queue:subscribe</code>, <code>queue:unsubscribe</code>,
+          <code>locationUpdateToDriver</code>, <code>locationUpdateToShipper</code>,
+          <code>message</code>.</li>
+        <li>Server→client: <code>queue</code> board events,
+          <code>queue:subscribed/unsubscribed</code> acks, <code>messages</code> typed
+          notifications (78 kinds), location events (with replay of last position),
+          <code>response</code> acks, structured error frames.</li>
+        <li>Rooms: <code>queueOrg:&lt;id&gt;</code> and <code>queueOrg:&lt;id&gt;:&lt;date&gt;</code>.</li>
+      </ul>
+
+      <h3>4.3 File interface — IR-03</h3>
+      <ul>
+        <li>Upload: multipart with size limits; images re-encoded; document type and
+          duplicate checks before persistence.</li>
+        <li>Serving: static <code>/uploads</code> and <code>/Assets</code> behind access
+          rules.</li>
+      </ul>
+
+      <h3>4.4 Third-party services — IR-04</h3>
+      <table class="grid">
+        <thead><tr><th style="width: 26%">Service</th><th>Interface</th></tr></thead>
+        <tbody>
+          <tr><td>Payment gateway (SantimPay)</td><td>Inbound signed webhook for deposit completion; must be idempotent (the provider retries).</td></tr>
+          <tr><td>SMS provider</td><td>Outbound SMS (OTP, alerts) through the SMSSender integration.</td></tr>
+          <tr><td>SMTP e-mail</td><td>Outbound e-mail: verification, OTP, notifications.</td></tr>
+          <tr><td>Firebase Cloud Messaging</td><td>Outbound push to registered device tokens.</td></tr>
+          <tr><td>Redis (Upstash)</td><td>Cache and Socket.IO pub/sub adapter over TLS.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============ 5. DATA ============ -->
+    <section>
+      <h1>5. Data requirements</h1>
+      <ul>
+        <li><strong>103 MySQL tables</strong> grouped as: identity (users, credentials,
+          roles, OTP, devices), transport core (requests, batches, driver requests/bids,
+          journeys, decisions, statuses, route points, cancellations, POD), companies and
+          fleet, dispatch queue, bidding/assignment, finance (deposits, balances,
+          commissions, tariffs), documents, delinquency/governance, ratings, subscriptions
+          and reference data. The full list with relations is in the TDD package
+          (<code>data-model.md</code>).</li>
+        <li><strong>Keys:</strong> UUID business keys (<code>*UniqueId</code>) used in
+          routes and payloads; numeric surrogate ids for status maps and legacy joins.</li>
+        <li><strong>Audit:</strong> paired <code>*History</code> tables record every
+          mutation with actor and timestamp; status history and a queue audit log are
+          first-class.</li>
+        <li><strong>Retention:</strong> soft delete (<code>*DeletedAt</code>) on business
+          entities; history rows are append-only.</li>
+        <li><strong>Integrity:</strong> parameterized SQL only; multi-step writes execute in
+          database transactions; reference values (statuses, roles, document types) are
+          seeded rows joined on read.</li>
+      </ul>
+
+      <div class="box ok">
+        <span class="t">Sensitive-data inventory</span>
+        <p>
+          Personal data held: names, phone numbers, e-mail addresses (users and receivers),
+          GPS traces (<code>JourneyRoutePoints</code>, last-location store), document images
+          (IDs, licences), financial records (deposits, balances). All are access-controlled
+          by bearer authentication plus role/ownership scoping; none appear in production
+          error responses or logs at info level.
+        </p>
+      </div>
+
+      <h1>6. Non-functional requirements</h1>
+      <table class="grid">
+        <thead><tr><th style="width: 10%">ID</th><th style="width: 20%">Category</th><th>Requirement</th></tr></thead>
+        <tbody>
+          <tr><td>NFR-01</td><td>Security</td><td>bcrypt password hashing; JWT with 24 h expiry; helmet headers; explicit CORS allow-list; CSRF origin checks for cookie sessions; rate limiting; bot/UA blocking; parameterized SQL; fail-closed production boot checks; secrets in environment only; masked 5xx in production.</td></tr>
+          <tr><td>NFR-02</td><td>Performance</td><td>Paged list endpoints on indexed sort keys (connected-first ordering via an EXISTS subquery); Redis cache for hot reads; pooled MySQL connections; 1 MB body cap.</td></tr>
+          <tr><td>NFR-03</td><td>Scalability</td><td>Stateless REST (JWT) allows horizontal scaling; Socket.IO Redis adapter keeps rooms consistent across nodes; PM2 cluster-capable.</td></tr>
+          <tr><td>NFR-04</td><td>Availability</td><td>Health endpoints for liveness/readiness; supervised PM2 restarts; graceful degradation — Redis adapter failures fall back to single-server mode, socket errors never crash the process.</td></tr>
+          <tr><td>NFR-05</td><td>Observability</td><td>Request IDs on every request; structured logs (request logger, client/server error classes); query performance capture; socket error logging with stacks.</td></tr>
+          <tr><td>NFR-06</td><td>Integrity</td><td>Status transitions and money movements transactional; append-only history; automatic reconciliation restricted to active statuses.</td></tr>
+          <tr><td>NFR-07</td><td>Maintainability</td><td>Layered architecture (routes → middleware → controllers → services → CRUD); shared validator/responder/error types; seeded reference data in code; 102 unit tests and a 248-check E2E suite.</td></tr>
+          <tr><td>NFR-08</td><td>Compatibility</td><td>Engine.IO v3 clients accepted; websocket and polling transports; browser (CORS) and bearer-token clients interchangeable.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============ 7. STATE MODEL ============ -->
+    <section>
+      <h1>7. Business rules and journey state model</h1>
+      <p>
+        Every transport request moves through a 20-state machine held in the
+        <code>JourneyStatus</code> table and enforced by server-side services. Clients never
+        write the status; they call action endpoints (offer, accept, reject, select,
+        loading-stage, cancel, confirm-delivery) and the server derives the next state
+        transactionally.
+      </p>
+      <figure>
+        <img src="assets/journey.svg" alt="Journey status state machine" />
+        <figcaption>
+          Figure 7.1 — Journey status machine: main execution path, decision outcomes and
+          terminal states
+        </figcaption>
+      </figure>
+
+      <h3>7.1 Status classes (business rules)</h3>
+      <table class="grid">
+        <thead><tr><th style="width: 30%">Class</th><th>Status ids</th><th>Rule</th></tr></thead>
+        <tbody>
+          <tr><td>Active</td><td>2, 3, 4, 5, 6, 7, 8</td><td>Live requests; the only statuses automatic reconciliation may rewrite; driver connection and enrichment apply.</td></tr>
+          <tr><td>Supporting (decision-backed)</td><td>2–9</td><td>A positive decision still evidences a live/completed request; list output attaches the connected driver and decisions for these rows (connected-first ordering).</td></tr>
+          <tr><td>Terminal</td><td>10, 12, 13, 14, 15</td><td>Deliberate end states; never re-opened, never reconciled — rewriting one to <code>waiting</code> would resurrect a cancelled order.</td></tr>
+          <tr><td>Pre-connection</td><td>1</td><td><code>waiting</code>: created but no driver connected; rendered as an inactive order until a decision appears.</td></tr>
+          <tr><td>Completed</td><td>9</td><td>Terminal but decision-backed; still receives journey/POD enrichment on read.</td></tr>
+          <tr><td>Batch</td><td>20</td><td><code>partiallyCancelled</code>: applies to batches; per-slot rows keep their own terminal statuses.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>7.2 Key business rules</h3>
+      <ol>
+        <li>Offers expire without an answer → status 16 and automatic re-offer to the next driver.</li>
+        <li>A bid can be accepted only once the driver's acceptance (3) precedes shipper selection (4); losing bids become 17 or 11.</li>
+        <li>Loading-stage transitions (5→6→7→8) require the selecting decision and stamp time + GPS.</li>
+        <li>Cancellation reason lists and allowed actors differ by context (<code>individual</code> vs <code>company</code>) and role (shipper 1, driver 2, admin 3, queue org admin 11).</li>
+        <li>Company assignment may replace an individual driver link → status 19 on the replaced link.</li>
+        <li>Batch partial cancellation (20) never rewrites completed or in-transit slots.</li>
+        <li>Only statuses inside the active set may be corrected by reconciliation; all corrections write a decision/history row.</li>
+      </ol>
+    </section>
+
+    <!-- ============ 8. TRACEABILITY ============ -->
+    <section>
+      <h1>8. Requirements traceability</h1>
+      <p>
+        Each requirement group maps to its design section in the companion SDD and to
+        verification evidence shipped in this package or produced by the automated suites.
+      </p>
+      <table class="grid">
+        <thead>
+          <tr><th style="width: 22%">Requirement group</th><th style="width: 30%">Design section (SDD)</th><th>Verification evidence</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>FR-01 identity &amp; access</td><td>§6 API design · §8 Security architecture</td><td>Login/OTP/401 example captures; E2E registration→login chain; jest auth tests</td></tr>
+          <tr><td>FR-02 shipper requests</td><td>§4 Component design · §5 Data architecture</td><td>E2E create/list/cancel flows; list capture with connected-first page 1</td></tr>
+          <tr><td>FR-03 bidding &amp; assignment</td><td>§4 Component design (dispatch)</td><td>E2E bid/selection/rejection scenarios (incl. known-failure baselines)</td></tr>
+          <tr><td>FR-04 journey execution</td><td>§4 status machine &amp; transition choreography</td><td>E2E lifecycle suites; status-history rows; POD tests</td></tr>
+          <tr><td>FR-05 company &amp; fleet</td><td>§5 Data architecture (company domain)</td><td>E2E company bid/assignment scenarios</td></tr>
+          <tr><td>FR-06 dispatch queue</td><td>§7 Real-time architecture</td><td>Socket harness: subscribe/room broadcast checks</td></tr>
+          <tr><td>FR-07 finance</td><td>§3 Data flow (entry points) · §8 Security</td><td>Webhook tests; deposit→balance E2E checks</td></tr>
+          <tr><td>FR-08 documents</td><td>§4 Component design (media)</td><td>Upload/duplicate/type rejection tests</td></tr>
+          <tr><td>FR-09 notifications</td><td>§7 Real-time architecture</td><td>Socket harness message/room assertions; 78-type catalog</td></tr>
+          <tr><td>FR-10..12 admin, ratings, subscriptions</td><td>§9 Deployment · §5 Data architecture</td><td>Admin endpoint probes; health checks</td></tr>
+          <tr><td>NFR-01..08</td><td>§8 Security · §9 Deployment · §11 Testing</td><td>E2E negative probes (401/400/404); prod fail-closed checks; rate-limit tests</td></tr>
+        </tbody>
+      </table>
+
+      <div class="box">
+        <span class="t">Package completeness</span>
+        <p>
+          This SRS is submitted together with the SDD (system &amp; architecture design),
+          the TDD/LLD ZIP (conventions, data model, status machine, socket protocol, endpoint
+          inventory) and the Request/Response ZIP (inventory + six live captures). Together
+          they satisfy the four document requirements of the Add Asset form.
+        </p>
+      </div>
+
+      <h1>Appendix A — glossary of acronyms</h1>
+      <table class="grid">
+        <thead><tr><th style="width: 18%">Acronym</th><th>Expansion</th></tr></thead>
+        <tbody>
+          <tr><td>API</td><td>Application Programming Interface</td></tr>
+          <tr><td>CPE</td><td>Critical Product Element (optional asset-register classification)</td></tr>
+          <tr><td>CRUD</td><td>Create / Read / Update / Delete</td></tr>
+          <tr><td>DFD</td><td>Data Flow Diagram</td></tr>
+          <tr><td>E2E</td><td>End-to-End (test suite)</td></tr>
+          <tr><td>FCM</td><td>Firebase Cloud Messaging</td></tr>
+          <tr><td>FR / NFR / IR</td><td>Functional / Non-functional / Interface Requirement</td></tr>
+          <tr><td>GPS</td><td>Global Positioning System</td></tr>
+          <tr><td>JWT</td><td>JSON Web Token</td></tr>
+          <tr><td>LLD</td><td>Low-Level Design</td></tr>
+          <tr><td>OTP</td><td>One-Time Password</td></tr>
+          <tr><td>POD</td><td>Proof of Delivery</td></tr>
+          <tr><td>PM2</td><td>Node.js process manager</td></tr>
+          <tr><td>REST</td><td>Representational State Transfer</td></tr>
+          <tr><td>SDD / SRS / TDD</td><td>System Design Description / Software Requirements Specification / Technical Design Document</td></tr>
+          <tr><td>TLS</td><td>Transport Layer Security</td></tr>
+          <tr><td>WSS</td><td>WebSocket Secure</td></tr>
+        </tbody>
+      </table>
+
+      <p style="margin-top: 8mm; font-size: 8.4pt; color: var(--muted)">
+        End of SRS — Transport Management System API v1.0.0 · Asset: transport ·
+        Prepared for INSA asset registration.
+      </p>
+    </section>
+  </body>
+</html>

@@ -1,0 +1,26 @@
+graph TD
+    C["Clients<br/>web SPA · React Native app · payment provider webhook"] --> N["Nginx — TLS terminator · reverse proxy"]
+
+    subgraph Pipeline["Express pipeline — Config/Express.config.js"]
+        S1["helmet · CORS allow-list · cookie parser · CSRF origin check"]
+        S2["global rate limiter · authLimiter on /api/user · requestId · requestLogger"]
+        S3["express.json (1 MB) · urlencoded · scannerBlock · static /uploads /Assets"]
+        R["Routes/index.js — mount table → /api/&lt;segment&gt; routers<br/>path constants in Routes/EndPoints/*.js"]
+        M["Middleware — VerifyToken (JWT) · Joi Validator · role and ownership guards"]
+        CTL["Controllers — parse request · call one service · ServerResponder"]
+        SVC["Services — business rules · journey status machine · transactions · history · notifications"]
+        CRUD["CRUD — parameterized SQL via mysql2 pool"]
+        EH["globalErrorHandler — AppError → JSON envelope (dev/prod)"]
+
+        S1 --> S2 --> S3 --> R --> M --> CTL --> SVC --> CRUD
+        CTL -.-> EH
+        SVC -.-> EH
+    end
+
+    CRUD --> DB[("MySQL 8 — 103 tables<br/>paired *History audit tables")]
+    SVC -. "hot reads · TTL cache" .-> RD[("Redis<br/>Upstash, TLS")]
+    SVC -. "FCM push · SMTP e-mail · SMS" .-> NT["Notification channels"]
+
+    N --> S1
+    SVC --> SIO["Socket.IO gateway — same HTTP server<br/>handshake JWT · queueOrg rooms · location relay · messages channel"]
+    SIO <-->|"pub/sub across nodes"| RD

@@ -1,0 +1,32 @@
+graph LR
+    W["1<br/>waiting"] --> RQ["2<br/>requested"]
+    RQ --> A3["3<br/>acceptedByDriver<br/>(bid price)"]
+    A3 --> A4["4<br/>acceptedByShipper"]
+    A4 --> L1["5<br/>goToLoadingPlace"]
+    L1 --> L2["6<br/>loading"]
+    L2 --> L3["7<br/>loaded"]
+    L3 --> L4["8<br/>journeyStarted"]
+    L4 --> DONE["9<br/>journeyCompleted<br/>(POD)"]
+
+    RQ --> RJ18["18<br/>rejectedByDriver"]
+    RQ --> NA16["16<br/>noAnswerFromDriver<br/>→ auto re-offer"]
+    A3 --> NS17["17<br/>notSelectedInBid"]
+    A4 --> RJ11["11<br/>rejectedByShipper"]
+    A4 --> REPL19["19<br/>replacedByCompanyAssignment"]
+
+    subgraph Term["Terminal outcomes — never re-opened, never reconciled"]
+        C10["10<br/>cancelledByShipper"]
+        C12["12<br/>cancelledByDriver"]
+        C13["13<br/>cancelledByAdmin"]
+        C14["14<br/>completedByAdmin"]
+        C15["15<br/>cancelledBySystem"]
+        P20["20<br/>partiallyCancelled<br/>(batch)"]
+    end
+
+    W -.-> C10
+    A4 -.-> C10
+    A3 -.-> C12
+    L4 -.-> C13
+    L4 -.-> C14
+    L4 -.-> C15
+    W -.-> P20

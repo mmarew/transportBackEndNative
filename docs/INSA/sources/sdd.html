@@ -1,0 +1,868 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SDD — Transport Management System API v1.0.0</title>
+    <style>
+      /* ---------- Print-first design (aligned with DriverLoadNow docs/insa) ---------- */
+      @page {
+        size: A4;
+        margin: 20mm 16mm 18mm 16mm;
+      }
+
+      :root {
+        --ink: #14181d;
+        --muted: #5a6472;
+        --line: #c9d1da;
+        --soft: #f2f4f7;
+        --accent: #1f4e79;
+        --warn: #8a5a00;
+        --warn-bg: #fdf6e6;
+        --ok: #1c6b45;
+        --ok-bg: #eef7f2;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      body {
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-size: 10.2pt;
+        line-height: 1.5;
+        color: var(--ink);
+        margin: 0;
+        padding-left: 6mm;
+        padding-right: 6mm;
+      }
+
+      h1,
+      h2,
+      h3 {
+        color: var(--accent);
+        page-break-after: avoid;
+        break-after: avoid;
+      }
+
+      h1 {
+        font-size: 17pt;
+        margin: 0 0 4mm;
+      }
+
+      h2 {
+        font-size: 13pt;
+        margin: 0 0 3mm;
+        padding-bottom: 1.4mm;
+        border-bottom: 1pt solid var(--accent);
+      }
+
+      h3 {
+        font-size: 10.8pt;
+        margin: 5mm 0 2mm;
+      }
+
+      p {
+        margin: 0 0 2.6mm;
+        text-align: justify;
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      code,
+      .mono {
+        font-family: 'SF Mono', Menlo, Consolas, monospace;
+        font-size: 8.6pt;
+        background: var(--soft);
+        padding: 0.3mm 0.9mm;
+        border-radius: 1mm;
+      }
+
+      section {
+        page-break-before: always;
+        break-before: page;
+      }
+
+      section.cover {
+        page-break-before: auto;
+        break-before: auto;
+      }
+
+      /* ---------- Cover ---------- */
+      .cover-rule {
+        height: 3.5mm;
+        background: var(--accent);
+        margin-bottom: 14mm;
+      }
+
+      .cover-title {
+        font-size: 25pt;
+        line-height: 1.15;
+        color: var(--ink);
+        margin: 0 0 4mm;
+        font-weight: 700;
+      }
+
+      .cover-sub {
+        font-size: 12.5pt;
+        color: var(--muted);
+        margin-bottom: 16mm;
+      }
+
+      .meta {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 8mm;
+      }
+
+      .meta td {
+        padding: 2.4mm 2mm;
+        border-bottom: 0.4pt solid var(--line);
+        vertical-align: top;
+        font-size: 9.6pt;
+      }
+
+      .meta td:first-child {
+        width: 38mm;
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      /* ---------- Tables ---------- */
+      table.grid {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0 0 4mm;
+        font-size: 8.9pt;
+      }
+
+      table.grid th {
+        background: var(--accent);
+        color: #fff;
+        text-align: left;
+        padding: 1.8mm 2mm;
+        font-weight: 600;
+        border: 0.4pt solid var(--accent);
+      }
+
+      table.grid td {
+        border: 0.4pt solid var(--line);
+        padding: 1.8mm 2mm;
+        vertical-align: top;
+      }
+
+      table.grid tr:nth-child(even) td {
+        background: var(--soft);
+      }
+
+      thead {
+        display: table-header-group;
+      }
+
+      tr {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      /* ---------- Callouts ---------- */
+      .box {
+        border: 0.5pt solid var(--line);
+        border-left: 2.2pt solid var(--accent);
+        background: var(--soft);
+        padding: 3mm 3.5mm;
+        margin: 0 0 4mm;
+        page-break-inside: avoid;
+      }
+
+      .box.warn {
+        border-left-color: var(--warn);
+        background: var(--warn-bg);
+      }
+
+      .box.ok {
+        border-left-color: var(--ok);
+        background: var(--ok-bg);
+      }
+
+      .box p:last-child {
+        margin-bottom: 0;
+      }
+
+      .box .t {
+        font-weight: 700;
+        display: block;
+        margin-bottom: 1.4mm;
+      }
+
+      ul,
+      ol {
+        margin: 0 0 3mm;
+        padding-left: 5.5mm;
+      }
+
+      li {
+        margin-bottom: 1.2mm;
+      }
+
+      .toc td {
+        padding: 1.5mm 2mm;
+        border-bottom: 0.4pt dotted var(--line);
+        font-size: 9.4pt;
+      }
+
+      .toc td:first-child {
+        width: 12mm;
+        color: var(--muted);
+      }
+
+      .fill {
+        color: var(--warn);
+        font-weight: 600;
+      }
+
+      pre {
+        font-family: 'SF Mono', Menlo, Consolas, monospace;
+        font-size: 8.4pt;
+        background: var(--soft);
+        border: 0.4pt solid var(--line);
+        border-left: 2.2pt solid var(--accent);
+        padding: 2.4mm 3mm;
+        margin: 0 0 3.5mm;
+        white-space: pre-wrap;
+        page-break-inside: avoid;
+      }
+
+      /* ---------- Figures ---------- */
+      figure {
+        margin: 0 0 5mm;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      figure img {
+        width: 100%;
+        border: 0.4pt solid var(--line);
+        background: #fff;
+        display: block;
+      }
+
+      figcaption {
+        font-size: 8.4pt;
+        color: var(--muted);
+        margin-top: 1.6mm;
+        text-align: center;
+      }
+
+      .pagebreak {
+        page-break-before: always;
+        break-before: page;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ============ COVER ============ -->
+    <section class="cover">
+      <div class="cover-rule"></div>
+      <div class="cover-title">System &amp; Architecture<br />Design Document</div>
+      <div class="cover-sub">
+        Transport Management System — Backend API (REST + WebSocket), version 1.0.0
+      </div>
+
+      <table class="meta">
+        <tr>
+          <td>Document</td>
+          <td><strong>SDD-1.0.0</strong> — API System &amp; Architecture Design Document</td>
+        </tr>
+        <tr>
+          <td>Asset</td>
+          <td>
+            Name <strong>transport</strong>, type <strong>API</strong>, asset code
+            <strong>TRANSPORT-API-001</strong>, version <strong>1.0.0</strong>
+          </td>
+        </tr>
+        <tr>
+          <td>System</td>
+          <td>
+            Freight/transport management backend — 204 routes / 285 operations, 103 database
+            tables, 20-state journey machine, Socket.IO real-time layer
+          </td>
+        </tr>
+        <tr>
+          <td>Platform</td>
+          <td>Node.js ≥ 20 · Express 5 · MySQL 8 · Redis · Socket.IO v4 · PM2 · Nginx</td>
+        </tr>
+        <tr>
+          <td>Environments</td>
+          <td>
+            Production <code>https://app.dynamicsroute.tech</code> · staging
+            <code>https://dev.dynamicsroute.tech</code>
+          </td>
+        </tr>
+        <tr>
+          <td>Related documents</td>
+          <td>
+            Software Requirements Specification (SRS); API Technical Specifications
+            (TDD/LLD) package; Request/Response package with endpoint inventory and live
+            captures
+          </td>
+        </tr>
+        <tr>
+          <td>Submitting entity</td>
+          <td class="fill">[ LEGAL NAME OF COMPANY / LICENCEE ]</td>
+        </tr>
+        <tr>
+          <td>Contact person</td>
+          <td class="fill">[ NAME, TITLE, EMAIL, TELEPHONE ]</td>
+        </tr>
+        <tr>
+          <td>Date of submission</td>
+          <td class="fill">[ DD MONTH YYYY ]</td>
+        </tr>
+      </table>
+
+      <div class="box warn">
+        <span class="t">Status of this document</span>
+        <p>
+          This design describes the system <em>as implemented</em> in the deployed service.
+          Diagrams are generated from the mermaid sources in <code>sources/assets/</code> and
+          rendered into this PDF together with the HTML. Fields shown in
+          <span class="fill">amber</span> are administrative placeholders that the submitting
+          entity completes before submission.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ TOC ============ -->
+    <section>
+      <h1>Contents</h1>
+      <table class="toc">
+        <tr><td>1</td><td>Introduction</td></tr>
+        <tr><td>2</td><td>Architecture overview</td></tr>
+        <tr><td>3</td><td>Data flow design</td></tr>
+        <tr><td>4</td><td>Component design</td></tr>
+        <tr><td>5</td><td>Data architecture</td></tr>
+        <tr><td>6</td><td>API design</td></tr>
+        <tr><td>7</td><td>Real-time architecture</td></tr>
+        <tr><td>8</td><td>Security architecture</td></tr>
+        <tr><td>9</td><td>Error handling and observability</td></tr>
+        <tr><td>10</td><td>Deployment and environments</td></tr>
+        <tr><td>11</td><td>Testing strategy</td></tr>
+        <tr><td>12</td><td>Design — requirements traceability</td></tr>
+        <tr><td>A</td><td>Appendix A — document reproduction pipeline</td></tr>
+      </table>
+
+      <h3>Figures</h3>
+      <table class="toc">
+        <tr><td>2.1</td><td>Layered request path — pipeline, services and stores</td></tr>
+        <tr><td>3.1</td><td>Level 0 context — clients, platform, infrastructure, external services</td></tr>
+        <tr><td>4.1</td><td>Journey status machine — execution path, decisions, terminal states</td></tr>
+      </table>
+
+      <h3>How to read this document</h3>
+      <p>
+        §2–§4 describe the static and dynamic design of one Node.js service: how a request
+        flows through the layers, how components are packaged, and how the central journey
+        state machine behaves. §5–§8 specify the data, API, real-time and security designs.
+        §9–§11 cover operations: errors, logging, deployment and testing. §12 traces each
+        design section back to the SRS requirement groups. All quantitative claims
+        (routes, tables, statuses, message kinds) were extracted from the source and
+        validated against a running instance.
+      </p>
+    </section>
+
+    <!-- ============ 1. INTRO ============ -->
+    <section>
+      <h1>1. Introduction</h1>
+
+      <h3>1.1 Purpose</h3>
+      <p>
+        This document specifies the system and architecture design of the Transport
+        Management System Backend API v1.0.0 — the technical counterpart of the companion
+        SRS. It is written so that an external reviewer can understand the architecture, the
+        trust boundaries, the data flows and the design decisions without reading the source
+        code, and so that a development team can maintain the system against a stable
+        reference.
+      </p>
+
+      <h3>1.2 Scope</h3>
+      <p>
+        The system is a single deployable unit that serves the REST API, the Socket.IO
+        gateway and static assets from one Node.js process, backed by MySQL and Redis, with
+        outbound integrations to SMS, e-mail, push and payment services. Out of scope: the
+        client applications and the internal workings of the third-party providers.
+      </p>
+
+      <h3>1.3 Document organization</h3>
+      <ol>
+        <li><strong>§2 Architecture overview</strong> — style, layered request path, subsystems.</li>
+        <li><strong>§3 Data flow design</strong> — Level 0 context diagram, sensitive-data entry points.</li>
+        <li><strong>§4 Component design</strong> — layer contracts, package layout, the journey state machine and transition choreography.</li>
+        <li><strong>§5 Data architecture</strong> — schema organization, keys, audit, transactions.</li>
+        <li><strong>§6 API design</strong> — surface, envelopes, auth, validation, pagination.</li>
+        <li><strong>§7 Real-time architecture</strong> — Socket.IO protocol, rooms, notification fan-out.</li>
+        <li><strong>§8 Security architecture</strong> — controls end to end.</li>
+        <li><strong>§9–§11</strong> — errors and logging, deployment, testing.</li>
+        <li><strong>§12</strong> — traceability to the SRS.</li>
+      </ol>
+
+      <div class="box">
+        <span class="t">Related documents</span>
+        <p>
+          SRS-1.0.0 (requirements), the TDD/LLD package (conventions, data model, status
+          machine, socket protocol, full endpoint inventory) and the Request/Response
+          package (six live captures) form the rest of the submission.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ 2. ARCHITECTURE ============ -->
+    <section>
+      <h1>2. Architecture overview</h1>
+
+      <h3>2.1 Style</h3>
+      <p>
+        The system is a <strong>layered, service-oriented monolith</strong>: one Node.js
+        process serves REST, WebSocket and static traffic. Strict layering — routes →
+        middleware → controllers → services → CRUD/SQL — keeps business rules out of the
+        HTTP surface, while cross-cutting utilities (validator, responder, error handler,
+        logger, transaction context) are shared. Statelessness (JWT) plus the Socket.IO
+        Redis adapter allow horizontal scale-out without code changes.
+      </p>
+
+      <figure>
+        <img src="assets/architecture.svg" alt="Layered request path architecture" />
+        <figcaption>
+          Figure 2.1 — Layered request path: Nginx, Express pipeline, services, stores and
+          the real-time gateway
+        </figcaption>
+      </figure>
+
+      <h3>2.2 Request path</h3>
+      <pre>
+client (web SPA / React Native / provider webhook)
+  │ HTTPS JSON
+  ▼
+Nginx — TLS terminator · reverse proxy
+  │
+  ▼
+Express pipeline (Config/Express.config.js)
+  ├─ helmet · CORS allow-list · cookies · csrfOriginCheck
+  ├─ rate limiter (global) · authLimiter (/api/user)
+  ├─ requestId · requestLogger
+  ├─ express.json (1 MB) · urlencoded · scannerBlock
+  ├─ static /uploads · /Assets
+  ├─ Routes/index.js ──▶ /api/&lt;segment&gt; routers
+  │     ├─ VerifyToken (JWT) · Joi Validator · role/ownership guards
+  │     ├─ Controller ──▶ exactly one Service ──▶ ServerResponder
+  │     └─ Service ──▶ transactions · history · notifications ──▶ CRUD ──▶ MySQL
+  ├─ globalErrorHandler (AppError → envelope, dev/prod rendering)
+  └─ HTTP server ──▶ Socket.IO (same port, /socket.io)
+                        ├─ handshake JWT · queueOrg rooms
+                        ├─ location relay · messages channel
+                        └─ Redis pub/sub adapter (optional)</pre>
+
+      <h3>2.3 Key subsystems</h3>
+      <table class="grid">
+        <thead><tr><th style="width: 30%">Subsystem</th><th>Responsibility</th></tr></thead>
+        <tbody>
+          <tr><td>Identity &amp; auth</td><td>Registration, OTP verification, JWT issue/verify, 12 roles, per-role status.</td></tr>
+          <tr><td>Shipper request lifecycle</td><td>Create/list/update/cancel, status machine, reconciliation, batch flows.</td></tr>
+          <tr><td>Dispatch — individual</td><td>Driver offers, bids, accept/reject/no-answer, shipper selection.</td></tr>
+          <tr><td>Dispatch — company</td><td>Company bids, vehicle-slot assignments, driver replacement, bulk/auto assign.</td></tr>
+          <tr><td>Journey execution</td><td>Loading stages, transit, GPS route points, proof of delivery, journey queries.</td></tr>
+          <tr><td>Queue dispatch</td><td>Queue organizations, FIFO driver queue, audit, room broadcasts.</td></tr>
+          <tr><td>Finance</td><td>Deposits (signed webhook), balances, commissions, tariffs, refunds.</td></tr>
+          <tr><td>Documents &amp; media</td><td>Multipart upload, image re-encode, type/duplicate validation, history.</td></tr>
+          <tr><td>Notifications</td><td>Socket.IO <code>messages</code> (78 typed kinds), FCM push, SMTP e-mail, SMS.</td></tr>
+          <tr><td>Admin &amp; governance</td><td>User/role ops, DB stats and maintenance, delinquency lifecycle, health.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============ 3. DATA FLOW ============ -->
+    <section>
+      <h1>3. Data flow design</h1>
+
+      <h3>3.1 Level 0 — context diagram</h3>
+      <p>
+        The system's external neighbours and the numbered flows between them. Every flow is
+        an HTTPS/JSON or WSS contract except the GPS traces the driver app also keeps
+        client-side; all inbound flows except the payment webhook and the public
+        auth endpoints require a valid bearer token.
+      </p>
+      <figure>
+        <img src="assets/dfd0.svg" alt="Level 0 context diagram" />
+        <figcaption>
+          Figure 3.1 — Level 0: clients, platform, infrastructure and external services with
+          numbered data flows
+        </figcaption>
+      </figure>
+
+      <h3>3.2 Sensitive-data entry points</h3>
+      <table class="grid">
+        <thead>
+          <tr><th style="width: 22%">Entry point</th><th style="width: 24%">Channel</th><th style="width: 26%">Lands in</th><th>Controls</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Registration (name, phone, e-mail, password)</td><td>HTTPS JSON, public endpoint</td><td><code>Users</code>, <code>usersCredential</code> (bcrypt hash)</td><td>Rate-limited auth routes, Joi validation, no password logging</td></tr>
+          <tr><td>OTP verification</td><td>SMS/e-mail out; HTTPS JSON in</td><td>Credential record (hashed OTP fields)</td><td>Single-use OTP, 24 h JWT issued only on success</td></tr>
+          <tr><td>Documents / images</td><td>multipart/form-data</td><td><code>AttachedDocuments</code> + file store <code>/uploads</code></td><td>Type &amp; duplicate checks, image re-encode, access-controlled serving</td></tr>
+          <tr><td>GPS positions</td><td>WSS socket events + REST</td><td><code>JourneyRoutePoints</code>, last-location store</td><td>Handshake JWT, room/ownership scoping, history retention</td></tr>
+          <tr><td>Deposit completion</td><td>Inbound signed webhook (public route)</td><td><code>UserDeposit</code> → <code>UserBalance</code></td><td>Signature verification, idempotent credit, transaction</td></tr>
+          <tr><td>Status transitions / cancellations</td><td>HTTPS JSON, authenticated</td><td>Status columns + decision/history rows</td><td>Role guards, transactional services, append-only audit</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============ 4. COMPONENT DESIGN ============ -->
+    <section>
+      <h1>4. Component design</h1>
+
+      <h3>4.1 Layer contracts</h3>
+      <ul>
+        <li><strong>Route</strong> — path constant (from <code>Routes/EndPoints/*.js</code>)
+          + middleware chain (token → validator → guard) + controller. No business logic.</li>
+        <li><strong>Controller</strong> — reads body/params/query and the authenticated
+          user, invokes exactly one service, returns via <code>ServerResponder</code>.</li>
+        <li><strong>Service</strong> — owns rules and state transitions; throws
+          <code>AppError</code> on violations; wraps multi-statement work in the transaction
+          executor; writes history records; triggers notifications.</li>
+        <li><strong>CRUD</strong> — parameterized SQL helpers only; no business decisions.</li>
+      </ul>
+
+      <h3>4.2 Package layout</h3>
+      <pre>
+Routes/            HTTP surface — index.js mount table, EndPoints/*.js constants,
+                   nested finance|company|queue|auth routers
+Controllers/       request parsing · service invocation · ServerResponder
+Services/          business logic (ShipperRequest/{create,read,update,cancellation,
+                   reconcileStatus}, DriverRequest/journeyManagement, JourneyStatus,
+                   UserDeposit, History, …)
+CRUD/              Read/Update helpers (parameterized SQL)
+Middleware/        VerifyToken · Validator (Joi) · GlobalErrorHandler · ScannerBlock
+                   · CsrfOriginCheck · RequestId · RequestLogger · ownership guards
+Utils/             ServerResponder · AppError · ListOfSeedData (status maps, roles,
+                   cancellation reasons, 78-type message catalog) · DatabaseTransaction
+                   · logger · WSPusher · Notifications · socket helpers
+Config/            Express pipeline · CORS origins · Socket adapter · Redis ·
+                   Firebase · Multer
+E2ETests/          end-to-end suites + socket harness
+docs/              product and API documentation (this package)</pre>
+
+      <h3>4.3 Cross-cutting components</h3>
+      <table class="grid">
+        <thead><tr><th style="width: 30%">Component</th><th>Design</th></tr></thead>
+        <tbody>
+          <tr><td><code>ServerResponder</code></td><td>Single success renderer; derives the HTTP status from message/status fields when the caller does not pass one explicitly.</td></tr>
+          <tr><td><code>AppError</code> + <code>globalErrorHandler</code></td><td>Operational errors with HTTP codes; development sends the full error and stack, production masks 5xx and logs everything with request ids.</td></tr>
+          <tr><td><code>Validator(schema, source)</code></td><td>Joi middleware for body/query/params; reports all violations at once, strips unknown keys, guards empty POST bodies.</td></tr>
+          <tr><td><code>ListOfSeedData</code></td><td>Authoritative code-side seed: 20 journey statuses and their class sets (active/terminal/supporting/inactive), 12 roles, cancellation reasons, message catalog.</td></tr>
+          <tr><td>History service</td><td><code>insertHistoryRecord</code> invoked before mutations; paired <code>*History</code> tables receive who/when/change-type rows.</td></tr>
+          <tr><td>Reconciler</td><td><code>reconcileStatus</code> derives the correct status from decision evidence; whitelist = active statuses only.</td></tr>
+          <tr><td>Transaction context</td><td>Async-local transaction storage so nested service/CRUD calls join the ambient transaction instead of the pool.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h1>4. Component design (continued)</h1>
+
+      <h3>4.4 The journey state machine</h3>
+      <p>
+        The behavioural core of the system. Statuses live in the <code>JourneyStatus</code>
+        table (20 seeded rows); the id→name map and the class sets are defined once in
+        <code>Utils/ListOfSeedData.js</code> and consumed by services, read paths and the
+        reconciler. See the SRS §7 for the requirement-level rules; the design view is below.
+      </p>
+      <figure>
+        <img src="assets/journey.svg" alt="Journey status machine" />
+        <figcaption>
+          Figure 4.1 — Journey status machine: execution path (1→9), decision outcomes
+          (11, 16–19) and terminal states (10, 12–15, 20)
+        </figcaption>
+      </figure>
+
+      <h3>4.5 Transition choreography (sequence)</h3>
+      <p>
+        Every transition follows the same five-step choreography; only the endpoint and the
+        guard differ. Taking <em>“driver starts journey”</em> (8) as the example:
+      </p>
+      <ol>
+        <li><strong>Edge</strong> — client calls
+          <code>POST …/journeyStarted</code> with the bearer token; VerifyToken resolves the
+          user, the Joi validator checks the payload.</li>
+        <li><strong>Guard</strong> — the service loads the request row and its latest
+          decision, verifies the caller's role/ownership and that the current status is in
+          the allowed predecessor set (loaded = 7).</li>
+        <li><strong>Transaction</strong> — inside one DB transaction: update
+          <code>ShipperRequest.journeyStatusId</code>, create the <code>Journey</code>
+          record (or update its start timestamp + GPS), append a <code>JourneyDecisions</code>
+          row, append history.</li>
+        <li><strong>Commit</strong> — the transaction commits; a non-throwing path returns
+          the enriched request through <code>ServerResponder</code> (2xx envelope).</li>
+        <li><strong>Fan-out</strong> — post-commit: shipper gets the typed
+          <code>messages</code> notification, driver's app receives the ack, any reconciler
+          cache for the row is invalidated.</li>
+      </ol>
+
+      <div class="box ok">
+        <span class="t">Design invariant</span>
+        <p>
+          Clients never write <code>journeyStatusId</code>. Every status change is produced
+          by a service action with a guard, inside a transaction, with a decision row and a
+          history row — which is what makes reconciliation (FR-04.6) and the audit trail
+          possible.
+        </p>
+      </div>
+
+      <h3>4.6 Read-path enrichment</h3>
+      <p>
+        The detail read service assembles each row with its decisions, linked driver, batch
+        and assignment context. Active company-target rows without an exact-status decision
+        keep their own status and attach the available decisions instead of projecting to
+        <code>waiting</code> — the projection bug this rule prevents is exactly the “row
+        shows no connected driver” class of defect. The list read applies connected-first
+        ordering with an <code>EXISTS(JourneyDecisions + DriverRequest)</code> subquery so
+        connected rows sort first without row multiplication.
+      </p>
+    </section>
+
+    <!-- ============ 5. DATA ARCHITECTURE ============ -->
+    <section>
+      <h1>5. Data architecture</h1>
+      <ul>
+        <li><strong>103 tables</strong> in domain groups: identity, transport core,
+          companies/fleet, queue, bidding, finance, documents, delinquency, ratings,
+          subscriptions, reference data — detailed in the TDD package
+          (<code>data-model.md</code>).</li>
+        <li><strong>Core chain:</strong>
+          <code>ShipperRequest → DriverBid / DriverRequest → JourneyDecisions → Journey →
+          JourneyRoutePoints / DeliveryConfirmations</code>, with status by
+          <code>journeyStatusId</code> → <code>JourneyStatus</code>.</li>
+        <li><strong>Keys:</strong> UUID business keys (<code>*UniqueId</code>, indexed) in
+          routes and payloads; numeric surrogate ids for status maps and joins.</li>
+        <li><strong>Audit:</strong> paired <code>*History</code> tables written through
+          <code>insertHistoryRecord</code>; soft delete via <code>*DeletedAt</code>;
+          append-only history.</li>
+        <li><strong>Transactions:</strong> <code>DatabaseTransaction</code> +
+          async-local context; the executor selection honours the ambient transaction,
+          else the pool — so service composition stays transaction-safe.</li>
+        <li><strong>Hot paths:</strong> paged reads on indexed sort keys; the
+          connected-first ordering is a correlated <code>EXISTS</code> (no JOIN fan-out);
+          Redis caches hot reads with TTL and is cache-through, not authoritative.</li>
+      </ul>
+
+      <div class="box">
+        <span class="t">Reference data</span>
+        <p>
+          Enumerations (journey statuses, roles, document types, payment statuses,
+          cancellation reasons) are seeded rows joined on read and mirrored in
+          <code>ListOfSeedData.js</code> so code and database stay aligned; tests assert
+          the mirror.
+        </p>
+      </div>
+
+      <h1>6. API design</h1>
+      <ul>
+        <li><strong>Surface:</strong> 204 routes / 285 operations in 27 groups; path
+          constants centralised in <code>Routes/EndPoints/*.js</code>; the mount table lives
+          in <code>Routes/index.js</code> (plus nested finance/company/queue/auth routers).
+          The complete inventory with auth labels ships as <code>endpoints.md</code>.</li>
+        <li><strong>Envelopes:</strong> success <code>{ message, ...data }</code>; error
+          <code>{ status:"fail", message, error:{ statusCode, status, isOperational } }</code>
+          with stacks dev-only.</li>
+        <li><strong>Auth:</strong> <code>Bearer &lt;JWT&gt;</code>; 17 public operations
+          (auth/registration, health, payment webhook, maintenance);
+          <code>jwtOrApiKey</code> variant accepts <code>x-api-key</code> for E2E
+          bootstrapping on DB endpoints.</li>
+        <li><strong>Validation:</strong> Joi per route; <strong>pagination:</strong>
+          <code>page/limit/sortBy/sortOrder</code>; <strong>limits:</strong> global + auth
+          rate limiters; 1 MB body cap.</li>
+        <li><strong>Versioning:</strong> asset version 1.0.0; unversioned paths tracked by
+          release tags and this document set.</li>
+      </ul>
+
+      <div class="box warn">
+        <span class="t">Maintenance endpoints (observed)</span>
+        <p>
+          A handful of admin database-maintenance routes are reachable without a token
+          (auth commented out in source) — e.g. <code>POST /api/admin/createTable</code>,
+          <code>DELETE /api/admin/dropTables</code>. This is documented as observed; in
+          production they must remain network-restricted at the edge. <code>dropAllTables</code>
+          and the dev OTP viewer do require token/API-key.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ 7. REAL-TIME ============ -->
+    <section>
+      <h1>7. Real-time architecture</h1>
+      <pre>
+client A ── socket.io ──▶ node-1 ──┐
+client B ── socket.io ──▶ node-2 ──┼── Redis pub/sub (Upstash, TLS)
+client C ── socket.io ──▶ node-1 ──┘        │
+                                    room fan-out:
+                                    queueOrg:&lt;id&gt;[:date]
+                                    per-socket direct emits</pre>
+      <ul>
+        <li><strong>Handshake:</strong> the client sends its JWT in
+          <code>socket.handshake.auth</code>; init failures are answered with an error frame
+          and the socket is disconnected.</li>
+        <li><strong>Inbound events:</strong> <code>queue:subscribe</code> /
+          <code>queue:unsubscribe</code> (room join/leave with ack),
+          <code>locationUpdateToDriver</code> / <code>locationUpdateToShipper</code>
+          (position relay + persistence), <code>message</code> keep-alive (acked with
+          <code>response</code>).</li>
+        <li><strong>Outbound events:</strong> <code>queue</code> board updates to rooms;
+          typed notifications on the <code>messages</code> channel (78-kind catalog,
+          default channel overrideable per call); location events including a replay of the
+          last known position to newly connected sockets; structured error frames via
+          <code>sendError</code>.</li>
+        <li><strong>State:</strong> connection store per user (for socket lookup and
+          fallback routing), last-location store; users without a live socket fall back to
+          FCM push / polling.</li>
+        <li><strong>Robustness:</strong> per-event try/catch → error frame (never crashes
+          the loop); Redis adapter failures are logged and the process continues in
+          single-server mode.</li>
+      </ul>
+
+      <table class="grid">
+        <thead><tr><th style="width: 40%">Room</th><th>Used for</th></tr></thead>
+        <tbody>
+          <tr><td><code>queueOrg:&lt;orgUniqueId&gt;</code></td><td>All queue events for the organization (all dates).</td></tr>
+          <tr><td><code>queueOrg:&lt;orgUniqueId&gt;:&lt;date&gt;</code></td><td>Day-scoped dispatch: drivers after check-in, admins managing that day's queue.</td></tr>
+        </tbody>
+      </table>
+
+      <h1>8. Security architecture</h1>
+      <table class="grid">
+        <thead><tr><th style="width: 26%">Control</th><th>Implementation</th></tr></thead>
+        <tbody>
+          <tr><td>Transport</td><td>TLS everywhere (Nginx); WSS for sockets; HSTS at the edge.</td></tr>
+          <tr><td>Authentication</td><td>bcrypt password + OTP second factor → JWT (24 h; payload userUniqueId, phone, role, iat/exp).</td></tr>
+          <tr><td>Authorization</td><td>Role middleware (12 roles) + ownership/company-scope guards; deny by default.</td></tr>
+          <tr><td>CORS</td><td>Explicit origin allow-list with credentials; no wildcard in production.</td></tr>
+          <tr><td>CSRF</td><td>Origin/Referer check for cookie-authenticated state-changing requests; bearer clients unaffected.</td></tr>
+          <tr><td>Headers &amp; bots</td><td>helmet security headers; scanner/bot user-agent blocking.</td></tr>
+          <tr><td>Rate limiting</td><td>Global limiter + stricter auth-route limiter (429).</td></tr>
+          <tr><td>Input</td><td>Joi validation (strip unknown), 1 MB body cap, multipart limits, image re-encode, parameterized SQL only.</td></tr>
+          <tr><td>Fail-closed production checks</td><td><code>App.js</code> refuses to boot production with development-only configuration (default secrets/debug) rather than starting insecurely.</td></tr>
+          <tr><td>Error leakage</td><td>Production 5xx responses masked; full detail logged server-side with request ids.</td></tr>
+          <tr><td>Secrets</td><td>Environment variables only (56 vars), never committed; payment webhook signature verified before crediting.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============ 9-11 ============ -->
+    <section>
+      <h1>9. Error handling and observability</h1>
+      <ul>
+        <li><strong>Uniform errors:</strong> services throw <code>AppError(message,
+          statusCode)</code>; the global handler renders the JSON envelope, logs 4xx as
+          warnings and 5xx as errors with correlation (request id, method, path, user).</li>
+        <li><strong>Logging:</strong> structured Winston logs — request logger (timing,
+          status), validator failures with field details, socket errors with stacks,
+          application API errors. Client mistakes and server faults are logged in distinct
+          classes so E2E results correlate to backend logs.</li>
+        <li><strong>Health:</strong> <code>GET /api/health</code> (liveness) and
+          <code>GET /api/health/database</code> (DB reachability) — public, polled by
+          monitoring; admin DB-stats endpoint for operators.</li>
+        <li><strong>Performance:</strong> query-performance middleware captures slow
+          queries; request ids tie client reports to logs.</li>
+      </ul>
+
+      <h1>10. Deployment and environments</h1>
+      <table class="grid">
+        <thead><tr><th style="width: 22%">Aspect</th><th>Design</th></tr></thead>
+        <tbody>
+          <tr><td>Process</td><td>PM2 (restart policy, log rotation); single entry bootstrapping HTTP + Socket.IO.</td></tr>
+          <tr><td>Edge</td><td>Nginx TLS terminator reverse-proxying to the app; WebSocket upgrade pass-through.</td></tr>
+          <tr><td>Environments</td><td>production <code>app.dynamicsroute.tech</code> · staging <code>dev.dynamicsroute.tech</code> · local (MAMP MySQL) — selected via <code>NODE_ENV</code> + env config; fail-closed checks in production.</td></tr>
+          <tr><td>Configuration</td><td><code>.env</code> (DB, Redis, JWT secret, SMTP, FCM, payment keys) — 56 environment variables; not committed.</td></tr>
+          <tr><td>Data services</td><td>MySQL 8 (database <code>transport</code>, 103 tables); Redis/Upstash over TLS.</td></tr>
+          <tr><td>Scaling</td><td>Stateless REST → add nodes; Socket.IO Redis adapter keeps rooms consistent; PM2 cluster-capable.</td></tr>
+        </tbody>
+      </table>
+
+      <h1>11. Testing strategy</h1>
+      <ul>
+        <li><strong>Unit/integration (jest):</strong> 102 tests over services and utilities
+          (status logic, validators, helpers).</li>
+        <li><strong>End-to-end:</strong> a 248-check suite covering registration → login →
+          OTP → request lifecycle → bidding → assignment → journey → cancellation, plus
+          negative probes (401/400/404) and a socket harness (room subscribe, board
+          broadcast, location relay, typed messages).</li>
+        <li><strong>Route contract checks:</strong> the published endpoint inventory is
+          verified against a running instance by live preflight probes — only routes that
+          answer non-404 are listed, auth labels come from observed 401 behaviour.</li>
+        <li><strong>Regression gate:</strong> per-run baselines with named failure
+          comparison (e.g. 239 passed / 3 known-failing / 6 skipped) so new breakage is
+          distinguished from accepted debt.</li>
+      </ul>
+    </section>
+
+    <!-- ============ 12 + APPENDIX ============ -->
+    <section>
+      <h1>12. Design — requirements traceability</h1>
+      <table class="grid">
+        <thead>
+          <tr><th style="width: 32%">SRS requirement group</th><th style="width: 34%">This document</th><th>Primary code area</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>FR-01 identity &amp; access</td><td>§6 API design · §8 Security</td><td><code>Middleware/VerifyToken</code>, <code>Services/User/*</code>, <code>Routes/auth</code></td></tr>
+          <tr><td>FR-02 shipper requests</td><td>§4 Component design · §5 Data</td><td><code>Services/ShipperRequest/*</code></td></tr>
+          <tr><td>FR-03 bidding &amp; assignment</td><td>§4.3–§4.5</td><td><code>Services/DriverRequest/*</code>, company bid/assignment services</td></tr>
+          <tr><td>FR-04 journey execution</td><td>§4.4–§4.6 (state machine, choreography)</td><td><code>Services/JourneyStatus</code>, <code>journeyManagement</code>, POD services</td></tr>
+          <tr><td>FR-05 company &amp; fleet</td><td>§5 Data architecture</td><td><code>Services/*Company*</code>, <code>VehicleDriver.service</code></td></tr>
+          <tr><td>FR-06 dispatch queue</td><td>§7 Real-time architecture</td><td><code>Services/Queue/*</code>, <code>Config/SocketAdapter</code></td></tr>
+          <tr><td>FR-07 finance</td><td>§3.2 entry points · §8 Security</td><td><code>Services/UserDeposit/*</code>, commission services</td></tr>
+          <tr><td>FR-08 documents</td><td>§3.2 · §4.2</td><td><code>Middleware/*Document*</code>, upload controllers</td></tr>
+          <tr><td>FR-09 notifications</td><td>§7 Real-time architecture</td><td><code>Utils/Notifications</code>, <code>MessageTypes</code>, FCM</td></tr>
+          <tr><td>FR-10..12 admin / ratings / subscriptions</td><td>§9–§10</td><td><code>Services/Admin/*</code>, reference services</td></tr>
+          <tr><td>NFR-01..08</td><td>§8 Security · §9 · §10 · §11</td><td><code>Config/Express.config</code>, <code>App.js</code> fail-closed checks, suites</td></tr>
+        </tbody>
+      </table>
+
+      <h1>Appendix A — document reproduction pipeline</h1>
+      <p>The four submission files are generated from the sources in this folder:</p>
+      <pre>
+docs/INSA/
+├── sources/
+│   ├── srs.html · sdd.html        HTML sources (print-first CSS)
+│   ├── assets/*.mmd               mermaid diagram sources (3 figures)
+│   ├── assets/*.svg               rendered diagrams (mmdc)
+│   ├── request-response/          endpoint inventory + README + 6 captures
+│   └── tdd/                       TDD/LLD documents + shared captures
+├── build.sh                       render PDFs (headless Chrome) + build ZIPs
+├── SRS.pdf · SDD.pdf              uploads #2 and #3
+├── RequestResponse.zip            upload #1
+└── API-Technical-Specifications-TDD-LLD.zip   upload #4</pre>
+      <ul>
+        <li>Diagrams: <code>mmdc -i &lt;name&gt;.mmd -o &lt;name&gt;.svg -w 1600</code>
+          (mermaid-cli; falls back to the system Chrome via
+          <code>PUPPETEER_EXECUTABLE_PATH</code>).</li>
+        <li>PDFs: headless Chrome
+          <code>--headless --print-to-pdf --no-pdf-header-footer</code> over the HTML
+          sources; PDF Title metadata comes from the HTML <code>&lt;title&gt;</code>.</li>
+        <li>ZIPs: plain <code>zip -qr</code> over the source folders (inventory +
+          captures / TDD documents + captures).</li>
+        <li>Verification: <code>pdfinfo</code>, <code>pdftotext</code>,
+          <code>unzip -t</code>, PII scan over the source tree (see the package README
+          checklist).</li>
+      </ul>
+
+      <p style="margin-top: 8mm; font-size: 8.4pt; color: var(--muted)">
+        End of SDD — Transport Management System API v1.0.0 · Asset: transport ·
+        Prepared for INSA asset registration.
+      </p>
+    </section>
+  </body>
+</html>

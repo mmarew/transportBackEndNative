@@ -1,0 +1,24 @@
+ 
+
+**Form Title:** Add Asset
+
+**General Asset Information**
+*   **Name** (Value: "transport") — **Required**
+*   **Asset Type** (Value: "API") — **Required**
+*   **Asset Code** (Placeholder: "e.g. ASSET-001") — **Required**
+*   **Asset Version** (Placeholder: "e.g. 1.0.0") — **Required**
+*   **CPE** (Placeholder: "Enter CPE") — **Optional**
+*   **Asset Detail** (Placeholder: "Describe the asset in detail") — **Required**
+
+**Document Requirements (General Rules)**
+*   Only PDF and ZIP files are allowed.
+*   If multiple required documents are combined into a single file, you may upload the same file for each relevant input.
+*   If you upload the same file for multiple inputs, you must ensure that all required contents are included in that file.
+
+**Document Upload Fields**
+*   **Request/Response File - (Format: ZIP)** — **Required**
+*   **API Requirements Documentation (SRS) - (Preferable Fo...** — **Required**
+*   **API System & Architecture Design Document (SDD) - (Pr...** — **Required**
+*   **API Technical Specifications (TDD / LLD) - (format: ZIP)** — **Required**
+
+*Note: There is an "Add Asset" button at the bottom right to submit the form.*

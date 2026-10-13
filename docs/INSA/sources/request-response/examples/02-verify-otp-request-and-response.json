@@ -1,0 +1,30 @@
+{
+  "note": "Step 2 — exchange the OTP for a 24h JWT. Real capture; token redacted.",
+  "request": {
+    "method": "POST",
+    "path": "/api/user/verifyUserByOTP",
+    "body": {
+      "phoneNumber": "+251922XXXXXX",
+      "OTP": 101010,
+      "roleId": 1
+    }
+  },
+  "response": {
+    "statusCode": 200,
+    "body": {
+      "message": "OTP verified successfully",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.<TOKEN_REDACTED>",
+      "userData": {
+        "userId": 3,
+        "userUniqueId": "80343de9-8719-4904-a7f3-32985178b225",
+        "fullName": "system",
+        "phoneNumber": "+251922XXXXXX",
+        "email": "sys***@example.com",
+        "isPhoneVerified": true,
+        "isEmailVerified": false,
+        "userCreatedAt": "2026-10-01T07:58:22.000Z",
+        "roleId": 1
+      }
+    }
+  }
+}
