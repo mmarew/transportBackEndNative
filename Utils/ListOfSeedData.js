@@ -803,16 +803,19 @@ const terminalJourneyStatuses = [
 
 // Read-path routing bucket: rendered as an inactive order with its linked
 // drivers/decisions instead of going through the active-status path.
-const inactiveJourneyStatuses = [journeyStatusMap.waiting, ...terminalJourneyStatuses];
+const inactiveJourneyStatuses = [
+  journeyStatusMap.waiting,
+  ...terminalJourneyStatuses,
+];
 
 // Reconciliation may only rewrite requests that are still live. Anything outside
 // `activeJourneyStatuses` — cancelled, completed, rejected, or any status added
 // later — is off-limits. This whitelist is what keeps an admin-cancelled request
 // from being reset to `waiting` by a stale-status correction.
-const isActiveJourneyStatus = journeyStatusId =>
+const isActiveJourneyStatus = (journeyStatusId) =>
   activeJourneyStatuses.includes(Number(journeyStatusId));
 
-const isTerminalJourneyStatus = journeyStatusId =>
+const isTerminalJourneyStatus = (journeyStatusId) =>
   terminalJourneyStatuses.includes(Number(journeyStatusId));
 
 // Cancellation reasons are tagged with `requestMode` to serve the right list

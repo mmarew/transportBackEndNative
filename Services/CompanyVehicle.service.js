@@ -36,6 +36,7 @@ exports.getDriverCompanies = async (driverUserUniqueId) => {
        tc.approvalStatus,
        cm.membershipUniqueId,
        cm.membershipStartDate,
+       NULL               AS companyVehicleUniqueId,
        'membership' AS source
      FROM CompanyMembership cm
      JOIN TransportCompany tc ON cm.companyUniqueId = tc.companyUniqueId
@@ -55,6 +56,7 @@ exports.getDriverCompanies = async (driverUserUniqueId) => {
        tc.approvalStatus,
        NULL               AS membershipUniqueId,
        cv.assignmentStartDate AS membershipStartDate,
+       cv.companyVehicleUniqueId,
        'fleet'            AS source
      FROM VehicleDriver vd
      JOIN CompanyVehicle cv
