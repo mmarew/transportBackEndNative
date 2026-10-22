@@ -11,7 +11,8 @@ const {
 } = require("../../../CRUD/Update/Data.update");
 const {
   currentDate,
-  addHours
+  addHours,
+  addMinutes
 } = require("../../../Utils/CurrentDate");
 
 
@@ -202,7 +203,11 @@ const updateUser = async body => {
     await updateData({
       tableName: "usersCredential",
       updateValues: {
-        phoneVerificationOTP: hashedPhoneVerificationOTP
+        phoneVerificationOTP: hashedPhoneVerificationOTP,
+        // OTP hardening: refresh the TTL and attempt counter together with the
+        // code (enforced in auth/otp.service.js verifyUserByOTP).
+        loginOtpExpiresAt: addMinutes(currentDate(), DOMAIN.LOGIN_OTP_TTL_MINUTES),
+        loginOtpAttempts: 0
       },
       conditions: {
         userUniqueId

@@ -776,6 +776,12 @@ const SCHEMA_GAP_COLUMNS = {
     { name: "journeyCompletedByUser", ddl: "VARCHAR(36) NULL" },
     { name: "journeyProofOfLoading", ddl: "TEXT NULL" },
   ],
+  // Login/verification OTP hardening: TTL + failed-attempt counter enforced in
+  // Services/User/auth/otp.service.js (mirrors the delivery OTP columns above).
+  usersCredential: [
+    { name: "loginOtpExpiresAt", ddl: "DATETIME NULL" },
+    { name: "loginOtpAttempts", ddl: "INT NOT NULL DEFAULT 0" },
+  ],
 };
 
 const ensureSchemaColumnCompleteness = async (connection) => {

@@ -4,14 +4,14 @@ Copy-paste values for the Add Asset form.
 
 ## General Asset Information
 
-| Field | Value |
-|---|---|
-| **Name** | `transport` |
-| **Asset Type** | `API` |
-| **Asset Code** | `TRANSPORT-API-001` |
-| **Asset Version** | `1.0.0` |
-| **CPE** | *(optional — leave empty; this asset is not a national CPE)* |
-| **Asset Detail** | see below |
+| Field             | Value                                                        |
+| ----------------- | ------------------------------------------------------------ |
+| **Name**          | `transport`                                                  |
+| **Asset Type**    | `API`                                                        |
+| **Asset Code**    | `TRANSPORT-API-001`                                          |
+| **Asset Version** | `1.0.0`                                                      |
+| **CPE**           | _(optional — leave empty; this asset is not a national CPE)_ |
+| **Asset Detail**  | see below                                                    |
 
 ## Asset Detail (paste into the description field)
 
@@ -56,11 +56,11 @@ Technical profile:
 
 ## Document uploads
 
-| Upload field | File to attach | Location after build |
-|---|---|---|
-| Request/Response File (ZIP) | `RequestResponse.zip` | `docs/INSA/RequestResponse.zip` |
-| API Requirements Documentation (SRS) (PDF) | `SRS.pdf` | `docs/INSA/SRS.pdf` |
-| API System & Architecture Design Document (SDD) (PDF) | `SDD.pdf` | `docs/INSA/SDD.pdf` |
-| API Technical Specifications (TDD / LLD) (ZIP) | `API-Technical-Specifications-TDD-LLD.zip` | `docs/INSA/API-Technical-Specifications-TDD-LLD.zip` |
+| Upload field                                          | File to attach                             | Location after build                                 |
+| ----------------------------------------------------- | ------------------------------------------ | ---------------------------------------------------- |
+| Request/Response File (ZIP)                           | `RequestResponse.zip`                      | `docs/INSA/RequestResponse.zip`                      |
+| API Requirements Documentation (SRS) (PDF)            | `SRS.pdf`                                  | `docs/INSA/SRS.pdf`                                  |
+| API System & Architecture Design Document (SDD) (PDF) | `SDD.pdf`                                  | `docs/INSA/SDD.pdf`                                  |
+| API Technical Specifications (TDD / LLD) (ZIP)        | `API-Technical-Specifications-TDD-LLD.zip` | `docs/INSA/API-Technical-Specifications-TDD-LLD.zip` |
 
 Submit with the **Add Asset** button (bottom right).

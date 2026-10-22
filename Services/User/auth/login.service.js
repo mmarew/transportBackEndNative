@@ -2,7 +2,7 @@
 
 const generateOTP = require("../../../Utils/GenerateOTP");
 
-const { currentDate, addHours } = require("../../../Utils/CurrentDate");
+const { currentDate, addHours, addMinutes } = require("../../../Utils/CurrentDate");
 const { DOMAIN } = require("../../../Utils/Constants");
 const bcrypt = require("bcryptjs");
 
@@ -123,6 +123,10 @@ const handleExistingUser = async ({
     phoneVerificationOTP: hashedPhoneVerificationOTP,
     emailVerificationOTP: hashedEmailVerificationOTP,
     sharedOTP: hashedOTP,
+    // OTP hardening: the6-digit code carries a short TTL and a fresh
+    // failed-attempt counter (enforced in otp.service.js verifyUserByOTP).
+    loginOtpExpiresAt: addMinutes(currentDate(), DOMAIN.LOGIN_OTP_TTL_MINUTES),
+    loginOtpAttempts: 0,
     // Legacy
     emailVerificationToken,
     emailVerificationExpiresAt,

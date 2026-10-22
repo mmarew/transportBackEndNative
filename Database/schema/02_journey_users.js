@@ -57,6 +57,8 @@ CREATE TABLE IF NOT EXISTS usersCredential (
     otpPlain VARCHAR(255) NULL,                  -- Plaintext OTP (dev-only, for getOTP dev endpoint)
     emailVerificationToken VARCHAR(255) NULL,      -- Secret UUID for the "Click to Verify" email link
     emailVerificationExpiresAt DATETIME NULL,      -- Link expiration time (standard 2 hours)
+    loginOtpExpiresAt DATETIME NULL,               -- Login/verification OTP TTL (see DOMAIN.LOGIN_OTP_TTL_MINUTES)
+    loginOtpAttempts INT NOT NULL DEFAULT 0,       -- Failed verifyUserByOTP attempts (capped at DOMAIN.LOGIN_OTP_MAX_ATTEMPTS)
     hashedPassword VARCHAR(255) NOT NULL,   -- Storeshashed OTP (used for the initial login/verification)
     usersCredentialCreatedBy VARCHAR(36) NULL,  -- Who created the credential (nullable for initial seeding)
     usersCredentialUpdatedBy VARCHAR(36) NULL,  -- Who updated the credential

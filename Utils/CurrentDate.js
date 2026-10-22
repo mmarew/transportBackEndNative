@@ -37,6 +37,14 @@ const addHours = (dateStr, h) => {
   return formatDateTime(date);
 };
 
+// Same timezone domain as currentDate(), so the result can be stored in and
+// compared directly against DATETIME columns written with currentDate().
+const addMinutes = (dateStr, m) => {
+  const date = new Date(dateStr.replace(" ", "T") + "Z"); // Parse as UTC
+  date.setUTCMinutes(date.getUTCMinutes() + m);
+  return formatDateTime(date);
+};
+
 /**
  * Current EAT time minus `minutes`, as a MySQL DATETIME string.
  * Same timezone domain as currentDate(), so it can be compared directly
@@ -55,4 +63,4 @@ const toDateOnly = (dateStr) => {
   return null;
 };
 
-module.exports = { currentDate, formatDateTime, toDateOnly, addHours, minutesAgo };
+module.exports = { currentDate, formatDateTime, toDateOnly, addHours, addMinutes, minutesAgo };

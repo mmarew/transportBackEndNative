@@ -6,7 +6,7 @@ const { pool } = require("../../../Middleware/Database.config");
 const { getData } = require("../../../CRUD/Read/ReadData");
 const { updateData } = require("../../../CRUD/Update/Data.update");
 const { insertData } = require("../../../CRUD/Create/CreateData");
-const { currentDate, addHours } = require("../../../Utils/CurrentDate");
+const { currentDate, addHours, addMinutes } = require("../../../Utils/CurrentDate");
 const bcrypt = require("bcryptjs");
 const AppError = require("../../../Utils/AppError");
 const { transactionStorage } = require("../../../Utils/TransactionContext");
@@ -37,11 +37,21 @@ const ensureCredentialForUser = async ({ userUniqueId, rawPassword }) => {
   const emailVerificationToken = uuidv4();
   // SECURITY: Standardize expiry to 2 hours as per docs and auth service
   const emailVerificationExpiresAt = addHours(currentDate(), DOMAIN.EMAIL_VERIFICATION_EXPIRY_HOURS);
+  // OTP hardening: generated OTPs get a short TTL and a fresh attempt counter
+  // (enforced in auth/otp.service.js). An admin-set rawPassword is meant to
+  // survive until first use, so it gets no expiry (NULL = not enforced).
+  const loginOtpHardening = rawPassword
+    ? {}
+    : {
+        loginOtpExpiresAt: addMinutes(currentDate(), DOMAIN.LOGIN_OTP_TTL_MINUTES),
+        loginOtpAttempts: 0,
+      };
 
   if (existing && existing.length > 0) {
     const credentialColAndValues = {
       sharedOTP: hashedOTP,
       hashedPassword: hashedOTP,
+      ...loginOtpHardening,
     };
     const user = existing?.[0];
     const isPhoneVerified = user?.isPhoneVerified;
@@ -82,6 +92,7 @@ const ensureCredentialForUser = async ({ userUniqueId, rawPassword }) => {
     emailVerificationToken,
     emailVerificationExpiresAt,
     hashedPassword: hashedOTP,
+    ...loginOtpHardening,
     usersCredentialCreatedBy: userUniqueId,
     usersCredentialCreatedAt: currentDate(),
   };
