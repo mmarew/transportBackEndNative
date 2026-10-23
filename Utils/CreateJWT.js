@@ -5,7 +5,11 @@ const { getSessionTtlSeconds } = require("./SessionPolicy");
 // Function to create JWT
 const createJWT = (userData) => {
   const secretKey = Config.SECRET_KEY;
-  const { userUniqueId, phoneNumber, roleId } = userData;
+  // `sessionUniqueId` becomes the `sid` claim checked against UserSessions on
+  // every authenticated request. It is optional only so non-login tokens
+  // (SMS/email verification links, which are verified by their own purpose
+  // check) can still be minted here.
+  const { userUniqueId, phoneNumber, roleId, sessionUniqueId } = userData;
   if (!userUniqueId || !phoneNumber || !roleId) {
     const AppError = require("./AppError");
     throw new AppError("All fields are required to create jwt", AppError.BAD_REQUEST);
@@ -18,6 +22,7 @@ const createJWT = (userData) => {
   const token = jwt.sign(
     {
       data: { userUniqueId, phoneNumber, roleId },
+      ...(sessionUniqueId ? { sid: sessionUniqueId } : {}),
     },
     secretKey,
     { expiresIn: getSessionTtlSeconds(roleId) },

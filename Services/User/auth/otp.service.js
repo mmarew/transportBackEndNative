@@ -1,10 +1,17 @@
 "use strict";
 
 const createJWT = require("../../../Utils/CreateJWT");
+const {
+  createSession,
+  clientMetaFromRequest,
+} = require("../../../Utils/SessionRegistry");
 
 const verifyPassword = require("../../../Utils/VerifyPassword");
 const logger = require("../../../Utils/logger");
 const Config = require("../../../Utils/Config");
+const { DOMAIN } = require("../../../Utils/Constants");
+const { currentDate, formatDateTime } = require("../../../Utils/CurrentDate");
+const { EAT_OFFSET_MS } = require("../../../Utils/Timezone");
 const { usersRoles } = require("../../../Utils/ListOfSeedData");
 const AppError = require("../../../Utils/AppError");
 const {
@@ -20,6 +27,22 @@ const {
 const {
   driversDocumentVehicleRequirement,
 } = require("../../RoleDocumentRequirements");
+
+const MYSQL_DATETIME_LENGTH = 19; // 'YYYY-MM-DD HH:mm:ss'
+
+/**
+ * Normalizes a usersCredential DATETIME into the EAT wall-clock string domain
+ * that currentDate() returns ('YYYY-MM-DD HH:mm:ss'), so the two compare
+ * directly. mysql2 returns DATETIME columns as JS Date objects (the pool
+ * timezone is '+03:00'); a raw string is returned only when dateStrings is on.
+ */
+const toEatDatetimeString = (value) => {
+  if (value === null || value === undefined) return null;
+  if (value instanceof Date) {
+    return formatDateTime(new Date(value.getTime() + EAT_OFFSET_MS));
+  }
+  return String(value).slice(0, MYSQL_DATETIME_LENGTH);
+};
 
 /**
  * Core business logic for verifying a user's OTP and issuing an authentication token.
@@ -94,6 +117,31 @@ const verifyUserByOTP = async (req) => {
   if (email && userRow?.email !== email) {
     throw new AppError("Email does not match", AppError.UNAUTHORIZED);
   }
+
+  // LOGIN OTP POLICY (mirrors the Tier-A delivery OTP in
+  // Services/DeliveryConfirmation/otp.service.js): the bcrypt-hashed 6-digit
+  // code carries a short TTL and a hard failed-attempt cap, so it cannot be
+  // brute-forced within its validity window. The dev/test OTP (when explicitly
+  // enabled) bypasses both gates and consumes no attempts.
+  const isTestOtp =
+    Config.TEST_OTP_ENABLED &&
+    String(OTP) === String(Config.TEST.OTP || "101010");
+  if (!isTestOtp) {
+    const otpExpiresAt = toEatDatetimeString(userRow?.loginOtpExpiresAt);
+    if (otpExpiresAt && otpExpiresAt <= currentDate()) {
+      throw new AppError(
+        "OTP has expired. Please log in again to receive a new one.",
+        AppError.GONE,
+      );
+    }
+    if ((userRow?.loginOtpAttempts || 0) >= DOMAIN.LOGIN_OTP_MAX_ATTEMPTS) {
+      throw new AppError(
+        "Too many invalid OTP attempts. Please log in again to receive a new one.",
+        AppError.TOO_MANY_REQUESTS,
+      );
+    }
+  }
+
   const isPhoneVerified = userRow?.isPhoneVerified;
   const isEmailVerified = userRow?.isEmailVerified;
   const savedOTP = userRow?.sharedOTP;
@@ -149,13 +197,22 @@ const verifyUserByOTP = async (req) => {
     // Fallback: accept the configured test OTP (e.g. 101010).
     // Security: ONLY permitted when the build explicitly enables it
     // (TEST_OTP_ENABLED). In production this stays off so a static code can
-    // never authenticate a real account.
-    const testOtp = String(Config.TEST.OTP || "101010");
-    if (Config.TEST_OTP_ENABLED && String(OTP) === testOtp) {
+    // never authenticate a real account. It is static by design, so it never
+    // consumes an attempt (mirrors the delivery OTP flow).
+    if (isTestOtp) {
       if (phoneNumber) phoneMatched = true;
       if (email) emailMatched = true;
       logger.info("Test OTP accepted as fallback");
     } else {
+      // Count the failed guess against the hard attempt cap so a 6-digit code
+      // cannot be brute-forced within its validity window.
+      await updateData({
+        tableName: "usersCredential",
+        updateValues: {
+          loginOtpAttempts: (userRow?.loginOtpAttempts || 0) + 1,
+        },
+        conditions: { userUniqueId: userRow.userUniqueId },
+      });
       throw new AppError(
         "Invalid OTP. Please check the OTP and try again.",
         AppError.UNAUTHORIZED,
@@ -210,6 +267,12 @@ const verifyUserByOTP = async (req) => {
   } else if (!userRoles.some((row) => row.roleId === roleId)) {
     throw new AppError("user not found in this role", AppError.UNAUTHORIZED);
   }
+  const { sessionUniqueId } = await createSession({
+    userUniqueId: userRow.userUniqueId,
+    roleId,
+    ...clientMetaFromRequest(req),
+  });
+
   const tokenData = createJWT({
     userUniqueId: userRow.userUniqueId,
     fullName: userRow.fullName,
@@ -218,6 +281,7 @@ const verifyUserByOTP = async (req) => {
     roleId,
     isPhoneVerified: phoneMatched || !!userRow.isPhoneVerified,
     isEmailVerified: emailMatched || !!userRow.isEmailVerified,
+    sessionUniqueId,
   });
   const resData = {
     message: "OTP verified successfully",
@@ -264,6 +328,21 @@ const verifyUserByOTP = async (req) => {
       });
     }
     resData.documentAndVehicleOfDriver = docReq;
+  }
+  // A successful verification makes the code single-use: expire it so a
+  // replayed code cannot mint a second JWT inside the TTL window. Expiring
+  // (rather than nulling sharedOTP, which is NOT NULL) keeps the legacy
+  // columns intact; the next login call issues a fresh code. The static test
+  // OTP is left alone.
+  if (!isTestOtp) {
+    await updateData({
+      tableName: "usersCredential",
+      updateValues: {
+        loginOtpExpiresAt: currentDate(),
+        loginOtpAttempts: 0,
+      },
+      conditions: { userUniqueId: userRow.userUniqueId },
+    });
   }
   return resData;
 };

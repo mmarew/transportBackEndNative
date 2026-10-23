@@ -10,6 +10,9 @@ const AUTH_ENDPOINTS = {
   REPORT_WRONG_EMAIL: `/api/user/report-wrong-email`,
   VERIFICATION_LINK: `/api/user/verification-link`,
   LOGOUT: `/api/user/logout`,
+  LIST_SESSIONS: `/api/user/sessions`,
+  REVOKE_SESSION: `/api/user/sessions/:sessionUniqueId`,
+  REVOKE_ALL_SESSIONS: `/api/user/sessions`,
 };
 
 module.exports = {

@@ -33,8 +33,11 @@ const {
 } = require("../../Utils/DatabaseTransaction");
 const logger = require("../../Utils/logger");
 const {
-  getData
-} = require("../../CRUD/Read/ReadData");
+  clientMetaFromRequest,
+  revokeAllSessions,
+  SESSION_REVOKE_REASONS,
+} = require("../../Utils/SessionRegistry");
+const { getData } = require("../../CRUD/Read/ReadData");
 const {
   getSocket
 } = require("../../Utils/WsConnectionStore");
@@ -127,7 +130,7 @@ const updateUser = async (req, res, next) => {
     let oldFileUrl = null;
     const response = await executeInTransaction(async () => {
       // 1. Update user text information
-      const textResponse = await services.updateUser(body);
+      const textResponse = await services.updateUser(body, clientMetaFromRequest(req));
 
       // 2. Handle file record updates (Inside Transaction)
       if (fileMetadata) {
@@ -201,6 +204,13 @@ const updateUser = async (req, res, next) => {
         const targetPhone = body.phoneNumber || user.phoneNumber;
         if (targetPhone) {
           if (forceLogout) {
+            // Revoke every server-side session for this user. The WS message
+            // below nudges already-connected apps, but the session rows are
+            // what actually make the old tokens stop working.
+            await revokeAllSessions({
+              userUniqueId: user.userUniqueId,
+              reason: SESSION_REVOKE_REASONS.PHONE_CHANGE,
+            });
             // JUNIOR NOTE: If forceLogout is true, we send a link instead of a raw code.
             // We also send a WebSocket "Logout" message to the OLD number to kill any active apps.
             const verificationToken = services.generatePhoneVerificationToken(user.userUniqueId, targetPhone);
@@ -312,7 +322,49 @@ const updateUser = async (req, res, next) => {
  * It doesn't use JSON for responses because it's meant to be viewed in a web browser.
  */
 
+/**
+ * DELETE /api/admin/users/:userUniqueId/sessions
+ *
+ * Admin/super-admin force sign-out: revokes every live session for the target
+ * user. Their next HTTP request returns 401 and their apps drop to the login
+ * screen. An already-open WebSocket is closed by the client on that 401 (and
+ * refused if it reconnects).
+ */
+const revokeUserSessionsByAdmin = async (req, res, next) => {
+  try {
+    const { userUniqueId } = req.params;
+
+    const users = await getData({
+      tableName: "Users",
+      conditions: { userUniqueId },
+      limit: 1,
+    });
+    if (!users || users.length === 0) {
+      return next(new AppError("User not found", AppError.NOT_FOUND));
+    }
+
+    const revokedCount = await revokeAllSessions({
+      userUniqueId,
+      reason: SESSION_REVOKE_REASONS.ADMIN_REVOKE,
+    });
+
+    logger.info("Admin revoked user sessions", {
+      targetUserUniqueId: userUniqueId,
+      adminUserUniqueId: req.user?.userUniqueId,
+      revokedCount,
+    });
+
+    return ServerResponder(res, {
+      message: "Sessions revoked",
+      data: { userUniqueId, revokedCount },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 module.exports = {
   deleteUser,
-  updateUser
+  updateUser,
+  revokeUserSessionsByAdmin
 };

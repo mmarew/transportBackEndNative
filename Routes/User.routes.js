@@ -3,6 +3,9 @@ const express = require("express");
 const controller = require("../Controllers/User");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 const {
+  verifyIfUserIsAdminOrSupperAdmin,
+} = require("../Middleware/VerifyToken");
+const {
   verifyIfOperationIsAllowedByUserDriver,
 } = require("../Middleware/VerifyUsersIdentity");
 const { USER_ENDPOINTS } = require("./EndPoints/user.endpoints");
@@ -71,6 +74,19 @@ router.get(
   verifyTokenOfAxios,
   validator(userIdParams, "params"),
   controller.getUserProfileHistory,
+);
+
+/**
+ * @route   DELETE /api/admin/users/:userUniqueId/sessions
+ * @desc    Force sign-out every device for a user (admin / super admin).
+ * @access  Private (Admin or Super Admin)
+ */
+router.delete(
+  USER_ENDPOINTS.REVOKE_USER_SESSIONS,
+  verifyTokenOfAxios,
+  verifyIfUserIsAdminOrSupperAdmin,
+  validator(userIdParams, "params"),
+  controller.revokeUserSessionsByAdmin,
 );
 
 module.exports = router;

@@ -1,7 +1,19 @@
 "use strict";
 
 const Config = require("../../Utils/Config");
-const { setAuthCookie, clearAuthCookie } = require("../../Utils/AuthCookie");
+const jwt = require("jsonwebtoken");
+const {
+  setAuthCookie,
+  clearAuthCookie,
+  getTokenFromRequest,
+} = require("../../Utils/AuthCookie");
+const {
+  clientMetaFromRequest,
+  listActiveSessions,
+  revokeSession: revokeSessionRecord,
+  revokeAllSessions,
+  SESSION_REVOKE_REASONS,
+} = require("../../Utils/SessionRegistry");
 
 const services = require("../../Services/User.service");
 const ServerResponder = require("../../Utils/ServerResponder");
@@ -200,7 +212,6 @@ const createUserByQueueAdmin = async (req, res, next) => {
       const { phoneNumber, email, isEmailVerified } = response.data || {};
       const { phoneVerificationOTP, emailVerificationToken } =
         response.deferredOTP;
-      const { OTP } = req.body;
       const roleId = req.body.roleId;
       const roleNameMap = {
         [usersRoles.queueDispatcherRoleId]: "Queue Dispatcher",
@@ -361,7 +372,7 @@ const verifyUserByOTP = async (req, res, next) => {
 const verifyEmail = async (req, res) => {
   try {
     const { token } = req.query;
-    await services.verifyEmailByToken(token);
+    await services.verifyEmailByToken(token, clientMetaFromRequest(req));
     res.send(getSuccessEmailVerificationHtml());
   } catch (error) {
     res.status(error.statusCode || HTTP_STATUS.INTERNAL_SERVER_ERROR).send(`
@@ -404,7 +415,10 @@ const reportWrongEmail = async (req, res) => {
 const verifyPhone = async (req, res, next) => {
   try {
     const token = req.query.token || req.body?.token;
-    const response = await services.verifyPhoneByToken(token);
+    const response = await services.verifyPhoneByToken(
+      token,
+      clientMetaFromRequest(req),
+    );
 
     if (
       req.headers.accept?.includes("application/json") ||
@@ -455,16 +469,130 @@ const getVerificationLinks = async (req, res, next) => {
 };
 
 /**
- * Logs the user out: clears the httpOnly session cookie. Accepts a valid
- * Bearer header OR cookie so mobile + web both work. Always returns success
- * (idempotent) so frontends can clear local state regardless of token validity.
+ * Logs the user out: revokes the server-side session, then clears the httpOnly
+ * cookie. Accepts a valid Bearer header OR cookie so mobile + web both work.
+ * Always returns success (idempotent) so frontends can clear local state
+ * regardless of token validity.
  */
 const logoutUser = async (req, res, next) => {
   try {
+    const token = getTokenFromRequest(req);
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, Config.SECRET_KEY);
+        if (decoded?.sid) {
+          await revokeSessionRecord({
+            sessionUniqueId: decoded.sid,
+            userUniqueId: decoded?.data?.userUniqueId,
+            reason: SESSION_REVOKE_REASONS.LOGOUT,
+          });
+        }
+      } catch (tokenError) {
+        // An expired/garbage token has nothing to revoke; the cookie is still
+        // cleared below. Never fail logout because of a bad token.
+        logger.debug("Logout received an invalid or expired token", {
+          error: tokenError.message,
+        });
+      }
+    }
+
     clearAuthCookie(res);
     return ServerResponder(res, {
       message: "Logged out successfully",
       data: null,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/** Shapes a UserSessions row for the devices list (never exposes the JWT). */
+const toPublicSession = (session, currentSessionUniqueId) => ({
+  sessionUniqueId: session.sessionUniqueId,
+  platform: session.platform,
+  deviceName: session.deviceName,
+  deviceModel: session.deviceModel,
+  appVersion: session.appVersion,
+  locale: session.locale,
+  ipAddress: session.ipAddress,
+  lastSeenAt: session.lastSeenAt,
+  createdAt: session.sessionCreatedAt,
+  expiresAt: session.expiresAt,
+  current: session.sessionUniqueId === currentSessionUniqueId,
+});
+
+/** GET /api/user/sessions — active devices for the authenticated user. */
+const listSessions = async (req, res, next) => {
+  try {
+    const sessions = await listActiveSessions(req.user?.userUniqueId);
+    return ServerResponder(res, {
+      message: "Sessions retrieved",
+      data: {
+        currentSessionUniqueId: req.sessionUniqueId || null,
+        sessions: sessions.map((session) =>
+          toPublicSession(session, req.sessionUniqueId),
+        ),
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/** DELETE /api/user/sessions/:sessionUniqueId — revoke one device. */
+const revokeSession = async (req, res, next) => {
+  try {
+    const { sessionUniqueId } = req.params;
+    const isCurrent = sessionUniqueId === req.sessionUniqueId;
+
+    const revoked = await revokeSessionRecord({
+      sessionUniqueId,
+      userUniqueId: req.user?.userUniqueId,
+      reason: SESSION_REVOKE_REASONS.LOGOUT,
+    });
+
+    if (!revoked) {
+      return next(new AppError("Session not found", AppError.NOT_FOUND));
+    }
+
+    // Revoking "this device" is a logout; drop the browser cookie too.
+    if (isCurrent) {
+      clearAuthCookie(res);
+    }
+
+    return ServerResponder(res, {
+      message: "Session revoked",
+      data: { sessionUniqueId, current: isCurrent },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * DELETE /api/user/sessions — revoke every session for the user.
+ * `?keepCurrent=false` also signs this device out.
+ */
+const revokeAllUserSessions = async (req, res, next) => {
+  try {
+    const keepCurrentRaw = req.query?.keepCurrent;
+    const keepCurrent =
+      keepCurrentRaw === undefined
+        ? true
+        : !(keepCurrentRaw === false || keepCurrentRaw === "false" || keepCurrentRaw === "0");
+    const revokedCount = await revokeAllSessions({
+      userUniqueId: req.user?.userUniqueId,
+      exceptSessionUniqueId: keepCurrent ? req.sessionUniqueId : undefined,
+      reason: SESSION_REVOKE_REASONS.LOGOUT_ALL,
+    });
+
+    if (!keepCurrent) {
+      clearAuthCookie(res);
+    }
+
+    return ServerResponder(res, {
+      message: "Sessions revoked",
+      data: { revokedCount, keptCurrent: keepCurrent },
     });
   } catch (error) {
     return next(error);
@@ -482,4 +610,7 @@ module.exports = {
   verifyPhone,
   getVerificationLinks,
   logoutUser,
+  listSessions,
+  revokeSession,
+  revokeAllUserSessions,
 };

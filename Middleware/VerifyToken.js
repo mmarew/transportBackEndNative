@@ -4,7 +4,14 @@ const AppError = require("../Utils/AppError");
 const { usersRoles } = require("../Utils/ListOfSeedData");
 const { pool } = require("./Database.config");
 const Config = require("../Utils/Config");
+const logger = require("../Utils/logger");
+const { validateSession, touchSession } = require("../Utils/SessionRegistry");
 const secretKey = Config.SECRET_KEY;
+
+// lastSeenAt is audit data, not auth data: writing it on every request would
+// double the write load for no security benefit, so it is refreshed at most
+// once per hour per session.
+const SESSION_TOUCH_INTERVAL_MS = 60 * 60 * 1000;
 
 /**
  * STATUS CODE CONVENTION FOR THE ROLE GUARDS BELOW
@@ -46,17 +53,17 @@ const extractWsToken = (tokenData) => {
 
 const verifyTokenOfAxios = async (req, res, next) => {
   const token = extractToken(req);
-  console.log('[VerifyToken] Request:', { method: req.method, url: req.url, hasAuth: !!token });
+  logger.debug('[VerifyToken] Request:', { method: req.method, url: req.url, hasAuth: !!token });
 
   if (!token) {
-    console.log('[VerifyToken] No auth token');
+    logger.debug('[VerifyToken] No auth token');
     return next(new AppError("Authorization header missing", AppError.UNAUTHORIZED));
   }
   try {
     const decoded = jwt.verify(token, secretKey);
     const data = decoded?.data;
     const userUniqueId = data?.userUniqueId;
-    console.log('[VerifyToken] Token decoded:', { userUniqueId, phoneNumber: data?.phoneNumber, roleId: data?.roleId, iat: decoded?.iat });
+    logger.debug('[VerifyToken] Token decoded:', { userUniqueId, roleId: data?.roleId, iat: decoded?.iat });
 
     const user = await getData({
       tableName: "Users",
@@ -64,13 +71,13 @@ const verifyTokenOfAxios = async (req, res, next) => {
     });
 
     if (user.length === 0) {
-      console.log('[VerifyToken] User not found in DB:', userUniqueId);
+      logger.debug('[VerifyToken] User not found in DB:', userUniqueId);
       return next(new AppError("Invalid token", AppError.UNAUTHORIZED));
     }
 
     const userRow = user[0];
     if (userRow.isDeleted || userRow.userDeletedAt) {
-      console.log('[VerifyToken] User deleted:', userUniqueId);
+      logger.debug('[VerifyToken] User deleted:', userUniqueId);
       return next(
         new AppError(
           "Account has been deleted and can no longer access the service",
@@ -79,8 +86,58 @@ const verifyTokenOfAxios = async (req, res, next) => {
       );
     }
 
+    // Server-side session check. A token without `sid` predates the session
+    // registry (or is a verification-link token, which never reaches this
+    // middleware); either way it must not authenticate. Revoking the row is
+    // what makes logout immediate, on every device.
+    const sid = decoded?.sid;
+    if (!sid) {
+      logger.debug('[VerifyToken] Token has no session id:', userUniqueId);
+      return next(new AppError("Invalid token", AppError.UNAUTHORIZED));
+    }
+
+    let session;
+    try {
+      session = await validateSession(sid, userUniqueId);
+    } catch (sessionError) {
+      logger.error('[VerifyToken] Session lookup failed', {
+        userUniqueId,
+        error: sessionError.message,
+      });
+      return next(
+        new AppError(
+          "Unable to verify your session. Please try again.",
+          AppError.SERVICE_UNAVAILABLE,
+        ),
+      );
+    }
+
+    if (!session) {
+      logger.debug('[VerifyToken] Session missing, revoked or expired:', {
+        userUniqueId,
+        sid,
+      });
+      // "Invalid token" is deliberate: every existing client already treats it
+      // as a logout trigger, so rolling this out forces the one-time re-login
+      // without shipping client code first.
+      return next(new AppError("Invalid token", AppError.UNAUTHORIZED));
+    }
+
+    req.sessionUniqueId = sid;
+
+    const lastSeenMs = session.lastSeenAt ? new Date(session.lastSeenAt).getTime() : 0;
+    if (Date.now() - lastSeenMs > SESSION_TOUCH_INTERVAL_MS) {
+      // Fire-and-forget: a failed audit write must never fail the request.
+      touchSession(sid).catch((touchError) => {
+        logger.debug('[VerifyToken] Failed to update lastSeenAt', {
+          sid,
+          error: touchError.message,
+        });
+      });
+    }
+
     req.user = { ...userRow, ...data };
-    console.log('[VerifyToken] User authenticated:', { userUniqueId, phoneNumber: userRow.phoneNumber, roleId: userRow.roleId });
+    logger.debug('[VerifyToken] User authenticated:', { userUniqueId, roleId: userRow.roleId });
     next();
   } catch (error) {
     console.error('[VerifyToken] Error:', error.name, error.message);
@@ -112,6 +169,19 @@ const verifyTokenOfWS = async (tokenData) => {
   }
   try {
     const decoded = jwt.verify(token, secretKey);
+
+    // A socket must be backed by the same live session row as HTTP requests.
+    // Otherwise a revoked token could keep an already-open (or fresh) socket
+    // connected after logout.
+    const sid = decoded?.sid;
+    const session = sid
+      ? await validateSession(sid, decoded?.data?.userUniqueId)
+      : null;
+    if (!session) {
+      return { valid: false, status: "error", error: "Invalid token" };
+    }
+
+    decoded.sessionUniqueId = sid;
     decoded.valid = true;
     return decoded;
   } catch (error) {

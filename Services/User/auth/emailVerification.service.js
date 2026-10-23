@@ -4,6 +4,7 @@
 
 
 const createJWT = require("../../../Utils/CreateJWT");
+const { createSession } = require("../../../Utils/SessionRegistry");
 const {
   currentDate,
   
@@ -46,7 +47,7 @@ const messageTypes = require("../../../Utils/MessageTypes");
  *
  * @param {string} token - The unique verification token from the email link.
  */
-const verifyEmailByToken = async token => {
+const verifyEmailByToken = async (token, clientMeta = {}) => {
   if (!token) {
     throw new AppError("Invalid or missing token", AppError.BAD_REQUEST);
   }
@@ -125,6 +126,13 @@ const verifyEmailByToken = async token => {
         }
         const socketId = await getSocket(userType, cleanedPhone);
         if (socketId) {
+          // Each delivered token is a real login token, so it needs its own
+          // session row; otherwise VerifyToken would reject it as sid-less.
+          const { sessionUniqueId } = await createSession({
+            userUniqueId,
+            roleId,
+            ...clientMeta,
+          });
           const tokenData = createJWT({
             userUniqueId,
             fullName: userRow.fullName,
@@ -132,7 +140,8 @@ const verifyEmailByToken = async token => {
             email: userRow.email,
             roleId,
             isPhoneVerified: !!userRow.isPhoneVerified,
-            isEmailVerified: true
+            isEmailVerified: true,
+            sessionUniqueId
           });
           emitMessage({
             socketId,

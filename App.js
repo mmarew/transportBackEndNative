@@ -138,6 +138,15 @@ const onStartUp = async () => {
       timestamp: currentDate(),
     });
 
+    // Start Session Cleanup Service — deletes expired/revoked UserSessions
+    // rows after the retention window. Runs once shortly after boot, then daily.
+    const {
+      startSessionCleanupService,
+    } = require("./Services/Session/cleanup.service");
+    global.sessionCleanupControl = startSessionCleanupService({
+      runImmediately: true,
+    });
+
     // Start Telegram bot polling (approve/reject via the alert buttons).
     // No-op when Telegram isn't configured or TELEGRAM_POLLING=false.
     try {
@@ -225,6 +234,10 @@ const startServer = async () => {
       // Stop shipper request status reconciliation if it's running
       if (global.statusReconciliationControl) {
         global.statusReconciliationControl.stop();
+      }
+      // Stop session cleanup if it's running
+      if (global.sessionCleanupControl) {
+        global.sessionCleanupControl.stop();
       }
       // Stop Telegram bot polling if it's running
       if (global.telegramPollingControl) {

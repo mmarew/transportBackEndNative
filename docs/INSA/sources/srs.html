@@ -163,6 +163,12 @@
         background: var(--soft);
       }
 
+      /* Glossary runs to the last page: tighten rows so it stays on one page. */
+      table.glossary th,
+      table.glossary td {
+        padding: 1.1mm 2mm;
+      }
+
       thead {
         display: table-header-group;
       }
@@ -292,7 +298,7 @@
           <td>System</td>
           <td>
             Freight/transport management backend serving shipper, driver, company/dispatcher
-            and admin clients — 204 routes / 285 operations, 103 database tables, real-time
+            and admin clients — 208 routes / 289 operations, 104 database tables, real-time
             Socket.IO layer
           </td>
         </tr>
@@ -371,8 +377,8 @@
         <span class="t">Verification baseline</span>
         <p>
           All counts in this document were extracted from the source and validated against a
-          running instance of the API: <strong>204 distinct routes / 285 operations</strong>
-          (probe-verified, only non-404 routes counted), <strong>103 MySQL tables</strong>,
+          running instance of the API: <strong>208 distinct routes / 289 operations</strong>
+          (probe-verified, only non-404 routes counted), <strong>104 MySQL tables</strong>,
           <strong>20 journey statuses</strong>, <strong>12 user roles</strong>,
           <strong>78 typed real-time message kinds</strong>. The full route table ships in the
           Request/Response package (<code>endpoints.md</code>).
@@ -459,7 +465,7 @@
 
       <h3>1.4 References</h3>
       <ul>
-        <li>API Endpoint Inventory — 204 routes / 285 operations, probe-validated (Request/Response package).</li>
+        <li>API Endpoint Inventory — 208 routes / 289 operations, probe-validated (Request/Response package).</li>
         <li>API System &amp; Architecture Design Document (SDD) — companion document of this package.</li>
         <li>API Technical Specifications (TDD/LLD) package — conventions, data model, status machine, socket protocol.</li>
         <li>Request/Response package — six live request/response captures (redacted).</li>
@@ -473,7 +479,7 @@
       <h3>2.1 Product perspective</h3>
       <p>
         The system is a self-contained backend service executed under PM2 behind an Nginx TLS
-        terminator. It persists data in MySQL (103 tables), uses Redis for caching and for
+        terminator. It persists data in MySQL (104 tables), uses Redis for caching and for
         scaling Socket.IO across nodes, and integrates outboundly with SMS, e-mail, push and
         payment services. It is the single authority for all business state of the platform:
         clients render, the server decides.
@@ -515,7 +521,8 @@
       <h3>2.4 Constraints</h3>
       <ul>
         <li>All traffic over TLS; JSON bodies (1 MB limit), multipart only for uploads.</li>
-        <li>JWT lifetime fixed at 24 hours; no refresh-token endpoint in v1.0.0.</li>
+        <li>JWT lifetime fixed at 24 hours; no refresh-token endpoint in v1.0.0; every
+          token is bound to a revocable server-side session.</li>
         <li>Personal data (names, phones, e-mail, GPS traces) processed under access control;
           production error responses must never expose stack traces.</li>
         <li>Status transitions and financial postings must be transactional and audited.</li>
@@ -546,11 +553,12 @@
         <tbody>
           <tr><td>FR-01.1</td><td>The system shall allow self-registration with name, phone, e-mail and password, creating the user, credential and role-mapping records. <code>POST /api/user/createUser</code></td><td>M</td></tr>
           <tr><td>FR-01.2</td><td>The system shall verify e-mail and phone ownership via OTP delivered by e-mail/SMS, with resend and “wrong e-mail” reporting. <code>/api/user/verify-email</code>, <code>/api/user/verify-phone</code>, <code>/api/user/report-wrong-email</code></td><td>M</td></tr>
-          <tr><td>FR-01.3</td><td>The system shall authenticate by password hash and complete login with a second-factor OTP, issuing a signed JWT of 24 hours. <code>POST /api/user/loginUser</code>, <code>POST /api/user/verifyUserByOTP</code></td><td>M</td></tr>
-          <tr><td>FR-01.4</td><td>The system shall reject calls to protected endpoints without a valid bearer token with <code>401</code>. Exactly 17 of 285 operations are public (listed in §4.1).</td><td>M</td></tr>
+          <tr><td>FR-01.3</td><td>The system shall authenticate by password hash and complete login with a second-factor OTP, issuing a signed JWT of 24 hours bound to a server-side session. <code>POST /api/user/loginUser</code>, <code>POST /api/user/verifyUserByOTP</code></td><td>M</td></tr>
+          <tr><td>FR-01.4</td><td>The system shall reject calls to protected endpoints without a valid bearer token with <code>401</code>. Exactly 17 of 289 operations are public (listed in §4.1).</td><td>M</td></tr>
           <tr><td>FR-01.5</td><td>The system shall authorize actions by role (12 roles), by ownership and by company scope, denying with <code>401/403</code>.</td><td>M</td></tr>
-          <tr><td>FR-01.6</td><td>The system shall support logout and forced logout on phone change (typed notification <code>force_logout_phone_change</code>). <code>POST /api/user/logout</code></td><td>M</td></tr>
+          <tr><td>FR-01.6</td><td>The system shall support logout and forced logout on phone change (typed notification <code>force_logout_phone_change</code>), revoking the affected server-side session(s) immediately. <code>POST /api/user/logout</code></td><td>M</td></tr>
           <tr><td>FR-01.7</td><td>The system shall track per-role account status (active/suspended) with full history, so a suspension takes effect without deleting the user.</td><td>H</td></tr>
+          <tr><td>FR-01.8</td><td>The system shall record each login as a device session (platform, device, version, locale, IP, first/last seen, expiry) and reject any token whose session is revoked or expired with <code>401 Invalid token</code>. Users may list devices, revoke one, or revoke all others; administrators may revoke all sessions of a user. <code>GET /api/user/sessions</code>, <code>DELETE /api/user/sessions/:sessionUniqueId</code>, <code>DELETE /api/user/sessions</code>, <code>DELETE /api/admin/users/:userUniqueId/sessions</code></td><td>M</td></tr>
         </tbody>
       </table>
 
@@ -676,7 +684,7 @@
 
       <h3>4.1 REST API — IR-01</h3>
       <ul>
-        <li><strong>Volume:</strong> 204 distinct routes / 285 operations in 27 groups
+        <li><strong>Volume:</strong> 208 distinct routes / 289 operations in 27 groups
           (<code>/api/user</code>, <code>/api/company</code>, <code>/api/finance</code>,
           <code>/api/queue…</code>, <code>/api/admin</code>, <code>/api/vehicle</code>, plus
           root-mounted utility routes). The full table with an auth column per route ships as
@@ -741,8 +749,8 @@
     <section>
       <h1>5. Data requirements</h1>
       <ul>
-        <li><strong>103 MySQL tables</strong> grouped as: identity (users, credentials,
-          roles, OTP, devices), transport core (requests, batches, driver requests/bids,
+        <li><strong>104 MySQL tables</strong> grouped as: identity (users, credentials,
+          roles, OTP, devices, sessions), transport core (requests, batches, driver requests/bids,
           journeys, decisions, statuses, route points, cancellations, POD), companies and
           fleet, dispatch queue, bidding/assignment, finance (deposits, balances,
           commissions, tariffs), documents, delinquency/governance, ratings, subscriptions
@@ -775,7 +783,7 @@
       <table class="grid">
         <thead><tr><th style="width: 10%">ID</th><th style="width: 20%">Category</th><th>Requirement</th></tr></thead>
         <tbody>
-          <tr><td>NFR-01</td><td>Security</td><td>bcrypt password hashing; JWT with 24 h expiry; helmet headers; explicit CORS allow-list; CSRF origin checks for cookie sessions; rate limiting; bot/UA blocking; parameterized SQL; fail-closed production boot checks; secrets in environment only; masked 5xx in production.</td></tr>
+          <tr><td>NFR-01</td><td>Security</td><td>bcrypt password hashing; JWT with 24 h expiry bound to a revocable server-side session; helmet headers; explicit CORS allow-list; CSRF origin checks for cookie sessions; rate limiting; bot/UA blocking; parameterized SQL; fail-closed production boot checks; secrets in environment only; masked 5xx in production.</td></tr>
           <tr><td>NFR-02</td><td>Performance</td><td>Paged list endpoints on indexed sort keys (connected-first ordering via an EXISTS subquery); Redis cache for hot reads; pooled MySQL connections; 1 MB body cap.</td></tr>
           <tr><td>NFR-03</td><td>Scalability</td><td>Stateless REST (JWT) allows horizontal scaling; Socket.IO Redis adapter keeps rooms consistent across nodes; PM2 cluster-capable.</td></tr>
           <tr><td>NFR-04</td><td>Availability</td><td>Health endpoints for liveness/readiness; supervised PM2 restarts; graceful degradation — Redis adapter failures fall back to single-server mode, socket errors never crash the process.</td></tr>
@@ -867,7 +875,7 @@
       </div>
 
       <h1>Appendix A — glossary of acronyms</h1>
-      <table class="grid">
+      <table class="grid glossary">
         <thead><tr><th style="width: 18%">Acronym</th><th>Expansion</th></tr></thead>
         <tbody>
           <tr><td>API</td><td>Application Programming Interface</td></tr>
@@ -885,6 +893,7 @@
           <tr><td>PM2</td><td>Node.js process manager</td></tr>
           <tr><td>REST</td><td>Representational State Transfer</td></tr>
           <tr><td>SDD / SRS / TDD</td><td>System Design Description / Software Requirements Specification / Technical Design Document</td></tr>
+          <tr><td>Session</td><td>Server-side login record whose identifier (<code>sid</code>) is carried in the JWT and whose revocation signs that device out</td></tr>
           <tr><td>TLS</td><td>Transport Layer Security</td></tr>
           <tr><td>WSS</td><td>WebSocket Secure</td></tr>
         </tbody>

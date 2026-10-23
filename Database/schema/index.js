@@ -33,4 +33,5 @@ module.exports = [
   require("./19_driver_bid"),
   require("./20_queue"),
   require("./21_delivery"),
+  require("./22_sessions"),
 ];

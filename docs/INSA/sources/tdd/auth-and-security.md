@@ -5,12 +5,12 @@ Transport Management System API v1.0.0.
 ## 1. Authentication flow
 
 ```
-register ──> verify email/phone ──> login (password) ──> OTP verification ──> JWT (24h)
-   │                                                                      │
-   └────────────────────  POST /api/user/createUser                       │
-         GET/POST /api/user/verify-email, /verify-phone                   │
-         POST /api/user/loginUser  ── returns OTP by SMS/email            │
-         POST /api/user/verifyUserByOTP ── returns token  <───────────────┘
+register ──> verify email/phone ──> login (password) ──> OTP verification ──> UserSessions row ──> JWT (24h, carries sid)
+   │                                                                                          │
+   └────────────────────  POST /api/user/createUser                                           │
+         GET/POST /api/user/verify-email, /verify-phone                                       │
+         POST /api/user/loginUser  ── returns OTP by SMS/email                                │
+         POST /api/user/verifyUserByOTP ── creates the session and returns token  <───────────┘
 ```
 
 1. **Registration** — `POST /api/user/createUser` creates the `Users` row and a
@@ -21,9 +21,18 @@ register ──> verify email/phone ──> login (password) ──> OTP verific
    e-mail (nodemailer) or SMS (`SMSSender` routes).
 3. **Login** — `POST /api/user/loginUser` verifies the bcrypt/argon password
    hash and dispatches an OTP (test mode returns `101010`).
-4. **OTP verification** — `POST /api/user/verifyUserByOTP` validates the OTP and
-   issues the JWT.
-5. **Logout** — `POST /api/user/logout` (invalidates the client session/token).
+4. **OTP verification** — `POST /api/user/verifyUserByOTP` validates the OTP,
+   inserts one `UserSessions` row for the device (platform, app version, locale,
+   IP, first/last-seen timestamps) and issues a JWT whose `sid` claim is that
+   row's `sessionUniqueId`. The same happens on the phone/email verification and
+   self-update login paths.
+5. **Logout** — `POST /api/user/logout` revokes the `UserSessions` row named by
+   the token's `sid` and clears the auth cookie. Logout is idempotent: an
+   already-revoked or malformed token still clears the cookie and returns `200`.
+6. **Forced logout** — a phone-number change revokes every session of that user
+   and emits the typed notification `force_logout_phone_change`. Administrators
+   can revoke all sessions of a user with
+   `DELETE /api/admin/users/:userUniqueId/sessions`.
 
 ## 2. JWT
 
@@ -36,6 +45,7 @@ register ──> verify email/phone ──> login (password) ──> OTP verific
   "fullName": "…",
   "phoneNumber": "+251…",
   "roleId": 1,
+  "sid": "<UserSessions.sessionUniqueId>",
   "iat": 1640995200,
   "exp": 1641081600
 }
@@ -44,7 +54,10 @@ register ──> verify email/phone ──> login (password) ──> OTP verific
 - Sent as `Authorization: Bearer <token>` on every protected call.
 - Verification: `Middleware/VerifyToken.js` (`verifyTokenOfAxios`, plus
   `jwtOrApiKey` variants that also accept an `x-api-key` for E2E bootstrapping).
-- Failure modes: missing/invalid token →
+  Every verified token must also resolve to a **live** `UserSessions` row:
+  a token without `sid`, or whose session is revoked/expired, is rejected.
+  Last-seen timestamps are refreshed at most once per hour per session.
+- Failure modes: missing/invalid/revoked token →
   `401 { "status":"fail", "message":"Invalid token", … }`; expired token →
   `401` with an expiry message.
 
@@ -73,7 +86,7 @@ Additional access layers:
 
 ## 4. Public surface (no token)
 
-17 of 285 operations are public (probe-verified, see `endpoints.md` [P] rows):
+17 of 289 operations are public (probe-verified, see `endpoints.md` [P] rows):
 registration/verification/login/OTP/logout, `GET /api/health`,
 `GET /api/health/database`, the SantimPay webhook
 (`POST /api/finance/userDeposit/santimPay/webhook`), and a small set of
@@ -124,8 +137,48 @@ commented out in source and must be network-restricted, `POST /api/admin/userRol
 - **File upload hygiene** — Multer limits + Sharp re-encoding of images,
   document type checks (`CheckDocumentTypeExists`, `CheckDuplicateDocuments`).
 
-## 8. Client storage guidance
+## 8. Session registry and device management
 
-- Web: `localStorage.authToken`, sent as `Authorization: Bearer`.
-- React Native: `AsyncStorage.authToken`.
+`UserSessions` is the server-side source of truth for "who is still signed in".
+
+| Column | Purpose |
+|---|---|
+| `sessionUniqueId` | UUID placed in the JWT as `sid`; the revocation handle |
+| `userUniqueId` | Owner (`ON DELETE CASCADE` from `Users`) |
+| `platform`, `deviceName`, `deviceModel`, `appVersion`, `locale` | Device label shown in the UI, filled from `X-Client-*` headers |
+| `ipAddress`, `userAgent` | Audit metadata captured at creation |
+| `sessionCreatedAt`, `lastSeenAt`, `sessionUpdatedAt` | First login, throttled activity touch, row update time |
+| `expiresAt`, `revokedAt`, `revokeReason` | Expiry and explicit revocation audit trail |
+
+Rules:
+
+- One row per successful login (SMS verification-link tokens are deliberately
+  **not** given a session: they are single-purpose links, not logins).
+- A token is valid only while its row is unrevoked and unexpired. This makes
+  logout and remote device revocation take effect immediately, without waiting
+  for the JWT's 24-hour expiry. Revoking a row also disconnects any live
+  WebSocket bound to it (`session:<sessionUniqueId>` room), and a revoked token
+  is rejected at the next socket handshake.
+- Self-service endpoints (JWT required):
+  - `GET /api/user/sessions` — active devices; each item has `current: true`
+    for the caller's own session.
+  - `DELETE /api/user/sessions/:sessionUniqueId` — revoke one device. Revoking
+    the current session also clears the cookie (it is a logout).
+  - `DELETE /api/user/sessions?keepCurrent=true` — revoke every other device;
+    `keepCurrent=false` signs this device out too.
+- A retention job (`Services/Session/cleanup.service.js`) deletes expired and
+  revoked rows older than the retention window, so the table does not grow
+  without bound.
+- Rollout note: tokens minted before the registry existed have no `sid` and are
+  rejected. Existing users therefore sign in once after deployment; this is
+  intentional and is what guarantees old tokens can no longer be replayed.
+
+## 9. Client storage guidance
+
+- Web (`queadmin`, `transportAdmin`, `transportCompany`): the JWT is kept in an
+  **httpOnly cookie**; `withCredentials` is enabled and JavaScript never reads
+  the token. Active devices are managed from Settings.
+- React Native (driver, shipper): JWT in the platform Keychain/Keystore via the
+  secure-storage wrapper, sent as `Authorization: Bearer`. Device metadata
+  travels in `X-Client-Platform`, `X-Client-Version` and `X-Client-Locale`.
 - Refresh: re-login (no refresh-token endpoint in v1.0.0; token lifetime 24h).

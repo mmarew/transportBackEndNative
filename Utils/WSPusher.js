@@ -4,6 +4,7 @@ const verifyToken = require("../Middleware/VerifyToken");
 const verifyPassword = require("./VerifyPassword");
 const { emitMessage, sendError } = require("./WsServerResponder");
 const { setSocket } = require("./WsConnectionStore");
+const { joinSessionRoom } = require("./SessionSocket");
 const { getShipperJourneyStatus } = require("../Services/ShipperRequest");
 const { getDriverJourneyStatus } = require("../Services/DriverRequest");
 const messageTypes = require("./MessageTypes");
@@ -109,6 +110,12 @@ async function WSPusher({ socket }) {
     await setSocket(user, cleanedPhoneNumber, socketId);
     socket.userType = user;
     socket.identifier = cleanedPhoneNumber;
+
+    // Bind the live channel to its server-side session so revoking that session
+    // (logout, device revoke, admin force sign-out, phone change) can close
+    // this socket immediately instead of waiting for the next HTTP request.
+    socket.sessionUniqueId = tokenValidation.sessionUniqueId;
+    joinSessionRoom(socket, tokenValidation.sessionUniqueId);
 
     // Replay the driver's last known position(s) to a shipper that just
     // connected/reconnected so the map shows the truck immediately (no waiting

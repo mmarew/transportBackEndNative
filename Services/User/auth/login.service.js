@@ -123,7 +123,7 @@ const handleExistingUser = async ({
     phoneVerificationOTP: hashedPhoneVerificationOTP,
     emailVerificationOTP: hashedEmailVerificationOTP,
     sharedOTP: hashedOTP,
-    // OTP hardening: the6-digit code carries a short TTL and a fresh
+    // OTP hardening: the 6-digit code carries a short TTL and a fresh
     // failed-attempt counter (enforced in otp.service.js verifyUserByOTP).
     loginOtpExpiresAt: addMinutes(currentDate(), DOMAIN.LOGIN_OTP_TTL_MINUTES),
     loginOtpAttempts: 0,

@@ -41,14 +41,14 @@ docs/INSA/
     │   └── journey.mmd / .svg            journey status machine (SRS Fig 7.1, SDD Fig 4.1)
     ├── request-response/
     │   ├── README.md                     how to read the captures
-    │   ├── endpoints.md                  204 routes / 285 operations, probe-validated
+    │   ├── endpoints.md                  208 routes / 289 operations, probe-validated
     │   └── examples/                     6 real captured request/response files (JSON)
     └── tdd/
         ├── README.md                     document index
         ├── endpoints.md                  same validated inventory
         ├── api-conventions.md            envelope, errors, pagination, validation
         ├── auth-and-security.md          JWT, OTP, middleware stack
-        ├── data-model.md                 103 tables, core entities, relations
+        ├── data-model.md                 104 tables, core entities, relations
         ├── journey-status-machine.md     20 statuses + transition rules
         ├── socket-events.md              WebSocket protocol
         └── examples/                     shared capture set (same as request-response)

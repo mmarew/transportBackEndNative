@@ -14,6 +14,11 @@ const { saveLastLocation } = require("../Utils/LastLocationStore");
 const messageTypes = require("../Utils/MessageTypes");
 
 const logger = require("../Utils/logger");
+
+// Give an authentication error packet time to reach the client before the
+// transport is closed. Without this, a rejected handshake (revoked token,
+// missing token) would keep an unauthenticated socket connected.
+const WS_AUTH_REJECT_CLOSE_MS = 250;
 const { getShipperRequestByRequestUniqueId } = require("../CRUD/Read/ReadData");
 
 async function initSocket({ httpServer }) {
@@ -226,15 +231,27 @@ async function initSocket({ httpServer }) {
     });
 
     // Initialize socket with authentication
-    WSPusher({ io, socket }).catch((error) => {
-      logger.application.apiError(error, {
-        originalUrl: "WebSocket:WSPusher",
-        method: "WS",
-        ip: socket.handshake.address,
+    WSPusher({ io, socket })
+      .then(() => {
+        // WSPusher reports auth failures with sendError() and returns without
+        // registering the socket (no userType). Close it once the error packet
+        // has had a chance to arrive, so revoked/absent tokens cannot hold an
+        // unauthenticated realtime channel open.
+        if (!socket.userType) {
+          setTimeout(() => socket.disconnect(true), WS_AUTH_REJECT_CLOSE_MS);
+          return null;
+        }
+        return socket;
+      })
+      .catch((error) => {
+        logger.application.apiError(error, {
+          originalUrl: "WebSocket:WSPusher",
+          method: "WS",
+          ip: socket.handshake.address,
+        });
+        sendError(socket, error, "WS_INIT_FAILED");
+        socket.disconnect();
       });
-      sendError(socket, error, "WS_INIT_FAILED");
-      socket.disconnect();
-    });
 
     socket.on("message", (msg) => {
       logger.debug("Socket message received", { msg });

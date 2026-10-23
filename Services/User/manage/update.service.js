@@ -25,6 +25,7 @@ const {
   usersRolesList
 } = require("../../../Utils/ListOfSeedData");
 const createJWT = require("../../../Utils/CreateJWT");
+const { createSession } = require("../../../Utils/SessionRegistry");
 const {
   isPlaceholderEmail,
   getPlaceholderEmail
@@ -38,7 +39,7 @@ const {
   recordUserProfileChanges
 } = require("../../../Utils/UserProfileHistory");
 
-const updateUser = async body => {
+const updateUser = async (body, clientMeta = {}) => {
   const {
     userUniqueId,
     fullName,
@@ -259,7 +260,21 @@ const updateUser = async body => {
     effectiveRoleId = roles?.[0]?.roleId;
   }
 
-  // Create new token with updated information
+  // Create new token with updated information.
+  //
+  // A phone change leaves the NEW number unverified, and the controller throws
+  // this token away in that case; creating a session for it would leave an
+  // unusable row behind. Only mint a session when the returned token can
+  // actually authenticate.
+  let sessionUniqueId;
+  if (effectiveRoleId && updatedUser?.isPhoneVerified) {
+    ({ sessionUniqueId } = await createSession({
+      userUniqueId,
+      roleId: effectiveRoleId,
+      ...clientMeta,
+    }));
+  }
+
   const tokenData = createJWT({
     userUniqueId,
     fullName: fullName || updatedUser?.fullName,
@@ -268,7 +283,8 @@ const updateUser = async body => {
     roleId: effectiveRoleId,
     statusId: statusId || updatedUser?.statusId,
     isPhoneVerified: !!updatedUser?.isPhoneVerified,
-    isEmailVerified: !!updatedUser?.isEmailVerified
+    isEmailVerified: !!updatedUser?.isEmailVerified,
+    sessionUniqueId
   });
   if (tokenData.message === "error") {
     throw new AppError(tokenData.error || "Token creation failed", AppError.INTERNAL_SERVER_ERROR);

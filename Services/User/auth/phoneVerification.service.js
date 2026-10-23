@@ -4,6 +4,7 @@ const Config = require("../../../Utils/Config");
 const jwt = require("jsonwebtoken");
 
 const createJWT = require("../../../Utils/CreateJWT");
+const { createSession } = require("../../../Utils/SessionRegistry");
 
 
 
@@ -64,7 +65,7 @@ const generatePhoneVerificationToken = (userUniqueId, phoneNumber) => {
  *
  * @param {string} token - The signed JWT from the SMS link.
  */
-const verifyPhoneByToken = async token => {
+const verifyPhoneByToken = async (token, clientMeta = {}) => {
   if (!token) {
     throw new AppError("Verification token is required", AppError.BAD_REQUEST);
   }
@@ -119,9 +120,14 @@ const verifyPhoneByToken = async token => {
       throw new AppError("User not found after verification", AppError.NOT_FOUND);
     }
     const userData = userDataRows[0];
+    const { sessionUniqueId } = await createSession({
+      userUniqueId: userData.userUniqueId,
+      roleId: userData.roleId,
+      ...clientMeta,
+    });
     const {
       token: loginToken
-    } = createJWT(userData);
+    } = createJWT({ ...userData, sessionUniqueId });
     return {
       message: "Phone verified",
       data: {

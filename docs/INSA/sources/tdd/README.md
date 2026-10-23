@@ -7,10 +7,10 @@ API v1.0.0** (Node.js 20+ / Express 5 / MySQL / Redis / Socket.IO).
 
 | Document | Contents |
 |---|---|
-| [`endpoints.md`](endpoints.md) | Complete route inventory — **204 routes / 285 operations**, probe-validated, auth column per route |
+| [`endpoints.md`](endpoints.md) | Complete route inventory — **208 routes / 289 operations**, probe-validated, auth column per route |
 | [`api-conventions.md`](api-conventions.md) | Transport, success/error envelopes, validation (Joi), pagination & sorting, identifiers, rate limits, idempotency |
 | [`auth-and-security.md`](auth-and-security.md) | Registration → OTP → JWT flow, 12 roles, public surface, request pipeline, hardening (helmet/CORS/CSRF/limits/fail-closed checks) |
-| [`data-model.md`](data-model.md) | **103 MySQL tables** grouped by domain, key relations, naming/audit conventions |
+| [`data-model.md`](data-model.md) | **104 MySQL tables** grouped by domain, key relations, naming/audit conventions |
 | [`journey-status-machine.md`](journey-status-machine.md) | The 20 journey statuses, status classes, individual/company flows, reconciliation rules |
 | [`socket-events.md`](socket-events.md) | Socket.IO protocol: handshake auth, queue rooms, location + notification events |
 | [`examples/`](examples/) | Six live-captured request/response examples (redacted) |

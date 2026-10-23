@@ -13,7 +13,7 @@ Transport Management System API v1.0.0 — cross-cutting technical conventions.
 - Content type: `application/json; charset=utf-8` for request and response bodies.
   File upload endpoints accept `multipart/form-data`.
 - Server runtime: Node.js >= 20, Express 5, PM2 process manager.
-- Full route table: [`endpoints.md`](endpoints.md) (204 routes / 285 operations).
+- Full route table: [`endpoints.md`](endpoints.md) (208 routes / 289 operations).
 
 ## 2. Success envelope
 

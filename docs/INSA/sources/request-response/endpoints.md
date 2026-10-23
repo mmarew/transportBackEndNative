@@ -2,7 +2,7 @@
 
 **Transport Management System API v1.0.0** — complete route inventory.
 
-**204 routes / 285 operations**, extracted from the source routers and **validated against the running server**: every route below answered a live preflight probe (routes that answered `404` were discarded).
+**208 routes / 289 operations**, extracted from the source routers and **validated against the running server**: every route below answered a live preflight probe (routes that answered `404` were discarded).
 
 Auth column:
 
@@ -18,7 +18,7 @@ Auth column:
 | `/ (root)` | 8 | 12 |
 | `/api/RoleDocumentRequirements` | 2 | 4 |
 | `/api/account` | 1 | 1 |
-| `/api/admin` | 38 | 52 |
+| `/api/admin` | 39 | 53 |
 | `/api/company` | 26 | 37 |
 | `/api/companyAdmin` | 1 | 1 |
 | `/api/deliveryConfirmations` | 5 | 7 |
@@ -36,14 +36,14 @@ Auth column:
 | `/api/shipperRequest` | 8 | 9 |
 | `/api/shipperRequestBatch` | 5 | 6 |
 | `/api/shippingRequest` | 2 | 2 |
-| `/api/user` | 27 | 30 |
+| `/api/user` | 30 | 33 |
 | `/api/utils` | 1 | 1 |
 | `/api/vehicle` | 3 | 3 |
 | `/api/vehicleDriver` | 2 | 4 |
 | `/api/vehicleStatus` | 2 | 4 |
 | `/api/vehicles` | 1 | 1 |
 
-**Total:** 204 routes / 285 operations — 268 authenticated, 17 public.
+**Total:** 208 routes / 289 operations — 272 authenticated, 17 public.
 
 ## `/ (root)`
 
@@ -117,6 +117,7 @@ Auth column:
 | PUT | `/api/admin/tariffRateForVehicleType/:tariffRateForVehicleTypeUniqueId` | A |
 | PUT | `/api/admin/updateTable/:tableName` | A |
 | DELETE | `/api/admin/userRole/:userRoleUniqueId` | A |
+| DELETE | `/api/admin/users/:userUniqueId/sessions` | A |
 | PUT | `/api/admin/userRole/:userRoleUniqueId` | A |
 | POST | `/api/admin/userRole/create` | A |
 | GET | `/api/admin/userRole/filter` | A |
@@ -410,6 +411,9 @@ Auth column:
 | GET | `/api/user/getShipperRequest4allOrSingleUser` | A |
 | POST | `/api/user/loginUser` | P |
 | POST | `/api/user/logout` | P |
+| GET | `/api/user/sessions` | A |
+| DELETE | `/api/user/sessions` | A |
+| DELETE | `/api/user/sessions/:sessionUniqueId` | A |
 | PUT | `/api/user/rejectDriverOffer` | A |
 | GET | `/api/user/report-wrong-email` | P |
 | GET | `/api/user/self` | A |

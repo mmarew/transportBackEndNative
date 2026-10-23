@@ -291,7 +291,7 @@
         <tr>
           <td>System</td>
           <td>
-            Freight/transport management backend — 204 routes / 285 operations, 103 database
+            Freight/transport management backend — 208 routes / 289 operations, 104 database
             tables, 20-state journey machine, Socket.IO real-time layer
           </td>
         </tr>
@@ -460,7 +460,7 @@ Express pipeline (Config/Express.config.js)
   ├─ express.json (1 MB) · urlencoded · scannerBlock
   ├─ static /uploads · /Assets
   ├─ Routes/index.js ──▶ /api/&lt;segment&gt; routers
-  │     ├─ VerifyToken (JWT) · Joi Validator · role/ownership guards
+  │     ├─ VerifyToken (JWT + live session) · Joi Validator · role/ownership guards
   │     ├─ Controller ──▶ exactly one Service ──▶ ServerResponder
   │     └─ Service ──▶ transactions · history · notifications ──▶ CRUD ──▶ MySQL
   ├─ globalErrorHandler (AppError → envelope, dev/prod rendering)
@@ -473,7 +473,7 @@ Express pipeline (Config/Express.config.js)
       <table class="grid">
         <thead><tr><th style="width: 30%">Subsystem</th><th>Responsibility</th></tr></thead>
         <tbody>
-          <tr><td>Identity &amp; auth</td><td>Registration, OTP verification, JWT issue/verify, 12 roles, per-role status.</td></tr>
+          <tr><td>Identity &amp; auth</td><td>Registration, OTP verification, JWT issue/verify bound to a revocable device session, 12 roles, per-role status.</td></tr>
           <tr><td>Shipper request lifecycle</td><td>Create/list/update/cancel, status machine, reconciliation, batch flows.</td></tr>
           <tr><td>Dispatch — individual</td><td>Driver offers, bids, accept/reject/no-answer, shipper selection.</td></tr>
           <tr><td>Dispatch — company</td><td>Company bids, vehicle-slot assignments, driver replacement, bulk/auto assign.</td></tr>
@@ -639,7 +639,7 @@ docs/              product and API documentation (this package)</pre>
     <section>
       <h1>5. Data architecture</h1>
       <ul>
-        <li><strong>103 tables</strong> in domain groups: identity, transport core,
+        <li><strong>104 tables</strong> in domain groups: identity, transport core,
           companies/fleet, queue, bidding, finance, documents, delinquency, ratings,
           subscriptions, reference data — detailed in the TDD package
           (<code>data-model.md</code>).</li>
@@ -649,6 +649,10 @@ docs/              product and API documentation (this package)</pre>
           <code>journeyStatusId</code> → <code>JourneyStatus</code>.</li>
         <li><strong>Keys:</strong> UUID business keys (<code>*UniqueId</code>, indexed) in
           routes and payloads; numeric surrogate ids for status maps and joins.</li>
+        <li><strong>Sessions:</strong> <code>UserSessions</code> holds one row per login
+          (device metadata, IP, first/last seen, expiry and revocation reason); its
+          <code>sessionUniqueId</code> is the JWT's <code>sid</code>, giving per-device
+          revocation and a device-management API.</li>
         <li><strong>Audit:</strong> paired <code>*History</code> tables written through
           <code>insertHistoryRecord</code>; soft delete via <code>*DeletedAt</code>;
           append-only history.</li>
@@ -672,7 +676,7 @@ docs/              product and API documentation (this package)</pre>
 
       <h1>6. API design</h1>
       <ul>
-        <li><strong>Surface:</strong> 204 routes / 285 operations in 27 groups; path
+        <li><strong>Surface:</strong> 208 routes / 289 operations in 27 groups; path
           constants centralised in <code>Routes/EndPoints/*.js</code>; the mount table lives
           in <code>Routes/index.js</code> (plus nested finance/company/queue/auth routers).
           The complete inventory with auth labels ships as <code>endpoints.md</code>.</li>
@@ -682,7 +686,9 @@ docs/              product and API documentation (this package)</pre>
         <li><strong>Auth:</strong> <code>Bearer &lt;JWT&gt;</code>; 17 public operations
           (auth/registration, health, payment webhook, maintenance);
           <code>jwtOrApiKey</code> variant accepts <code>x-api-key</code> for E2E
-          bootstrapping on DB endpoints.</li>
+          bootstrapping on DB endpoints. Each token carries a session id (<code>sid</code>)
+          that must match a live <code>UserSessions</code> row, so logout, device
+          revocation and admin-forced sign-out are immediate.</li>
         <li><strong>Validation:</strong> Joi per route; <strong>pagination:</strong>
           <code>page/limit/sortBy/sortOrder</code>; <strong>limits:</strong> global + auth
           rate limiters; 1 MB body cap.</li>
@@ -747,7 +753,7 @@ client C ── socket.io ──▶ node-1 ──┘        │
         <thead><tr><th style="width: 26%">Control</th><th>Implementation</th></tr></thead>
         <tbody>
           <tr><td>Transport</td><td>TLS everywhere (Nginx); WSS for sockets; HSTS at the edge.</td></tr>
-          <tr><td>Authentication</td><td>bcrypt password + OTP second factor → JWT (24 h; payload userUniqueId, phone, role, iat/exp).</td></tr>
+          <tr><td>Authentication</td><td>bcrypt password + OTP second factor → JWT (24 h; payload userUniqueId, phone, role, sid, iat/exp). VerifyToken additionally requires a live, unrevoked <code>UserSessions</code> row named by <code>sid</code>; revoking a row also closes the realtime socket bound to it.</td></tr>
           <tr><td>Authorization</td><td>Role middleware (12 roles) + ownership/company-scope guards; deny by default.</td></tr>
           <tr><td>CORS</td><td>Explicit origin allow-list with credentials; no wildcard in production.</td></tr>
           <tr><td>CSRF</td><td>Origin/Referer check for cookie-authenticated state-changing requests; bearer clients unaffected.</td></tr>
@@ -787,7 +793,7 @@ client C ── socket.io ──▶ node-1 ──┘        │
           <tr><td>Edge</td><td>Nginx TLS terminator reverse-proxying to the app; WebSocket upgrade pass-through.</td></tr>
           <tr><td>Environments</td><td>production <code>app.dynamicsroute.tech</code> · staging <code>dev.dynamicsroute.tech</code> · local (MAMP MySQL) — selected via <code>NODE_ENV</code> + env config; fail-closed checks in production.</td></tr>
           <tr><td>Configuration</td><td><code>.env</code> (DB, Redis, JWT secret, SMTP, FCM, payment keys) — 56 environment variables; not committed.</td></tr>
-          <tr><td>Data services</td><td>MySQL 8 (database <code>transport</code>, 103 tables); Redis/Upstash over TLS.</td></tr>
+          <tr><td>Data services</td><td>MySQL 8 (database <code>transport</code>, 104 tables); Redis/Upstash over TLS.</td></tr>
           <tr><td>Scaling</td><td>Stateless REST → add nodes; Socket.IO Redis adapter keeps rooms consistent; PM2 cluster-capable.</td></tr>
         </tbody>
       </table>
@@ -847,16 +853,13 @@ docs/INSA/
 └── API-Technical-Specifications-TDD-LLD.zip   upload #4</pre>
       <ul>
         <li>Diagrams: <code>mmdc -i &lt;name&gt;.mmd -o &lt;name&gt;.svg -w 1600</code>
-          (mermaid-cli; falls back to the system Chrome via
-          <code>PUPPETEER_EXECUTABLE_PATH</code>).</li>
+          (mermaid-cli; falls back to the system Chrome).</li>
         <li>PDFs: headless Chrome
-          <code>--headless --print-to-pdf --no-pdf-header-footer</code> over the HTML
-          sources; PDF Title metadata comes from the HTML <code>&lt;title&gt;</code>.</li>
-        <li>ZIPs: plain <code>zip -qr</code> over the source folders (inventory +
-          captures / TDD documents + captures).</li>
+          <code>--headless --print-to-pdf --no-pdf-header-footer</code>; Title metadata
+          comes from the HTML <code>&lt;title&gt;</code>.</li>
+        <li>ZIPs: plain <code>zip -qr</code> over the source folders.</li>
         <li>Verification: <code>pdfinfo</code>, <code>pdftotext</code>,
-          <code>unzip -t</code>, PII scan over the source tree (see the package README
-          checklist).</li>
+          <code>unzip -t</code>, PII scan (see the package README checklist).</li>
       </ul>
 
       <p style="margin-top: 8mm; font-size: 8.4pt; color: var(--muted)">

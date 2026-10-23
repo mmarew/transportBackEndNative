@@ -41,13 +41,13 @@ Scope and functions:
 
 Technical profile:
 - Architecture: Node.js 20+ / Express 5 REST API with MySQL (mysql2) persistence
-  (103 tables), Redis for caching and Socket.IO scaling, Firebase Cloud Messaging
+  (104 tables), Redis for caching and Socket.IO scaling, Firebase Cloud Messaging
   for push notifications.
 - Security: bcrypt/argon password hashing, JWT bearer auth with fail-closed
   production safety checks, OTP flows, CORS allow-list, CSRF origin checks for
   cookie sessions, request rate limiting (global + per-auth-route), scanner-bot
   blocking, request validation (Joi), stack traces masked in production.
-- API surface: 204 distinct routes / 285 operations; 17 public endpoints
+- API surface: 208 distinct routes / 289 operations; 17 public endpoints
   (registration, login, OTP, health, payment webhook), all others JWT-protected.
 - Environments: production https://app.dynamicsroute.tech, staging
   https://dev.dynamicsroute.tech; deployed under PM2 behind Nginx with HTTPS.

@@ -18,6 +18,10 @@ const {
   loginUser,
   verifyUserByOTP,
 } = require("../../Validations/User.schema");
+const {
+  sessionUniqueIdParams,
+  revokeAllSessionsQuery,
+} = require("../../Validations/Session.schema");
 const { AUTH_ENDPOINTS } = require("../EndPoints/auth.endpoints");
 
 const router = express.Router();
@@ -83,8 +87,28 @@ router.get(AUTH_ENDPOINTS.VERIFY_PHONE, controller.verifyPhone);
 router.post(AUTH_ENDPOINTS.VERIFY_PHONE, controller.verifyPhone);
 router.get(AUTH_ENDPOINTS.REPORT_WRONG_EMAIL, controller.reportWrongEmail);
 
-// Logout — clears the httpOnly session cookie (works for web + mobile).
+// Logout — revokes the server-side session and clears the httpOnly cookie
+// (works for web + mobile).
 router.post(AUTH_ENDPOINTS.LOGOUT, controller.logoutUser);
+
+// Active devices — list and revoke server-side sessions.
+router.get(
+  AUTH_ENDPOINTS.LIST_SESSIONS,
+  verifyTokenOfAxios,
+  controller.listSessions,
+);
+router.delete(
+  AUTH_ENDPOINTS.REVOKE_SESSION,
+  verifyTokenOfAxios,
+  validator(sessionUniqueIdParams, "params"),
+  controller.revokeSession,
+);
+router.delete(
+  AUTH_ENDPOINTS.REVOKE_ALL_SESSIONS,
+  verifyTokenOfAxios,
+  validator(revokeAllSessionsQuery, "query"),
+  controller.revokeAllUserSessions,
+);
 
 // TEST/DEV ONLY — guarded by Config.EXPOSE_VERIFICATION_LINKS (off by default)
 router.get(

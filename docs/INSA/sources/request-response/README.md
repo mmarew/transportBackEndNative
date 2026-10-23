@@ -7,7 +7,7 @@ API request/response documentation for the **Transport Management System API v1.
 
 | File | Description |
 |---|---|
-| [`endpoints.md`](endpoints.md) | Complete route inventory — **204 routes / 285 operations**, grouped by API segment, with an auth column per route |
+| [`endpoints.md`](endpoints.md) | Complete route inventory — **208 routes / 289 operations**, grouped by API segment, with an auth column per route |
 | [`examples/01-login-request-and-response.json`](examples/01-login-request-and-response.json) | `POST /api/user/loginUser` — successful login (request + response) |
 | [`examples/02-verify-otp-request-and-response.json`](examples/02-verify-otp-request-and-response.json) | `POST /api/user/verifyUserByOTP` — OTP verification issuing a JWT |
 | [`examples/03-list-shipper-requests-response.json`](examples/03-list-shipper-requests-response.json) | `GET /api/user/getShipperRequest4allOrSingleUser` — authenticated list response (first page) |

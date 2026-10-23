@@ -1,6 +1,6 @@
 # Data Model (TDD / LLD)
 
-MySQL 8 schema for the Transport Management System API — **103 tables**
+MySQL 8 schema for the Transport Management System API — **104 tables**
 (live database enumeration; naming pattern `<Entity>`, `<Entity>History` for
 audit copies). All writes use parameterized SQL via `mysql2`; multi-step writes
 run inside transactions (`Utils/DatabaseTransaction.js`).
@@ -10,11 +10,14 @@ run inside transactions (`Utils/DatabaseTransaction.js`).
 ### Identity & access
 `Users`, `usersCredential`, `UserProfileHistory`, `UserRole`,
 `UserRoleStatusCurrent`, `UserRoleStatusHistory`, `Roles`, `RolesHistory`,
-`RoleDocumentRequirements`, `DeviceTokens`, `BannedUsers`, `SMSSender`.
+`RoleDocumentRequirements`, `DeviceTokens`, `UserSessions`, `BannedUsers`,
+`SMSSender`.
 
 Core relations: `Users 1—1 usersCredential` (hashed password + contact),
 `Users 1—* UserRole 1—* Roles` (a user may hold several roles),
-`UserRole *—1 UserRoleStatusCurrent` (current active/suspended state).
+`UserRole *—1 UserRoleStatusCurrent` (current active/suspended state),
+`Users 1—* UserSessions` (one row per login/device; the JWT's `sid` points at
+it and revoking the row invalidates that device immediately).
 
 ### Transport requests & journeys (core flow)
 `ShipperRequest`, `ShipperRequestBatch`, `DriverRequest`, `DriverBid`,
