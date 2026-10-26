@@ -24,6 +24,7 @@ const {
   findActiveAssignmentForSlot,
   getAssignmentsData,
   assertAssignableVehicle,
+  assertDriverOnDuty,
 } = require("./assignmentHelper");
 
 /**
@@ -78,6 +79,11 @@ exports.createAssignment = async (data) => {
     companyUniqueId: bid.companyUniqueId,
     vehicleUniqueId,
   });
+
+  // ── Driver duty gate ─────────────────────────────────────────────────
+  // Only drivers who are ON duty (Users.driverStatusId = 1, isActive = 1)
+  // may be assigned to company jobs.
+  await assertDriverOnDuty({ driverUserUniqueId });
 
   let shipperRequestUniqueId = inputPRUniqueId;
   let sr;
@@ -276,6 +282,9 @@ exports.createBulkAssignments = async (data) => {
       companyUniqueId: bid.companyUniqueId,
       vehicleUniqueId,
     });
+
+    // ── Driver duty gate (per row) ───────────────────────────────────────
+    await assertDriverOnDuty({ driverUserUniqueId });
 
     // Check if slot belongs to the batch — uses the dedicated service function
     const sr = await getShipperRequestByUniqueId(

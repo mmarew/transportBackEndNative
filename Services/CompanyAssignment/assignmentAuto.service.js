@@ -136,10 +136,13 @@ exports.autoAssignBatch = async (data) => {
      FROM CompanyVehicle cv
      JOIN Vehicle v ON cv.vehicleUniqueId = v.vehicleUniqueId
      JOIN VehicleDriver vd ON cv.vehicleUniqueId = vd.vehicleUniqueId
+     JOIN UserRole ur ON ur.userUniqueId = vd.driverUserUniqueId AND ur.roleId = ${usersRoles.driverRoleId} AND ur.userRoleDeletedAt IS NULL
+     JOIN UserRoleStatusCurrent ursc ON ursc.userRoleId = ur.userRoleId
      WHERE cv.companyUniqueId = ?
        AND v.vehicleTypeUniqueId = ?
        AND cv.assignmentStatus = 'active' AND cv.companyVehicleDeletedAt IS NULL
        AND vd.assignmentStatus = 'active'
+       AND ursc.statusId = 1
        -- Layer 1: no active trip elsewhere
        AND NOT EXISTS (
          SELECT 1 FROM CompanyBidVehicleAssignment cba
