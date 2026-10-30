@@ -15,4 +15,5 @@ module.exports = {
   autoAssignBatch: assignmentAuto.autoAssignBatch,
   deleteAssignment: assignmentDelete.deleteAssignment,
   replaceAssignment: assignmentReplace.replaceAssignment,
+  getAssignmentAvailability: require("./assignmentAvailability.service").getAssignmentAvailability,
 };

@@ -52,6 +52,19 @@ router.post(
 );
 
 /**
+ * @route   GET /api/company/assignments/availability
+ * @query   {companyUniqueId} companyUniqueId (required)
+ * @query   {vehicleTypeUniqueId} vehicleTypeUniqueId (optional)
+ * @desc    Get fleet drivers split by free/reserved/notAssignable with status details
+ */
+router.get(
+  EP.ROUTER.AVAILABILITY,
+  mayAssignDrivers,
+  validator(schema.getAvailabilityQuery, "query"),
+  controller.getAssignmentAvailability,
+);
+
+/**
  * @route   GET /api/company/assignments
  */
 router.get(EP.ROUTER.GET_ASSIGNMENTS, validator(schema.getAssignmentsQuery, "query"), controller.getAssignments);

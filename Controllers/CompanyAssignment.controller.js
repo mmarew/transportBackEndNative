@@ -108,3 +108,18 @@ exports.replaceAssignment = async (req, res, next) => {
     next(e);
   }
 };
+
+
+exports.getAssignmentAvailability = async (req, res, next) => {
+  try {
+    ServerResponder(
+      res,
+      await service.getAssignmentAvailability({
+        ...req.query,
+        user: req.user,
+      }),
+    );
+  } catch (e) {
+    next(e);
+  }
+};

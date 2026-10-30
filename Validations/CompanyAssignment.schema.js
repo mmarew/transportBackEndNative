@@ -78,3 +78,9 @@ exports.bulkAssign = Joi.object({
 exports.autoAssign = Joi.object({
   companyBidRequestUniqueId: uuidSchema.required(),
 }).unknown(true);
+
+
+exports.getAvailabilityQuery = Joi.object({
+  companyUniqueId: uuidSchema.required(),
+  vehicleTypeUniqueId: uuidSchema.optional(),
+}).unknown(true);
