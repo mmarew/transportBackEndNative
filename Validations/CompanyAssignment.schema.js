@@ -6,16 +6,22 @@ const { PAGINATION } = require("../Utils/Constants");
 exports.createAssignment = Joi.object({
   companyBidRequestUniqueId: uuidSchema.required(),
   shipperRequestUniqueId: uuidSchema.optional(), // optional for company_target — auto-created from batch
-  vehicleUniqueId: uuidSchema.required(),
+  vehicleUniqueId: uuidSchema.optional(),
   driverUserUniqueId: uuidSchema.required(),
-}).unknown(true);
+  companyVehicleUniqueId: uuidSchema.optional(),
+})
+  .or("vehicleUniqueId", "companyVehicleUniqueId")
+  .unknown(true);
 
 // Replacement driver on an existing assignment — the old row is recalled
 // (cancelled_by_company) and this one is opened on the same slot as `reassigned`.
 exports.replaceAssignment = Joi.object({
-  vehicleUniqueId: uuidSchema.required(),
+  vehicleUniqueId: uuidSchema.optional(),
   driverUserUniqueId: uuidSchema.required(),
-}).unknown(true);
+  companyVehicleUniqueId: uuidSchema.optional(),
+})
+  .or("vehicleUniqueId", "companyVehicleUniqueId")
+  .unknown(true);
 
 exports.updateAssignmentStatus = Joi.object({
   assignmentStatus: Joi.string()
@@ -67,9 +73,11 @@ exports.bulkAssign = Joi.object({
     .items(
       Joi.object({
         shipperRequestUniqueId: uuidSchema.required(),
-        vehicleUniqueId: uuidSchema.required(),
+        vehicleUniqueId: uuidSchema.optional(),
         driverUserUniqueId: uuidSchema.required(),
-      }),
+        companyVehicleUniqueId: uuidSchema.optional(),
+      })
+        .or("vehicleUniqueId", "companyVehicleUniqueId"),
     )
     .min(1)
     .required(),

@@ -25,19 +25,29 @@ const AppError = require("../../../Utils/AppError");
  * @returns {Promise<object>} the CompanyVehicle row
  * @throws {AppError} 404 unknown vehicle, 403 other company's truck, 409 not active
  */
-const assertAssignableVehicle = async ({ companyUniqueId, vehicleUniqueId }) => {
-  if (!vehicleUniqueId) {
+const assertAssignableVehicle = async ({ companyUniqueId, vehicleUniqueId, companyVehicleUniqueId }) => {
+  const lookupId = companyVehicleUniqueId || vehicleUniqueId;
+  if (!lookupId) {
     throw new AppError("vehicleUniqueId is required", AppError.BAD_REQUEST);
   }
 
-  const [[vehicle]] = await db().query(
-    `SELECT cv.vehicleUniqueId, cv.companyUniqueId, cv.assignmentStatus,
-            cv.companyVehicleDeletedAt
-       FROM CompanyVehicle cv
-      WHERE cv.vehicleUniqueId = ?
-      LIMIT 1`,
-    [vehicleUniqueId],
-  );
+  const [[vehicle]] = companyVehicleUniqueId
+    ? await db().query(
+        `SELECT cv.vehicleUniqueId, cv.companyUniqueId, cv.assignmentStatus,
+                cv.companyVehicleDeletedAt
+           FROM CompanyVehicle cv
+          WHERE cv.companyVehicleUniqueId = ?
+          LIMIT 1`,
+        [companyVehicleUniqueId],
+      )
+    : await db().query(
+        `SELECT cv.vehicleUniqueId, cv.companyUniqueId, cv.assignmentStatus,
+                cv.companyVehicleDeletedAt
+           FROM CompanyVehicle cv
+          WHERE cv.vehicleUniqueId = ?
+          LIMIT 1`,
+        [vehicleUniqueId],
+      );
 
   if (!vehicle || vehicle.companyVehicleDeletedAt) {
     throw new AppError("Vehicle not found in any company fleet", AppError.NOT_FOUND);

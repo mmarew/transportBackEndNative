@@ -78,6 +78,7 @@ exports.createAssignment = async (data) => {
   await assertAssignableVehicle({
     companyUniqueId: bid.companyUniqueId,
     vehicleUniqueId,
+    companyVehicleUniqueId: data.companyVehicleUniqueId,
   });
 
   // ── Driver duty gate ─────────────────────────────────────────────────
@@ -272,7 +273,7 @@ exports.createBulkAssignments = async (data) => {
 
   // 3. Process each assignment in the bulk array
   for (const item of assignments) {
-    const { shipperRequestUniqueId, vehicleUniqueId, driverUserUniqueId } =
+    const { shipperRequestUniqueId, vehicleUniqueId, driverUserUniqueId, companyVehicleUniqueId } =
       item;
 
     // ── Fleet gate (per row) ────────────────────────────────────────────
@@ -281,6 +282,7 @@ exports.createBulkAssignments = async (data) => {
     await assertAssignableVehicle({
       companyUniqueId: bid.companyUniqueId,
       vehicleUniqueId,
+      companyVehicleUniqueId,
     });
 
     // ── Driver duty gate (per row) ───────────────────────────────────────

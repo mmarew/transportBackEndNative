@@ -108,6 +108,7 @@ exports.replaceAssignment = async (data) => {
   await assertAssignableVehicle({
     companyUniqueId: bid.companyUniqueId,
     vehicleUniqueId,
+    companyVehicleUniqueId: data.companyVehicleUniqueId,
   });
 
   await assertDriverNotDoubleBooked({
