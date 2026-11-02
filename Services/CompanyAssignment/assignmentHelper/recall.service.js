@@ -20,8 +20,16 @@ const TERMINAL_ASSIGNMENT_STATUSES = Object.freeze([
   "rejected_by_driver",
 ]);
 
+const DRIVER_INITIATED_TERMINAL = Object.freeze([
+  "cancelled_by_driver",
+  "rejected_by_driver",
+]);
+
 const isActiveAssignment = (assignmentStatus) =>
   !TERMINAL_ASSIGNMENT_STATUSES.includes(assignmentStatus);
+
+const isDriverInitiatedTerminal = (assignmentStatus) =>
+  DRIVER_INITIATED_TERMINAL.includes(assignmentStatus);
 
 /**
  * readAssignmentForUpdate
@@ -96,6 +104,9 @@ const readAssignmentForUpdate = async (assignmentUniqueId) => {
  */
 const recallAssignment = async ({ assignment, actorUserUniqueId }) => {
   if (!isActiveAssignment(assignment.assignmentStatus)) {
+    if (isDriverInitiatedTerminal(assignment.assignmentStatus)) {
+      return { recalled: false, alreadyTerminalByDriver: true };
+    }
     return { recalled: false };
   }
 
@@ -106,6 +117,11 @@ const recallAssignment = async ({ assignment, actorUserUniqueId }) => {
   );
 
   // 1. Assignment row → cancelled_by_company (only while it is still active)
+  //    If it's already driver-initiated, do NOT overwrite the reason.
+  if (isDriverInitiatedTerminal(assignment.assignmentStatus)) {
+    return { recalled: false, alreadyTerminalByDriver: true };
+  }
+
   const [upd] = await db().query(
     `UPDATE CompanyBidVehicleAssignment
         SET assignmentStatus = 'cancelled_by_company',
@@ -113,11 +129,19 @@ const recallAssignment = async ({ assignment, actorUserUniqueId }) => {
             assignmentUpdatedBy = ?
       WHERE assignmentUniqueId = ?
         AND assignmentDeletedAt IS NULL
-        AND assignmentStatus NOT IN (${terminalList})`,
+        AND assignmentStatus NOT IN (${terminalList})
+        AND assignmentStatus NOT IN ('cancelled_by_driver', 'rejected_by_driver')`,
     [now, actorUserUniqueId, assignment.assignmentUniqueId],
   );
   if (upd.affectedRows === 0) {
     // Someone else terminalized it between our lock and this write.
+    const [[latest]] = await db().query(
+      `SELECT assignmentStatus FROM CompanyBidVehicleAssignment WHERE assignmentUniqueId = ? AND assignmentDeletedAt IS NULL LIMIT 1`,
+      [assignment.assignmentUniqueId],
+    );
+    if (latest && isDriverInitiatedTerminal(latest.assignmentStatus)) {
+      return { recalled: false, alreadyTerminalByDriver: true };
+    }
     return { recalled: false };
   }
 
@@ -234,7 +258,9 @@ const assertRecallAccess = async (user, assignment) => {
 
 module.exports = {
   TERMINAL_ASSIGNMENT_STATUSES,
+  DRIVER_INITIATED_TERMINAL,
   isActiveAssignment,
+  isDriverInitiatedTerminal,
   readAssignmentForUpdate,
   recallAssignment,
   assertRecallAccess,

@@ -399,17 +399,7 @@ const runReplacementFlowTests = async () => {
     }
     report.pass("replacement R1: driver cancel → slot stays 4, row cancelled_by_driver, truck pulled (P4)");
 
-    // 4. Gates against the terminal row + wrong role.
-    await expectGuardRejection({
-      label: "replacement gate: replace on terminal assignment → 409 (D1)",
-      allowed: [409],
-      run: () =>
-        axios.post(
-          replaceUrl(a1.assignmentUniqueId),
-          { vehicleUniqueId, driverUserUniqueId },
-          authConfig(token),
-        ),
-    });
+    // 4. Gates against wrong role; driver-cancelled assignment can now be replaced by admin.
     await expectGuardRejection({
       label: "replacement gate: driver token cannot replace → 403 (D7)",
       allowed: [403],
@@ -421,9 +411,36 @@ const runReplacementFlowTests = async () => {
         ),
     });
 
-    // 5. D5 re-free → slot is reclaimable.
+    // 5. D5 re-free → slot is reclaimable, and admin can reassign same driver after cancellation.
     await ensureVehicleActive(companyUniqueId, vehicleUniqueId, token);
     report.pass("replacement D5: dispatcher re-frees truck via PATCH /api/company/fleet");
+    
+    // Admin reassigns same driver to the same cancelled assignment
+    const replaceSameDriverRes = await expectSuccess({
+      label: "replacement: admin reassigns same driver after driver cancelled by mistake",
+      allowed: [200, 201],
+      run: () =>
+        axios.post(
+          replaceUrl(a1.assignmentUniqueId),
+          { vehicleUniqueId, driverUserUniqueId },
+          authConfig(token),
+        ),
+    });
+    const a1Replaced = replaceSameDriverRes.data?.data?.assignmentUniqueId;
+    if (!a1Replaced) throw new Error("replace same driver response missing assignmentUniqueId");
+    const a1OldRow = await getAssignmentRow(a1.assignmentUniqueId);
+    if (a1OldRow.assignmentStatus !== "cancelled_by_driver") {
+      throw new Error(`original row must remain cancelled_by_driver, got ${a1OldRow.assignmentStatus}`);
+    }
+    const a1NewRow = await getAssignmentRow(a1Replaced);
+    if (a1NewRow.assignmentStatus !== "reassigned") {
+      throw new Error(`replaced row expected reassigned, got ${a1NewRow.assignmentStatus}`);
+    }
+    if (a1NewRow.driverUserUniqueId !== driverUserUniqueId) {
+      throw new Error("same driver must be reassigned");
+    }
+    report.pass("replacement: same driver reassigned successfully after driver cancellation");
+    
     const a2Res = await expectSuccess({
       label: "replacement: A2 created — slot reclaimable after driver cancel",
       run: () =>

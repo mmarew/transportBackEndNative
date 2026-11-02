@@ -19,6 +19,7 @@ const {
   assertRecallAccess,
   assertAssignableVehicle,
   isActiveAssignment,
+  isDriverInitiatedTerminal,
 } = require("./assignmentHelper");
 const { notifyShipperOnAssignment } = require("./assignmentCreate.service");
 
@@ -73,22 +74,16 @@ exports.replaceAssignment = async (data) => {
   // 2. Cross-company fence (platform admins pass through inside assertCompanyAccess).
   await assertRecallAccess(user, previous);
 
-  // 3. A finished assignment cannot be replaced, and replacing it with itself
-  //    is a client bug rather than something to silently no-op.
-  if (!isActiveAssignment(previous.assignmentStatus)) {
+  // 3. A finished assignment cannot be replaced unless driver cancelled/rejected it.
+  //    Allow reassigning to the same driver/vehicle (e.g. driver cancelled wrongly).
+  const canReplace =
+    isActiveAssignment(previous.assignmentStatus) ||
+    isDriverInitiatedTerminal(previous.assignmentStatus);
+
+  if (!canReplace) {
     throw new AppError(
       `Assignment is already ${previous.assignmentStatus} and cannot be replaced`,
       AppError.CONFLICT,
-    );
-  }
-
-  if (
-    previous.driverUserUniqueId === driverUserUniqueId &&
-    previous.vehicleUniqueId === vehicleUniqueId
-  ) {
-    throw new AppError(
-      "Replacement driver and vehicle are identical to the current assignment",
-      AppError.BAD_REQUEST,
     );
   }
 
@@ -125,22 +120,33 @@ exports.replaceAssignment = async (data) => {
     actorLabel: "another company assignment",
   });
 
-  // 5. Recall the current driver (frees the slot, the driver and the truck).
-  const { recalled } = await recallAssignment({
+  // 5. Recall/free the current driver if it's company-initiated.
+  //    If driver already cancelled/rejected, preserve their original status.
+  const recallResult = await recallAssignment({
     assignment: previous,
     actorUserUniqueId: createdByUserUniqueId,
   });
-  if (!recalled) {
+  const isDriverCancelled = recallResult?.alreadyTerminalByDriver || isDriverInitiatedTerminal(previous.assignmentStatus);
+  if (!recallResult?.recalled && !isDriverCancelled) {
     throw new AppError(
       "Assignment changed while the replacement was prepared, please retry",
       AppError.CONFLICT,
     );
   }
 
-  // If the dispatcher kept the same truck (only the driver changed), recall
-  // just pulled it from the pool — put it straight back so the replacement
-  // does not start life on an `inactive` vehicle.
+  // If the dispatcher kept the same truck (only the driver changed), ensure
+  // it's active for the replacement. If driver cancelled and recall didn't
+  // touch it, we still need to ensure it's assignable.
   if (vehicleUniqueId === previous.vehicleUniqueId) {
+    await db().query(
+      `UPDATE CompanyVehicle
+          SET assignmentStatus = 'active'
+        WHERE vehicleUniqueId = ?
+          AND companyVehicleDeletedAt IS NULL`,
+      [vehicleUniqueId],
+    );
+  } else {
+    // Ensure replacement truck is active
     await db().query(
       `UPDATE CompanyVehicle
           SET assignmentStatus = 'active'
