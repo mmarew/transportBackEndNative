@@ -9,8 +9,6 @@ const { HTTP_STATUS } = require("../Utils/Constants");
 const { uploadToFTP } = require("../Utils/FTPHandler");
 const { compressBuffer } = require("../Utils/compressImage");
 
-
-
 // Compress and upload a single proof-of-loading photo, returning its stored path.
 const saveLoadingPhoto = async (file) => {
   if (!file?.buffer) {
@@ -114,7 +112,10 @@ const deleteRequestController = async (req, res, next) => {
     const { userUniqueId } = req?.user || {};
 
     if (!driverRequestUniqueId) {
-      throw new AppError("Driver request unique ID is required", AppError.BAD_REQUEST);
+      throw new AppError(
+        "Driver request unique ID is required",
+        AppError.BAD_REQUEST,
+      );
     }
 
     if (!userUniqueId) {
@@ -397,7 +398,10 @@ const updateDriverRequestController = async (req, res, next) => {
     const updateValues = req.body || {};
 
     if (!driverRequestUniqueId) {
-      throw new AppError("driverRequestUniqueId is required", AppError.BAD_REQUEST);
+      throw new AppError(
+        "driverRequestUniqueId is required",
+        AppError.BAD_REQUEST,
+      );
     }
     if (Object.keys(updateValues).length === 0) {
       throw new AppError("No update fields provided", AppError.BAD_REQUEST);
