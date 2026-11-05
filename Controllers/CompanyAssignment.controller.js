@@ -109,7 +109,6 @@ exports.replaceAssignment = async (req, res, next) => {
   }
 };
 
-
 exports.getAssignmentAvailability = async (req, res, next) => {
   try {
     ServerResponder(

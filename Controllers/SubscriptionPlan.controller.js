@@ -32,7 +32,6 @@ exports.getSubscriptionPlans = async (req, res, next) => {
       sortBy = "subscriptionPlanCreatedAt",
       sortOrder = "DESC",
     } = req.query;
-
     // Build filter object
     const filters = {
       subscriptionPlanUniqueId,

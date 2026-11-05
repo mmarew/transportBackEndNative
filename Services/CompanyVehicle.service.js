@@ -286,6 +286,7 @@ exports.getCompanyVehicles = async (filters = {}, user = {}) => {
     `SELECT cv.*,
             v.licensePlate, v.color,
             vt.vehicleTypeName, vt.carryingCapacity,
+            tc.companyName, tc.companyPhone, tc.companyEmail, tc.companyAddress, tc.approvalStatus AS companyApprovalStatus,
             vd.driverUserUniqueId,
             vd.assignmentStartDate AS driverAssignmentStartDate,
             u.fullName  AS driverFullName,
@@ -294,6 +295,7 @@ exports.getCompanyVehicles = async (filters = {}, user = {}) => {
      FROM CompanyVehicle cv
      JOIN Vehicle v ON cv.vehicleUniqueId = v.vehicleUniqueId
      JOIN VehicleTypes vt ON v.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+     JOIN TransportCompany tc ON tc.companyUniqueId = cv.companyUniqueId
      LEFT JOIN VehicleDriver vd
             ON vd.vehicleUniqueId = cv.vehicleUniqueId
            AND vd.assignmentStatus = 'active'
