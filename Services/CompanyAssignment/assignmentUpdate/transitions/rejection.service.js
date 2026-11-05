@@ -38,11 +38,23 @@ const handleDriverRejectionOrCancellation = async ({
     assignmentStatus === "cancelled"
   ) {
     const statusId = journeyStatusMap.waiting; // always reset to 1 — driver is free again
+    const journeyDecisionStatusId =
+      assignmentStatus === "rejected_by_driver"
+        ? journeyStatusMap.rejectedByDriver
+        : journeyStatusMap.cancelledByDriver;
 
     if (assignment.driverRequestUniqueId) {
       await db().query(
         "UPDATE DriverRequest SET journeyStatusId = ?, driverRequestUpdatedAt = ? WHERE driverRequestUniqueId = ?",
         [statusId, currentDate(), assignment.driverRequestUniqueId],
+      );
+    }
+
+    // Release the double-booking fence: active-journey checks key off JourneyDecisions.journeyStatusId.
+    if (assignment.journeyDecisionUniqueId) {
+      await db().query(
+        "UPDATE JourneyDecisions SET journeyStatusId = ? WHERE journeyDecisionUniqueId = ?",
+        [journeyDecisionStatusId, assignment.journeyDecisionUniqueId],
       );
     }
 
