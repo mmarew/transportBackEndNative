@@ -29,7 +29,11 @@ const { runDriverRejectionTests } = require("./testDriverRejectionFlow");
 const { runSystemAdminTests } = require("./Admin");
 const { runShipperSupplementaryTests } = require("./Shipper");
 const { runCompanySupplementaryTests } = require("./Company");
-const { runCancelRulesTests, runReplacementFlowTests } = require("./Company/CancelRules");
+const {
+  runCancelRulesTests,
+  runReplacementFlowTests,
+  runRepeatedPreconfirmRejectionTests,
+} = require("./Company/CancelRules");
 const { runUserBalanceTests } = require("./Finance");
 const { runDelinquencySupplementaryTests } = require("./Delinquency");
 const {
@@ -275,6 +279,7 @@ const initiateTest = async () => {
     )();
     await safe("runCancelRulesTests", runCancelRulesTests)();
     await safe("runReplacementFlowTests", runReplacementFlowTests)();
+    await safe("runRepeatedPreconfirmRejectionTests", runRepeatedPreconfirmRejectionTests)();
     await safe("runPostJourneyCRUD", runPostJourneyCRUD)();
     await safe("testShipperRequestJourneyWorkflow", testShipperRequestJourneyWorkflow)();
     await safe("testDeliveryConfirmationRules", testDeliveryConfirmationRules)();

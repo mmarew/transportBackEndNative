@@ -12,6 +12,9 @@ const {
 } = require("../../../../Utils/Notifications");
 const { reportDriverCommissionEvasion } = require("../../../CommissionEvasion.service");
 const { getCompanyUniqueId, getShipperContact } = require("../helpers");
+const {
+  maybeInactivateVehicleOnRepeatedPreconfirmRejection,
+} = require("../../assignmentHelper/fleet.service");
 
 const handleDriverRejectionOrCancellation = async ({
   assignment,
@@ -191,6 +194,27 @@ const handleDriverRejectionOrCancellation = async ({
     // Normalise legacy 'cancelled' to the correct ENUM value
     if (assignmentStatus === "cancelled") {
       assignmentStatus = "cancelled_by_driver";
+    }
+
+    // ── Repeated pre-confirm rejection policy (per batch) ────────────────────
+    // 1st pre-confirm rejection (`rejected_by_driver`): vehicle stays active.
+    // 2nd pre-confirm rejection by the same driver in the same
+    // `shipperRequestBatchUniqueId`: inactivate the vehicle (dispatcher re-free).
+    // Assignment row is not yet updated in this PATCH flow, so exclude it and
+    // treat current action as +1.
+    if (assignmentStatus === "rejected_by_driver") {
+      await maybeInactivateVehicleOnRepeatedPreconfirmRejection({
+        executor: db(),
+        assignmentUniqueId,
+        excludeAssignmentUniqueId: assignmentUniqueId,
+        driverUserUniqueId: assignment.driverUserUniqueId,
+        vehicleUniqueId: assignment.vehicleUniqueId,
+      }).catch((e) =>
+        logger.warn("Repeated pre-confirm rejection vehicle inactivation failed", {
+          error: e.message,
+          assignmentUniqueId,
+        }),
+      );
     }
 
     // ── Commission evasion: driver cancelled AFTER confirming ────────────────

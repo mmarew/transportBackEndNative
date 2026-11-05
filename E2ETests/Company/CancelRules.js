@@ -222,6 +222,17 @@ const getSlotForBatch = (batchUniqueId) =>
     )
     .then(([rows]) => rows[0]);
 
+const getSlotsForBatch = (batchUniqueId) =>
+  pool
+    .query(
+      `SELECT shipperRequestUniqueId, journeyStatusId
+         FROM ShipperRequest
+        WHERE shipperRequestBatchUniqueId = ? AND shipperRequestDeletedAt IS NULL
+        ORDER BY shipperRequestId ASC`,
+      [batchUniqueId],
+    )
+    .then(([rows]) => rows);
+
 const getAssignmentRow = (assignmentUniqueId) =>
   pool
     .query(
@@ -274,6 +285,17 @@ const ensureVehicleActive = async (companyUniqueId, vehicleUniqueId, token) => {
   }
 };
 
+const ensureDriverOnDuty = async (driverUserUniqueId, roleId = usersRoles.driverRoleId) => {
+  if (!driverUserUniqueId) return;
+  await pool.query(
+    `UPDATE UserRoleStatusCurrent urs
+       JOIN UserRole ur ON urs.userRoleId = ur.userRoleId
+        SET urs.statusId = 1, urs.userRoleStatusDescription = 'Available for requests'
+      WHERE ur.userUniqueId = ? AND ur.roleId = ?`,
+    [driverUserUniqueId, roleId],
+  );
+};
+
 /** Recall anything the driver still holds (self-healing precondition), then re-free the truck. */
 const ensureDriverAndTruckFree = async (companyUniqueId, driverUserUniqueId, vehicleUniqueId, token) => {
   const [live] = await pool.query(
@@ -293,6 +315,7 @@ const ensureDriverAndTruckFree = async (companyUniqueId, driverUserUniqueId, veh
     );
   }
   await ensureVehicleActive(companyUniqueId, vehicleUniqueId, token);
+  await ensureDriverOnDuty(driverUserUniqueId);
 };
 
 /** Second truck for the replace step: clone the driver's vehicle row into our fleet. */
@@ -514,4 +537,180 @@ const runReplacementFlowTests = async () => {
   console.log("── Driver Replacement Flow complete ──\n");
 };
 
-module.exports = { runCancelRulesTests, runReplacementFlowTests };
+// ─────────────────────────────────────────────────────────────────────────────
+// Policy: 2 pre-confirm rejections (rejected_by_driver) by the same driver in
+// the same shipperRequestBatchUniqueId → CompanyVehicle.assignmentStatus becomes
+// inactive on the 2nd rejection. cancelled_by_driver (post-confirm) remains 1st.
+// Dispatcher can re-free the vehicle and it can take further jobs.
+// ─────────────────────────────────────────────────────────────────────────────
+const runRepeatedPreconfirmRejectionTests = async () => {
+  console.log("\n── Repeated Pre-confirm Rejection (batch-scoped) ──");
+  const { shipper, companyAdmin, driver } = usersData;
+  if (!shipper?.token || !companyAdmin?.token || !driver?.token) {
+    report.skip(
+      "repeatedPreconfirmRejection",
+      "shipper/companyAdmin/driver tokens missing — run full suite",
+    );
+    console.log("── Repeated Pre-confirm Rejection complete ──\n");
+    return;
+  }
+
+  const companyUniqueId = companyAdmin.companies?.[0]?.companyUniqueId;
+  const driverUserUniqueId = driver?.accountData?.userData?.userUniqueId;
+  const vehicleUniqueId = driver?.accountData?.vehicle?.vehicleUniqueId;
+  if (!companyUniqueId || !driverUserUniqueId || !vehicleUniqueId) {
+    report.skip(
+      "repeatedPreconfirmRejection",
+      `precondition not met (company=${Boolean(companyUniqueId)}, driver=${Boolean(driverUserUniqueId)}, truck=${Boolean(vehicleUniqueId)})`,
+    );
+    console.log("── Repeated Pre-confirm Rejection complete ──\n");
+    return;
+  }
+  const token = companyAdmin.token;
+
+  try {
+    await ensureDriverAndTruckFree(companyUniqueId, driverUserUniqueId, vehicleUniqueId, token);
+    report.pass("repeatedReject: precondition — driver free, truck active, on duty");
+
+    // 2-slot batch so we can do 2 pre-confirm rejections in the same batch.
+    const batchUniqueId = await createCompanyBatch(companyUniqueId, 2);
+    const bidUniqueId = await submitBid(companyUniqueId, batchUniqueId);
+    if (!bidUniqueId) throw new Error("bid submission failed");
+    if (!(await setBidStatus(bidUniqueId, "accepted_by_shipper", shipper.token))) {
+      throw new Error("bid acceptance failed");
+    }
+    const slots = await getSlotsForBatch(batchUniqueId);
+    if (slots.length < 2) throw new Error(`expected 2 slots, got ${slots.length}`);
+    report.pass("repeatedReject: 2-slot batch accepted");
+
+    // 1st pre-confirm rejection (same driver, same batch, slot 1)
+    const a1Res = await expectSuccess({
+      label: "repeatedReject: A1 created (1st assignment in batch)",
+      run: () =>
+        axios.post(
+          backendURL + COMPANY_ASSIGNMENT_ENDPOINTS.CREATE_ASSIGNMENT,
+          {
+            companyBidRequestUniqueId: bidUniqueId,
+            shipperRequestUniqueId: slots[0].shipperRequestUniqueId,
+            vehicleUniqueId,
+            driverUserUniqueId,
+          },
+          authConfig(token),
+        ),
+    });
+    const a1 = a1Res.data?.data;
+    if (!a1?.assignmentUniqueId) throw new Error("A1 missing assignmentUniqueId");
+
+    await expectSuccess({
+      label: "repeatedReject: A1 rejected_by_driver (pre-confirm, 1st)",
+      run: () =>
+        axios.patch(
+          backendURL +
+            COMPANY_ASSIGNMENT_ENDPOINTS.UPDATE_ASSIGNMENT_STATUS.replace(
+              ":assignmentUniqueId",
+              a1.assignmentUniqueId,
+            ),
+          { assignmentStatus: "rejected_by_driver" },
+          authConfig(token),
+        ),
+    });
+    const a1Row = await getAssignmentRow(a1.assignmentUniqueId);
+    if (a1Row.assignmentStatus !== "rejected_by_driver") {
+      throw new Error(`A1 expected rejected_by_driver, got ${a1Row.assignmentStatus}`);
+    }
+    const truckAfter1 = await getFleetRow(companyUniqueId, vehicleUniqueId);
+    if (truckAfter1.assignmentStatus !== "active") {
+      throw new Error(
+        `truck must stay active after 1st pre-confirm rejection, got ${truckAfter1.assignmentStatus}`,
+      );
+    }
+    report.pass("repeatedReject: 1st pre-confirm rejection keeps vehicle active");
+
+    // 2nd pre-confirm rejection (same driver, same batch, slot 2) → vehicle inactive
+    await ensureDriverOnDuty(driverUserUniqueId);
+    const a2Res = await expectSuccess({
+      label: "repeatedReject: A2 created (2nd assignment in same batch)",
+      run: () =>
+        axios.post(
+          backendURL + COMPANY_ASSIGNMENT_ENDPOINTS.CREATE_ASSIGNMENT,
+          {
+            companyBidRequestUniqueId: bidUniqueId,
+            shipperRequestUniqueId: slots[1].shipperRequestUniqueId,
+            vehicleUniqueId,
+            driverUserUniqueId,
+          },
+          authConfig(token),
+        ),
+    });
+    const a2 = a2Res.data?.data;
+    if (!a2?.assignmentUniqueId) throw new Error("A2 missing assignmentUniqueId");
+
+    await expectSuccess({
+      label: "repeatedReject: A2 rejected_by_driver (pre-confirm, 2nd)",
+      run: () =>
+        axios.patch(
+          backendURL +
+            COMPANY_ASSIGNMENT_ENDPOINTS.UPDATE_ASSIGNMENT_STATUS.replace(
+              ":assignmentUniqueId",
+              a2.assignmentUniqueId,
+            ),
+          { assignmentStatus: "rejected_by_driver" },
+          authConfig(token),
+        ),
+    });
+    const a2Row = await getAssignmentRow(a2.assignmentUniqueId);
+    if (a2Row.assignmentStatus !== "rejected_by_driver") {
+      throw new Error(`A2 expected rejected_by_driver, got ${a2Row.assignmentStatus}`);
+    }
+    const truckAfter2 = await getFleetRow(companyUniqueId, vehicleUniqueId);
+    if (truckAfter2.assignmentStatus !== "inactive") {
+      throw new Error(
+        `truck must be inactive after 2nd pre-confirm rejection in same batch, got ${truckAfter2.assignmentStatus}`,
+      );
+    }
+    report.pass("repeatedReject: 2nd pre-confirm rejection in same batch sets vehicle inactive");
+
+    // Dispatcher re-frees the vehicle, then it can do further jobs.
+    await ensureVehicleActive(companyUniqueId, vehicleUniqueId, token);
+    report.pass("repeatedReject: dispatcher re-frees vehicle via PATCH /api/company/fleet");
+
+    // Further job on a fresh batch (proves reactivation works)
+    const batchB = await createCompanyBatch(companyUniqueId, 1);
+    const bidB = await submitBid(companyUniqueId, batchB);
+    if (!bidB) throw new Error("bid B submission failed");
+    if (!(await setBidStatus(bidB, "accepted_by_shipper", shipper.token))) {
+      throw new Error("bid B acceptance failed");
+    }
+    await ensureDriverOnDuty(driverUserUniqueId);
+    const a3Res = await expectSuccess({
+      label: "repeatedReject: A3 created after reactivation (further job)",
+      allowed: [200, 201],
+      run: () =>
+        axios.post(
+          backendURL + COMPANY_ASSIGNMENT_ENDPOINTS.CREATE_ASSIGNMENT,
+          {
+            companyBidRequestUniqueId: bidB,
+            vehicleUniqueId,
+            driverUserUniqueId,
+          },
+          authConfig(token),
+        ),
+    });
+    const a3 = a3Res.data?.data;
+    if (!a3?.assignmentUniqueId) throw new Error("A3 missing assignmentUniqueId");
+    const truckAfter3 = await getFleetRow(companyUniqueId, vehicleUniqueId);
+    if (truckAfter3.assignmentStatus !== "active") {
+      throw new Error(`truck should remain active after reassignment, got ${truckAfter3.assignmentStatus}`);
+    }
+    report.pass("repeatedReject: reactivated vehicle can take further jobs");
+  } catch (error) {
+    report.fail("repeatedPreconfirmRejection", error);
+  }
+  console.log("── Repeated Pre-confirm Rejection complete ──\n");
+};
+
+module.exports = {
+  runCancelRulesTests,
+  runReplacementFlowTests,
+  runRepeatedPreconfirmRejectionTests,
+};

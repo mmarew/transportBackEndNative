@@ -13,7 +13,10 @@ const {
 } = require("../../Utils/Notifications");
 
 const { currentDate } = require("../../Utils/CurrentDate");
-const { notifyCompanyOnDriverAction } = require("../CompanyAssignment/assignmentHelper");
+const {
+  notifyCompanyOnDriverAction,
+  maybeInactivateVehicleOnRepeatedPreconfirmRejection,
+} = require("../CompanyAssignment/assignmentHelper");
 
 const {
   createCanceledJourney,
@@ -316,9 +319,9 @@ const cancelDriverRequest = async (data) => {
 
         // 6b. POST-CONFIRM ONLY: when a driver backs out AFTER accepting, their
         //     truck leaves the assignable pool until a dispatcher re-frees it
-        //     (`PATCH /api/company/fleet/:vehicleUniqueId`). A pre-confirm
-        //     refusal (`rejected_by_driver`) never touched the job, so the
-        //     vehicle stays `active` and the driver can simply be re-offered.
+        //     (`PATCH /api/company/fleet/:vehicleUniqueId`).
+        //     Pre-confirm refusal (`rejected_by_driver`) keeps vehicle active on 1st
+        //     rejection, but if driver rejects 2+ times in the same batch, inactivate.
         if (assignmentStatusStr === "cancelled_by_driver") {
           await connection.query(
             `UPDATE CompanyVehicle cv
@@ -333,6 +336,18 @@ const cancelDriverRequest = async (data) => {
                AND cv.companyVehicleDeletedAt IS NULL`,
             [driverRequestId],
           );
+        } else if (assignmentStatusStr === "rejected_by_driver") {
+          const [[druq]] = await connection.query(
+            `SELECT driverRequestUniqueId FROM DriverRequest WHERE driverRequestId = ? LIMIT 1`,
+            [driverRequestId],
+          );
+          const driverRequestUniqueId = druq?.driverRequestUniqueId;
+          if (driverRequestUniqueId) {
+            await maybeInactivateVehicleOnRepeatedPreconfirmRejection({
+              executor: connection,
+              driverRequestUniqueId,
+            });
+          }
         }
       },
       {
