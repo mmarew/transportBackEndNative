@@ -51,6 +51,26 @@ const messageTypes = require("../../Utils/MessageTypes");
 //in create user fullname must be existe for driver roles.
 
 
+const restoreUser = async (req, res, next) => {
+  try {
+    const { phoneNumber } = req.body;
+    const restoredBy = req.user?.userUniqueId || null;
+
+    const response = await services.restoreUser({ phoneNumber, restoredBy });
+
+    logger.info("Admin restored a deleted user", {
+      phoneNumber,
+      restoredBy,
+      roles: response?.data?.roles,
+      sessionsRevoked: response?.data?.sessionsRevoked,
+    });
+
+    return ServerResponder(res, response);
+  } catch (error) {
+    return next(error);
+  }
+};
+
 const deleteUser = async (req, res, next) => {
   try {
     const user = req.user;
@@ -366,5 +386,6 @@ const revokeUserSessionsByAdmin = async (req, res, next) => {
 module.exports = {
   deleteUser,
   updateUser,
-  revokeUserSessionsByAdmin
+  revokeUserSessionsByAdmin,
+  restoreUser
 };

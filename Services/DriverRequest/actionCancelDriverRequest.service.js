@@ -198,7 +198,7 @@ const cancelDriverRequest = async (data) => {
         await updateData({
           tableName: "DriverRequest",
           conditions: { driverRequestId },
-          updateValues: { journeyStatusId }, // Set journeyStatusId to 9 (cancelledByDriver) or 15 (rejectedByDriver)
+          updateValues: { journeyStatusId }, // 18 rejectedByDriver (pre-accept) or 12 cancelledByDriver (post-accept)
           connection, // Pass connection for transaction support
         });
 
@@ -269,33 +269,23 @@ const cancelDriverRequest = async (data) => {
           });
         }
 
-        // 4. Update ShipperRequest status (only if this is the only driver)
-        // If shipper has multiple drivers, leave status unchanged
-        if (shipperRequestId && shouldUpdateShipperToWaiting) {
-          // Update the ShipperRequest to reflect the cancellation.
-          // For company_target mode, the company still owns the bid, so slot returns to acceptedByShipper (4)
-          // For individual_target mode, the slot returns to waiting (1) for a new driver
-          const revertStatus = isCompanyTarget
-            ? journeyStatusMap.acceptedByShipper
-            : journeyStatusMap.waiting;
+        // 4. ShipperRequest is deliberately NOT touched. A driver rejecting or
+        //    cancelling is not the shipper's decision: `ShipperRequest
+        //    .journeyStatusId` is owned by the shipper/admin, so it must never be
+        //    rewritten by a driver outcome. Only the rows that carry the driver's
+        //    engagement (DriverRequest, JourneyDecisions, Journey) take the
+        //    rejection. The post-commit re-dispatch below merely OFFERS the order
+        //    again; it does not treat the rejection as a shipper-side change.
 
-          await updateData({
-            tableName: "ShipperRequest",
-            conditions: { shipperRequestId },
-            updateValues: {
-              journeyStatusId: revertStatus,
-            },
-            connection, // Pass connection for transaction support
-          });
-        }
-
-        // 5. Update Journey table (if the journey had already started)
-        if (journey && journey.journeyId) {
+        // 5. Update Journey table (if the journey had already started) with the
+        //    SAME status the request and the decision got — never a fourth value.
+        //    Admin cancellations keep their cancelledByAdmin outcome.
+        if (journey && journey.journeyId && journeyDecisionUniqueId) {
           await updateData({
             tableName: "Journey",
             conditions: { journeyDecisionUniqueId },
             updateValues: {
-              journeyStatusId: journeyStatusMap.cancelledByDriver,
+              journeyStatusId: finalStatus,
             },
             connection, // Pass connection for transaction support
           });

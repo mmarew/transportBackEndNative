@@ -30,15 +30,24 @@ const handleDriverRejectionOrCancellation = async ({
   //   cancelled_by_driver — driver cancelled AFTER confirming (committed but pulled out)
   //   cancelled           — legacy fallthrough, treated the same as cancelled_by_driver
   //
-  // All three reset DriverRequest to waiting (status 1) so the driver is
-  // available again and the slot can be reassigned.
+  // All three record the outcome on EVERY row that carries the engagement —
+  // DriverRequest (what the driver app and the double-booking fence read),
+  // JourneyDecisions (what dispatch reads) and Journey (when it already exists).
+  // A release that updates one and forgets the others is what left
+  // `DriverRequest = waiting` beside a `requested` decision and wedged dispatch.
+  // The ShipperRequest is deliberately NOT touched: its journeyStatusId belongs
+  // to the shipper/admin, so a driver backing out never rewrites the order.
+  // Availability is unaffected — a rejection status leaves activeRequestGuard
+  // NULL, and the next assignment/match creates a fresh DriverRequest.
   if (
     assignmentStatus === "rejected_by_driver" ||
     assignmentStatus === "cancelled_by_driver" ||
     assignmentStatus === "cancelled"
   ) {
-    const statusId = journeyStatusMap.waiting; // always reset to 1 — driver is free again
-    const journeyDecisionStatusId =
+    // One status for all three tables: `rejectedByDriver` (18) when the driver
+    // refused before confirming, `cancelledByDriver` (12) when they backed out
+    // after confirming.
+    const driverOutcomeStatusId =
       assignmentStatus === "rejected_by_driver"
         ? journeyStatusMap.rejectedByDriver
         : journeyStatusMap.cancelledByDriver;
@@ -46,15 +55,26 @@ const handleDriverRejectionOrCancellation = async ({
     if (assignment.driverRequestUniqueId) {
       await db().query(
         "UPDATE DriverRequest SET journeyStatusId = ?, driverRequestUpdatedAt = ? WHERE driverRequestUniqueId = ?",
-        [statusId, currentDate(), assignment.driverRequestUniqueId],
+        [driverOutcomeStatusId, currentDate(), assignment.driverRequestUniqueId],
       );
     }
 
-    // Release the double-booking fence: active-journey checks key off JourneyDecisions.journeyStatusId.
+    // Keep the decision honest: it must carry the SAME rejection as the request,
+    // otherwise the fence (which reads the decision) and the driver app (which
+    // reads the request) disagree about whether the driver is engaged.
     if (assignment.journeyDecisionUniqueId) {
       await db().query(
-        "UPDATE JourneyDecisions SET journeyStatusId = ? WHERE journeyDecisionUniqueId = ?",
-        [journeyDecisionStatusId, assignment.journeyDecisionUniqueId],
+        "UPDATE JourneyDecisions SET journeyStatusId = ?, journeyDecisionUpdatedAt = ? WHERE journeyDecisionUniqueId = ?",
+        [driverOutcomeStatusId, currentDate(), assignment.journeyDecisionUniqueId],
+      );
+      // Terminal only an ACTIVE journey (1-8). A journey that already completed
+      // or was cancelled keeps its outcome — a rejection never rewrites it.
+      await db().query(
+        `UPDATE Journey
+            SET journeyStatusId = ?
+          WHERE journeyDecisionUniqueId = ?
+            AND journeyStatusId IN (1, 2, 3, 4, 5, 6, 7, 8)`,
+        [driverOutcomeStatusId, assignment.journeyDecisionUniqueId],
       );
     }
 

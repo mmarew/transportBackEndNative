@@ -18,6 +18,7 @@ const {
   userIdParams,
   ownerUserIdParams,
   getUserFilter,
+  restoreUser: restoreUserSchema,
 } = require("../Validations/User.schema");
 
 const router = express.Router();
@@ -87,6 +88,22 @@ router.delete(
   verifyIfUserIsAdminOrSupperAdmin,
   validator(userIdParams, "params"),
   controller.revokeUserSessionsByAdmin,
+);
+
+/**
+ * @route   POST /api/user/restoreUser
+ * @desc    Undo an accidental soft delete, addressed by phone number.
+ *          Clears Users.isDeleted/userDeletedAt, puts every role back on a
+ *          real status (history first, never a ban), writes the audit row and
+ *          revokes the sessions that outlived the deletion.
+ * @access  Private (Admin or Super Admin)
+ */
+router.post(
+  USER_ENDPOINTS.RESTORE_USER,
+  verifyTokenOfAxios,
+  verifyIfUserIsAdminOrSupperAdmin,
+  validator(restoreUserSchema),
+  controller.restoreUser,
 );
 
 module.exports = router;

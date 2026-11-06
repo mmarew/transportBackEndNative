@@ -2,7 +2,7 @@
 
 const axios = require("axios");
 const { io } = require("socket.io-client");
-const { backendURL, usersData } = require("./constants");
+const { backendURL, usersData, journeyStatusMap } = require("./constants");
 const { authConfig } = require("./Utils");
 const { report } = require("./Reporter");
 const {
@@ -24,6 +24,7 @@ const {
 const { assignVehicleToCompany } = require("./Company/CompanyVehicle");
 const {
   getDriverJourneyStatus,
+  acceptShipperRequest,
   startJourney,
   completeJourney,
 } = require("./Driver/DriverJourneyStatus");
@@ -237,6 +238,41 @@ const createDriverRequestUntilMatched = async (expectedUniqueId, coords) => {
     attempts += 1;
   }
   return status;
+};
+
+// ── Helper: release whatever the driver is still holding ─────────────────────
+//
+// Earlier phases (individual flow, replacement flow, repeated pre-confirm
+// rejections) can leave the driver on a live order — status 4 or 8 — and every
+// test below starts from "driver is free, request matches, status 2". Without
+// this the driver request is never re-matched, so the suite fails on a state
+// left behind rather than on the behaviour under test.
+const releaseDriverActiveWork = async ({ maxAttempts = 3 } = {}) => {
+  const { driver } = usersData;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const status = await getDriverJourneyStatus({ userType: "driver" });
+    const statusId = status?.status;
+    if (statusId === null || statusId === undefined || statusId === 1) {
+      return status;
+    }
+    console.log(`   ↪ Driver still holds status ${statusId} — releasing it first...`);
+    try {
+      await axios.put(
+        backendURL + DRIVER_REQUEST_ENDPOINTS.CANCEL_DRIVER_REQUEST +
+          "?ownerUserUniqueId=self&roleId=2&cancellationReasonsTypeId=11",
+        {},
+        authConfig(driver.token),
+      );
+    } catch (releaseError) {
+      const releaseStatus = releaseError?.response?.status;
+      // 400/404 means there is nothing left to cancel — the next read decides.
+      if (releaseStatus === 400 || releaseStatus === 404) {
+        return await getDriverJourneyStatus({ userType: "driver" });
+      }
+      throw releaseError;
+    }
+  }
+  return await getDriverJourneyStatus({ userType: "driver" });
 };
 
 // ── Helper: reactivate driver status ─────────────────────────────────────────
@@ -617,7 +653,10 @@ const testBatchDriverRejection = async () => {
     // Status 9 is terminal — a fresh verifyDriverJourneyStatus returns null
     // (no active request), which is the expected post-completion state.
     const statusAfterComplete = await getDriverJourneyStatus({ userType: "driver" });
-    if (statusAfterComplete?.status != null) {
+    if (
+      statusAfterComplete?.status !== null &&
+      statusAfterComplete?.status !== undefined
+    ) {
       throw new Error(
         `Expected null (terminal) after completion, got ${statusAfterComplete?.status}`,
       );
@@ -630,6 +669,204 @@ const testBatchDriverRejection = async () => {
     console.error("\n❌ Batch-scoped driver rejection test FAILED:", error.message);
     if (error.response) console.error("API error:", error.response.data);
     report.fail("batchDriverRejection", error);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TEST 4: a driver rejection leaves one consistent status on every row
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// Rule: DriverRequest, JourneyDecisions and Journey must all carry the rejection
+// (18 pre-accept / 12 post-accept), while ShipperRequest.journeyStatusId belongs
+// to the shipper/admin and must NOT move because a driver backed out. A release
+// that updated one row and forgot the others is what left a `requested` decision
+// beside a `waiting` request and wedged the double-booking fence.
+
+const readOrderState = async (uniqueIds) => {
+  const [rows] = await pool.query(
+    `SELECT sr.journeyStatusId AS shipperStatus,
+            dr.journeyStatusId AS driverStatus,
+            jd.journeyStatusId AS decisionStatus,
+            (SELECT j.journeyStatusId FROM Journey j
+              WHERE j.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
+              ORDER BY j.journeyId DESC LIMIT 1) AS journeyStatus
+       FROM ShipperRequest sr
+       JOIN JourneyDecisions jd ON jd.shipperRequestId = sr.shipperRequestId
+       JOIN DriverRequest dr  ON dr.driverRequestId = jd.driverRequestId
+      WHERE sr.shipperRequestUniqueId = ?
+        AND dr.driverRequestUniqueId = ?
+        AND jd.journeyDecisionUniqueId = ?
+      LIMIT 1`,
+    [
+      uniqueIds.shipperRequestUniqueId,
+      uniqueIds.driverRequestUniqueId,
+      uniqueIds.journeyDecisionUniqueId,
+    ],
+  );
+  return rows?.[0] || null;
+};
+
+const testRejectionStatusConsistency = async () => {
+  const { driver } = usersData;
+  const COORDS = { latitude: 9.03, longitude: 38.74, description: "Addis Ababa" };
+
+  try {
+    await reactivateDriver();
+    await releaseDriverActiveWork();
+
+    console.log("── Rejection consistency: create + match a request ──");
+    await createIndividualShipperRequest();
+    await createDriverRequestAt(COORDS);
+    const status = await getDriverJourneyStatus({ userType: "driver" });
+    if (status?.status !== journeyStatusMap.requested) {
+      throw new Error(`Expected status 2 before reject, got ${status?.status}`);
+    }
+    const uniqueIds = status.uniqueIds;
+    if (!uniqueIds?.journeyDecisionUniqueId) {
+      throw new Error("No journeyDecisionUniqueId on the matched request");
+    }
+
+    const before = await readOrderState(uniqueIds);
+    if (!before) throw new Error("Could not read the order rows before release");
+    report.pass("rejectionConsistency: matched");
+
+    console.log("── Rejection consistency: driver rejects pre-accept ──");
+    await axios.put(
+      backendURL + DRIVER_REQUEST_ENDPOINTS.CANCEL_DRIVER_REQUEST +
+        "?ownerUserUniqueId=self&roleId=2&cancellationReasonsTypeId=11",
+      {},
+      authConfig(driver.token),
+    );
+
+    const after = await readOrderState(uniqueIds);
+    if (Number(after.driverStatus) !== journeyStatusMap.rejectedByDriver) {
+      throw new Error(
+        `DriverRequest must be rejectedByDriver (18), got ${after.driverStatus}`,
+      );
+    }
+    if (Number(after.decisionStatus) !== journeyStatusMap.rejectedByDriver) {
+      throw new Error(
+        `JourneyDecisions must be rejectedByDriver (18) too, got ${after.decisionStatus}`,
+      );
+    }
+    if (after.journeyStatus !== null && after.journeyStatus !== undefined) {
+      throw new Error(
+        `A pre-accept rejection must not terminalise an existing journey (got ${after.journeyStatus})`,
+      );
+    }
+    report.pass("rejectionConsistency: requestAndDecisionRejected");
+
+    // The shipper's order status is shipper/admin-owned — the rejection must not move it.
+    if (Number(after.shipperStatus) !== Number(before.shipperStatus)) {
+      throw new Error(
+        `ShipperRequest.journeyStatusId changed by a driver rejection: ${before.shipperStatus} -> ${after.shipperStatus}`,
+      );
+    }
+    report.pass("rejectionConsistency: shipperRequestUntouched");
+
+    // Global invariant: never a live decision beside an idle DriverRequest — the
+    // exact drift that produced a false 409 on the next assignment.
+    const [drift] = await pool.query(
+      `SELECT COUNT(*) AS drifted
+         FROM JourneyDecisions jd
+         JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+        WHERE jd.journeyDecisionDeletedAt IS NULL
+          AND dr.driverRequestDeletedAt IS NULL
+          AND jd.journeyStatusId IN (2, 3, 4, 5, 6, 7, 8)
+          AND dr.journeyStatusId NOT IN (2, 3, 4, 5, 6, 7, 8)`,
+    );
+    if (Number(drift[0].drifted) !== 0) {
+      throw new Error(
+        `${drift[0].drifted} active decision(s) left beside a non-active DriverRequest`,
+      );
+    }
+    report.pass("rejectionConsistency: noDriftedDecisions");
+
+    // The fence must treat the rejected driver as free: a new request must not 409.
+    try {
+      await createDriverRequestAt(COORDS);
+      report.pass("rejectionConsistency: driverFreeAfterReject");
+    } catch (fenceError) {
+      const fenceStatus = fenceError?.response?.status;
+      throw new Error(
+        `Rejected driver cannot take new work (status ${fenceStatus}): ${fenceError.message}`,
+      );
+    }
+
+    console.log("✅ Rejection status consistency test PASSED\n");
+  } catch (error) {
+    console.error("\n❌ Rejection status consistency test FAILED:", error.message);
+    if (error.response) console.error("API error:", error.response.data);
+    report.fail("rejectionStatusConsistency", error);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TEST 5: completing a journey closes the shipper's order (success action)
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// A completed journey is a SUCCESS: the order must land on journeyCompleted (9)
+// on Journey, JourneyDecisions, DriverRequest AND ShipperRequest. The order used
+// to be filtered by `previousStatusId` (journeyStarted), so a completion that did
+// not start from exactly status 8 left the order mid-route for ever.
+
+const testCompletionClosesOrder = async () => {
+  const COORDS = { latitude: 9.03, longitude: 38.74, description: "Addis Ababa" };
+
+  try {
+    await reactivateDriver();
+    await releaseDriverActiveWork();
+
+    console.log("── Completion closes order: create + match + accept ──");
+    await createIndividualShipperRequest();
+    await createDriverRequestAt(COORDS);
+    let status = await getDriverJourneyStatus({ userType: "driver" });
+    if (status?.status !== journeyStatusMap.requested) {
+      throw new Error(`Expected status 2 to accept, got ${status?.status}`);
+    }
+    const uniqueIds = status.uniqueIds;
+
+    await acceptShipperRequest({ userType: "driver", shippingCostByDriver: 6000 });
+    await getDriverJourneyStatus({ userType: "driver" });
+    await testAcceptDriverOffer({ uniqueIds });
+    await getDriverJourneyStatus({ userType: "driver" });
+    report.pass("completionClosesOrder: accepted");
+
+    const started = await startJourney({ userType: "driver" });
+    if (!started?.journey?.journeyUniqueId) {
+      throw new Error("startJourney returned no journeyUniqueId");
+    }
+    report.pass("completionClosesOrder: journeyStarted");
+
+    console.log("── Completion closes order: complete ──");
+    const completed = await completeJourney({ userType: "driver" });
+    if (completed?.status !== journeyStatusMap.journeyCompleted) {
+      throw new Error(`Expected completion status 9, got ${completed?.status}`);
+    }
+
+    const state = await readOrderState(uniqueIds);
+    const expected = journeyStatusMap.journeyCompleted;
+    if (Number(state.journeyStatus) !== expected) {
+      throw new Error(`Journey must be 9, got ${state.journeyStatus}`);
+    }
+    if (Number(state.decisionStatus) !== expected) {
+      throw new Error(`JourneyDecisions must be 9, got ${state.decisionStatus}`);
+    }
+    if (Number(state.driverStatus) !== expected) {
+      throw new Error(`DriverRequest must be 9, got ${state.driverStatus}`);
+    }
+    if (Number(state.shipperStatus) !== expected) {
+      throw new Error(
+        `ShipperRequest must be closed by the completion (9), got ${state.shipperStatus}`,
+      );
+    }
+    report.pass("completionClosesOrder: allTablesCompleted");
+
+    console.log("✅ Journey completion closes the order test PASSED\n");
+  } catch (error) {
+    console.error("\n❌ Journey completion closes the order test FAILED:", error.message);
+    if (error.response) console.error("API error:", error.response.data);
+    report.fail("completionClosesOrder", error);
   }
 };
 
@@ -650,6 +887,15 @@ const runDriverRejectionTests = async () => {
     return;
   }
 
+  // Every rejection scenario starts from a free driver. Earlier phases may
+  // leave one on a live order, which made the whole block fail on state drift.
+  try {
+    await releaseDriverActiveWork();
+    report.pass("rejectionFlow: driverFreePrecondition");
+  } catch (preconditionError) {
+    report.fail("rejectionFlow: driverFreePrecondition", preconditionError);
+  }
+
   // --- Test 1: Individual driver rejection ---
   await testIndividualDriverRejection();
 
@@ -658,6 +904,12 @@ const runDriverRejectionTests = async () => {
 
   // --- Test 3: Batch-scoped driver rejection ---
   await testBatchDriverRejection();
+
+  // --- Test 4: rejection bookkeeping across all four tables ---
+  await testRejectionStatusConsistency();
+
+  // --- Test 5: a completed journey closes the shipper's order ---
+  await testCompletionClosesOrder();
 
   report.summary();
 };

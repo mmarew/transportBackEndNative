@@ -26,6 +26,7 @@ module.exports = {
   getUserByFilterDetailed: manageService.getUserByFilterDetailed,
   updateUser: manageService.updateUser,
   deleteUser: manageService.deleteUser,
+  restoreUser: manageService.restoreUser,
   verifyEmailByToken: authService.verifyEmailByToken,
   reportMisdirectedEmail: authService.reportMisdirectedEmail,
   generatePhoneVerificationToken: authService.generatePhoneVerificationToken,

@@ -6,6 +6,7 @@ const { executeInTransaction } = require("../../../Utils/DatabaseTransaction");
 const {
   journeyStatusMap,
   usersRoles,
+  activeJourneyStatuses,
 } = require("../../../Utils/ListOfSeedData");
 const logger = require("../../../Utils/logger");
 const messageTypes = require("../../../Utils/MessageTypes");
@@ -71,8 +72,10 @@ const completeJourney = async (body) => {
       }
 
       if (
-        body?.journeyCompletingLat == null ||
-        body?.journeyCompletingLng == null
+        body?.journeyCompletingLat === null ||
+        body?.journeyCompletingLat === undefined ||
+        body?.journeyCompletingLng === null ||
+        body?.journeyCompletingLng === undefined
       ) {
         throw new AppError(
           "journeyCompletingLat and journeyCompletingLng are required",
@@ -126,6 +129,18 @@ const completeJourney = async (body) => {
       if (combinedData.journeyStatusId === journeyStatusMap.journeyCompleted) {
         throw new AppError(
           "This journey has already been completed",
+          AppError.BAD_REQUEST,
+        );
+      }
+
+      // Completion is a SUCCESS action, so it must reach the order — which is
+      // exactly why it may only start from a live journey (1-8). A cancelled or
+      // rejected journey (10, 12, 13, 15, 18) must never be "completed": that
+      // would resurrect a closed order to journeyCompleted after the shipper
+      // already cancelled it.
+      if (!activeJourneyStatuses.includes(combinedData.journeyStatusId)) {
+        throw new AppError(
+          `Journey cannot be completed from journeyStatusId ${combinedData.journeyStatusId}`,
           AppError.BAD_REQUEST,
         );
       }

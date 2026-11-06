@@ -302,6 +302,14 @@ const updateJourneyStatus = async body => {
     connection = null
   } = body;
   try {
+    // Completing a journey is a SUCCESS action: the goods were delivered, so the
+    // order must land on journeyCompleted (9) on every table that mirrors the
+    // journey — ShipperRequest included. The `previousStatusId` guards below
+    // reject OUT-OF-ORDER STAGE writes; applying them to completion meant a
+    // driver who skipped a stage (for example 7 -> 9) left the shipper's order
+    // mid-route forever while the journey itself was already finished.
+    const isCompletion = journeyStatusId === journeyStatusMap.journeyCompleted;
+
     // Count how many tables will be updated
     let tableCount = 0;
     if (journeyUniqueId) {
@@ -392,7 +400,9 @@ const updateJourneyStatus = async body => {
       const shipperConditions = {
         shipperRequestUniqueId
       };
-      if (previousStatusId) {
+      // A completion is terminal and authoritative — it must not be filtered out
+      // by the stage guard, or the order stays open after delivery.
+      if (previousStatusId && !isCompletion) {
         shipperConditions.journeyStatusId = previousStatusId;
       }
       updatePromises.push(updateData({
@@ -410,7 +420,9 @@ const updateJourneyStatus = async body => {
       const journeyDecisionConditions = {
         journeyDecisionUniqueId
       };
-      if (previousStatusId) {
+      // Same rule for the decision: completion always applies, so the decision
+      // can never be left behind on an earlier stage while Journey says 9.
+      if (previousStatusId && !isCompletion) {
         journeyDecisionConditions.journeyStatusId = previousStatusId;
       }
       const updateValues = {

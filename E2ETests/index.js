@@ -12,6 +12,10 @@ const { fetchUnAuthorizedDrivers } = require("./Admin/fetchData");
 const { authorizeDriversDocuments } = require("./Admin/AuthorizeDocs");
 const { testGetRoles } = require("./Roles");
 const { testUpdateUserWithFileUpload } = require("./Auth/User");
+const {
+  testRestoreUser,
+  testRestoreDeletedDriver,
+} = require("./Auth/RestoreUser");
 const { testGetAccountData } = require("./Auth/Account");
 const {
   testDeleteUser,
@@ -361,7 +365,14 @@ const initiateTest = async () => {
     await safe("testUpdateBatch", testUpdateBatch)();
     await safe("testDeleteBatch", testDeleteBatch)();
     await safe("testVehicleDocumentUpload", testVehicleDocumentUpload)();
+    // Undo an accidental soft delete (its own throwaway account) BEFORE the
+    // suite deletes the canonical driver account.
+    await safe("testRestoreUser", testRestoreUser)();
     await safe("testDeleteUser", testDeleteUser)();
+    // The delete above is the accidental deletion this endpoint undoes: restore
+    // the canonical driver by phone and re-provision its token, so a run never
+    // ends by leaving the driver account blocked.
+    await safe("testRestoreDeletedDriver", testRestoreDeletedDriver)();
 
     // ── Phase Q: Full queue suite (org, checkin, orders, admin ops,
     // ── loading stages, history/audit trail, receipt/POD) ──────────────

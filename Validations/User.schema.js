@@ -116,6 +116,14 @@ exports.verifyUserByOTP = Joi.object({
   .or("phoneNumber", "email") // Verification allows either
   .unknown(true); // might have firebase tokens etc
 
+// Restore a soft-deleted account. The phone is the only handle the caller has:
+// the account's UUID is no longer visible anywhere in the admin UI.
+exports.restoreUser = Joi.object({
+  phoneNumber: phoneNumberSchema.required().messages({
+    "any.required": "phoneNumber is required",
+  }),
+});
+
 exports.updateUser = Joi.object({
   // Allows updating fields
   fullName: Joi.string().optional(),

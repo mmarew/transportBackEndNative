@@ -5,6 +5,7 @@ const USER_ENDPOINTS = {
   GET_USER_PROFILE_HISTORY: "/api/user/users/:userUniqueId/profileHistory",
   GET_SELF: "/api/user/self",
   REVOKE_USER_SESSIONS: "/api/admin/users/:userUniqueId/sessions",
+  RESTORE_USER: "/api/user/restoreUser",
 };
 
 module.exports = {

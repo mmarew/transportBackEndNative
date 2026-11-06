@@ -749,6 +749,36 @@ const ACTIVE_JOURNEY_STATUSES = [
   journeyStatusMap.journeyStarted,
 ];
 /**
+ * SQL predicate: is this JourneyDecision STILL a live engagement?
+ *
+ * `JourneyDecisions.journeyStatusId` alone is not enough. Release paths
+ * (company assignment reject/cancel, queue release, conflicting-offer cleanup)
+ * reset the driver's request and terminalize the decision — but a path that
+ * frees the request and forgets the decision leaves a `requested` (2) row that
+ * nothing ever clears. Because `verifyDriverJourneyStatus` reads the
+ * DRIVERREQUEST, the driver app reports them as free (status 1) while a
+ * decision-only fence still reports them as engaged: a 409 that no driver
+ * action can ever resolve.
+ *
+ * So a decision counts only while it is backed by a live request — the
+ * driver's DriverRequest is itself on an active journey status — OR while its
+ * company assignment is still live. The second half covers the known transient
+ * where a poll cycle resets the request to `waiting` while the dispatcher's
+ * assignment is still `assigned` (`handleJourneyStatusOne` promotes it back).
+ */
+const LIVE_JOURNEY_SQL = `(
+    dr.journeyStatusId IN (${ACTIVE_JOURNEY_STATUSES.join(", ")})
+    OR EXISTS (
+      SELECT 1 FROM CompanyBidVehicleAssignment cba
+       WHERE cba.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
+         AND cba.assignmentDeletedAt IS NULL
+         AND cba.assignmentStatus NOT IN (
+           'completed','cancelled_by_company','cancelled_by_shipper',
+           'cancelled_by_driver','rejected_by_driver'
+         )
+    )
+  )`;
+/**
  * Whether the driver currently holds an ACTIVE engagement that blocks a new
  * check-in.
  *
@@ -777,6 +807,7 @@ const hasActiveJourney = async (executor, driverUserUniqueId) => {
        ON o.queueOrganizationUniqueId = srb.queueOrganizationUniqueId
      WHERE dr.userUniqueId = ?
        AND jd.journeyStatusId IN (?, ?, ?, ?, ?, ?, ?)
+       AND ${LIVE_JOURNEY_SQL}
      LIMIT 1`,
     [driverUserUniqueId, ...ACTIVE_JOURNEY_STATUSES],
   );
@@ -849,6 +880,7 @@ const findDriverBusyState = async (
       WHERE dr.userUniqueId = ?
         AND dr.driverRequestDeletedAt IS NULL
         AND jd.journeyStatusId IN (${ACTIVE_JOURNEY_STATUSES.join(", ")})
+        AND ${LIVE_JOURNEY_SQL}
         ${ignoreShipperRequestUniqueId ? "AND (sr.shipperRequestUniqueId IS NULL OR sr.shipperRequestUniqueId <> ?)" : ""}
       ORDER BY jd.journeyDecisionCreatedAt DESC
       LIMIT 1`,
