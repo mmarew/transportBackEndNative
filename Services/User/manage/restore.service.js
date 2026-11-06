@@ -42,10 +42,7 @@ const { recordUserEvent } = require("../../../Utils/UserProfileHistory");
 const {
   findStatusByVehicleAndDocuments,
 } = require("../../../Utils/StatusOfUsersByVehiclesAndDocs");
-const {
-  USER_STATUS,
-  usersRoles,
-} = require("../../../Utils/ListOfSeedData");
+const { USER_STATUS, usersRoles } = require("../../../Utils/ListOfSeedData");
 const AppError = require("../../../Utils/AppError");
 const logger = require("../../../Utils/logger");
 
@@ -93,7 +90,7 @@ const listActiveBanRoleIds = async (executor, userUniqueId) => {
         AND banExpiresAt > ?`,
     [userUniqueId, currentDate()],
   );
-  return new Set((rows || []).map(row => row.roleId));
+  return new Set((rows || []).map((row) => row.roleId));
 };
 
 /** The last status this role held BEFORE it was set to account-deleted. */
@@ -158,10 +155,14 @@ const computeLiveDriverStatus = async (executor, userUniqueId) => {
     [usersRoles.driverRoleId, usersRoles.vehicleRoleId],
   );
 
-  const attachedDocuments = [...(driverDocuments || []), ...(vehicleDocuments || [])];
+  const attachedDocuments = [
+    ...(driverDocuments || []),
+    ...(vehicleDocuments || []),
+  ];
   const attachedDocumentsByStatus = { PENDING: [], ACCEPTED: [], REJECTED: [] };
-  attachedDocuments.forEach(document => {
-    const bucket = attachedDocumentsByStatus[document.attachedDocumentAcceptance];
+  attachedDocuments.forEach((document) => {
+    const bucket =
+      attachedDocumentsByStatus[document.attachedDocumentAcceptance];
     if (bucket) {
       bucket.push(document);
     }
@@ -169,15 +170,17 @@ const computeLiveDriverStatus = async (executor, userUniqueId) => {
 
   const requiredDocuments = requiredRows || [];
   const unAttachedDocumentTypes = requiredDocuments.filter(
-    required =>
+    (required) =>
       !attachedDocuments.some(
-        attached => attached.documentTypeId === required.documentTypeId,
+        (attached) => attached.documentTypeId === required.documentTypeId,
       ),
   );
 
   let hasActiveSubscription = false;
   try {
-    const { getUserSubscriptionsWithFilters } = require("../../UserSubscription");
+    const {
+      getUserSubscriptionsWithFilters,
+    } = require("../../UserSubscription");
     const subscriptions = await getUserSubscriptionsWithFilters({
       driverUniqueId: userUniqueId,
       page: 1,
@@ -206,13 +209,20 @@ const computeLiveDriverStatus = async (executor, userUniqueId) => {
   return result?.finalStatusId ?? USER_STATUS.INACTIVE_VEHICLE_NOT_REGISTERED;
 };
 
-const resolveRestoreStatus = async (executor, role, { userUniqueId, bannedRoleIds }) => {
+const resolveRestoreStatus = async (
+  executor,
+  role,
+  { userUniqueId, bannedRoleIds },
+) => {
   // A ban is an admin/delinquency decision — restoring an account must never
   // lift it.
   if (bannedRoleIds.has(role.roleId)) {
     return USER_STATUS.INACTIVE_USER_IS_BANNED_BY_ADMIN;
   }
-  const historicalStatusId = await lastKnownStatusFromHistory(executor, role.userRoleId);
+  const historicalStatusId = await lastKnownStatusFromHistory(
+    executor,
+    role.userRoleId,
+  );
   if (historicalStatusId) {
     return historicalStatusId;
   }
@@ -238,7 +248,14 @@ const applyStatus = async (executor, { role, statusId, restoredBy }) => {
          (userRoleStatusUniqueId, userRoleId, statusId, userRoleStatusDescription,
           userRoleStatusCreatedBy, userRoleStatusCreatedAt, userRoleStatusCurrentVersion)
        VALUES (?, ?, ?, ?, ?, ?, 1)`,
-      [uuidv4(), role.userRoleId, statusId, RESTORE_DESCRIPTION, restoredBy, now],
+      [
+        uuidv4(),
+        role.userRoleId,
+        statusId,
+        RESTORE_DESCRIPTION,
+        restoredBy,
+        now,
+      ],
     );
     return;
   }
@@ -292,122 +309,145 @@ const describeStatus = async (executor, statusId) => {
  * @returns {Promise<{message: string, data: Object}>}
  */
 const restoreUser = async ({ phoneNumber, restoredBy = null }) => {
-  const normalizedPhone = typeof phoneNumber === "string" ? phoneNumber.trim() : "";
+  const normalizedPhone =
+    typeof phoneNumber === "string" ? phoneNumber.trim() : "";
   if (!normalizedPhone) {
-    throw new AppError("phoneNumber is required to restore a user", AppError.BAD_REQUEST);
+    throw new AppError(
+      "phoneNumber is required to restore a user",
+      AppError.BAD_REQUEST,
+    );
   }
 
-  const restored = await executeInTransaction(async () => {
-    const executor = transactionStorage.getStore();
-    if (!executor) {
-      throw new AppError("Restore requires a database transaction", AppError.INTERNAL_SERVER_ERROR);
-    }
+  const restored = await executeInTransaction(
+    async () => {
+      const executor = transactionStorage.getStore();
+      if (!executor) {
+        throw new AppError(
+          "Restore requires a database transaction",
+          AppError.INTERNAL_SERVER_ERROR,
+        );
+      }
 
-    const target = await findTargetUser(executor, normalizedPhone);
-    if (!target) {
-      throw new AppError("No account found with this phone number", AppError.NOT_FOUND);
-    }
-    if (!target.isDeleted && !target.userDeletedAt) {
-      throw new AppError(
-        "This account is not deleted — nothing to restore",
-        AppError.CONFLICT,
-      );
-    }
+      const target = await findTargetUser(executor, normalizedPhone);
+      if (!target) {
+        throw new AppError(
+          "No account found with this phone number",
+          AppError.NOT_FOUND,
+        );
+      }
+      if (!target.isDeleted && !target.userDeletedAt) {
+        throw new AppError(
+          "This account is not deleted — nothing to restore",
+          AppError.CONFLICT,
+        );
+      }
 
-    const actor = restoredBy || target.userUniqueId;
-    const [flagUpdate] = await executor.query(
-      `UPDATE Users
+      const actor = restoredBy || target.userUniqueId;
+      const [flagUpdate] = await executor.query(
+        `UPDATE Users
           SET userDeletedAt = NULL,
               userDeletedBy = NULL,
               isDeleted = 0
         WHERE userUniqueId = ?
           AND (isDeleted = 1 OR userDeletedAt IS NOT NULL)`,
-      [target.userUniqueId],
-    );
-    if (flagUpdate.affectedRows !== 1) {
-      throw new AppError(
-        "Could not restore the account (it may have been restored concurrently)",
-        AppError.CONFLICT,
+        [target.userUniqueId],
       );
-    }
+      if (flagUpdate.affectedRows !== 1) {
+        throw new AppError(
+          "Could not restore the account (it may have been restored concurrently)",
+          AppError.CONFLICT,
+        );
+      }
 
-    const roles = await listUserRoles(executor, target.userUniqueId);
-    if (roles.length === 0) {
-      throw new AppError(
-        "Account has no active role to restore — assign a role first",
-        AppError.CONFLICT,
+      const roles = await listUserRoles(executor, target.userUniqueId);
+      if (roles.length === 0) {
+        throw new AppError(
+          "Account has no active role to restore — assign a role first",
+          AppError.CONFLICT,
+        );
+      }
+
+      const bannedRoleIds = await listActiveBanRoleIds(
+        executor,
+        target.userUniqueId,
       );
-    }
+      const restoredRoles = [];
 
-    const bannedRoleIds = await listActiveBanRoleIds(executor, target.userUniqueId);
-    const restoredRoles = [];
+      for (const role of roles) {
+        const needsRestore =
+          role.statusId === null ||
+          role.statusId === undefined ||
+          Number(role.statusId) === DELETED_STATUS_ID;
 
-    for (const role of roles) {
-      const needsRestore =
-        role.statusId === null ||
-        role.statusId === undefined ||
-        Number(role.statusId) === DELETED_STATUS_ID;
+        if (!needsRestore) {
+          restoredRoles.push({
+            userRoleId: role.userRoleId,
+            roleId: role.roleId,
+            statusId: role.statusId,
+            statusName: await describeStatus(executor, role.statusId),
+            changed: false,
+          });
+          continue;
+        }
 
-      if (!needsRestore) {
+        const statusId = await resolveRestoreStatus(executor, role, {
+          userUniqueId: target.userUniqueId,
+          bannedRoleIds,
+        });
+        await applyStatus(executor, { role, statusId, restoredBy: actor });
         restoredRoles.push({
           userRoleId: role.userRoleId,
           roleId: role.roleId,
-          statusId: role.statusId,
-          statusName: await describeStatus(executor, role.statusId),
-          changed: false,
+          statusId,
+          statusName: await describeStatus(executor, statusId),
+          changed: true,
         });
-        continue;
       }
 
-      const statusId = await resolveRestoreStatus(executor, role, {
+      // Audit: profile history is the only trail that survives a soft delete —
+      // deleteUser writes nothing to UsersHistory / UserProfileHistory.
+      await recordUserEvent({
         userUniqueId: target.userUniqueId,
-        bannedRoleIds,
+        changedBy: actor,
+        fieldName: "isDeleted",
+        oldValue: 1,
+        newValue: 0,
+        reason: "Account deleted by mistake; restored by admin",
+        // ENUM('registration','profile_update','status_change','ban','unban','manual')
+        // — a restore is a direct admin override.
+        source: "manual",
+        referenceUniqueId: null,
       });
-      await applyStatus(executor, { role, statusId, restoredBy: actor });
-      restoredRoles.push({
-        userRoleId: role.userRoleId,
-        roleId: role.roleId,
-        statusId,
-        statusName: await describeStatus(executor, statusId),
-        changed: true,
-      });
-    }
 
-    // Audit: profile history is the only trail that survives a soft delete —
-    // deleteUser writes nothing to UsersHistory / UserProfileHistory.
-    await recordUserEvent({
-      userUniqueId: target.userUniqueId,
-      changedBy: actor,
-      fieldName: "isDeleted",
-      oldValue: 1,
-      newValue: 0,
-      reason: "Account deleted by mistake; restored by admin",
-      // ENUM('registration','profile_update','status_change','ban','unban','manual')
-      // — a restore is a direct admin override.
-      source: "manual",
-      referenceUniqueId: null,
-    });
-
-    return {
-      userUniqueId: target.userUniqueId,
-      fullName: target.fullName,
-      phoneNumber: target.phoneNumber,
-      email: target.email,
-      deletedAt: target.userDeletedAt,
-      roles: restoredRoles,
-    };
-  }, { timeout: 15000 });
+      return {
+        userUniqueId: target.userUniqueId,
+        fullName: target.fullName,
+        phoneNumber: target.phoneNumber,
+        email: target.email,
+        deletedAt: null,
+        previousDeletion: {
+          deletedAt: target.userDeletedAt,
+          deletedBy: target.userDeletedBy,
+        },
+        roles: restoredRoles,
+      };
+    },
+    { timeout: 15000 },
+  );
 
   // Post-commit: tokens minted before the deletion are still live session rows,
   // so force a fresh sign-in on every device.
   const sessionsRevoked = await revokeAllSessions({
     userUniqueId: restored.userUniqueId,
     reason: SESSION_REVOKE_REASONS.ADMIN_REVOKE,
-  }).catch(error => {
-    logger.error("restoreUser: session revoke failed (account still restored)", {
-      userUniqueId: restored.userUniqueId,
-      error: error.message,
-    });
+  }).catch((error) => {
+    logger.error(
+      "restoreUser: session revoke failed (account still restored)",
+      {
+        userUniqueId: restored.userUniqueId,
+        error: error.message,
+      },
+    );
     return 0;
   });
 
