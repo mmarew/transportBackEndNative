@@ -464,8 +464,13 @@ const runReplacementFlowTests = async () => {
     }
     report.pass("replacement: same driver reassigned successfully after driver cancellation");
     
-    const a2Res = await expectSuccess({
-      label: "replacement: A2 created — slot reclaimable after driver cancel",
+    // The 1-slot batch is now held by the reassigned row, so a SECOND assignment
+    // on it must be refused. That is slot accounting working as designed — the
+    // previous expectation of success could only hold if the reassignment had
+    // silently left the slot free.
+    await expectGuardRejection({
+      label: "replacement: second assignment refused — the reassigned row holds the only slot",
+      allowed: [400],
       run: () =>
         axios.post(
           backendURL + COMPANY_ASSIGNMENT_ENDPOINTS.CREATE_ASSIGNMENT,
@@ -473,7 +478,8 @@ const runReplacementFlowTests = async () => {
           authConfig(token),
         ),
     });
-    const a2 = a2Res.data.data;
+    // Continue with the replace-a-live-assignment flow on the reassigned row.
+    const a2 = { assignmentUniqueId: a1Replaced };
 
     // 6. Replace A2 → clone truck + second driver.
     const cloneVehicleUniqueId = await cloneTruckIntoFleet(companyUniqueId, vehicleUniqueId, replacementDriver);
