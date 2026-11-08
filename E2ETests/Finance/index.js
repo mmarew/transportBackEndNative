@@ -18,6 +18,7 @@ const {
   testSubscriptionPlanWorkflow, testGetSubscriptionPlans, testCreateSubscriptionPlan, testUpdateSubscriptionPlan, testDeleteSubscriptionPlan,
   testSubscriptionPlanPricingWorkflow, testGetSubscriptionPlanPricings, testCreateSubscriptionPlanPricing, testUpdateSubscriptionPlanPricing, testDeleteSubscriptionPlanPricing,
   testCreateUserSubscription, testGetUserSubscriptions, testUpdateUserSubscription, testDeleteUserSubscription,
+  testFreeSubscriptionPostponesPaidPlans,
 } = require("./Subscriptions");
 
 const {
@@ -50,6 +51,7 @@ module.exports = {
   testSubscriptionPlanWorkflow, testGetSubscriptionPlans, testCreateSubscriptionPlan, testUpdateSubscriptionPlan, testDeleteSubscriptionPlan,
   testSubscriptionPlanPricingWorkflow, testGetSubscriptionPlanPricings, testCreateSubscriptionPlanPricing, testUpdateSubscriptionPlanPricing, testDeleteSubscriptionPlanPricing,
   testCreateUserSubscription, testGetUserSubscriptions, testUpdateUserSubscription, testDeleteUserSubscription,
+  testFreeSubscriptionPostponesPaidPlans,
   testCreateUserBalance, testGetUserBalance, runUserBalanceTests,
   testCreateUserBalanceTransfer, testGetUserBalanceTransfers, testGetUserBalanceTransferById, testUpdateUserBalanceTransfer, testDeleteUserBalanceTransfer, testGetBalanceTransfersFrom, testGetBalanceTransfersTo,
   testCreateUserDeposit, testGetUserDeposits, testUpdateUserDeposit, testDeleteUserDeposit, testInitiateSantimPay, testSantimPayWebhook,

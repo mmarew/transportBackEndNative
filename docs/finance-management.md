@@ -297,6 +297,8 @@ The Finance Management module handles all financial transactions, deposits, subs
 - `status`: Filter by subscription status (active, expired, cancelled)
 - `type`: Filter by subscription type (free, paid)
 
+When a driver account is checked, an eligible free plan is granted automatically. The free period starts immediately; active and upcoming paid subscriptions are postponed by the free plan's duration, preserving their order.
+
 **Response**:
 
 ```json

@@ -12,9 +12,75 @@ const logger = require("../../Utils/logger");
 const { transactionStorage } = require("../../Utils/TransactionContext");
 const { getUserSubscriptionsWithFilters } = require("./read.service");
 const { getDaysBetweenDates, addDays } = require("./helpers.service");
+const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
+const { insertHistoryRecord } = require("../History/History.service");
 
-// Create subscription
-const createUserSubscription = async ({
+const shiftPaidSubscriptionsForFreeGrant = async ({
+  driverUniqueId,
+  freeEndDate,
+  durationInDays,
+  updatedBy,
+  executor,
+}) => {
+  const [paidSubscriptions] = await executor.query(
+    `SELECT ds.userSubscriptionUniqueId, ds.startDate, ds.endDate
+     FROM UserSubscription ds
+     JOIN SubscriptionPlanPricing spp
+       ON ds.subscriptionPlanPricingUniqueId = spp.subscriptionPlanPricingUniqueId
+     JOIN SubscriptionPlan sp
+       ON spp.subscriptionPlanUniqueId = sp.subscriptionPlanUniqueId
+     WHERE ds.driverUniqueId = ?
+       AND sp.isFree = FALSE
+       AND ds.userSubscriptionDeletedAt IS NULL
+       AND DATE(ds.endDate) >= CURDATE()
+     ORDER BY ds.startDate ASC, ds.userSubscriptionId ASC
+     FOR UPDATE`,
+    [driverUniqueId],
+  );
+
+  for (const subscription of paidSubscriptions) {
+    await insertHistoryRecord({
+      sourceTable: "UserSubscription",
+      conditions: {
+        userSubscriptionUniqueId: subscription.userSubscriptionUniqueId,
+      },
+      changeType: "UPDATE",
+      changedByUserId: updatedBy,
+    });
+
+    await executor.query(
+      `UPDATE UserSubscription
+       SET endDate = GREATEST(
+             DATE_ADD(endDate, INTERVAL ? DAY),
+             CASE
+               WHEN DATE(startDate) <= CURDATE()
+                 THEN DATE_ADD(?, INTERVAL 1 DAY)
+               ELSE DATE_ADD(endDate, INTERVAL ? DAY)
+             END
+           ),
+           startDate = CASE
+             WHEN DATE(startDate) <= CURDATE()
+               THEN DATE_ADD(?, INTERVAL 1 DAY)
+             ELSE DATE_ADD(startDate, INTERVAL ? DAY)
+           END,
+           userSubscriptionUpdatedBy = ?,
+           userSubscriptionUpdatedAt = ?
+       WHERE userSubscriptionUniqueId = ?`,
+      [
+        durationInDays,
+        freeEndDate,
+        durationInDays,
+        freeEndDate,
+        durationInDays,
+        updatedBy,
+        currentDate(),
+        subscription.userSubscriptionUniqueId,
+      ],
+    );
+  }
+};
+
+const createUserSubscriptionInTransaction = async ({
   driverUniqueId,
   subscriptionPlanPricingUniqueId,
   userSubscriptionCreatedBy,
@@ -59,28 +125,53 @@ const createUserSubscription = async ({
   }
   let savedEndDate = null,
     savedStartDate = null;
+  const executor = transactionStorage.getStore() || pool;
   if (isFree) {
-    const allSubs = await getUserSubscriptionsWithFilters({ driverUniqueId });
-    const hasFreeBefore = (allSubs?.data || []).some(
-      (s) => s.isFree === 1 || s.isFree === true,
+    await executor.query(
+      "SELECT userUniqueId FROM Users WHERE userUniqueId = ? FOR UPDATE",
+      [driverUniqueId],
     );
-    if (hasFreeBefore) {
+    const [previousFreeSubscriptions] = await executor.query(
+      `SELECT ds.userSubscriptionUniqueId
+       FROM UserSubscription ds
+       JOIN SubscriptionPlanPricing spp
+         ON ds.subscriptionPlanPricingUniqueId = spp.subscriptionPlanPricingUniqueId
+       JOIN SubscriptionPlan sp
+         ON spp.subscriptionPlanUniqueId = sp.subscriptionPlanUniqueId
+       WHERE ds.driverUniqueId = ?
+         AND sp.isFree = TRUE
+         AND ds.userSubscriptionDeletedAt IS NULL
+       LIMIT 1
+       FOR UPDATE`,
+      [driverUniqueId],
+    );
+    if (previousFreeSubscriptions.length > 0) {
       throw new AppError(
         "You have already used your free trial.",
         AppError.BAD_REQUEST,
       );
     }
+
+    const freeEndDate = addDays(today, durationInDays);
+    await shiftPaidSubscriptionsForFreeGrant({
+      driverUniqueId,
+      freeEndDate,
+      durationInDays,
+      updatedBy: userSubscriptionCreatedBy || driverUniqueId,
+      executor,
+    });
+  } else {
+    const activeSubscription = await getUserSubscriptionsWithFilters({
+      driverUniqueId,
+      limit: 1,
+    });
+    const activeSubscriptionData = activeSubscription?.data?.[0];
+    if (activeSubscriptionData) {
+      savedEndDate = activeSubscriptionData?.endDate;
+      savedStartDate = savedEndDate;
+    }
   }
-  const activeSubscription = await getUserSubscriptionsWithFilters({
-    driverUniqueId,
-    limit: 1,
-  });
-  const activeSubscriptionData = activeSubscription?.data?.[0];
-  if (activeSubscriptionData) {
-    savedEndDate = activeSubscriptionData?.endDate;
-    savedStartDate = savedEndDate;
-  }
-  const executor = transactionStorage.getStore() || pool;
+
   const payLoadOfSubscription = {
     addOrDeduct: activePricingData?.isFree ? "add" : "deduct",
     amount: price,
@@ -100,7 +191,8 @@ const createUserSubscription = async ({
   logger.debug("@balanceResult", balanceResult);
 
   // 2. Insert subscription record
-  const nextDate = addDays(savedEndDate ? savedEndDate : today, durationInDays);
+  const startDate = isFree ? today : savedStartDate || today;
+  const nextDate = addDays(isFree ? today : savedEndDate || today, durationInDays);
   const sql = `
     INSERT INTO UserSubscription 
     (userSubscriptionUniqueId, driverUniqueId, subscriptionPlanPricingUniqueId, startDate, endDate, userSubscriptionCreatedBy, userSubscriptionCreatedAt)
@@ -110,7 +202,7 @@ const createUserSubscription = async ({
     userSubscriptionUniqueId,
     driverUniqueId,
     subscriptionPlanPricingUniqueId,
-    savedStartDate ? savedStartDate : today,
+    startDate,
     nextDate,
     userSubscriptionCreatedBy || driverUniqueId,
     currentDate(),
@@ -148,6 +240,9 @@ const createUserSubscription = async ({
     },
   };
 };
+
+const createUserSubscription = async (params) =>
+  executeInTransaction(() => createUserSubscriptionInTransaction(params));
 
 // Update by UUID - Dynamic update (only updates provided fields)
 

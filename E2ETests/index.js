@@ -77,6 +77,7 @@ const {
   testGetUserSubscriptions,
   testUpdateUserSubscription,
   testDeleteUserSubscription,
+  testFreeSubscriptionPostponesPaidPlans,
 } = require("./Finance");
 const {
   testReportWrongEmail,
@@ -246,6 +247,7 @@ const initiateTest = async () => {
       await testGetUserSubscriptions();
       await testUpdateUserSubscription();
       await testDeleteUserSubscription();
+      await testFreeSubscriptionPostponesPaidPlans();
     };
 
     // ── Finance: SantimPay Tests ──────────────────────────────────────────────

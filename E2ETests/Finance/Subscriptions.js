@@ -1,7 +1,9 @@
 const axios = require("axios");
+const { v4: uuidv4 } = require("uuid");
 const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
 const { report } = require("../Reporter");
+const { pool } = require("../../Middleware/Database.config");
 
 const errMsg = (err) => {
   const data = err?.response?.data;
@@ -222,8 +224,196 @@ const testDeleteUserSubscription = async () => {
   } catch (err) { report.fail("DELETE /api/finance/userSubscription", errMsg(err)); }
 };
 
+const testFreeSubscriptionPostponesPaidPlans = async () => {
+  const label = "GET /api/driver/account postpones paid subscriptions for free plan";
+  let driverUniqueId;
+  console.log(`\n── ${label} ──`);
+  try {
+    const [[freePricing]] = await pool.query(
+      `SELECT spp.subscriptionPlanPricingUniqueId, sp.durationInDays
+       FROM SubscriptionPlanPricing spp
+       JOIN SubscriptionPlan sp
+         ON sp.subscriptionPlanUniqueId = spp.subscriptionPlanUniqueId
+       WHERE sp.isFree = TRUE
+         AND CURDATE() BETWEEN DATE(spp.effectiveFrom)
+           AND COALESCE(DATE(spp.effectiveTo), '9999-12-31')
+       ORDER BY sp.planName ASC
+       LIMIT 1`,
+    );
+    const [[paidPricing]] = await pool.query(
+      `SELECT spp.subscriptionPlanPricingUniqueId
+       FROM SubscriptionPlanPricing spp
+       JOIN SubscriptionPlan sp
+         ON sp.subscriptionPlanUniqueId = spp.subscriptionPlanUniqueId
+       WHERE sp.isFree = FALSE
+         AND CURDATE() BETWEEN DATE(spp.effectiveFrom)
+           AND COALESCE(DATE(spp.effectiveTo), '9999-12-31')
+       ORDER BY sp.planName ASC
+       LIMIT 1`,
+    );
+    if (!freePricing || !paidPricing) {
+      return report.skip(label, "active free and paid plan pricings are required");
+    }
+
+    const runId = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    const phoneNumber = `+25199${runId.slice(-7)}`;
+    const email = `freeschedule+${runId}@test.com`;
+    const created = await axios.post(`${backendURL}/api/user/createUser`, {
+      phoneNumber,
+      fullName: "Free Schedule E2E Driver",
+      email,
+      roleId: 2,
+    });
+    driverUniqueId = created.data?.data?.userUniqueId;
+    if (!driverUniqueId) {
+      throw new Error("Driver creation did not return userUniqueId.");
+    }
+    const verified = await axios.post(
+      `${backendURL}/api/user/verifyUserByOTP`,
+      { phoneNumber, OTP: 101010, roleId: 2 },
+    );
+    const token = verified.data?.token || verified.data?.data?.token;
+    if (!token) throw new Error("Driver verification did not return a token.");
+
+    const paidSubscriptionIds = [uuidv4(), uuidv4(), uuidv4()];
+    const paidDates = [
+      ["DATE_SUB(CURDATE(), INTERVAL 10 DAY)", "DATE_ADD(CURDATE(), INTERVAL 5 DAY)"],
+      ["DATE_ADD(CURDATE(), INTERVAL 6 DAY)", "DATE_ADD(CURDATE(), INTERVAL 35 DAY)"],
+      ["DATE_ADD(CURDATE(), INTERVAL 36 DAY)", "DATE_ADD(CURDATE(), INTERVAL 65 DAY)"],
+    ];
+    for (let index = 0; index < paidSubscriptionIds.length; index++) {
+      await pool.query(
+        `INSERT INTO UserSubscription
+           (userSubscriptionUniqueId, driverUniqueId, subscriptionPlanPricingUniqueId,
+            startDate, endDate, userSubscriptionCreatedBy, userSubscriptionCreatedAt)
+         VALUES (?, ?, ?, ${paidDates[index][0]}, ${paidDates[index][1]}, ?, NOW())`,
+        [
+          paidSubscriptionIds[index],
+          driverUniqueId,
+          paidPricing.subscriptionPlanPricingUniqueId,
+          driverUniqueId,
+        ],
+      );
+    }
+
+    const [beforePaidPlans] = await pool.query(
+      `SELECT userSubscriptionUniqueId,
+              DATE_FORMAT(startDate, '%Y-%m-%d') AS startDate,
+              DATE_FORMAT(endDate, '%Y-%m-%d') AS endDate
+       FROM UserSubscription
+       WHERE userSubscriptionUniqueId IN (?, ?, ?)`,
+      paidSubscriptionIds,
+    );
+
+    await axios.get(`${backendURL}/api/driver/account`, authConfig(token));
+
+    const [subscriptions] = await pool.query(
+      `SELECT ds.userSubscriptionUniqueId,
+              DATE_FORMAT(ds.startDate, '%Y-%m-%d') AS startDate,
+              DATE_FORMAT(ds.endDate, '%Y-%m-%d') AS endDate,
+              sp.isFree
+       FROM UserSubscription ds
+       JOIN SubscriptionPlanPricing spp
+         ON spp.subscriptionPlanPricingUniqueId = ds.subscriptionPlanPricingUniqueId
+       JOIN SubscriptionPlan sp
+         ON sp.subscriptionPlanUniqueId = spp.subscriptionPlanUniqueId
+       WHERE ds.driverUniqueId = ?
+         AND ds.userSubscriptionDeletedAt IS NULL`,
+      [driverUniqueId],
+    );
+    const freeSubscription = subscriptions.find(
+      (subscription) => subscription.isFree === 1 || subscription.isFree === true,
+    );
+    if (!freeSubscription) {
+      throw new Error("Account check did not grant an active free-plan subscription.");
+    }
+    const freeStartDate = freeSubscription.startDate;
+    const freeEndDate = freeSubscription.endDate;
+    const [[databaseToday]] = await pool.query(
+      "SELECT DATE_FORMAT(CURDATE(), '%Y-%m-%d') AS today",
+    );
+    const [[freeExpectedEnd]] = await pool.query(
+      `SELECT DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL ? DAY), '%Y-%m-%d') AS endDate`,
+      [freePricing.durationInDays],
+    );
+    if (freeStartDate !== databaseToday.today) {
+      throw new Error(
+        `Free plan should start today, expected ${databaseToday.today}, got ${freeStartDate}.`,
+      );
+    }
+    if (freeEndDate !== freeExpectedEnd.endDate) {
+      throw new Error(
+        `Free plan should end after ${freePricing.durationInDays} days; expected ${freeExpectedEnd.endDate}, got ${freeEndDate}.`,
+      );
+    }
+
+    for (const before of beforePaidPlans) {
+      const after = subscriptions.find(
+        (subscription) =>
+          subscription.userSubscriptionUniqueId === before.userSubscriptionUniqueId,
+      );
+      if (!after) {
+        throw new Error(`Paid subscription ${before.userSubscriptionUniqueId} is missing.`);
+      }
+      const [[expected]] = await pool.query(
+        `SELECT
+           DATE_FORMAT(DATE_ADD(?, INTERVAL ? DAY), '%Y-%m-%d') AS startDate,
+           DATE_FORMAT(DATE_ADD(?, INTERVAL ? DAY), '%Y-%m-%d') AS endDate`,
+        [
+          before.startDate,
+          freePricing.durationInDays,
+          before.endDate,
+          freePricing.durationInDays,
+        ],
+      );
+      const actualStartDate = after.startDate;
+      const actualEndDate = after.endDate;
+      if (before.startDate <= databaseToday.today) {
+        const [[expectedActiveStart]] = await pool.query(
+          `SELECT DATE_FORMAT(DATE_ADD(?, INTERVAL 1 DAY), '%Y-%m-%d') AS startDate`,
+          [freeEndDate],
+        );
+        if (actualStartDate !== expectedActiveStart.startDate) {
+          throw new Error(
+            `Active paid subscription should resume ${expectedActiveStart.startDate}, got ${actualStartDate}.`,
+          );
+        }
+      } else if (actualStartDate !== expected.startDate) {
+        throw new Error(
+          `Upcoming paid subscription should start ${expected.startDate}, got ${actualStartDate}.`,
+        );
+      }
+      if (actualEndDate !== expected.endDate) {
+        throw new Error(
+          `Paid subscription should end ${expected.endDate}, got ${actualEndDate}.`,
+        );
+      }
+    }
+
+    report.pass(`${label} — free grant plus three paid dates shifted`);
+  } catch (error) {
+    report.fail(label, errMsg(error));
+  } finally {
+    if (driverUniqueId) {
+      try {
+        await pool.query(
+          "DELETE FROM UserBalance WHERE userUniqueId = ? AND transactionType = 'Subscription'",
+          [driverUniqueId],
+        );
+        await pool.query(
+          "DELETE FROM UserSubscription WHERE driverUniqueId = ?",
+          [driverUniqueId],
+        );
+      } catch (error) {
+        report.fail(`${label} fixture cleanup`, errMsg(error));
+      }
+    }
+  }
+};
+
 module.exports = {
   testSubscriptionPlanWorkflow, testGetSubscriptionPlans, testCreateSubscriptionPlan, testUpdateSubscriptionPlan, testDeleteSubscriptionPlan,
   testSubscriptionPlanPricingWorkflow, testGetSubscriptionPlanPricings, testCreateSubscriptionPlanPricing, testUpdateSubscriptionPlanPricing, testDeleteSubscriptionPlanPricing,
   testCreateUserSubscription, testGetUserSubscriptions, testUpdateUserSubscription, testDeleteUserSubscription,
+  testFreeSubscriptionPostponesPaidPlans,
 };
