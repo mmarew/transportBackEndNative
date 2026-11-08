@@ -22,6 +22,19 @@ const {
 const { verifyOtpCode } = require("./otp.service");
 const { notifyShipperOfPodConfirmed } = require("./notify.service");
 
+const getJourneyDriverUserUniqueId = async (executor, journeyUniqueId) => {
+  const [driverRows] = await executor.query(
+    `SELECT dr.userUniqueId
+     FROM Journey j
+     JOIN JourneyDecisions jd ON jd.journeyDecisionUniqueId = j.journeyDecisionUniqueId
+     JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+     WHERE j.journeyUniqueId = ? AND j.journeyDeletedAt IS NULL
+     LIMIT 1`,
+    [journeyUniqueId],
+  );
+  return driverRows[0]?.userUniqueId;
+};
+
 // Update a delivery confirmation (partial update — only sets provided fields).
 //
 // State machine (see docs/proof-of-delivery-pod.md §4.2):
@@ -90,16 +103,11 @@ exports.updateDeliveryConfirmation = async (
   // is ignored (never overwritten).
   let isDriverLateEvidence = false;
   if (currentStatus === "CONFIRMED" && !isAdmin) {
-    const [driverRows] = await executor.query(
-      `SELECT dr.userUniqueId
-       FROM Journey j
-       JOIN JourneyDecisions jd ON jd.journeyDecisionUniqueId = j.journeyDecisionUniqueId
-       JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
-       WHERE j.journeyUniqueId = ? AND j.journeyDeletedAt IS NULL
-       LIMIT 1`,
-      [current.journeyUniqueId],
+    const journeyDriverUserUniqueId = await getJourneyDriverUserUniqueId(
+      executor,
+      current.journeyUniqueId,
     );
-    if (driverRows[0]?.userUniqueId === updatedBy) {
+    if (journeyDriverUserUniqueId === updatedBy) {
       isDriverLateEvidence = true;
       status = undefined;
       deliveredQuantity = undefined;
@@ -152,16 +160,11 @@ exports.updateDeliveryConfirmation = async (
       }
       // Allow admin OR the journey's driver to re-settle
       if (!isAdmin) {
-        const [driverRows] = await executor.query(
-          `SELECT dr.userUniqueId
-           FROM Journey j
-           JOIN JourneyDecisions jd ON jd.journeyDecisionUniqueId = j.journeyDecisionUniqueId
-           JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
-           WHERE j.journeyUniqueId = ? AND j.journeyDeletedAt IS NULL
-           LIMIT 1`,
-          [current.journeyUniqueId],
+        const journeyDriverUserUniqueId = await getJourneyDriverUserUniqueId(
+          executor,
+          current.journeyUniqueId,
         );
-        if (driverRows[0]?.userUniqueId !== updatedBy) {
+        if (journeyDriverUserUniqueId !== updatedBy) {
           throw new AppError(
             "Only an admin or the journey driver can re-settle a disputed delivery confirmation",
             AppError.FORBIDDEN,
@@ -179,15 +182,20 @@ exports.updateDeliveryConfirmation = async (
   }
 
   // ── Settle authorization (PENDING → CONFIRMED) ────────────────────────────
-  // Only an admin OR the actual receiver (the party who received the goods)
-  // may settle a PENDING confirmation. The journey driver cannot self-confirm
-  // their own delivery — the carrier attesting to delivery without the
-  // receiver's agreement would defeat the proof-of-delivery guarantee.
+  // The assigned journey driver may settle only with the receiver's OTP, which
+  // confirms the receiver agreed to the delivery. Admins and receivers retain
+  // their existing ability to settle directly.
   if (isSettling && currentStatus === "PENDING" && !isAdmin && current.receiverUserUniqueId !== updatedBy) {
-    throw new AppError(
-      "Only an admin or the receiver can confirm delivery",
-      AppError.FORBIDDEN,
+    const journeyDriverUserUniqueId = await getJourneyDriverUserUniqueId(
+      executor,
+      current.journeyUniqueId,
     );
+    if (journeyDriverUserUniqueId !== updatedBy || !otpCode) {
+      throw new AppError(
+        "Only an admin, the receiver, or the journey driver with the receiver's OTP can confirm delivery",
+        AppError.FORBIDDEN,
+      );
+    }
   }
 
   // ── Settle-time evidence validation (PENDING/DISPUTED → CONFIRMED) ───────

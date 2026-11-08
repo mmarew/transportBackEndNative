@@ -1,9 +1,7 @@
-# PUT /api/deliveryConfirmations/:id — Receiver signs on the driver's device (Tier A)
+# PUT /api/deliveryConfirmations/:id — Driver confirms with receiver OTP (Tier A)
 
-Binds the **on-road receiver signature** to a PENDING delivery confirmation
-using a one-time OTP sent to the receiver's phone. This is the driver-app step
-right after creating the POD: the receiver has received the goods and signs on
-the driver's device.
+Allows the assigned journey driver to settle a PENDING delivery confirmation
+after the receiver shares the one-time OTP sent to their phone.
 
 ## Request
 
@@ -23,33 +21,32 @@ Authorization: Bearer <token>
    → the receiver's phone gets a 6-digit code (OTP). *(Dev/test: no SMS is sent;
    URL-code step 2 below also accepts the fixed code `101010` even if you skip
    this request entirely. Production always requires it.)*
-2. **Send the signature + code** here:
+2. **The driver confirms delivery** here using the receiver's code:
    ```
+   status=CONFIRMED
    otpCode=101010
-   receiverSignature=<png base64 data URI>
+   shipperSignature=<png base64 data URI>
    ```
-   → the receiver signature is stored and timestamped
-   (`deliveryConfirmationReceiverSignedAt`) — **once set, it is never
-   overwritten**.
-3. **Shipper finishes it**: `PUT /api/deliveryConfirmations/<id>`
-   `{ status: "CONFIRMED", shipperSignature }` — settles the POD.
+   The driver must also provide the required shipper signature and any missing
+   settle evidence. A valid receiver OTP is required for a driver to confirm.
 
 ## Body fields (for this step)
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `otpCode` | string | yes for Tier A | 6 digits (`^\d{6}$`). Must match the requested code. |
-| `receiverSignature` | string | yes | PNG base64 data URI (max ~2 MB). |
-| *(optional)* `notes`, `deliveredQuantity`, `quantityUnit`, `condition`, `latitude`, `longitude`, `photo(s)` | – | no | Can be padded here instead of at create. |
-| *(optional)* `status`, `shipperSignature`, `statement` | – | no | Settle/review fields — shipper/admin only. |
+| `status` | string | yes | Must be `CONFIRMED` when the assigned driver settles. |
+| `otpCode` | string | yes for driver | 6 digits; must match the code sent to the receiver. |
+| `shipperSignature` | string | yes for settle | PNG base64 data URI (max ~2 MB). |
+| *(optional)* `notes`, `deliveredQuantity`, `quantityUnit`, `condition`, `latitude`, `longitude`, `photo(s)`, `statement` | – | no | Additional settle evidence. |
 
 Only specify what you're changing; the update is partial.
 
 ## Sample — success (`200 OK`)
 
 ```
+status=CONFIRMED
 otpCode=101010
-receiverSignature=data:image/png;base64,iVBORw0KG…
+shipperSignature=data:image/png;base64,iVBORw0KG…
 ```
 
 ```json
@@ -57,24 +54,23 @@ receiverSignature=data:image/png;base64,iVBORw0KG…
   "message": "Delivery confirmation updated successfully",
   "data": {
     "deliveryConfirmationUniqueId": "5d3f-…",
+    "status": "CONFIRMED",
     "otpCode": "101010",
-    "receiverSignature": "data:image/png;base64,iVBORw0KG…"
+    "shipperSignature": "data:image/png;base64,iVBORw0KG…"
   }
 }
 ```
 
-After this, `GET /api/deliveryConfirmations?journeyUniqueId=…` shows
-`deliveryConfirmationReceiverSignature` + a non-null
-`deliveryConfirmationReceiverSignedAt`.
+After this, `GET /api/deliveryConfirmations?journeyUniqueId=…` shows the
+confirmation as `CONFIRMED`.
 
 ## Errors
 
 | Code | Meaning |
 |---|---|
-| `400` | OTP never requested, invalid code (attempt counter increments and caps at N tries), already verified, or the confirmation isn't PENDING. |
+| `400` | OTP never requested in production, invalid code (attempt counter increments and caps at N tries), or the confirmation isn't PENDING. |
 | `410` | OTP expired (time-limited). Request a new one. |
 | `429` | Already an active code, or the per-phone hourly request cap is reached. |
 
-Security: the OTP is bcrypt-hashed, time-limited, capped on attempts; the
-receiver signature is stored with an immutable timestamp so it can't be
-re-signed later. `101010` is only accepted outside production.
+Security: the OTP is bcrypt-hashed, time-limited, and capped on attempts.
+`101010` is only accepted outside production.

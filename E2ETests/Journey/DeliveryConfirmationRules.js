@@ -7,7 +7,7 @@
 //   4. Status CONFIRMED is terminal (can't change to DISPUTED/PENDING)
 //   5. Non-admin can't re-settle DISPUTED → CONFIRMED
 //   6. Duplicate create for same journey → 409
-//   7. Non-shipper can't self-confirm (403)
+//   7. Driver cannot confirm without the receiver OTP, but can with it
 //   8. Shipper self-confirm without signature → 400
 //   9. Shipper self-confirm without completed journey → 400
 //  10. Admin can delete CONFIRMED record, non-admin cannot
@@ -19,6 +19,7 @@ const path = require("path");
 const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
 const { pool } = require("../../Middleware/Database.config");
+const { isTestOtpEnabled, testOtp } = require("../../Services/DeliveryConfirmation/otp.service");
 const { report } = require("../Reporter");
 const {
   expectGuardRejection,
@@ -194,7 +195,7 @@ const testDuplicateCreate = async () => {
   return { dcId };
 };
 
-// ── Rule 3: Non-shipper can't self-confirm → 403 ────────────────────────────
+// ── Rule 3: Driver needs the receiver OTP to confirm ────────────────────────
 const testDriverCantSelfConfirm = async () => {
   const token = usersData.driver?.token;
   if (!token) throw new Error("driver token not found");
@@ -238,12 +239,9 @@ const testDriverCantSelfConfirm = async () => {
     return { skipped: true };
   }
 
-  // Driver (not the receiver, not an admin) tries to settle → must be blocked.
-  // Declared probe: 403/400 proves the settle-authorization guard works. If the
-  // driver CAN self-confirm, expectGuardRejection throws → counted as ❌ FAIL,
-  // never downgraded to a warning.
+  // Driver (not the receiver, not an admin) tries to settle without OTP → blocked.
   await expectGuardRejection({
-    label: "Rule 3: driver cannot self-confirm a delivery",
+    label: "Rule 3: driver cannot confirm without the receiver OTP",
     allowed: [403, 400],
     run: () => {
       const settleForm = new FormData();
@@ -256,6 +254,42 @@ const testDriverCantSelfConfirm = async () => {
       );
     },
   });
+
+  if (!isTestOtpEnabled()) {
+    report.skip("Rule 3: driver confirms with receiver OTP", "test OTP is disabled");
+  } else {
+    const currentRes = await axios.get(
+      backendURL + `${BASE_URL}?deliveryConfirmationUniqueId=${dcId}`,
+      authConfig(token),
+    );
+    const current = Array.isArray(currentRes.data?.data)
+      ? currentRes.data.data[0]
+      : currentRes.data?.data;
+    if (current?.deliveryConfirmationStatus !== "PENDING") {
+      report.skip("Rule 3: driver confirms with receiver OTP", "confirmation is not PENDING");
+    } else {
+      try {
+        await axios.post(
+          `${backendURL}${BASE_URL}/${dcId}/request-sign-otp`,
+          {},
+          authConfig(token),
+        );
+      } catch (error) {
+        if (error.response?.status !== 429) throw error;
+      }
+
+      const settleForm = new FormData();
+      settleForm.append("status", "CONFIRMED");
+      settleForm.append("shipperSignature", "receiver-otp-authorized-driver-signature");
+      settleForm.append("otpCode", testOtp());
+      await axios.put(
+        `${backendURL}${BASE_URL}/${dcId}`,
+        settleForm,
+        authConfig(token),
+      );
+      report.pass("Rule 3: driver confirms with the receiver OTP");
+    }
+  }
 
   // Cleanup
   try {

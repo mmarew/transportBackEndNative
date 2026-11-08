@@ -258,7 +258,7 @@ ALTER TABLE DeliveryConfirmations
 | Method | Path | Purpose |
 |---|---|---|
 | POST | `/api/deliveryConfirmations/:id/request-sign-otp` | **Tier A (implemented):** send OTP to the receiver's phone (resolved from `receiverUserUniqueId`). PENDING-only; resend blocked while a code is active (≈ 1 per 10 min TTL) to cap SMS volume |
-| PUT | `/api/deliveryConfirmations/:id` | accepts `otpCode` (Tier A) + `receiverSignature` + `shipperSignature` + `statement` + optional `status`; verifies OTP (bcrypt compare + 5-attempt cap + expiry → 410) if provided |
+| PUT | `/api/deliveryConfirmations/:id` | accepts `otpCode` (Tier A) + `shipperSignature` + `statement` + optional `status`; the assigned journey driver must provide the receiver OTP to settle, which is verified against its bcrypt hash |
 
 Payloads are otherwise unchanged from §2.2.
 

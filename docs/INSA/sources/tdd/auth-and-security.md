@@ -25,7 +25,7 @@ register ──> verify email/phone ──> login (password) ──> OTP verific
    inserts one `UserSessions` row for the device (platform, app version, locale,
    IP, first/last-seen timestamps) and issues a JWT whose `sid` claim is that
    row's `sessionUniqueId`. The same happens on the phone/email verification and
-   self-update login paths.
+   self-update login paths. Login OTPs expire after five hours.
 5. **Logout** — `POST /api/user/logout` revokes the `UserSessions` row named by
    the token's `sid` and clears the auth cookie. Logout is idempotent: an
    already-revoked or malformed token still clears the cookie and returns `200`.

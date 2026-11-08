@@ -33,11 +33,9 @@ const HTTP_STATUS = {
 // Domain rules
 const DOMAIN = {
   OTP_LENGTH: 6,
-  // Login/verification OTP hardening (mirrors the Tier-A delivery OTP policy
-  // in Services/DeliveryConfirmation/otp.service.js): the bcrypt-hashed
-  // 6-digit code expires after this TTL and allows at most this many failed
-  // verify attempts, so it can't be brute-forced within its validity window.
-  LOGIN_OTP_TTL_MINUTES: 10,
+  // Login/verification OTPs expire after five hours and allow at most this
+  // many failed verify attempts.
+  LOGIN_OTP_TTL_MINUTES: 5 * 60,
   LOGIN_OTP_MAX_ATTEMPTS: 5,
   /**
    * QueueOrganization.queueOrganizationType. Keep in sync with the MySQL ENUM

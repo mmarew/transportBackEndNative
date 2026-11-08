@@ -37,7 +37,7 @@ const otpExpiry = (now) => {
   return formatDateTime(new Date(base.getTime() + OTP_TTL_MINUTES * 60000));
 };
 
-// Verify a Tier-A OTP before it is used to bind the receiver signature. OTP is
+// Verify the receiver's Tier-A OTP before a driver settles delivery. OTP is
 // bcrypt-hashed (not plain SHA-256 — 6-digit codes are offline-brute-forceable),
 // expires after OTP_TTL_MINUTES, and is capped at OTP_MAX_ATTEMPTS failures.
 const verifyOtpCode = async (executor, current, otpCode, now) => {
@@ -55,10 +55,6 @@ const verifyOtpCode = async (executor, current, otpCode, now) => {
     );
   }
   if (hasStoredOtp) {
-    if (current.deliveryConfirmationOtpVerifiedAt) {
-      // Already verified — treat as success for idempotent retries.
-      return;
-    }
     if (
       current.deliveryConfirmationOtpExpiresAt &&
       current.deliveryConfirmationOtpExpiresAt < now
@@ -93,16 +89,18 @@ const verifyOtpCode = async (executor, current, otpCode, now) => {
     throw new AppError("Invalid OTP code", AppError.BAD_REQUEST);
   }
 
-  await executor.query(
-    `UPDATE DeliveryConfirmations
-     SET deliveryConfirmationOtpVerifiedAt = ?
-     WHERE deliveryConfirmationUniqueId = ?`,
-    [now, current.deliveryConfirmationUniqueId],
-  );
+  if (!current.deliveryConfirmationOtpVerifiedAt) {
+    await executor.query(
+      `UPDATE DeliveryConfirmations
+       SET deliveryConfirmationOtpVerifiedAt = ?
+       WHERE deliveryConfirmationUniqueId = ?`,
+      [now, current.deliveryConfirmationUniqueId],
+    );
+  }
 };
 
-// Tier A: send a time-limited OTP to the receiver's phone so the on-road
-// signature can be bound to the receiver's identity. Only while PENDING, and at
+// Tier A: send a time-limited OTP to the receiver's phone so their approval of
+// delivery can be verified when the driver settles. Only while PENDING, and at
 // most one active code at a time (resend blocked until it expires) — keeps SMS
 // volume bounded.
 exports.requestSignOtp = async (deliveryConfirmationUniqueId) => {
