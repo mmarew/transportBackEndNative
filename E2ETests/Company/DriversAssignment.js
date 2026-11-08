@@ -1,8 +1,12 @@
-const { usersData, backendURL } = require("../constants");
+const { usersData, backendURL, journeyStatusMap } = require("../constants");
 const axios = require("axios");
+const { pool } = require("../../Middleware/Database.config");
 const {
   COMPANY_ASSIGNMENT_ENDPOINTS,
 } = require("../../Routes/EndPoints/companyAssignment.endpoints");
+const {
+  DRIVER_REQUEST_ENDPOINTS,
+} = require("../../Routes/EndPoints/driverRequest.endpoints");
 const { authConfig } = require("../Utils");
 const { report } = require("../Reporter");
 const { getBids } = require("./BidManagement");
@@ -157,6 +161,93 @@ const testUpdateAssignmentStatus = async ({
   return res.data?.data;
 };
 
+const testVerifyAssignedDriverStatus = async ({
+  assignmentUniqueId,
+  driverRequestUniqueId,
+} = {}) => {
+  const token = usersData?.driver?.token;
+  if (!token) {
+    report.skip(
+      "verify requested company assignment when request is inactive",
+      "no driver token available",
+    );
+    return;
+  }
+  if (!assignmentUniqueId || !driverRequestUniqueId) {
+    throw new Error("Assignment and DriverRequest IDs are required for status verification");
+  }
+
+  const [requestRows] = await pool.query(
+    `SELECT journeyStatusId, driverRequestDeletedAt
+     FROM DriverRequest
+     WHERE driverRequestUniqueId = ?
+     LIMIT 1`,
+    [driverRequestUniqueId],
+  );
+  if (!requestRows[0]) {
+    throw new Error("DriverRequest for the new company assignment was not found");
+  }
+
+  const previousStatus = requestRows[0].journeyStatusId;
+  const previousDeletedAt = requestRows[0].driverRequestDeletedAt;
+  await pool.query(
+    `UPDATE DriverRequest
+     SET journeyStatusId = ?, driverRequestDeletedAt = CURRENT_TIMESTAMP
+     WHERE driverRequestUniqueId = ?`,
+    [journeyStatusMap.replacedByCompanyAssignment, driverRequestUniqueId],
+  );
+
+  let repaired = false;
+  try {
+    const res = await axios.get(
+      backendURL + DRIVER_REQUEST_ENDPOINTS.VERIFY_DRIVER_JOURNEY_STATUS,
+      authConfig(token),
+    );
+    if (
+      Number(res.data?.status) !== journeyStatusMap.requested ||
+      res.data?.companyAssignment?.assignmentUniqueId !== assignmentUniqueId
+    ) {
+      throw new Error(
+        `Expected requested status for active company assignment, got ${JSON.stringify({
+          status: res.data?.status,
+          assignmentUniqueId: res.data?.companyAssignment?.assignmentUniqueId,
+        })}`,
+      );
+    }
+    const [repairedRequests] = await pool.query(
+      `SELECT journeyStatusId, driverRequestDeletedAt
+       FROM DriverRequest
+       WHERE driverRequestUniqueId = ?
+       LIMIT 1`,
+      [driverRequestUniqueId],
+    );
+    if (
+      Number(repairedRequests[0]?.journeyStatusId) !== journeyStatusMap.requested ||
+      repairedRequests[0]?.driverRequestDeletedAt
+    ) {
+      throw new Error(
+        `Expected linked DriverRequest to be active after verification, got ${JSON.stringify({
+          journeyStatusId: repairedRequests[0]?.journeyStatusId,
+          deleted: Boolean(repairedRequests[0]?.driverRequestDeletedAt),
+        })}`,
+      );
+    }
+    repaired = true;
+    report.pass(
+      "restore active DriverRequest for requested company assignment",
+    );
+  } finally {
+    if (!repaired) {
+      await pool.query(
+        `UPDATE DriverRequest
+         SET journeyStatusId = ?, driverRequestDeletedAt = ?
+         WHERE driverRequestUniqueId = ?`,
+        [previousStatus, previousDeletedAt, driverRequestUniqueId],
+      );
+    }
+  }
+};
+
 const testDeleteAssignment = async ({
   userType = "companyAdmin",
   assignmentUniqueId,
@@ -193,6 +284,10 @@ const testDriversAssignmentWorkflow = async ({ userType = "companyAdmin" } = {})
   const assignment = await testCreateAssignment({ userType });
 
   if (assignment?.assignmentUniqueId) {
+    await testVerifyAssignedDriverStatus({
+      assignmentUniqueId: assignment.assignmentUniqueId,
+      driverRequestUniqueId: assignment.driverRequestUniqueId,
+    });
     await testUpdateAssignmentStatus({
       userType,
       assignmentUniqueId: assignment.assignmentUniqueId,
@@ -236,6 +331,7 @@ module.exports = {
   testBulkAssign,
   testGetAssignments,
   testUpdateAssignmentStatus,
+  testVerifyAssignedDriverStatus,
   testDeleteAssignment,
   testDriversAssignmentWorkflow,
   testGetCompanyAssignments,

@@ -22,6 +22,7 @@ const checkActiveDriverRequest = async (userUniqueId, forUpdate = false) => {
       INNER JOIN Users ON DriverRequest.userUniqueId = Users.userUniqueId
       LEFT JOIN JourneyDecisions ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
       WHERE DriverRequest.userUniqueId = ?
+      AND DriverRequest.driverRequestDeletedAt IS NULL
       AND (
         -- Active statuses
         DriverRequest.journeyStatusId IN (${activeStatusPlaceholders})

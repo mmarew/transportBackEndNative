@@ -1,4 +1,5 @@
 "use strict";
+const { v4: uuidv4 } = require("uuid");
 const {
   getNotificationStatuses,
   shouldHandleNotificationStatus,
@@ -7,16 +8,207 @@ const {
 const { handleJourneyStatusOne } = require("./handleJourneyStatusOne.service");
 const { handleExistingJourney } = require("./handleExistingJourney.service");
 
-const { checkActiveDriverRequest } = require("../../../CRUD/Read/ReadData");
+const { checkActiveDriverRequest, getData } = require("../../../CRUD/Read/ReadData");
 
-const { journeyStatusMap } = require("../../../Utils/ListOfSeedData");
+const {
+  journeyStatusMap,
+  activeJourneyStatuses,
+} = require("../../../Utils/ListOfSeedData");
 
 const AppError = require("../../../Utils/AppError");
 const logger = require("../../../Utils/logger");
+const { currentDate } = require("../../../Utils/CurrentDate");
 // Removed unused import: VerifyIfShipperRequestWasNotRejected
 // Removed unused import: VerifyIfShipperRequestWasNotRejected
 const { getVehicleDrivers } = require("../../VehicleDriver.service");
 const { pool } = require("../../../Middleware/Database.config");
+
+const getCompanyAssignmentJourneyStatus = (assignmentStatus, driverRequestStatus) => {
+  const companyStatuses = {
+    assigned: journeyStatusMap.requested,
+    reassigned: journeyStatusMap.requested,
+    confirmed_by_driver: journeyStatusMap.acceptedByShipper,
+    going_to_loading: journeyStatusMap.goToLoadingPlace,
+    journey_started: journeyStatusMap.journeyStarted,
+  };
+  if (companyStatuses[assignmentStatus] !== undefined) {
+    return companyStatuses[assignmentStatus];
+  }
+  const linkedStatus = Number(driverRequestStatus);
+  return activeJourneyStatuses.includes(linkedStatus)
+    ? linkedStatus
+    : journeyStatusMap.requested;
+};
+
+const getActiveCompanyAssignmentStatus = async (userUniqueId, vehicle) => {
+  const connection = await pool.getConnection();
+  let companyAssignment;
+  let driverRequestUniqueId;
+  let status;
+  try {
+    await connection.beginTransaction();
+    const [assignmentRows] = await connection.query(
+      `SELECT
+         cbva.assignmentUniqueId,
+         cbva.assignmentStatus,
+         cbva.companyBidRequestUniqueId,
+         cbva.shipperRequestUniqueId,
+         cbva.vehicleUniqueId,
+         cbva.driverUserUniqueId,
+         cbva.driverRequestUniqueId,
+         cbva.journeyDecisionUniqueId,
+         tc.companyUniqueId,
+         tc.companyName,
+         tc.companyPhone,
+         sr.originLatitude,
+         sr.originLongitude,
+         sr.originPlace
+       FROM CompanyBidVehicleAssignment cbva
+       LEFT JOIN CompanyBidRequest cbr
+         ON cbva.companyBidRequestUniqueId = cbr.companyBidRequestUniqueId
+       LEFT JOIN TransportCompany tc
+         ON cbr.companyUniqueId = tc.companyUniqueId
+       LEFT JOIN ShipperRequest sr
+         ON cbva.shipperRequestUniqueId = sr.shipperRequestUniqueId
+       WHERE cbva.driverUserUniqueId = ?
+         AND cbva.assignmentStatus NOT IN (
+           'completed', 'cancelled_by_company', 'cancelled_by_shipper',
+           'cancelled_by_driver', 'rejected_by_driver'
+         )
+         AND cbva.assignmentDeletedAt IS NULL
+       ORDER BY cbva.assignmentCreatedAt DESC
+       LIMIT 1
+       FOR UPDATE`,
+      [userUniqueId],
+    );
+    companyAssignment = assignmentRows[0];
+    if (!companyAssignment) {
+      await connection.commit();
+      return null;
+    }
+
+    driverRequestUniqueId = companyAssignment.driverRequestUniqueId;
+    const [driverRequestRows] = driverRequestUniqueId
+      ? await connection.query(
+          `SELECT driverRequestId, journeyStatusId
+           FROM DriverRequest
+           WHERE driverRequestUniqueId = ?
+           LIMIT 1
+           FOR UPDATE`,
+          [driverRequestUniqueId],
+        )
+      : [[]];
+    const linkedDriverRequest = driverRequestRows[0];
+    let driverRequestId = linkedDriverRequest?.driverRequestId;
+    status = getCompanyAssignmentJourneyStatus(
+      companyAssignment.assignmentStatus,
+      linkedDriverRequest?.journeyStatusId,
+    );
+
+    if (linkedDriverRequest) {
+      await connection.query(
+        `UPDATE DriverRequest
+         SET journeyStatusId = ?,
+             driverRequestDeletedAt = NULL,
+             driverRequestUpdatedAt = ?
+         WHERE driverRequestId = ?`,
+        [status, currentDate(), linkedDriverRequest.driverRequestId],
+      );
+    } else {
+      driverRequestUniqueId = driverRequestUniqueId || uuidv4();
+      const [insertResult] = await connection.query(
+        `INSERT INTO DriverRequest
+           (driverRequestUniqueId, userUniqueId, journeyStatusId,
+            originLatitude, originLongitude, originPlace, driverRequestCreatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          driverRequestUniqueId,
+          userUniqueId,
+          status,
+          companyAssignment.originLatitude ?? 0,
+          companyAssignment.originLongitude ?? 0,
+          companyAssignment.originPlace ?? "Assigned by dispatcher",
+          currentDate(),
+        ],
+      );
+      driverRequestId = insertResult.insertId;
+      await connection.query(
+        `UPDATE CompanyBidVehicleAssignment
+         SET driverRequestUniqueId = ?
+         WHERE assignmentUniqueId = ?
+           AND assignmentDeletedAt IS NULL`,
+        [driverRequestUniqueId, companyAssignment.assignmentUniqueId],
+      );
+    }
+
+    if (companyAssignment.journeyDecisionUniqueId && linkedDriverRequest) {
+      await connection.query(
+        `UPDATE JourneyDecisions
+         SET journeyStatusId = ?, journeyDecisionUpdatedAt = ?
+         WHERE journeyDecisionUniqueId = ? AND driverRequestId = ?`,
+        [status, currentDate(), companyAssignment.journeyDecisionUniqueId, driverRequestId],
+      );
+    } else if (companyAssignment.journeyDecisionUniqueId) {
+      await connection.query(
+        `UPDATE JourneyDecisions
+         SET driverRequestId = ?, journeyStatusId = ?, journeyDecisionUpdatedAt = ?
+         WHERE journeyDecisionUniqueId = ?`,
+        [driverRequestId, status, currentDate(), companyAssignment.journeyDecisionUniqueId],
+      );
+    }
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+
+  const [driverRequests, shipperRequests, decisions] = await Promise.all([
+    getData({
+      tableName: "DriverRequest",
+      conditions: { driverRequestUniqueId },
+    }),
+    companyAssignment.shipperRequestUniqueId
+      ? getData({
+          tableName: "ShipperRequest",
+          conditions: { shipperRequestUniqueId: companyAssignment.shipperRequestUniqueId },
+        })
+      : [],
+    companyAssignment.journeyDecisionUniqueId
+      ? getData({
+          tableName: "JourneyDecisions",
+          conditions: { journeyDecisionUniqueId: companyAssignment.journeyDecisionUniqueId },
+        })
+      : [],
+  ]);
+  const linkedDriverRequest = driverRequests[0];
+  const driver = {
+    ...linkedDriverRequest,
+    driverRequestUniqueId,
+    userUniqueId,
+    fullName: linkedDriverRequest?.fullName ?? vehicle.fullName,
+    phoneNumber: linkedDriverRequest?.phoneNumber ?? vehicle.phoneNumber,
+    journeyStatusId: status,
+  };
+  const shipper = shipperRequests[0] ?? null;
+  const decision = decisions[0] ?? null;
+
+  return {
+    message: "Company assignment status fetched",
+    status,
+    uniqueIds: {
+      driverRequestUniqueId,
+      shipperRequestUniqueId: companyAssignment.shipperRequestUniqueId,
+      journeyDecisionUniqueId: companyAssignment.journeyDecisionUniqueId,
+    },
+    driver: { driver, vehicle },
+    shipper,
+    journey: null,
+    decision,
+    companyAssignment,
+  };
+};
 
 // Removed unused import: executeInTransaction
 // Import helpers from helpers.js
@@ -67,6 +259,13 @@ const verifyDriverJourneyStatus = async ({ userUniqueId, activeRequest }) => {
     const driverRequest = activeRequest?.[0];
     logger.debug("@driverRequest", driverRequest);
     if (!driverRequest) {
+      const companyAssignmentStatus = await getActiveCompanyAssignmentStatus(
+        userUniqueId,
+        vehicle,
+      );
+      if (companyAssignmentStatus) {
+        return withQueue(companyAssignmentStatus);
+      }
       return withQueue({
         message: "Driver journey status verified",
         data: null,

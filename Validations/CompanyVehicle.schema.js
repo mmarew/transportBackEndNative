@@ -31,6 +31,8 @@ exports.getCompanyVehiclesQuery = Joi.object({
   companyUniqueId: uuidSchema.optional(),
   vehicleUniqueId: uuidSchema.optional(),
   assignmentStatus: Joi.string().valid("active", "inactive").optional(),
+  // Independent of assignmentStatus; active uses the driver's current role status.
+  driverStatus: Joi.string().valid("all", "active", "inactive").optional(),
   page: Joi.number().integer().min(1).default(1).optional(),
   limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(PAGINATION.DEFAULT_PAGE_SIZE).optional(),
 }).unknown(true);

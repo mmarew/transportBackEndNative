@@ -10,7 +10,7 @@ const {
   assertCompanyAccess,
 } = require("./CompanyHelper.service");
 const { getData } = require("../CRUD/Read/ReadData");
-const { usersRoles } = require("../Utils/ListOfSeedData");
+const { usersRoles, USER_STATUS } = require("../Utils/ListOfSeedData");
 const { insertHistoryRecord } = require("./History/History.service");
 
 /**
@@ -272,6 +272,15 @@ exports.getCompanyVehicles = async (filters = {}, user = {}) => {
     clauses.push("cv.assignmentStatus = ?");
     params.push(filters.assignmentStatus);
   }
+  if (filters.driverStatus === "active") {
+    clauses.push("ursc.statusId = ?");
+    params.push(USER_STATUS.ACTIVE);
+  } else if (filters.driverStatus === "inactive") {
+    clauses.push(
+      "vd.driverUserUniqueId IS NOT NULL AND (ursc.statusId IS NULL OR ursc.statusId <> ?)",
+    );
+    params.push(USER_STATUS.ACTIVE);
+  }
   if (filters.carryingCapacity) {
     clauses.push("vt.carryingCapacity = ?");
     params.push(filters.carryingCapacity);
@@ -291,7 +300,9 @@ exports.getCompanyVehicles = async (filters = {}, user = {}) => {
             vd.assignmentStartDate AS driverAssignmentStartDate,
             u.fullName  AS driverFullName,
             u.phoneNumber AS driverPhoneNumber,
-            u.email AS driverEmail
+            u.email AS driverEmail,
+            ursc.statusId AS driverStatusId,
+            s.statusName AS driverStatusName
      FROM CompanyVehicle cv
      JOIN Vehicle v ON cv.vehicleUniqueId = v.vehicleUniqueId
      JOIN VehicleTypes vt ON v.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
@@ -301,11 +312,26 @@ exports.getCompanyVehicles = async (filters = {}, user = {}) => {
            AND vd.assignmentStatus = 'active'
            AND vd.assignmentEndDate IS NULL
      LEFT JOIN Users u ON u.userUniqueId = vd.driverUserUniqueId
+     LEFT JOIN UserRole ur
+            ON ur.userUniqueId = vd.driverUserUniqueId
+           AND ur.roleId = ${usersRoles.driverRoleId}
+           AND ur.userRoleDeletedAt IS NULL
+     LEFT JOIN UserRoleStatusCurrent ursc ON ursc.userRoleId = ur.userRoleId
+     LEFT JOIN Statuses s ON s.statusId = ursc.statusId
      ${where}
      ORDER BY cv.companyVehicleCreatedAt DESC`,
-    `SELECT COUNT(*) AS total FROM CompanyVehicle cv
+    `SELECT COUNT(DISTINCT cv.companyVehicleUniqueId) AS total FROM CompanyVehicle cv
      JOIN Vehicle v ON cv.vehicleUniqueId = v.vehicleUniqueId
      JOIN VehicleTypes vt ON v.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+     LEFT JOIN VehicleDriver vd
+            ON vd.vehicleUniqueId = cv.vehicleUniqueId
+           AND vd.assignmentStatus = 'active'
+           AND vd.assignmentEndDate IS NULL
+     LEFT JOIN UserRole ur
+            ON ur.userUniqueId = vd.driverUserUniqueId
+           AND ur.roleId = ${usersRoles.driverRoleId}
+           AND ur.userRoleDeletedAt IS NULL
+     LEFT JOIN UserRoleStatusCurrent ursc ON ursc.userRoleId = ur.userRoleId
      ${where}`,
     params,
     page,

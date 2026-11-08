@@ -69,7 +69,10 @@ const assignVehicleToCompany = async ({ userType = "companyAdmin" } = {}) => {
 /**
  * Fetches all vehicles currently assigned to the company fleet.
  */
-const getCompanyVehicles = async ({ userType = "companyAdmin" } = {}) => {
+const getCompanyVehicles = async ({
+  userType = "companyAdmin",
+  driverStatus,
+} = {}) => {
   const token = usersData?.[userType]?.token;
   if (!token) {
     logCompanyError("getCompanyVehicles failed, no token found.");
@@ -82,10 +85,13 @@ const getCompanyVehicles = async ({ userType = "companyAdmin" } = {}) => {
     return [];
   }
 
+  const driverStatusFilter = driverStatus
+    ? `&driverStatus=${encodeURIComponent(driverStatus)}`
+    : "";
   const url =
     backendURL +
     COMPANY_VEHICLE_ENDPOINTS.GET_COMPANY_VEHICLES +
-    `?companyUniqueId=${company.companyUniqueId}&assignmentStatus=active`;
+    `?companyUniqueId=${company.companyUniqueId}&assignmentStatus=active${driverStatusFilter}`;
   const config = { ...authConfig(token) };
 
   try {
