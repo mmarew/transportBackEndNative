@@ -3,6 +3,7 @@ const router = express.Router();
 const deliveryConfirmationController = require("../Controllers/DeliveryConfirmation.controller");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 const upload = require("../Config/MulterConfig");
+const AppError = require("../Utils/AppError");
 
 const { validator } = require("../Middleware/Validator");
 const {
@@ -16,15 +17,44 @@ const {
   DELIVERY_CONFIRMATION_ENDPOINTS,
 } = require("./EndPoints/deliveryConfirmation.endpoints");
 
+const normalizeShipperSignatureFile = (req, res, next) => {
+  const file = req.files?.shipperSignature?.[0];
+  if (!file) {
+    return next();
+  }
+  if (req.body.shipperSignature) {
+    return next(
+      new AppError(
+        "Provide shipperSignature as either a file or a data URL, not both",
+        AppError.BAD_REQUEST,
+      ),
+    );
+  }
+  if (!["image/jpeg", "image/png"].includes(file.mimetype)) {
+    return next(
+      new AppError(
+        "shipperSignature must be a JPEG or PNG image",
+        AppError.BAD_REQUEST,
+      ),
+    );
+  }
+
+  req.body.shipperSignature = `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+  return next();
+};
+
 // Create a new delivery confirmation (multipart: optional "photos" file array +
-// fields; legacy single "photo" field still accepted and becomes the primary).
+// fields; optional shipperSignature image; legacy single "photo" field still
+// accepted and becomes the primary).
 router.post(
   DELIVERY_CONFIRMATION_ENDPOINTS.CREATE_DELIVERY_CONFIRMATION,
   verifyTokenOfAxios,
   upload.fields([
     { name: "photos", maxCount: 10 },
     { name: "photo", maxCount: 1 },
+    { name: "shipperSignature", maxCount: 1 },
   ]),
+  normalizeShipperSignatureFile,
   validator(createDeliveryConfirmation),
   deliveryConfirmationController.createDeliveryConfirmation,
 );
@@ -38,14 +68,17 @@ router.get(
 );
 
 // Update a delivery confirmation by deliveryConfirmationUniqueId (multipart:
-// optional "photos" file array; legacy single "photo" field still accepted).
+// optional photos and shipperSignature image; legacy single "photo" field still
+// accepted).
 router.put(
   DELIVERY_CONFIRMATION_ENDPOINTS.UPDATE_DELIVERY_CONFIRMATION,
   verifyTokenOfAxios,
   upload.fields([
     { name: "photos", maxCount: 10 },
     { name: "photo", maxCount: 1 },
+    { name: "shipperSignature", maxCount: 1 },
   ]),
+  normalizeShipperSignatureFile,
   validator(deliveryConfirmationParams, "params"),
   validator(updateDeliveryConfirmation),
   deliveryConfirmationController.updateDeliveryConfirmation,

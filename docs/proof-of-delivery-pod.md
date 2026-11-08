@@ -101,7 +101,7 @@ memory storage, 10 MB max per file, jpeg/png/pdf/svg.
 |---|---|---|---|
 | POST | `/api/deliveryConfirmations` | multipart: `photos[]` + fields | Create (starts PENDING). `409` if journey already has one. |
 | GET | `/api/deliveryConfirmations` | query: `journeyUniqueId`, `deliveryConfirmationUniqueId`, `receiverUserUniqueId`, `status`, `page`, `limit` | Filter + paginate |
-| PUT | `/api/deliveryConfirmations/:deliveryConfirmationUniqueId` | multipart: optional `photos[]` + fields | Partial update (photo appends); settling sets `confirmedBy` + `confirmedAt` |
+| PUT | `/api/deliveryConfirmations/:deliveryConfirmationUniqueId` | multipart: optional `photos[]`, `photo`, or PNG/JPEG `shipperSignature` file + fields | Partial update (photos append); `shipperSignature` may also be sent as a base64 data URL; settling sets `confirmedBy` + `confirmedAt` |
 | DELETE | `/api/deliveryConfirmations/:deliveryConfirmationUniqueId` | — | Soft delete |
 
 ### 2.3 Validation — `Validations/DeliveryConfirmation.schema.js`

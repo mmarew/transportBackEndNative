@@ -50,7 +50,7 @@ journey's shipper is allowed.)*
 | `quantityUnit` | string | no | `quintal`, `kg`, or `piece`. |
 | `condition` | string | no | `GOOD` (default), `DAMAGED`, or `PARTIAL`. |
 | `receiverSignature` | string | no | PNG base64 (data URI) of the receiver's on-road signature (Tier A). |
-| `shipperSignature` | string | no | For **shipper-direct** only (with `status: CONFIRMED`). |
+| `shipperSignature` | string or image file | no | For **shipper-direct** only (with `status: CONFIRMED`); send a base64 data URL or a PNG/JPEG multipart file in the `shipperSignature` field. |
 | `status` | string | no | `CONFIRMED` = shipper self-confirmation. Ignored for non-shippers. |
 | `notes` | string | no | Free text. |
 | `latitude` / `longitude` | number | no | GPS when captured (driver submit). |

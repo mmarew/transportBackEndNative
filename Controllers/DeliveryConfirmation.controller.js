@@ -24,8 +24,8 @@ const saveDeliveryPhotos = async (req) => {
   if (req.file) {
     allFiles.push(req.file);
   }
-  for (const group of Object.values(req.files || {})) {
-    for (const file of group || []) {
+  for (const fieldName of ["photos", "photo"]) {
+    for (const file of req.files?.[fieldName] || []) {
       allFiles.push(file);
     }
   }

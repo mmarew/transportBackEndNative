@@ -7,7 +7,7 @@ after the receiver shares the one-time OTP sent to their phone.
 
 **Method:** PUT
 **Auth:** Bearer token (required) — `Authorization: Bearer <token>`
-**Content-Type:** `multipart/form-data` (or `application/json` — the same fields work either way)
+**Content-Type:** `multipart/form-data` (or `application/json` — the same fields work either way). In multipart requests, `shipperSignature` may be a PNG/JPEG image file or a base64 data-URL text field.
 
 ```http
 PUT {{url}}/api/deliveryConfirmations/<deliveryConfirmationUniqueId>
@@ -25,7 +25,7 @@ Authorization: Bearer <token>
    ```
    status=CONFIRMED
    otpCode=101010
-   shipperSignature=<png base64 data URI>
+   shipperSignature=<PNG/JPEG file or base64 data URL>
    ```
    The driver must also provide the required shipper signature and any missing
    settle evidence. A valid receiver OTP is required for a driver to confirm.
@@ -36,7 +36,7 @@ Authorization: Bearer <token>
 |---|---|---|---|
 | `status` | string | yes | Must be `CONFIRMED` when the assigned driver settles. |
 | `otpCode` | string | yes for driver | 6 digits; must match the code sent to the receiver. |
-| `shipperSignature` | string | yes for settle | PNG base64 data URI (max ~2 MB). |
+| `shipperSignature` | image file or string | yes for settle | Upload a PNG/JPEG file using the `shipperSignature` field, or send a base64 data URL (max ~2 MB). Do not send both. |
 | *(optional)* `notes`, `deliveredQuantity`, `quantityUnit`, `condition`, `latitude`, `longitude`, `photo(s)`, `statement` | – | no | Additional settle evidence. |
 
 Only specify what you're changing; the update is partial.
@@ -48,6 +48,9 @@ status=CONFIRMED
 otpCode=101010
 shipperSignature=data:image/png;base64,iVBORw0KG…
 ```
+
+With multipart form data, add `shipperSignature` as a PNG or JPEG file instead
+of entering the data URL as text.
 
 ```json
 {
