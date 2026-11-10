@@ -4,7 +4,11 @@ const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { usersRoles, companyRoles } = require("../Utils/ListOfSeedData");
-const { db, paginate, resolveOwnerUserUniqueIds } = require("./CompanyHelper.service");
+const {
+  db,
+  paginate,
+  resolveOwnerUserUniqueIds,
+} = require("./CompanyHelper.service");
 const { getData } = require("../CRUD/Read/ReadData");
 const { addMember } = require("./CompanyMembership.service");
 const { sendCompanyCreatedAlert } = require("../Utils/TelegramNotifier");
@@ -190,10 +194,14 @@ exports.getCompanies = async (filters = {}, user = {}) => {
 
   // Data Segregation:
   // - Admins/SuperAdmins: see all companies
-  // - Drivers: see all APPROVED companies (needed to pick a company when registering a vehicle)
+  // - Drivers and queue org admins: see all APPROVED companies
+  //   (drivers need them for vehicle registration; queue admins need company lookup)
   // - Other non-admins (shippers, companyAdmin, etc.): only see companies they belong to
   if (!isAdmin) {
-    if (user.roleId === usersRoles.driverRoleId) {
+    if (
+      user.roleId === usersRoles.driverRoleId ||
+      user.roleId === usersRoles.queueOrgAdminRoleId
+    ) {
       clauses.push("TransportCompany.approvalStatus = 'approved'");
     } else {
       clauses.push(
@@ -364,8 +372,7 @@ exports.getCompanies = async (filters = {}, user = {}) => {
 
   // ── 4. Merge compliance + owner profile into each company row ─────────────
   const data = companies.map((c) => {
-    const ownerUserUniqueId =
-      ownerMap[c.companyUniqueId] ?? c.companyCreatedBy;
+    const ownerUserUniqueId = ownerMap[c.companyUniqueId] ?? c.companyCreatedBy;
     const owner = ownerProfiles[ownerUserUniqueId];
     const ownerProfile = owner
       ? {
@@ -599,7 +606,10 @@ exports.approveCompany = async (
 
   // ── Guard 3: Rejection must include a reason ──────────────────────────────
   if (approvalStatus === "rejected" && !approvalReason?.trim()) {
-    throw new AppError("A reason is required when rejecting a company", AppError.UNPROCESSABLE_ENTITY);
+    throw new AppError(
+      "A reason is required when rejecting a company",
+      AppError.UNPROCESSABLE_ENTITY,
+    );
   }
 
   // ── Guard 4: Document compliance — only when approving ───────────────────
@@ -711,7 +721,10 @@ exports.deleteCompany = async (companyUniqueId, deletedBy) => {
     [currentDate(), deletedBy, companyUniqueId],
   );
   if (res.affectedRows === 0) {
-    throw new AppError("Company not found or already deleted", AppError.NOT_FOUND);
+    throw new AppError(
+      "Company not found or already deleted",
+      AppError.NOT_FOUND,
+    );
   }
   return { message: "Company deleted successfully", data: null };
 };
