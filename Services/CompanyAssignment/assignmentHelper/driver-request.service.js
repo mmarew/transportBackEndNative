@@ -13,10 +13,30 @@ const {
 const { createCanceledJourney } = require("../../CanceledJourneys");
 const { getCancellationReasonIdByName } = require("../../Cancellation.service");
 const { sendFCMNotificationToUser } = require("../../Firebase.service");
-const { sendSocketIONotificationToDriver } = require("../../../Utils/Notifications");
+const {
+  sendSocketIONotificationToDriver,
+} = require("../../../Utils/Notifications");
 const messageTypes = require("../../../Utils/MessageTypes");
 const logger = require("../../../Utils/logger");
 const { updateData } = require("../../../CRUD/Update/Data.update");
+
+const retireDriverRequest = async (driverRequestUniqueId) => {
+  const now = currentDate();
+  await db().query(
+    `UPDATE DriverRequest
+     SET journeyStatusId = IF(journeyStatusId = ?, journeyStatusId, ?),
+         driverRequestDeletedAt = ?,
+         driverRequestUpdatedAt = ?
+     WHERE driverRequestUniqueId = ?`,
+    [
+      journeyStatusMap.journeyCompleted,
+      journeyStatusMap.replacedByCompanyAssignment,
+      now,
+      now,
+      driverRequestUniqueId,
+    ],
+  );
+};
 
 /**
  * upsertDriverRequest
@@ -111,8 +131,8 @@ async function driverRequestMustStartFresh({
   }
 
   const individualStatuses = [
-    journeyStatusMap.waiting,    // 1
-    journeyStatusMap.requested,  // 2
+    journeyStatusMap.waiting, // 1
+    journeyStatusMap.requested, // 2
     journeyStatusMap.acceptedByDriver, // 3
   ];
 
@@ -153,7 +173,7 @@ const upsertDriverRequest = async ({
 
   if (existingRows && existingRows.length > 0) {
     const existingUniqueId = existingRows[0].driverRequestUniqueId;
-    const existingStatus   = existingRows[0].journeyStatusId;
+    const existingStatus = existingRows[0].journeyStatusId;
 
     // ── One decision per DriverRequest guard ─────────────────────────────────
     // See driverRequestMustStartFresh: a decision that belongs to another slot
@@ -167,20 +187,15 @@ const upsertDriverRequest = async ({
     });
 
     if (mustStartFresh) {
-      await updateData({
-        tableName: "DriverRequest",
-        conditions: { driverRequestUniqueId: existingUniqueId },
-        updateValues: {
-          journeyStatusId: journeyStatusMap.replacedByCompanyAssignment,
-          driverRequestDeletedAt: currentDate(),
-          driverRequestUpdatedAt: currentDate(),
+      await retireDriverRequest(existingUniqueId);
+      logger.info(
+        "DriverRequest soft-deleted (linked decision belongs to another or finished job)",
+        {
+          driverRequestUniqueId: existingUniqueId,
+          driverUserUniqueId,
+          shipperRequestUniqueId,
         },
-      });
-      logger.info("DriverRequest soft-deleted (linked decision belongs to another or finished job)", {
-        driverRequestUniqueId: existingUniqueId,
-        driverUserUniqueId,
-        shipperRequestUniqueId,
-      });
+      );
     }
 
     // ── Terminal individual status → soft-delete & fresh INSERT ──────────────
@@ -196,26 +211,24 @@ const upsertDriverRequest = async ({
     ];
 
     const activeIndividualStatuses = [
-      journeyStatusMap.waiting,    // 1
-      journeyStatusMap.requested,  // 2
+      journeyStatusMap.waiting, // 1
+      journeyStatusMap.requested, // 2
       journeyStatusMap.acceptedByDriver, // 3
     ];
 
-    if (!mustStartFresh && terminalIndividualStatuses.includes(existingStatus)) {
-      await updateData({
-        tableName: "DriverRequest",
-        conditions: { driverRequestUniqueId: existingUniqueId },
-        updateValues: {
-          journeyStatusId: journeyStatusMap.replacedByCompanyAssignment,
-          driverRequestDeletedAt: currentDate(),
-          driverRequestUpdatedAt: currentDate(),
+    if (
+      !mustStartFresh &&
+      terminalIndividualStatuses.includes(existingStatus)
+    ) {
+      await retireDriverRequest(existingUniqueId);
+      logger.info(
+        "Old DriverRequest soft-deleted (terminal individual status)",
+        {
+          driverRequestUniqueId: existingUniqueId,
+          existingStatus,
+          driverUserUniqueId,
         },
-      });
-      logger.info("Old DriverRequest soft-deleted (terminal individual status)", {
-        driverRequestUniqueId: existingUniqueId,
-        existingStatus,
-        driverUserUniqueId,
-      });
+      );
 
       // ── Notify the driver that their individual job was replaced ──────────
       // Same notification as Option B — explains the transition so the driver
@@ -259,11 +272,14 @@ const upsertDriverRequest = async ({
             type: "individual_replaced_by_company",
             cancelledDriverRequestUniqueId: existingUniqueId,
           },
-        }).catch(e =>
-          logger.warn("FCM failed for individual-replaced notification (terminal status)", {
-            error: e.message,
-            driverUserUniqueId,
-          }),
+        }).catch((e) =>
+          logger.warn(
+            "FCM failed for individual-replaced notification (terminal status)",
+            {
+              error: e.message,
+              driverUserUniqueId,
+            },
+          ),
         );
 
         // 2. WebSocket — instant delivery when app is open
@@ -271,28 +287,39 @@ const upsertDriverRequest = async ({
           sendSocketIONotificationToDriver({
             phoneNumber,
             message: replacementPayload,
-          }).catch(e =>
-            logger.warn("WebSocket failed for individual-replaced notification (terminal status, driver may be offline)", {
-              error: e.message,
-              driverUserUniqueId,
-            }),
+          }).catch((e) =>
+            logger.warn(
+              "WebSocket failed for individual-replaced notification (terminal status, driver may be offline)",
+              {
+                error: e.message,
+                driverUserUniqueId,
+              },
+            ),
           );
         }
 
-        logger.info("Replacement notification sent to driver (terminal status)", {
-          driverUserUniqueId,
-          cancelledDriverRequestUniqueId: existingUniqueId,
-        });
+        logger.info(
+          "Replacement notification sent to driver (terminal status)",
+          {
+            driverUserUniqueId,
+            cancelledDriverRequestUniqueId: existingUniqueId,
+          },
+        );
       } catch (notifyErr) {
-        logger.warn("Failed to send replacement notification to driver (terminal status, non-blocking)", {
-          error: notifyErr.message,
-          driverUserUniqueId,
-        });
+        logger.warn(
+          "Failed to send replacement notification to driver (terminal status, non-blocking)",
+          {
+            error: notifyErr.message,
+            driverUserUniqueId,
+          },
+        );
       }
 
       // Fall through to INSERT path below →
-
-    } else if (!mustStartFresh && activeIndividualStatuses.includes(existingStatus)) {
+    } else if (
+      !mustStartFresh &&
+      activeIndividualStatuses.includes(existingStatus)
+    ) {
       // Find all active JourneyDecisions for this DriverRequest
       const [activeDecisions] = await db().query(
         `SELECT jd.journeyDecisionUniqueId, jd.shipperRequestId,
@@ -312,17 +339,22 @@ const upsertDriverRequest = async ({
       );
 
       if (activeDecisions.length > 0) {
-        logger.info("Company assignment: cancelling individual JourneyDecisions for driver", {
-          driverUserUniqueId,
-          driverRequestUniqueId: existingUniqueId,
-          count: activeDecisions.length,
-        });
+        logger.info(
+          "Company assignment: cancelling individual JourneyDecisions for driver",
+          {
+            driverUserUniqueId,
+            driverRequestUniqueId: existingUniqueId,
+            count: activeDecisions.length,
+          },
+        );
 
         for (const decision of activeDecisions) {
           // 1. Mark the individual JourneyDecision as replaced by company assignment (status 16)
           await updateData({
             tableName: "JourneyDecisions",
-            conditions: { journeyDecisionUniqueId: decision.journeyDecisionUniqueId },
+            conditions: {
+              journeyDecisionUniqueId: decision.journeyDecisionUniqueId,
+            },
             updateValues: {
               journeyStatusId: journeyStatusMap.replacedByCompanyAssignment,
               journeyDecisionUpdatedAt: currentDate(),
@@ -334,7 +366,9 @@ const upsertDriverRequest = async ({
           if (decision.shipperRequestUniqueId) {
             await updateData({
               tableName: "ShipperRequest",
-              conditions: { shipperRequestUniqueId: decision.shipperRequestUniqueId },
+              conditions: {
+                shipperRequestUniqueId: decision.shipperRequestUniqueId,
+              },
               updateValues: {
                 journeyStatusId: journeyStatusMap.waiting,
                 shipperRequestUpdatedAt: currentDate(),
@@ -358,51 +392,54 @@ const upsertDriverRequest = async ({
                WHERE jd.journeyDecisionUniqueId = ? LIMIT 1`,
               [decision.journeyDecisionUniqueId],
             );
-            const journeyDecisionId       = jdPkRow?.[0]?.journeyDecisionId;
-            const shipperUserUniqueId     = jdPkRow?.[0]?.shipperUserUniqueId;
+            const journeyDecisionId = jdPkRow?.[0]?.journeyDecisionId;
+            const shipperUserUniqueId = jdPkRow?.[0]?.shipperUserUniqueId;
 
             if (journeyDecisionId) {
-              const companyReasonId = await getCancellationReasonIdByName(COMPANY_REPLACED_INDIVIDUAL_REASON);
+              const companyReasonId = await getCancellationReasonIdByName(
+                COMPANY_REPLACED_INDIVIDUAL_REASON,
+              );
               await createCanceledJourney({
-                contextId:                 journeyDecisionId,
-                contextType:               CANCELED_JOURNEY_CONTEXTS.JOURNEY_DECISIONS,
-                canceledBy:                driverUserUniqueId,
+                contextId: journeyDecisionId,
+                contextType: CANCELED_JOURNEY_CONTEXTS.JOURNEY_DECISIONS,
+                canceledBy: driverUserUniqueId,
                 cancellationReasonsTypeId: companyReasonId || 1,
-                roleId:                    usersRoles.driverRoleId,
+                roleId: usersRoles.driverRoleId,
                 driverUserUniqueId,
-                shipperUserUniqueId:       shipperUserUniqueId ?? null,
+                shipperUserUniqueId: shipperUserUniqueId ?? null,
               });
-              logger.info("CanceledJourney audit row written for system-cancelled individual JD", {
-                journeyDecisionUniqueId: decision.journeyDecisionUniqueId,
-                journeyDecisionId,
-                driverUserUniqueId,
-              });
+              logger.info(
+                "CanceledJourney audit row written for system-cancelled individual JD",
+                {
+                  journeyDecisionUniqueId: decision.journeyDecisionUniqueId,
+                  journeyDecisionId,
+                  driverUserUniqueId,
+                },
+              );
             }
           } catch (auditErr) {
             // Non-critical — log but do NOT fail the assignment
-            logger.warn("Failed to write CanceledJourney audit row (non-blocking)", {
-              journeyDecisionUniqueId: decision.journeyDecisionUniqueId,
-              error: auditErr.message,
-            });
+            logger.warn(
+              "Failed to write CanceledJourney audit row (non-blocking)",
+              {
+                journeyDecisionUniqueId: decision.journeyDecisionUniqueId,
+                error: auditErr.message,
+              },
+            );
           }
         }
 
         // ── Soft-delete the old DriverRequest so a NEW one is created ──────────
         // This preserves the cancelled DR + JD pair as historical records.
         // The INSERT path below will create a fresh DR for the company assignment.
-        await updateData({
-          tableName: "DriverRequest",
-          conditions: { driverRequestUniqueId: existingUniqueId },
-          updateValues: {
-            journeyStatusId: journeyStatusMap.replacedByCompanyAssignment,
-            driverRequestDeletedAt: currentDate(),
-            driverRequestUpdatedAt: currentDate(),
+        await retireDriverRequest(existingUniqueId);
+        logger.info(
+          "Old DriverRequest soft-deleted after Option B cancellation",
+          {
+            driverRequestUniqueId: existingUniqueId,
+            driverUserUniqueId,
           },
-        });
-        logger.info("Old DriverRequest soft-deleted after Option B cancellation", {
-          driverRequestUniqueId: existingUniqueId,
-          driverUserUniqueId,
-        });
+        );
 
         // ── Notify the driver that their individual job was replaced ───────────
         // Fire-and-forget — don't block the assignment transaction.
@@ -417,8 +454,8 @@ const upsertDriverRequest = async ({
 
           // Collect cancelled ShipperRequest details for the driver's UI
           const cancelledShipperRequests = activeDecisions
-            .filter(d => d.shipperRequestUniqueId)
-            .map(d => d.shipperRequestUniqueId);
+            .filter((d) => d.shipperRequestUniqueId)
+            .map((d) => d.shipperRequestUniqueId);
 
           const replacementPayload = {
             messageTypes: messageTypes.individual_replaced_by_company,
@@ -452,7 +489,7 @@ const upsertDriverRequest = async ({
               type: "individual_replaced_by_company",
               cancelledDriverRequestUniqueId: existingUniqueId,
             },
-          }).catch(e =>
+          }).catch((e) =>
             logger.warn("FCM failed for individual-replaced notification", {
               error: e.message,
               driverUserUniqueId,
@@ -464,11 +501,14 @@ const upsertDriverRequest = async ({
             sendSocketIONotificationToDriver({
               phoneNumber,
               message: replacementPayload,
-            }).catch(e =>
-              logger.warn("WebSocket failed for individual-replaced notification (driver may be offline)", {
-                error: e.message,
-                driverUserUniqueId,
-              }),
+            }).catch((e) =>
+              logger.warn(
+                "WebSocket failed for individual-replaced notification (driver may be offline)",
+                {
+                  error: e.message,
+                  driverUserUniqueId,
+                },
+              ),
             );
           }
 
@@ -479,10 +519,13 @@ const upsertDriverRequest = async ({
           });
         } catch (notifyErr) {
           // Non-critical — log but do NOT fail the assignment
-          logger.warn("Failed to send replacement notification to driver (non-blocking)", {
-            error: notifyErr.message,
-            driverUserUniqueId,
-          });
+          logger.warn(
+            "Failed to send replacement notification to driver (non-blocking)",
+            {
+              error: notifyErr.message,
+              driverUserUniqueId,
+            },
+          );
         }
 
         // Fall through to the INSERT path below →
@@ -538,7 +581,7 @@ const upsertDriverRequest = async ({
       originLng ?? 0,
       originPlace ?? "Assigned by dispatcher",
       currentDate(),
-    ]
+    ],
   );
 
   return driverRequestUniqueId;
