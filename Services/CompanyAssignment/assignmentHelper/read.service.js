@@ -43,6 +43,8 @@ async function getFullAssignmentData(assignmentUniqueId) {
         sr.requestMode,
         sr.journeyStatusId         AS srJourneyStatusId,
         srb.batchId                AS srBatchId,
+        jd.driverRequestId       AS jdDriverRequestId,
+        jd.shipperRequestId       AS jdShipperRequestId,
         jd.decisionTime,
         jd.decisionBy,
         jd.journeyStatusId         AS jdJourneyStatusId,
@@ -104,6 +106,8 @@ async function getFullAssignmentData(assignmentUniqueId) {
     decisions: [
       {
         journeyDecisionUniqueId: row.journeyDecisionUniqueId,
+        driverRequestId: row.jdDriverRequestId,
+        shipperRequestId: row.jdShipperRequestId,
         journeyStatusId: row.jdJourneyStatusId,
         decisionTime: row.decisionTime,
         decisionBy: row.decisionBy,
@@ -161,6 +165,8 @@ async function getAssignmentsData(assignmentUniqueIds) {
         sr.requestMode,
         sr.journeyStatusId         AS srJourneyStatusId,
         srb.batchId                AS srBatchId,
+        jd.driverRequestId       AS jdDriverRequestId,
+        jd.shipperRequestId       AS jdShipperRequestId,
         jd.decisionTime,
         jd.decisionBy,
         jd.journeyStatusId         AS jdJourneyStatusId,
@@ -223,6 +229,8 @@ async function getAssignmentsData(assignmentUniqueIds) {
       decisions: [
         {
           journeyDecisionUniqueId: row.journeyDecisionUniqueId,
+          driverRequestId: row.jdDriverRequestId,
+          shipperRequestId: row.jdShipperRequestId,
           journeyStatusId: row.jdJourneyStatusId,
           decisionTime: row.decisionTime,
           decisionBy: row.decisionBy,

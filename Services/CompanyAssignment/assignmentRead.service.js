@@ -1,9 +1,6 @@
 "use strict";
 
-const {
-  paginate,
-  paginatedQuery,
-} = require("../CompanyHelper.service");
+const { paginate, paginatedQuery } = require("../CompanyHelper.service");
 
 exports.getAssignments = async (filters = {}) => {
   const { page, limit, offset } = paginate(filters);
@@ -85,6 +82,8 @@ exports.getAssignments = async (filters = {}) => {
     sr.requestMode,
     sr.journeyStatusId         AS srJourneyStatusId,
     -- JourneyDecisions
+    jd.driverRequestId         AS jdDriverRequestId,
+    jd.shipperRequestId         AS jdShipperRequestId,
     jd.decisionTime,
     jd.decisionBy,
     jd.journeyStatusId         AS jdJourneyStatusId,
@@ -161,7 +160,8 @@ exports.getAssignments = async (filters = {}) => {
     decisions: [
       {
         journeyDecisionUniqueId: r.journeyDecisionUniqueId,
-        driverRequestId: r.driverRequestId,
+        driverRequestId: r.jdDriverRequestId,
+        shipperRequestId: r.jdShipperRequestId,
         journeyStatusId: r.jdJourneyStatusId,
         decisionTime: r.decisionTime,
         decisionBy: r.decisionBy,
