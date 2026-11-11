@@ -111,16 +111,30 @@ const createShipperRequest = async (body, journeyStatusId) => {
       throw new AppError("userUniqueId is required", AppError.BAD_REQUEST);
     }
 
+    const executor = transactionStorage.getStore() || pool;
+    if (body?.targetCompanyUniqueId) {
+      if (body.requestMode && body.requestMode !== "company_target") {
+        throw new AppError(
+          "targetCompanyUniqueId requires requestMode to be 'company_target'",
+          AppError.BAD_REQUEST,
+        );
+      }
+      body.requestMode = "company_target";
+    } else {
+      body.requestMode = body.requestMode || "individual_target";
+    }
+
     // Queue staff (11/12) write-side guard: a staff member may only create under
     // a queue org they are an ACTIVE member of. resolveQueueStaffOrgScope enforces
     // the same rule as reads — single membership auto-resolves, 2+ memberships
     // require an explicit queueOrganizationUniqueId (400 if missing, 403 if it is
     // not one of their orgs), 0 memberships → 403. The resolved org is forced onto
     // the batch so a non-member can never mint batches for another org.
-    if (
+    const isQueueStaff =
       body?.shipperRequestCreatedByRoleId === usersRoles.queueOrgAdminRoleId ||
-      body?.shipperRequestCreatedByRoleId === usersRoles.queueDispatcherRoleId
-    ) {
+      body?.shipperRequestCreatedByRoleId ===
+        usersRoles.queueDispatcherRoleId;
+    if (isQueueStaff) {
       const { resolveQueueStaffOrgScope } = require("../QueueOrganization/helpers");
       body.queueOrganizationUniqueId = await resolveQueueStaffOrgScope(
         body.shipperRequestCreatedBy,
@@ -128,16 +142,13 @@ const createShipperRequest = async (body, journeyStatusId) => {
       );
     }
 
-    // Transport-company staff (roles 7/10) self-dispatch: they create a job for a
-    // shipper that their OWN company executes — no bidding round, no other
-    // company can bid on it. Everything that makes "own company only" true is
-    // forced here rather than trusted from the body, and it MUST happen before
-    // the batch-header reuse check below (that check rejects a batch whose stored
-    // requestMode differs from the incoming one).
-    const isSelfDispatch =
+    // Transport-company staff can only self-dispatch to a company they belong to.
+    // This guard runs before the batch-header reuse check so the stored target
+    // cannot be changed by reusing a batch ID.
+    const isCompanyStaff =
       body?.shipperRequestCreatedByRoleId === usersRoles.companyAdminRoleId ||
       body?.shipperRequestCreatedByRoleId === usersRoles.dispatcherRoleId;
-    if (isSelfDispatch) {
+    if (isCompanyStaff) {
       const targetCompanyUniqueId = body?.targetCompanyUniqueId;
       if (!targetCompanyUniqueId) {
         throw new AppError(
@@ -155,24 +166,52 @@ const createShipperRequest = async (body, journeyStatusId) => {
         },
         targetCompanyUniqueId,
       );
-      if (body?.queueOrganizationUniqueId) {
+    }
+
+    const isDirectCompanyDispatch =
+      isCompanyStaff ||
+      (body.requestMode === "company_target" &&
+        Boolean(body.targetCompanyUniqueId));
+    if (isDirectCompanyDispatch) {
+      if (body?.queueOrganizationUniqueId && !isQueueStaff) {
         throw new AppError(
-          "queueOrganizationUniqueId cannot be used for a company's own self-dispatched request",
+          "Only queue staff can create a company-targeted request from a queue organization",
           AppError.BAD_REQUEST,
         );
+      }
+      // Queue staff may supply/resolve a queue organization as their creation
+      // context, but a company-targeted job is routed to the company, not FIFO
+      // dispatched to that queue. Do not persist the queue ID as a dispatch route.
+      if (isQueueStaff) {
+        body.queueOrganizationUniqueId = null;
       }
       if (body?.isBiddingApproved) {
         throw new AppError(
-          "isBiddingApproved cannot be used for a company's own self-dispatched request",
+          "isBiddingApproved cannot be used when directly targeting a transport company",
           AppError.BAD_REQUEST,
         );
       }
-      // company_target is what keeps it away from distance matching and from
-      // every other driver/company: rows are excluded from the waiting-request
-      // pass further down, and no queue org means no FIFO dispatch.
-      body.requestMode = "company_target";
+
+      const [[targetCompany]] = await executor.query(
+        `SELECT companyUniqueId
+           FROM TransportCompany
+          WHERE companyUniqueId = ?
+            AND approvalStatus = 'approved'
+            AND isDeleted = 0
+          LIMIT 1`,
+        [body.targetCompanyUniqueId],
+      );
+      if (!targetCompany) {
+        throw new AppError(
+          "Target transport company was not found or is not approved",
+          AppError.BAD_REQUEST,
+        );
+      }
     }
 
+    const effectiveJourneyStatusId = isDirectCompanyDispatch
+      ? journeyStatusMap.acceptedByShipper
+      : journeyStatusId;
     const numberOfVehicles = body?.numberOfVehicles || 1;
 
     // First check if the user has an active request based on shipperRequestBatchUniqueId
@@ -182,7 +221,6 @@ const createShipperRequest = async (body, journeyStatusId) => {
     }
 
     // Use context-aware executor for raw query with locking
-    const executor = transactionStorage.getStore() || pool;
     const batchCheckSql = `SELECT * FROM ShipperRequest WHERE shipperRequestBatchUniqueId = ? AND userUniqueId = ? FOR UPDATE`;
     const [dataByBatchId] = await executor.query(batchCheckSql, [
       shipperRequestBatchUniqueId,
@@ -205,7 +243,8 @@ const createShipperRequest = async (body, journeyStatusId) => {
     // under the company_target batch). Reject any reuse that mismatches the
     // existing header.
     const [batchHeaderRows] = await executor.query(
-      `SELECT shipperUserUniqueId, requestMode, queueOrganizationUniqueId
+      `SELECT shipperUserUniqueId, requestMode, targetCompanyUniqueId,
+              queueOrganizationUniqueId
          FROM ShipperRequestBatch
         WHERE batchUniqueId = ? LIMIT 1`,
       [shipperRequestBatchUniqueId],
@@ -224,9 +263,14 @@ const createShipperRequest = async (body, journeyStatusId) => {
       }
       const currentQueue = header.queueOrganizationUniqueId || null;
       const incomingQueue = body.queueOrganizationUniqueId || null;
-      if (currentQueue !== incomingQueue) {
+      const currentTargetCompany = header.targetCompanyUniqueId || null;
+      const incomingTargetCompany = body.targetCompanyUniqueId || null;
+      if (
+        currentQueue !== incomingQueue ||
+        currentTargetCompany !== incomingTargetCompany
+      ) {
         throw new AppError(
-          `shipperRequestBatchUniqueId is already in use and cannot be reused with a different queue organization.`,
+          `shipperRequestBatchUniqueId is already in use and cannot be reused with a different queue organization or target company.`,
           AppError.BAD_REQUEST,
         );
       }
@@ -264,7 +308,7 @@ const createShipperRequest = async (body, journeyStatusId) => {
         deliveryDate: body.deliveryDate || null,
         shippingCost: body.shippingCost || null,
         isPodRequired: body.isPodRequired !== undefined ? body.isPodRequired : true,
-        journeyStatusId,
+        journeyStatusId: effectiveJourneyStatusId,
         batchCreatedBy: body.shipperRequestCreatedBy || null,
         batchCreatedByRoleId: body.shipperRequestCreatedByRoleId || null,
       });
@@ -279,12 +323,12 @@ const createShipperRequest = async (body, journeyStatusId) => {
       //       3. No race conditions during bid acceptance
       const isCompanyTarget =
         (body.requestMode || "individual_target") === "company_target";
-      // Self-dispatch does NOT defer. Normal company_target rows are minted
-      // lazily when the shipper accepts a bid (updateBidStatus → accepted_by_shipper),
-      // but a self-dispatched job has no acceptance moment — nobody bids on it.
+      // Direct company dispatch does NOT defer. Open company bids are minted
+      // lazily when the shipper accepts a bid; a directly targeted job already
+      // has its recipient and accepted status.
       // So the rows are created eagerly below, already at acceptedByShipper,
       // which is exactly the state /api/company/assignments needs.
-      if (isCompanyTarget && !isSelfDispatch) {
+      if (isCompanyTarget && !isDirectCompanyDispatch) {
         logger.info(
           "company_target batch created (PR rows deferred to bid acceptance)",
           {
@@ -303,7 +347,11 @@ const createShipperRequest = async (body, journeyStatusId) => {
       const promises = Array(noOfRecords)
         .fill()
         .map(() =>
-          createNewShipperRequest(body, userUniqueId, journeyStatusId),
+          createNewShipperRequest(
+            body,
+            userUniqueId,
+            effectiveJourneyStatusId,
+          ),
         );
 
       // Wait for all requests to be created in parallel
@@ -322,17 +370,16 @@ const createShipperRequest = async (body, journeyStatusId) => {
       });
     }
 
-    // ── Self-dispatch terminal branch ─────────────────────────────────────────
-    // A job a transport company created for a shipper, and executes itself, never
-    // reaches driver finding: it is company_target (so it is already excluded from
-    // the waiting-request pass below) and every row is at acceptedByShipper.
+    // ── Direct company dispatch terminal branch ───────────────────────────────
+    // A company-targeted job never reaches individual driver finding. Its rows
+    // are accepted and the accepted bid record lets the company assign its drivers.
     //
     // It still needs a CompanyBidRequest, because EVERY assignment entry point
     // resolves its slots through an accepted bid — assignmentCreate.service.js:51-64
     // and assignmentAuto.service.js:52-63 both 400/404 without one. Nobody bids on
-    // a self-dispatched job, so the bid is minted here already at
-    // 'accepted_by_shipper'. That is what leaves both assignment services unchanged.
-    if (isSelfDispatch) {
+    // a directly dispatched job, so the bid is minted here already at
+    // 'accepted_by_shipper'. That leaves both assignment services unchanged.
+    if (isDirectCompanyDispatch) {
       const companyUniqueId = body.targetCompanyUniqueId;
       const vehicleTypeUniqueId = body.vehicle?.vehicleTypeUniqueId ?? null;
       const shippingCost = body.shippingCost ?? null;
@@ -343,7 +390,7 @@ const createShipperRequest = async (body, journeyStatusId) => {
       const actor = body.shipperRequestCreatedBy;
 
       // UNIQUE (companyUniqueId, shipperRequestBatchUniqueId) — topping up an
-      // existing self-dispatch batch must reuse the row, not insert a duplicate.
+      // existing direct-dispatch batch must reuse the row, not insert a duplicate.
       const [existingBids] = await executor.query(
         `SELECT companyBidRequestUniqueId FROM CompanyBidRequest
           WHERE shipperRequestBatchUniqueId = ? AND companyUniqueId = ?
@@ -404,7 +451,7 @@ const createShipperRequest = async (body, journeyStatusId) => {
       }
 
       return {
-        message: "Shipper request created and bound to your company",
+        message: "Shipper request created and assigned to the target company",
         data: {
           shipperRequestBatchUniqueId,
           companyBidRequestUniqueId,

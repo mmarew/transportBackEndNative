@@ -32,16 +32,18 @@ const {
 /**
  * Shipper Create Request Endpoint
  *
- * Purpose: Creates a new journey/shipping request for a shipper/shipper. This endpoint enables
- * shippers to request transportation services for their goods, allowing drivers to find and
- * bid on available journeys. The endpoint supports batch requests (multiple   Vehicle for one batch)
- * and prevents duplicate requests using shipperRequestBatchUniqueId grouping.
+ * Purpose: Creates a journey/shipping request for a shipper. Depending on the
+ * request mode, the job is dispatched to individual drivers/queue, published for
+ * company bids, or directly assigned to the company identified by
+ * targetCompanyUniqueId. The endpoint supports batch requests and prevents
+ * duplicate requests using shipperRequestBatchUniqueId grouping.
  *
  * Context & Use Case:
  * - Shipper/shipper wants to transport goods from origin to destination
  * - Shipper may need multiple   Vehicle for a single batch of requests (e.g., large shipment)
  * - Request is grouped by shipperRequestBatchUniqueId to prevent duplicate creation
- * - After creation, request is available for drivers to find and bid on
+ * - Requests may be dispatched to drivers, opened for company bids, or directly
+ *   assigned to a specific approved transport company
  * - System automatically finds nearby drivers and sends notifications
  * - Admin can create requests on behalf of shippers (requires phone number)
  * - Driver can create request when picking up goods from street (takes from street scenario)
@@ -529,10 +531,17 @@ const {
  *    - Would eliminate redundant database queries
  *    - Minor optimization for multiple request creation
  */
+// Creation modes:
+// - individual_target: dispatch to drivers generally or through the selected queue.
+// - company_target without targetCompanyUniqueId: publish a company bid request.
+// - company_target with targetCompanyUniqueId: directly assign the job to that
+//   approved company; no bid round is created. Queue staff may include their
+//   queueOrganizationUniqueId as authorization context; it is not used for FIFO
+//   dispatch when a target company is selected.
 router.post(
   SHIPPER_REQUEST_ENDPOINTS.CREATE_REQUEST,
   verifyTokenOfAxios,
-  validator(createShipperRequest), // Validates request body: shipperRequestBatchUniqueId, destination, vehicle, originLocation, numberOfVehicles, shippingDate, deliveryDate, shippingCost, shippableItemQtyInQuintal, shippableItemName, shipperPhoneNumber (optional, required for admin/queue-org-admin on-behalf), requestType (optional)
+  validator(createShipperRequest),
   controller.createShipperRequest,
 );
 /**

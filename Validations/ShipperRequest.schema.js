@@ -25,16 +25,17 @@ exports.createShipperRequest = Joi.object({
   // requestType: Joi.string().valid("PASSENGER", "CARGO").optional(),
 
   // Request mode:
-  //   'individual_target' — open bid visible to all individual drivers (max 9 vehicles)
-  //   'company_target'    — targeted to a transport company for larger fleets (10+ vehicles)
+  //   'individual_target' — open to individual drivers or a selected queue
+  //   'company_target'    — open for company bids, or directly assigned when a
+  //                         targetCompanyUniqueId is supplied
   // (Bidding-board visibility is a per-order flag — ShipperRequest.isBiddingApproved —
   // not a requestMode.)
   requestMode: Joi.string()
     .valid("individual_target", "company_target")
-    .default("individual_target")
     .optional(),
 
-  // Required when requestMode = 'company_target'; identifies which company to target
+  // When set, the request is directly dispatched to this approved company.
+  // Without a company ID, company_target requests remain open for company bids.
   targetCompanyUniqueId: Joi.string().uuid().optional(),
 
   // Queue dispatch: when set, the order is offered to the FRONT waiting driver of
@@ -65,8 +66,18 @@ exports.createShipperRequest = Joi.object({
     // Cross-field rule: individual drivers can't handle 10+ vehicles.
     // Queue-dispatch orders (queueOrganizationUniqueId set) are exempt: each of
     // the N rows is offered to its own FRONT waiting driver, so N can exceed 9.
-    const mode = value.requestMode || "individual_target";
+    const mode =
+      value.requestMode ||
+      (value.targetCompanyUniqueId ? "company_target" : "individual_target");
     const count = value.numberOfVehicles || 1;
+
+    if (value.targetCompanyUniqueId && mode !== "company_target") {
+      return helpers.message(
+        "targetCompanyUniqueId requires requestMode to be 'company_target'.",
+      );
+    }
+
+    value.requestMode = mode;
 
     if (
       count > DOMAIN.MAX_INDIVIDUAL_TARGET_VEHICLES &&
@@ -75,7 +86,7 @@ exports.createShipperRequest = Joi.object({
     ) {
       return helpers.message(
         "Requests for more than DOMAIN.MAX_INDIVIDUAL_TARGET_VEHICLES vehicles require company target mode. " +
-          "Please set requestMode to 'company target' to proceed.",
+          "Please set requestMode to 'company_target' to proceed.",
       );
     }
 

@@ -108,22 +108,9 @@ const createShipperRequest = async (req, res, next) => {
           req.body.userUniqueId = userUniqueId;
         }
 
-        // Self-dispatch (transport company creating for a shipper) is born
-        // ACCEPTED: the shipper already agreed and the company that created it is
-        // the company that executes it, so there is no bidding round to wait on.
-        // Both the batch header (create.service.js:219 → batchCreate) and every
-        // ShipperRequest row take their initial status from this single argument,
-        // so both land on acceptedByShipper together. This mirrors bid acceptance,
-        // where bidUpdate.service.js:341-345 also syncs the header to 4.
-        const isSelfDispatch =
-          shipperRequestCreatedByRoleId === usersRoles.companyAdminRoleId ||
-          shipperRequestCreatedByRoleId === usersRoles.dispatcherRoleId;
-
         return await ShipperService.createShipperRequest(
           req.body,
-          isSelfDispatch
-            ? journeyStatusMap.acceptedByShipper
-            : journeyStatusMap.waiting,
+          journeyStatusMap.waiting,
         );
       },
       {
