@@ -180,11 +180,11 @@ const createShipperRequest = async (body, journeyStatusId) => {
         );
       }
       // Queue staff may supply/resolve a queue organization as their creation
-      // context, but a company-targeted job is routed to the company, not FIFO
-      // dispatched to that queue. Do not persist the queue ID as a dispatch route.
-      if (isQueueStaff) {
-        body.queueOrganizationUniqueId = null;
-      }
+      // context. Keep it on the batch header: it is the queue org's ownership /
+      // visibility scope (queue-staff read paths filter by it), and
+      // requestMode='company_target' already keeps the job out of FIFO dispatch
+      // (rescanPendingQueueOrder excludes company_target). Clearing it here made
+      // direct-dispatch jobs invisible to the queue org that created them.
       if (body?.isBiddingApproved) {
         throw new AppError(
           "isBiddingApproved cannot be used when directly targeting a transport company",
