@@ -296,15 +296,25 @@ const normalizePosition = (data) => {
   return data;
 };
 
-const checkin = async (driverKey, queueOrganizationUniqueId) => {
+/**
+ * Driver self check-in.
+ *
+ * @param {string} driverKey
+ * @param {string} queueOrganizationUniqueId
+ * @param {{latitude?: number, longitude?: number}} [coords] - Optional GPS fix.
+ *   Defaults match the historical queue suites (Addis Ababa). Pass distinct
+ *   values when a test needs to prove a later accept/confirm DOWNGRADED or
+ *   REFRESHED the stored position.
+ */
+const checkin = async (driverKey, queueOrganizationUniqueId, coords = {}) => {
   const d = queueState.drivers[driverKey];
   const res = await axios.post(
     backendURL + "/api/queue/driver/checkin",
     {
       queueOrganizationUniqueId,
       vehicleDriverUniqueId: d.vehicleDriverUniqueId,
-      latitude: 9.03,
-      longitude: 38.74,
+      latitude: coords.latitude ?? 9.03,
+      longitude: coords.longitude ?? 38.74,
     },
     authConfig(driverToken(driverKey)),
   );

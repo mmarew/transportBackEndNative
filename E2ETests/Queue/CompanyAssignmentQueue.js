@@ -22,6 +22,14 @@
 // away. CAQ-06 asserts the double-booking fence: a driver already on this job
 // cannot be handed a second company assignment.
 //
+// CAQ-07..09 cover the GPS capture rule: the driver's position is written to
+// DriverQueue at CONFIRM time (from the confirm payload's
+// originLatitude/originLongitude), never at assignment time. CAQ-07 proves the
+// check-in snapshot on an EXISTING queue row is REFRESHED by the confirm
+// position; CAQ-08 proves the auto-enrolled row (driver was never in a line) is
+// written with the real fix instead of NULL; CAQ-09 proves a confirm without a
+// fix still succeeds and still issues numbers, leaving the coordinates NULL.
+//
 // Requires a live backend (http://127.0.0.1:3000) and a seeded database.
 
 const axios = require("axios");
@@ -71,6 +79,22 @@ const {
 // The driver under test. d1 is used by the org/check-in suites, so d3 keeps this
 // file independent of suite ordering.
 const DRIVER_KEY = "queueDriver7";
+// Dedicated drivers for the GPS-capture cases: CAQ-08 starts with NO queue row
+// (auto-enrollment), CAQ-09 confirms without a fix. Keeping them separate from
+// DRIVER_KEY means the FIFO-reuse assertions above never depend on their state.
+const AUTO_ENROLL_DRIVER_KEY = "queueDriver8";
+const NO_GPS_DRIVER_KEY = "queueDriver9";
+
+// Two DIFFERENT fixes: the driver checks in at one place and confirms from
+// another, so CAQ-08 can prove the confirm position overwrote the check-in one.
+const CHECKIN_COORDS = { latitude: 8.98, longitude: 38.7 };
+const CONFIRM_COORDS = { latitude: 9.03, longitude: 38.74 };
+
+/** Decimal columns come back as strings from MySQL — compare numerically. */
+const nearCoord = (actual, expected) =>
+  actual !== null &&
+  actual !== undefined &&
+  Math.abs(Number(actual) - expected) < 1e-6;
 
 const shipperToken = () => usersData.shipper?.token;
 const companyToken = () => usersData.companyAdmin?.token;
@@ -168,8 +192,11 @@ const acceptCompanyOffer = async (companyBidRequestUniqueId) => {
   return res.data?.data;
 };
 
-const createAssignment = async ({ companyBidRequestUniqueId }) => {
-  const driver = queueState.drivers[DRIVER_KEY];
+const createAssignment = async ({
+  companyBidRequestUniqueId,
+  driverKey = DRIVER_KEY,
+}) => {
+  const driver = queueState.drivers[driverKey];
   const res = await axios.post(
     backendURL + COMPANY_ASSIGNMENT_ENDPOINTS.CREATE_ASSIGNMENT,
     {
@@ -182,7 +209,14 @@ const createAssignment = async ({ companyBidRequestUniqueId }) => {
   return res.data?.data;
 };
 
-const confirmAssignment = async (assignmentUniqueId) => {
+/**
+ * Driver confirms the assignment.
+ *
+ * @param {string} assignmentUniqueId
+ * @param {{latitude: number, longitude: number}|null} [coords] - The driver's
+ *   GPS fix at confirm time. Pass `null` to confirm WITHOUT a fix (CAQ-09).
+ */
+const confirmAssignment = async (assignmentUniqueId, coords = CONFIRM_COORDS) => {
   const res = await axios.patch(
     backendURL +
       COMPANY_ASSIGNMENT_ENDPOINTS.UPDATE_ASSIGNMENT_STATUS.replace(
@@ -191,13 +225,106 @@ const confirmAssignment = async (assignmentUniqueId) => {
       ),
     {
       assignmentStatus: "confirmed_by_driver",
-      originLatitude: 9.03,
-      originLongitude: 38.74,
-      originPlace: "Addis Ababa",
+      ...(coords
+        ? {
+            originLatitude: coords.latitude,
+            originLongitude: coords.longitude,
+            originPlace: "Addis Ababa",
+          }
+        : {}),
     },
     authConfig(companyToken()),
   );
   return res.data?.data;
+};
+
+/**
+ * Drives one complete company-assigned job for `driverKey`:
+ * provision → (fresh fleet vehicle) → company_target order → bid → shipper
+ * accepts → company assigns → DRIVER CONFIRMS.
+ *
+ * Used by the GPS cases so each one gets a clean driver with NO queue row, then
+ * inspects the single row the confirmation creates.
+ *
+ * @returns {{assignment: object, shipperRequestUniqueId: string, entry: object|null}}
+ */
+const runCompanyAssignedJob = async ({
+  driverKey,
+  queueOrganizationUniqueId,
+  vehicleTypeUniqueId,
+  coords,
+  createdBatchIds,
+  createdAssignmentIds,
+}) => {
+  await ensureQueueDrivers({ count: Number(driverKey.replace(/\D/g, "")) });
+  await onboardQueueDriver({ driverKey, vehicleTypeIndex: 0 });
+  await activateQueueDriver(driverKey);
+  // Clean slate: no live queue row anywhere, no in-flight journey/offer. A
+  // driver mid-journey would confirm into a 'double_booked' outcome and create
+  // no row, which would look like a coordinate failure.
+  await resetDriverQueueDay(driverKey);
+  await resetDriverJourneyDay(driverKey);
+
+  const driver = queueState.drivers[driverKey];
+  if (!driver?.vehicleUniqueId) {
+    throw new Error(`${driverKey} has no vehicleUniqueId after onboarding`);
+  }
+
+  // The company may only bid for a type it has an active vehicle for.
+  await axios
+    .post(
+      backendURL + COMPANY_VEHICLE_ENDPOINTS.ASSIGN_VEHICLE,
+      {
+        companyUniqueId: companyUniqueId(),
+        vehicleUniqueId: driver.vehicleUniqueId,
+      },
+      authConfig(companyToken()),
+    )
+    .catch(() => {});
+
+  const { shipperRequestBatchUniqueId } = await createCompanyTargetOrder({
+    queueOrganizationUniqueId,
+    vehicleTypeUniqueId,
+  });
+  createdBatchIds.push(shipperRequestBatchUniqueId);
+
+  const bid = await submitCompanyBid(shipperRequestBatchUniqueId);
+  if (!bid?.companyBidRequestUniqueId) {
+    throw new Error(
+      `company bid not created for ${driverKey}: ${JSON.stringify(bid).slice(0, 300)}`,
+    );
+  }
+  await acceptCompanyOffer(bid.companyBidRequestUniqueId);
+
+  const assignment = await createAssignment({
+    companyBidRequestUniqueId: bid.companyBidRequestUniqueId,
+    driverKey,
+  });
+  if (!assignment?.assignmentUniqueId) {
+    throw new Error(
+      `assignment not created for ${driverKey}: ${JSON.stringify(assignment).slice(0, 300)}`,
+    );
+  }
+  createdAssignmentIds.push(assignment.assignmentUniqueId);
+
+  await confirmAssignment(assignment.assignmentUniqueId, coords);
+
+  const [[claim]] = await pool.query(
+    `SELECT shipperRequestUniqueId FROM CompanyBidVehicleAssignment
+      WHERE assignmentUniqueId = ?`,
+    [assignment.assignmentUniqueId],
+  );
+
+  const entry = await getQueueEntryByDriver({
+    queueOrganizationUniqueId,
+    driverKey,
+  });
+
+  return {
+    assignment,
+    shipperRequestUniqueId: claim?.shipperRequestUniqueId || null,
+    entry,
+  };
 };
 
 // ── The flow ───────────────────────────────────────────────────────────────
@@ -218,7 +345,7 @@ const runCompanyAssignmentQueueTests = async () => {
     // endpoint answers "already in journey" with no queue row, which would make
     // this scenario silently depend on suite ordering. Index 7 is past every
     // other section's highest driver.
-    await ensureQueueDrivers({ count: 7 });
+    await ensureQueueDrivers({ count: 9 });
     await registerQueueDrivers();
     await onboardQueueDriver({ driverKey: DRIVER_KEY, vehicleTypeIndex: 0 });
     await activateQueueDriver(DRIVER_KEY);
@@ -283,7 +410,9 @@ const runCompanyAssignmentQueueTests = async () => {
     }
     await resetDriverQueueDay(DRIVER_KEY);
     await resetDriverJourneyDay(DRIVER_KEY);
-    await checkin(DRIVER_KEY, orgUniqueId);
+    // Check in from a position DIFFERENT from the confirm position below, so
+    // CAQ-07 can prove the confirm fix replaced the stored check-in snapshot.
+    await checkin(DRIVER_KEY, orgUniqueId, CHECKIN_COORDS);
     const before = await getQueueEntryByDriver({
       queueOrganizationUniqueId: orgUniqueId,
       driverKey: DRIVER_KEY,
@@ -293,6 +422,14 @@ const runCompanyAssignmentQueueTests = async () => {
     }
     if (before.status !== journeyStatusMap.waiting) {
       throw new Error(`driver should start WAITING(1), got status ${before.status}`);
+    }
+    if (
+      !nearCoord(before.driverLatitude, CHECKIN_COORDS.latitude) ||
+      !nearCoord(before.driverLongitude, CHECKIN_COORDS.longitude)
+    ) {
+      throw new Error(
+        `check-in did not store its GPS (got ${before.driverLatitude}, ${before.driverLongitude})`,
+      );
     }
     report.pass("CAQ-01: driver checked in and WAITING with no job");
 
@@ -442,6 +579,122 @@ const runCompanyAssignmentQueueTests = async () => {
       );
     }
     report.pass("CAQ-06: driver already on a job cannot be assigned a second one (409)");
+
+    // ── CAQ-07: confirm REFRESHED the stored GPS snapshot ────────────────
+    // The driver checked in at CHECKIN_COORDS and confirmed from
+    // CONFIRM_COORDS. The live row must hold the NEWER (confirm) position; the
+    // check-in position must survive as the ACCEPT history pre-image, so the
+    // overwrite stays auditable.
+    const [[refreshed]] = await pool.query(
+      `SELECT driverLatitude, driverLongitude FROM DriverQueue WHERE queueUniqueId = ?`,
+      [before.queueUniqueId],
+    );
+    if (
+      !nearCoord(refreshed.driverLatitude, CONFIRM_COORDS.latitude) ||
+      !nearCoord(refreshed.driverLongitude, CONFIRM_COORDS.longitude)
+    ) {
+      throw new Error(
+        `CAQ-07: queue row should hold the CONFIRM GPS (${CONFIRM_COORDS.latitude}, ${CONFIRM_COORDS.longitude}), got (${refreshed.driverLatitude}, ${refreshed.driverLongitude})`,
+      );
+    }
+    const [[checkinSnapshot]] = await pool.query(
+      `SELECT driverLatitude, driverLongitude
+         FROM DriverQueueHistory
+        WHERE queueUniqueId = ? AND historyEvent = 'accept'
+        ORDER BY historyId DESC LIMIT 1`,
+      [before.queueUniqueId],
+    );
+    if (
+      !checkinSnapshot ||
+      !nearCoord(checkinSnapshot.driverLatitude, CHECKIN_COORDS.latitude) ||
+      !nearCoord(checkinSnapshot.driverLongitude, CHECKIN_COORDS.longitude)
+    ) {
+      throw new Error(
+        `CAQ-07: the check-in position was not preserved in DriverQueueHistory (got ${JSON.stringify(checkinSnapshot)})`,
+      );
+    }
+    report.pass(
+      "CAQ-07: confirm stored the driver's GPS and replaced the check-in snapshot (pre-image kept in history)",
+    );
+
+    // ── CAQ-08: never checked in → the auto-enrolled row carries the GPS ──
+    // A driver who was never in any line has no row to link, so the queue entry
+    // is CREATED at confirm (autoEnrollBidWinner). Previously that row was born
+    // with NULL/NULL even though the confirm payload carried the driver's fix.
+    const auto = await runCompanyAssignedJob({
+      driverKey: AUTO_ENROLL_DRIVER_KEY,
+      queueOrganizationUniqueId: orgUniqueId,
+      vehicleTypeUniqueId,
+      coords: CONFIRM_COORDS,
+      createdBatchIds,
+      createdAssignmentIds,
+    });
+    if (!auto.entry) {
+      throw new Error(
+        "CAQ-08: confirming created no queue row for a driver who was never checked in",
+      );
+    }
+    if (auto.entry.status !== journeyStatusMap.acceptedByDriver) {
+      throw new Error(
+        `CAQ-08: auto-enrolled row should be AGREED(3), got ${auto.entry.status}`,
+      );
+    }
+    if (auto.entry.queueNumber == null) {
+      throw new Error("CAQ-08: auto-enrolled row has no queueNumber");
+    }
+    if (auto.entry.loadingOrderNumber == null) {
+      throw new Error("CAQ-08: auto-enrolled row has no loadingOrderNumber");
+    }
+    if (
+      !nearCoord(auto.entry.driverLatitude, CONFIRM_COORDS.latitude) ||
+      !nearCoord(auto.entry.driverLongitude, CONFIRM_COORDS.longitude)
+    ) {
+      throw new Error(
+        `CAQ-08: auto-enrolled row should carry the CONFIRM GPS (${CONFIRM_COORDS.latitude}, ${CONFIRM_COORDS.longitude}), got (${auto.entry.driverLatitude}, ${auto.entry.driverLongitude})`,
+      );
+    }
+    if (auto.entry.shipperRequestUniqueId !== auto.shipperRequestUniqueId) {
+      throw new Error(
+        `CAQ-08: auto-enrolled row carries the wrong order (${auto.entry.shipperRequestUniqueId})`,
+      );
+    }
+    report.pass(
+      `CAQ-08: auto-enrolled row (never checked in) stores the confirm GPS + numbers (loadingOrderNumber=${auto.entry.loadingOrderNumber})`,
+    );
+
+    // ── CAQ-09: confirm WITHOUT a fix still succeeds, numbers included ────
+    const noGps = await runCompanyAssignedJob({
+      driverKey: NO_GPS_DRIVER_KEY,
+      queueOrganizationUniqueId: orgUniqueId,
+      vehicleTypeUniqueId,
+      coords: null,
+      createdBatchIds,
+      createdAssignmentIds,
+    });
+    if (!noGps.entry) {
+      throw new Error("CAQ-09: confirming without a GPS fix created no queue row");
+    }
+    if (noGps.entry.status !== journeyStatusMap.acceptedByDriver) {
+      throw new Error(
+        `CAQ-09: queue row should be AGREED(3), got ${noGps.entry.status}`,
+      );
+    }
+    if (noGps.entry.loadingOrderNumber == null) {
+      throw new Error(
+        "CAQ-09: a missing GPS fix must not block the yard number",
+      );
+    }
+    if (
+      noGps.entry.driverLatitude !== null ||
+      noGps.entry.driverLongitude !== null
+    ) {
+      throw new Error(
+        `CAQ-09: expected NULL coordinates, got (${noGps.entry.driverLatitude}, ${noGps.entry.driverLongitude})`,
+      );
+    }
+    report.pass(
+      "CAQ-09: confirm without a GPS fix still issues queue/loading numbers (coordinates stay NULL)",
+    );
   } catch (error) {
     report.fail(`CAQ: company-assignment queue enrollment — ${dbError(error)}`, error);
   } finally {

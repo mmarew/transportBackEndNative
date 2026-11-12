@@ -365,15 +365,25 @@ const handleDriverConfirmation = async ({
     //
     // ensureQueueEntryForAcceptedJob reuses their existing FIFO position (only
     // the linkage + loadingOrderNumber change), or creates the row through the
-    // shared check-in writer if they were never queued. If they still hold a job
-    // on another order it does nothing and reports 'double_booked' rather than
-    // retiring the old entry or creating a second one. Best-effort: the job is
-    // already confirmed, so a queue-bookkeeping failure must not fail the accept.
+    // shared check-in writer if they were never queued. The driver's position
+    // at CONFIRM time (originLatitude/originLongitude — the same fix already
+    // synced onto DriverRequest above) is written to DriverQueue, so the yard
+    // board sees where the truck actually was when it took the job. It is not
+    // captured at assignment, and it is not distance-validated here: both are
+    // optional and a missing fix leaves the stored value untouched. If they
+    // still hold a job on another order it does nothing and reports
+    // 'double_booked' rather than retiring the old entry or creating a second
+    // one. Best-effort: the job is already confirmed, so a queue-bookkeeping
+    // failure must not fail the accept.
+    const hasDriverFix =
+      originLatitude != null && originLongitude != null;
     const { ensureQueueEntryForAcceptedJob } = require("../../../DriverQueue/accept-linkage.service");
     await ensureQueueEntryForAcceptedJob({
       shipperRequestUniqueId: assignment.shipperRequestUniqueId,
       driverUserUniqueId: assignment.driverUserUniqueId,
       actorUserUniqueId: assignment.driverUserUniqueId,
+      driverLatitude: hasDriverFix ? originLatitude : null,
+      driverLongitude: hasDriverFix ? originLongitude : null,
     });
 
     setParts.push("journeyDecisionUniqueId = ?");

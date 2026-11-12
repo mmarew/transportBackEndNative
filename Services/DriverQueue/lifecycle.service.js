@@ -381,6 +381,8 @@ const autoEnrollBidWinner = async ({
   driverUserUniqueId,
   queueOrganizationUniqueId,
   actorUserUniqueId,
+  driverLatitude = null,
+  driverLongitude = null,
 }) => {
   // Resolve the winning org from the ORDER (batch-canonical), never from the
   // client, and carry the shipper so the new entry reserves the position for
@@ -488,9 +490,12 @@ const autoEnrollBidWinner = async ({
     status: QUEUE_STATUS.AGREED,
     historyEvent: HISTORY_EVENT.AUTO_ENROLLED,
     targetedShipperUserUUID: shipperUserUniqueId,
-    // Accept happens server-side from the admin's phone; no driver GPS here.
-    driverLatitude: null,
-    driverLongitude: null,
+    // Coordinates supplied by the accept/confirm caller (the driver's device
+    // fix at the moment they took the job). They are optional: flow paths with
+    // no GPS (company dispatcher confirming on the admin's phone, legacy
+    // clients) pass null and the row keeps NULL rather than a fabricated point.
+    driverLatitude,
+    driverLongitude,
     loadingOrderNumber,
     shipperRequestUniqueId,
     // The entry is born AGREED with the order already attached, so the accept

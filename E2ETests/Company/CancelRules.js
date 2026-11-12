@@ -64,8 +64,12 @@ const createCompanyBatch = async (companyUniqueId, numberOfVehicles = 2) => {
       shippingCost: 500000,
       shippableItemQtyInQuintal: 100,
       shippableItemName: "Cancel Rule Test Cargo",
+      // OPEN company bidding: requestMode alone makes it a company batch (rows
+      // are minted when the shipper accepts a bid). Setting
+      // targetCompanyUniqueId would instead direct-dispatch to that company and
+      // mint an already-accepted bid at creation, which closes bidding — these
+      // rules need to submit/withdraw offers, so they must start open.
       requestMode: "company_target",
-      targetCompanyUniqueId: companyUniqueId,
       originLocation: { latitude: 9.03, longitude: 38.74, description: "Addis Ababa" },
       destination: { latitude: 11.13, longitude: 39.63, description: "Dessie" },
       vehicle: { vehicleTypeUniqueId },

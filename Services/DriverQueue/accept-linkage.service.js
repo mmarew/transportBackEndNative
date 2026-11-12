@@ -75,6 +75,8 @@ const linkQueueEntryOnAccept = async ({
   shipperRequestUniqueId,
   driverUserUniqueId,
   actorUserUniqueId,
+  driverLatitude = null,
+  driverLongitude = null,
   executor: injectedExecutor = null,
 }) => {
   if (!shipperRequestUniqueId || !driverUserUniqueId) {
@@ -155,6 +157,13 @@ const linkQueueEntryOnAccept = async ({
       entry.queueOrganizationUniqueId,
       entry.queueDate,
     );
+    // Refresh the stored GPS snapshot when the accept carried a fix. The entry
+    // usually already holds the coordinates captured at check-in; the accept
+    // position is newer and is the one the yard board should show ("where this
+    // truck actually was when it took the job"). The pre-image is preserved in
+    // DriverQueueHistory by the ACCEPT snapshot logged above, so this is
+    // auditable. Both-or-neither: a half coordinate is never written.
+    const hasDriverFix = driverLatitude != null && driverLongitude != null;
     await updateData({
       tableName: "DriverQueue",
       updateValues: {
@@ -163,6 +172,7 @@ const linkQueueEntryOnAccept = async ({
         requestedAt: currentDate(),
         agreedAt: currentDate(),
         loadingOrderNumber,
+        ...(hasDriverFix ? { driverLatitude, driverLongitude } : {}),
         queueUpdatedAt: currentDate(),
         queueUpdatedBy: actor,
       },
@@ -244,6 +254,11 @@ const linkQueueEntryOnAccept = async ({
  * @param {string} params.driverUserUniqueId - The driver who holds the job.
  * @param {string} [params.actorUserUniqueId] - Who committed the job; recorded
  *   as `queueUpdatedBy` / `queueCreatedBy`.
+ * @param {number|null} [params.driverLatitude] - Driver's GPS at accept time.
+ *   Stored on the queue entry (refreshed when reusing a line position, written
+ *   on the auto-enrolled row). Omitted/null leaves the stored value untouched.
+ * @param {number|null} [params.driverLongitude] - Longitude pair of
+ *   `driverLatitude`; both must be present or neither is written.
  * @param {object} [params.executor] - Transaction executor; defaults to the
  *   ambient pool, matching `autoEnrollBidWinner`.
  * @returns {Promise<{handled: boolean, outcome: string, queueUniqueId: string|null,
@@ -255,6 +270,8 @@ const ensureQueueEntryForAcceptedJob = async ({
   shipperRequestUniqueId,
   driverUserUniqueId,
   actorUserUniqueId = null,
+  driverLatitude = null,
+  driverLongitude = null,
   executor: injectedExecutor = null,
 }) => {
   if (!shipperRequestUniqueId || !driverUserUniqueId) {
@@ -294,6 +311,8 @@ const ensureQueueEntryForAcceptedJob = async ({
       shipperRequestUniqueId,
       driverUserUniqueId,
       actorUserUniqueId: actor,
+      driverLatitude,
+      driverLongitude,
       executor,
     });
     if (linked?.linked) {
@@ -341,6 +360,8 @@ const ensureQueueEntryForAcceptedJob = async ({
       driverUserUniqueId,
       queueOrganizationUniqueId: order.queueOrganizationUniqueId,
       actorUserUniqueId: actor,
+      driverLatitude,
+      driverLongitude,
     });
     return {
       handled: true,

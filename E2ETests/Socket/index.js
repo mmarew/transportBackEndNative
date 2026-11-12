@@ -417,8 +417,10 @@ const testCompanySocketNotifications = async () => {
       shippingCost: 8000,
       shippableItemQtyInQuintal: 80,
       shippableItemName: "Company Socket Test Cargo",
+      // OPEN company batch: broadcast to every connected company socket. A
+      // targeted batch (targetCompanyUniqueId) would direct-dispatch instead,
+      // but this test keys on the company_batch_available broadcast.
       requestMode: "company_target",
-      targetCompanyUniqueId: companyUniqueId,
       originLocation: { latitude: 9.03, longitude: 38.74, description: "Addis Ababa" },
       destination: { latitude: 8.54, longitude: 39.27, description: "Adama" },
       vehicle: { vehicleTypeUniqueId },

@@ -133,7 +133,7 @@ const createIndividualShipperRequest = async () => {
 
 // ── Helper: create a company-target shipper request ──────────────────────────
 
-const createCompanyShipperRequest = async (companyUniqueId) => {
+const createCompanyShipperRequest = async () => {
   const { shipper } = usersData;
   const vtRes = await axios.get(
     backendURL + "/api/admin/vehicleTypes",
@@ -154,8 +154,10 @@ const createCompanyShipperRequest = async (companyUniqueId) => {
     shippingCost: 8000,
     shippableItemQtyInQuintal: 80,
     shippableItemName: "Company Reject Test Cargo",
+    // OPEN company bidding: the company must be able to submit a bid, which a
+    // direct dispatch (targetCompanyUniqueId) would pre-empt by minting an
+    // accepted bid at creation.
     requestMode: "company_target",
-    targetCompanyUniqueId: companyUniqueId,
     originLocation: { latitude: 9.03, longitude: 38.74, description: "Addis Ababa" },
     destination: { latitude: 8.54, longitude: 39.27, description: "Adama" },
     vehicle: { vehicleTypeUniqueId },
@@ -420,7 +422,7 @@ const testCompanyAssignmentRejection = async () => {
     if (!companyUniqueId) throw new Error("No company found for company admin");
 
     console.log("── Creating company-target shipper request ──");
-    await createCompanyShipperRequest(companyUniqueId);
+    await createCompanyShipperRequest();
     report.pass("companyReject: createShipperRequest");
 
     // 3. Company bids on it — store companyBidRequestUniqueId directly

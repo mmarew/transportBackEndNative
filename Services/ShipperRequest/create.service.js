@@ -132,10 +132,11 @@ const createShipperRequest = async (body, journeyStatusId) => {
     // the batch so a non-member can never mint batches for another org.
     const isQueueStaff =
       body?.shipperRequestCreatedByRoleId === usersRoles.queueOrgAdminRoleId ||
-      body?.shipperRequestCreatedByRoleId ===
-        usersRoles.queueDispatcherRoleId;
+      body?.shipperRequestCreatedByRoleId === usersRoles.queueDispatcherRoleId;
     if (isQueueStaff) {
-      const { resolveQueueStaffOrgScope } = require("../QueueOrganization/helpers");
+      const {
+        resolveQueueStaffOrgScope,
+      } = require("../QueueOrganization/helpers");
       body.queueOrganizationUniqueId = await resolveQueueStaffOrgScope(
         body.shipperRequestCreatedBy,
         body.queueOrganizationUniqueId,
@@ -307,7 +308,8 @@ const createShipperRequest = async (body, journeyStatusId) => {
         shippingDate: body.shippingDate || null,
         deliveryDate: body.deliveryDate || null,
         shippingCost: body.shippingCost || null,
-        isPodRequired: body.isPodRequired !== undefined ? body.isPodRequired : true,
+        isPodRequired:
+          body.isPodRequired !== undefined ? body.isPodRequired : true,
         journeyStatusId: effectiveJourneyStatusId,
         batchCreatedBy: body.shipperRequestCreatedBy || null,
         batchCreatedByRoleId: body.shipperRequestCreatedByRoleId || null,
@@ -347,11 +349,7 @@ const createShipperRequest = async (body, journeyStatusId) => {
       const promises = Array(noOfRecords)
         .fill()
         .map(() =>
-          createNewShipperRequest(
-            body,
-            userUniqueId,
-            effectiveJourneyStatusId,
-          ),
+          createNewShipperRequest(body, userUniqueId, effectiveJourneyStatusId),
         );
 
       // Wait for all requests to be created in parallel
@@ -569,10 +567,13 @@ const createShipperRequest = async (body, journeyStatusId) => {
       // request, so a driver already in line whose latest request is terminal
       // would never be invited to the just-created board job. Best-effort, one
       // pass per unique (org, vehicle type) — never blocks creation.
-      const { ensureQueuedDriversReadyForBid } = require("../DriverQueue.service");
+      const {
+        ensureQueuedDriversReadyForBid,
+      } = require("../DriverQueue.service");
       const uniqueOrgTypes = new Set(
         bidQueueRequests.map(
-          (req) => `${req.queueOrganizationUniqueId}::${req.vehicleTypeUniqueId}`,
+          (req) =>
+            `${req.queueOrganizationUniqueId}::${req.vehicleTypeUniqueId}`,
         ),
       );
       await Promise.all(
