@@ -187,6 +187,44 @@ exports.moveVehicle = async (data) => {
     );
   }
 
+  const [previousAssignments] = await db().query(
+    `SELECT companyVehicleUniqueId
+     FROM CompanyVehicle
+     WHERE companyUniqueId = ? AND vehicleUniqueId = ?`,
+    [companyUniqueId, vehicleUniqueId],
+  );
+  if (previousAssignments.length > 0) {
+    const previousAssignment = previousAssignments[0];
+    await insertHistoryRecord({
+      sourceTable: "CompanyVehicle",
+      conditions: {
+        companyVehicleUniqueId: previousAssignment.companyVehicleUniqueId,
+      },
+      changeType: "UPDATE",
+      changedByUserId: createdByUserUniqueId,
+    });
+
+    await db().query(
+      `UPDATE CompanyVehicle
+       SET assignmentStatus = 'active',
+           assignmentStartDate = ?, assignmentEndDate = ?,
+           companyVehicleDeletedAt = NULL, companyVehicleDeletedBy = NULL,
+           companyVehicleUpdatedBy = ?, companyVehicleUpdatedAt = ?
+       WHERE companyVehicleUniqueId = ?`,
+      [
+        assignmentStartDate,
+        assignmentEndDate || null,
+        createdByUserUniqueId,
+        currentDate(),
+        previousAssignment.companyVehicleUniqueId,
+      ],
+    );
+    return {
+      message: "Vehicle already assigned to this company",
+      data: { companyVehicleUniqueId: previousAssignment.companyVehicleUniqueId },
+    };
+  }
+
   const companyVehicleUniqueId = uuidv4();
   await db().query(
     `INSERT INTO CompanyVehicle
