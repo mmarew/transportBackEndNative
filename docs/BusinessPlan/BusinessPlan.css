@@ -1,0 +1,636 @@
+@page {
+  size: A4;
+  /* Top/bottom breathing room is split between the paper margin and the page
+     box padding. Both apply on every printed page, so interior pages keep
+     their top space even if the browser's print dialog is set to zero
+     margins (which discards only the margin part). Totals: 46mm top,
+     32mm bottom. */
+  margin: 24mm 16mm 16mm !important;
+  padding: 22mm 0 16mm;
+}
+
+:root {
+  color-scheme: light;
+  --ink: #17283d;
+  --muted: #64758a;
+  --accent: #0c786f;
+  --accent-dark: #07574f;
+  --pale: #e9f4f2;
+  --line: #dce5eb;
+  --paper: #ffffff;
+  --canvas: #edf2f5;
+  --warning: #fff6e8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--canvas);
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 980px;
+  margin: 18px auto;
+  padding: 0 20px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.print-button {
+  border: 0;
+  border-radius: 6px;
+  padding: 10px 16px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.print-button:hover,
+.print-button:focus-visible {
+  background: var(--accent-dark);
+}
+
+.document {
+  max-width: 980px;
+  margin: 0 auto 40px;
+  padding: 54px 64px;
+  background: var(--paper);
+  box-shadow: 0 12px 40px rgb(23 40 61 / 10%);
+}
+
+.cover {
+  position: relative;
+  overflow: hidden;
+  margin: -54px -64px 44px;
+  padding: 70px 64px 44px;
+  background: linear-gradient(132deg, #102c42 0%, #145b61 65%, #0c786f 100%);
+  color: #fff;
+}
+
+.cover::after {
+  position: absolute;
+  right: -120px;
+  bottom: -240px;
+  width: 430px;
+  height: 430px;
+  border: 1px solid rgb(255 255 255 / 15%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 34px rgb(255 255 255 / 5%), 0 0 0 68px rgb(255 255 255 / 4%);
+  content: "";
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.cover .eyebrow {
+  color: #9de2d2;
+}
+
+.cover h1 {
+  position: relative;
+  z-index: 1;
+  margin: 18px 0 16px;
+  font-size: clamp(42px, 7vw, 68px);
+  letter-spacing: -0.055em;
+  line-height: 0.99;
+}
+
+.cover h1 span {
+  color: #a9e3d8;
+}
+
+.cover-summary {
+  position: relative;
+  z-index: 1;
+  max-width: 570px;
+  margin: 0;
+  color: #e4f0f3;
+  font-size: 18px;
+}
+
+.cover-stats {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  max-width: 680px;
+  margin-top: 40px;
+}
+
+.cover-stats div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-left: 2px solid #79c7b9;
+  padding-left: 12px;
+}
+
+.cover-stats strong {
+  font-size: 17px;
+}
+
+.cover-stats span,
+.draft-note {
+  color: #d1e4e6;
+  font-size: 12px;
+}
+
+.draft-note {
+  position: relative;
+  z-index: 1;
+  max-width: 660px;
+  margin: 30px 0 0;
+}
+
+.section {
+  margin: 0 0 38px;
+}
+
+.section-heading {
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+}
+
+.section-heading .eyebrow {
+  margin-bottom: 4px;
+}
+
+h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 27px;
+  letter-spacing: -0.035em;
+  line-height: 1.2;
+}
+
+h3 {
+  margin: 23px 0 10px;
+  font-size: 16px;
+}
+
+p {
+  margin: 0 0 14px;
+}
+
+.callout {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 20px 0;
+  border-left: 4px solid var(--accent);
+  border-radius: 0 7px 7px 0;
+  padding: 15px 18px;
+  background: var(--pale);
+}
+
+.callout span {
+  color: var(--muted);
+}
+
+.callout.muted {
+  border-left-color: #9aa8b5;
+  background: #f3f6f8;
+}
+
+.market-evidence {
+  margin-top: 20px;
+}
+
+.market-evidence h3 {
+  margin: 20px 0 8px;
+}
+
+.evidence-list {
+  padding-left: 22px;
+}
+
+.evidence-list li {
+  margin: 10px 0;
+}
+
+.market-evidence a {
+  color: var(--accent-dark);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.source-note {
+  margin-top: 20px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.two-column {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.card h3 {
+  margin: 0 0 8px;
+}
+
+.card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.timeline {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.timeline li {
+  margin: 7px 0;
+}
+
+.timeline span {
+  display: block;
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
+.formula {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  border-radius: 8px;
+  padding: 18px;
+  background: #f2f7f7;
+}
+
+.formula div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.formula span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.formula strong {
+  color: var(--accent-dark);
+  font-size: 18px;
+}
+
+.formula b {
+  color: #91a1ac;
+  font-size: 18px;
+}
+
+.assumption-list,
+.check-list {
+  padding-left: 22px;
+}
+
+.assumption-list li,
+.check-list li {
+  margin: 8px 0;
+}
+
+.small-note {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.metric-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-radius: 7px;
+  padding: 14px;
+  background: #f3f6f8;
+}
+
+.metric strong {
+  color: var(--accent-dark);
+  font-size: 17px;
+}
+
+.metric span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  margin: 10px 0 22px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--line);
+  padding: 9px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+thead th {
+  background: #f2f6f7;
+  color: var(--ink);
+  font-size: 11px;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+tfoot th,
+tfoot td {
+  border-top: 2px solid #b8c9ce;
+  border-bottom: 0;
+  background: #f2f7f7;
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
+.number {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.negative {
+  color: #a4483e;
+}
+
+.summary-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 18px 0 8px;
+}
+
+.summary-strip div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 2px solid var(--accent);
+  padding: 12px 10px;
+  background: #f6f8f9;
+}
+
+.summary-strip span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.summary-strip strong {
+  font-size: 15px;
+}
+
+.forecast {
+  font-size: 11px;
+}
+
+.forecast th,
+.forecast td {
+  padding: 7px 6px;
+}
+
+.forecast thead th {
+  font-size: 9px;
+}
+
+.forecast tfoot {
+  font-size: 11px;
+}
+
+.closing-note {
+  margin-top: 22px;
+  border-radius: 7px;
+  padding: 16px 18px;
+  background: var(--warning);
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+@media (max-width: 700px) {
+  .document {
+    margin: 0;
+    padding: 28px 22px;
+  }
+
+  .cover {
+    margin: -28px -22px 32px;
+    padding: 44px 22px 30px;
+  }
+
+  .cover-stats,
+  .metric-row,
+  .summary-strip,
+  .two-column {
+    grid-template-columns: 1fr;
+  }
+
+  .formula {
+    grid-template-columns: 1fr;
+  }
+
+  .formula > b {
+    transform: rotate(90deg);
+    justify-self: start;
+  }
+
+  .toolbar {
+    padding: 0 12px;
+  }
+
+  .footer {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+@media print {
+  html,
+  body {
+    background: #fff;
+  }
+
+  body {
+    color: #17283d;
+    font-size: 9.5pt;
+    line-height: 1.45;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .toolbar {
+    display: none;
+  }
+
+  .document {
+    max-width: none;
+    margin: 0;
+    padding: 0 5mm;
+    box-shadow: none;
+  }
+
+  .cover {
+    /* Content box height = A4 minus the @page top/bottom margin + padding
+       (297mm - 46mm - 32mm ≈ 219mm). Keeping the cover at exactly the page
+       height stops it from spilling a blank page. */
+    min-height: calc(297mm - 46mm - 32mm);
+    margin: 0 -5mm;
+    padding: 42mm 18mm 22mm;
+    break-after: page;
+  }
+
+  .cover h1 {
+    font-size: 54pt;
+  }
+
+  .section {
+    margin-bottom: 20px;
+  }
+
+  .section-heading,
+  h3,
+  .callout,
+  .card,
+  .formula,
+  .metric,
+  .summary-strip,
+  .keep-together,
+  .closing-note {
+    break-inside: avoid;
+  }
+
+  .closing-note {
+    margin-bottom: 0;
+  }
+
+  .section-heading {
+    break-after: avoid;
+  }
+
+  h3 {
+    break-after: avoid;
+  }
+
+  .financial-section {
+    /* Let the plan flow continuously; forcing a fresh page here left the
+       previous page more than half empty and pushed the closing note onto an
+       almost-blank final page. */
+    break-before: auto;
+  }
+
+  .financial-section .table-wrap {
+    /* Allow the budget table to split across pages with its header repeated
+       instead of jumping wholesale to the next page. */
+    overflow: visible;
+  }
+
+  .financial-section th,
+  .financial-section td {
+    /* Slightly tighter rows keep the cost tables and their closing note on
+       two pages instead of spilling a lone callout onto a third. */
+    padding: 6px 9px;
+  }
+
+  .forecast-section {
+    /* Forecast starts its own page so the projection table stays intact. */
+    break-before: page;
+  }
+
+  .forecast-wrap {
+    overflow: visible;
+  }
+
+  table {
+    font-size: 8.5pt;
+  }
+
+  th,
+  td {
+    padding: 7px 9px;
+  }
+
+  .forecast {
+    font-size: 7.5pt;
+  }
+
+  .forecast th,
+  .forecast td {
+    padding: 4px 4px;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    /* Do not repeat the totals row on every fragment of a split table. */
+    display: table-row-group;
+  }
+
+  tr {
+    break-inside: avoid;
+  }
+
+  .section:last-of-type {
+    margin-bottom: 0;
+  }
+
+  .check-list li {
+    margin: 6px 0;
+  }
+
+  .footer {
+    margin-top: 20px;
+  }
+}
