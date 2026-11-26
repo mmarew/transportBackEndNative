@@ -110,6 +110,63 @@
             "format": "uuid"
           }
         }
+      },
+      "CreateVehicleRequest": {
+        "type": "object",
+        "required": ["vehicleTypeUniqueId", "licensePlate", "color"],
+        "properties": {
+          "vehicleTypeUniqueId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of an existing VehicleTypes row."
+          },
+          "licensePlate": {
+            "type": "string",
+            "description": "Plate number. Whitespace is stripped server-side; an existing plate reuses its Vehicle row."
+          },
+          "color": {
+            "type": "string",
+            "description": "Vehicle colour."
+          },
+          "companyUniqueId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional. When present the new vehicle is linked to this company fleet in the same transaction. Required for a company admin using the no-driver target; rejected for drivers."
+          },
+          "isDriverOwnerOfVehicle": {
+            "type": "boolean",
+            "description": "Accepted for backwards compatibility but currently ignored. Driver-target registrations always create a VehicleOwnership row; no-driver registrations create none."
+          }
+        }
+      },
+      "CreateVehicleResponse": {
+        "type": "object",
+        "required": ["message", "data"],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Vehicle created successfully"
+          },
+          "data": {
+            "type": "object",
+            "required": ["vehicleUniqueId"],
+            "properties": {
+              "vehicleUniqueId": {
+                "type": "string",
+                "format": "uuid",
+                "description": "UUID of the Vehicle row."
+              },
+              "vehicleOnly": {
+                "type": "boolean",
+                "description": "Present and true only for the no-driver-is-assigned-yet target."
+              },
+              "message": {
+                "type": "string",
+                "description": "Present when the target driver already has an active vehicle; no new vehicle is created in that case."
+              }
+            }
+          }
+        }
       }
     }
   },

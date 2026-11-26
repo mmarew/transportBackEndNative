@@ -378,9 +378,19 @@ Driver Registration Flow
 
 ### 3. Register Vehicle
 
-**Endpoint**: `POST /api/user/vehicles/driverUserUniqueId/self`
-**Description**: Register a new vehicle for the driver if no vehicle exists in account status
-**Authentication**: Driver token required if registered by driver, admin token if registered by admin
+**Endpoint**: `POST /api/user/vehicles/driverUserUniqueId/:driverUserUniqueId`
+
+`driverUserUniqueId` is the **path parameter** and accepts:
+
+| Value | Meaning |
+| --- | --- |
+| `self` | Register for the authenticated user's own driver account. |
+| A driver UUID | Register for that specific driver (admin, super admin, or company admin only). |
+| `no-driver-is-assigned-yet` | Register the vehicle only — no `VehicleDriver` row, no driver ownership, no driver notification. |
+
+**Allowed caller roles**: driver (self only), admin, super admin, company admin. Other roles receive 403.
+
+**Company fleet rule**: if `companyUniqueId` is in the body, the vehicle is linked to that company fleet in the same transaction. Company admins may only use companies they are an active member of. Drivers may not add vehicles to a company fleet through this endpoint. A company admin using `no-driver-is-assigned-yet` **must** supply `companyUniqueId` so the vehicle is registered as a company vehicle.
 
 **Request Body**:
 
@@ -389,27 +399,29 @@ Driver Registration Flow
   "vehicleTypeUniqueId": "fddf2911-dfa5-4363-a04f-c82e59536fa4",
   "licensePlate": "3-23A6326 AA",
   "color": "White base red sponda",
+  "companyUniqueId": "b1f0c1e2-...",
   "isDriverOwnerOfVehicle": false
 }
-````
+```
 
 **Success Response**:
 
 ```json
 {
-  "message": "Vehicle registered successfully",
-  "vehicleId": "vehicle-uuid-here"
+  "message": "Vehicle created successfully",
+  "data": { "vehicleUniqueId": "vehicle-uuid-here" }
 }
 ```
 
+For `no-driver-is-assigned-yet` the response also includes `"vehicleOnly": true` in `data`.
+
 **Error Responses**:
 
-- **400 Bad Request**: Missing required fields or invalid vehicle data
-- **401 Unauthorized**: Invalid or missing authentication token
-- **403 Forbidden**: Insufficient permissions to register vehicle
-- **404 Not Found**: Driver or vehicle type not found
-- **409 Conflict**: Vehicle with license plate already exists
-- **500 Internal Server Error**: Server error during vehicle registration
+- **400 Bad Request**: Missing required fields, invalid vehicle data, or missing `companyUniqueId` for a company admin registering a vehicle without a driver.
+- **401 Unauthorized**: Invalid or missing authentication token.
+- **403 Forbidden**: Caller role not allowed, driver targeting another driver, driver adding to a company fleet, or company admin not a member of the target company.
+- **404 Not Found**: Vehicle type or company not found.
+- **500 Internal Server Error**: Server error during vehicle registration.
 
 from account we can know role document requirement
 

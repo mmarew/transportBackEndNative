@@ -89,6 +89,9 @@ const { usersData, USER_STATUS } = require("./constants");
 const { report } = require("./Reporter");
 const { ensureCoreUsers } = require("./Auth/bootstrap");
 const { runQueueTests } = require("./Queue");
+const {
+  runVehicleRegistrationTargetTests,
+} = require("./Vehicles/RegistrationTargets");
 
 const { runReferenceCRUD } = require("./Phases/runReferenceCRUD");
 const { runIndividualFlow } = require("./Phases/runIndividualFlow");
@@ -381,6 +384,12 @@ const initiateTest = async () => {
     // Self-contained: provisions its own queue drivers/shipper/org. Runs
     // integrated so its counts add to the grand total (not a separate run).
     await safe("runQueueTests", () => runQueueTests({ reset: false, silent: true }))();
+
+    // ── Vehicle registration targets (self / UUID / no-driver sentinel) ───
+    // Self-contained: provisions its own drivers and company. Runs integrated
+    // so its counts add to the grand total.
+    await safe("runVehicleRegistrationTargetTests", () =>
+      runVehicleRegistrationTargetTests({ reset: false, silent: true }))();
 
     const passed = report.summary();
     // Negative-traffic accounting: 🛡 = a test declared the rejection up-front

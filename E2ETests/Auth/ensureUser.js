@@ -24,6 +24,10 @@ const PUBLIC_CREATE_ROLES = new Set([
   "companyAdmin",
   "queueOrgAdmin",
 ]);
+// Suites that need throwaway users (queue, vehicle-registration targets) add
+// their own keys to usersData. Any prefix here is created via the public
+// endpoint just like the canonical roles above.
+const DYNAMIC_USER_PREFIXES = ["queueDriver", "vrDriver"];
 const ADMIN_CREATE_ROLES = new Set(["admin"]);
 // Pre-seeded by the backend (createTables → createUserSystem), never created
 // via an API endpoint — verify + login only.
@@ -38,7 +42,7 @@ const provisioning = { created: 0, verified: 0, loggedIn: 0, reused: 0 };
  *
  * - SEED_ONLY_ROLES (supperAdmin, systemAdmin): pre-seeded by backend, skip creation
  * - PUBLIC_CREATE_ROLES (driver, shipper, companyAdmin, queueOrgAdmin): create via public endpoint
- * - queueDriver* (queueDriver1..N): dynamic driver types for queue E2E tests, create via public endpoint
+ * - queueDriver* / vrDriver*: dynamic throwaway users, create via public endpoint
  * - ADMIN_CREATE_ROLES (admin): create via admin endpoint (requires superAdmin token)
  *
  * @param {string} userType - Canonical key in usersData (e.g., 'driver', 'queueDriver1')
@@ -48,7 +52,10 @@ const ensureCreate = async (userType) => {
   if (SEED_ONLY_ROLES.has(userType)) {
     return false; // Pre-seeded by the backend — never create via API.
   }
-  if (PUBLIC_CREATE_ROLES.has(userType) || userType.startsWith("queueDriver")) {
+  const isDynamic = DYNAMIC_USER_PREFIXES.some((prefix) =>
+    userType.startsWith(prefix),
+  );
+  if (PUBLIC_CREATE_ROLES.has(userType) || isDynamic) {
     const created = await apiCreateUser(userType);
     if (created) provisioning.created++;
     return created;

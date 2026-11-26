@@ -1,6 +1,6 @@
 const Joi = require("joi");
 const { uuidSchema } = require("../Middleware/Validator");
-const { PAGINATION } = require("../Utils/Constants");
+const { PAGINATION, VEHICLE_REGISTRATION } = require("../Utils/Constants");
 
 // Create vehicle payload (matches Vehicle.service expectations)
 exports.createVehicle = Joi.object({
@@ -26,8 +26,14 @@ exports.vehicleUniqueIdParam = Joi.object({
 
 exports.driverUserUniqueIdParam = Joi.object({
   driverUserUniqueId: Joi.alternatives()
-    .try(uuidSchema, Joi.string().valid("self"))
-    .required(), 
+    .try(
+      uuidSchema,
+      Joi.string().valid(
+        VEHICLE_REGISTRATION.SELF,
+        VEHICLE_REGISTRATION.NO_DRIVER,
+      ),
+    )
+    .required(),
 });
 
 // Filter schema for vehicles

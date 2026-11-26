@@ -1,7 +1,6 @@
 "use strict";
 
 const jwt = require("jsonwebtoken");
-const Config = require("./Config");
 const { getSessionTtlMs } = require("./SessionPolicy");
 
 const COOKIE_NAME = "token";

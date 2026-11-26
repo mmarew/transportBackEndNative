@@ -10,42 +10,102 @@ const AppError = require("../Utils/AppError");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const { assignVehicle } = require("../Services/CompanyVehicle.service");
 const { currentDate } = require("../Utils/CurrentDate");
-const { HTTP_STATUS } = require("../Utils/Constants");
+const {
+  HTTP_STATUS,
+  VEHICLE_REGISTRATION,
+} = require("../Utils/Constants");
+const { assertCompanyAccess } = require("../Services/CompanyHelper.service");
 
 const createVehicleController = async (req, res, next) => {
   try {
-    let driverUserUniqueId = req?.params?.driverUserUniqueId;
+    const requestedTarget = req?.params?.driverUserUniqueId;
     const user = req?.user;
     const roleId = user?.roleId;
-    if (driverUserUniqueId === "self" || !driverUserUniqueId) {
-      driverUserUniqueId = req?.user?.userUniqueId;
+    const noDriverAssigned =
+      requestedTarget === VEHICLE_REGISTRATION.NO_DRIVER;
+
+    const isPlatformAdmin =
+      roleId === usersRoles.adminRoleId ||
+      roleId === usersRoles.supperAdminRoleId;
+    const isCompanyAdmin = roleId === usersRoles.companyAdminRoleId;
+    const isDriver = roleId === usersRoles.driverRoleId;
+
+    // Explicit whitelist: any other role used to fall through and could
+    // register vehicles for arbitrary user UUIDs.
+    if (!isPlatformAdmin && !isCompanyAdmin && !isDriver) {
+      return next(
+        new AppError(
+          "You are not allowed to register a vehicle",
+          AppError.FORBIDDEN,
+        ),
+      );
+    }
+
+    let driverUserUniqueId = requestedTarget;
+    if (!requestedTarget || requestedTarget === VEHICLE_REGISTRATION.SELF) {
+      driverUserUniqueId = user?.userUniqueId;
     }
 
     if (
-      roleId === usersRoles.adminRoleId ||
-      roleId === usersRoles.supperAdminRoleId
+      isDriver &&
+      !noDriverAssigned &&
+      driverUserUniqueId !== user?.userUniqueId
     ) {
-      // Admin or super admin can create   Vehicle for any driver
-    } else if (roleId === usersRoles.driverRoleId) {
-      if (driverUserUniqueId !== req?.user?.userUniqueId) {
-        return next(
-          new AppError("You can't register vehicle for another driver", AppError.FORBIDDEN),
-        );
-      }
+      return next(
+        new AppError(
+          "You can't register vehicle for another driver",
+          AppError.FORBIDDEN,
+        ),
+      );
+    }
+
+    // "no-driver-is-assigned-yet" means the vehicle is registered on its own:
+    // no VehicleDriver row and no driver ownership are created.
+    if (noDriverAssigned) {
+      driverUserUniqueId = null;
+    }
+
+    const companyUniqueId = req?.body?.companyUniqueId;
+
+    if (companyUniqueId && isDriver) {
+      return next(
+        new AppError(
+          "Drivers cannot register vehicles into a company fleet",
+          AppError.FORBIDDEN,
+        ),
+      );
+    }
+
+    if (noDriverAssigned && isCompanyAdmin && !companyUniqueId) {
+      return next(
+        new AppError(
+          "companyUniqueId is required to register a company vehicle without a driver",
+          AppError.BAD_REQUEST,
+        ),
+      );
+    }
+
+    // Company admins may only register into a company they belong to.
+    if (companyUniqueId && !isPlatformAdmin) {
+      await assertCompanyAccess(user, companyUniqueId);
     }
 
     const response = await executeInTransaction(async () => {
-      // 1. Create the primary vehicle record and its initial ownership/driver association
-      const vehicleResponse = await createVehicle(req.body, user, driverUserUniqueId);
-      
+      // 1. Create the vehicle (and driver/ownership links unless no driver is assigned)
+      const vehicleResponse = await createVehicle(
+        req.body,
+        user,
+        driverUserUniqueId,
+        { vehicleOnly: noDriverAssigned },
+      );
+
       const { vehicleUniqueId } = vehicleResponse.data;
-      const companyUniqueId = req?.body?.companyUniqueId;
 
       /**
        * AUTOMATED FLEET ASSIGNMENT:
-       * If a companyUniqueId is provided in the request body, we automatically
-       * link this new vehicle to the specified transport company's fleet.
-       * This reduces the need for a second manual 'assign-to-fleet' call.
+       * If a companyUniqueId is provided in the request body, link this vehicle
+       * to the company fleet in the same transaction. For a company admin's
+       * unassigned vehicle this is what makes it a company vehicle.
        */
       if (companyUniqueId) {
         await assignVehicle({

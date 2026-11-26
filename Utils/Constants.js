@@ -30,6 +30,14 @@ const HTTP_STATUS = {
   GATEWAY_TIMEOUT: 504,
 };
 
+// Vehicle registration target sentinels. `self` means the authenticated
+// user's own driver account; NO_DRIVER registers the vehicle only, with no
+// VehicleDriver row and no driver ownership.
+const VEHICLE_REGISTRATION = {
+  SELF: "self",
+  NO_DRIVER: "no-driver-is-assigned-yet",
+};
+
 // Domain rules
 const DOMAIN = {
   OTP_LENGTH: 6,
@@ -111,6 +119,7 @@ module.exports = {
   REDIS_SOCKET_PATH,
   UPSTASH_REDIS_URL,
   HTTP_STATUS,
+  VEHICLE_REGISTRATION,
   DOMAIN,
   PAGINATION,
   TIME,

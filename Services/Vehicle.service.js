@@ -18,7 +18,11 @@ const { performJoinSelect } = require("../CRUD/Read/ReadData");
 const { insertHistoryRecord } = require("./History/History.service");
 
 // create vehicle and create ownership based on status of vehicle.
-const createVehicle = async (data, user, driverUserUniqueId) => {
+// `options.vehicleOnly` registers the vehicle without any driver link, ownership
+// row or notification. Used by the "no-driver-is-assigned-yet" target.
+const createVehicle = async (data, user, driverUserUniqueId, options = {}) => {
+
+  const vehicleOnly = options?.vehicleOnly === true;
 
   let vehicleTypeUniqueId = data?.vehicleTypeUniqueId,
     licensePlate = data?.licensePlate,
@@ -70,6 +74,15 @@ const createVehicle = async (data, user, driverUserUniqueId) => {
     vehicle = [{ vehicleUniqueId }];
   }
 
+  const vehicleUniqueId = vehicle?.[0]?.vehicleUniqueId;
+
+  if (vehicleOnly) {
+    return {
+      message: "Vehicle created successfully",
+      data: { vehicleUniqueId, vehicleOnly: true },
+    };
+  }
+
   // Check active assignment for this driver
   const activeAssignments = await getData({
     tableName: "VehicleDriver",
@@ -88,8 +101,6 @@ const createVehicle = async (data, user, driverUserUniqueId) => {
       },
     };
   }
-
-  const vehicleUniqueId = vehicle?.[0]?.vehicleUniqueId;
 
   // Create vehicle ownership record
   await createVehicleOwnership({
