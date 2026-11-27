@@ -91,7 +91,8 @@ const createVehicleController = async (req, res, next) => {
     }
 
     const response = await executeInTransaction(async () => {
-      // 1. Create the vehicle (and driver/ownership links unless no driver is assigned)
+      // 1. Create the vehicle (driver/ownership links are added only for the
+      //    driver's first active vehicle, or when no driver is assigned)
       const vehicleResponse = await createVehicle(
         req.body,
         user,

@@ -70,7 +70,7 @@ Response `201`:
 }
 ```
 
-If the driver already has a different active vehicle, the plate is still registered and `data.message` is added:
+If the driver already has a different active vehicle, the plate is still registered as a `Vehicle` row and `data.message` is added. The existing `VehicleDriver` relation is left unchanged — no second driver relation is created:
 
 ```json
 {

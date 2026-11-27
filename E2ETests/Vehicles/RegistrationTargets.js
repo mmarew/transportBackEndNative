@@ -97,6 +97,12 @@ const activeDriverLinks = (vehicleUniqueId) =>
     [vehicleUniqueId],
   );
 
+const activeDriverLinksForDriver = (driverUserUniqueId) =>
+  scalarCount(
+    "SELECT COUNT(*) AS n FROM VehicleDriver WHERE driverUserUniqueId = ? AND assignmentStatus = 'active'",
+    [driverUserUniqueId],
+  );
+
 const activeOwnerships = (vehicleUniqueId) =>
   scalarCount(
     "SELECT COUNT(*) AS n FROM VehicleOwnership WHERE vehicleUniqueId = ? AND vehicleOwnershipDeletedAt IS NULL",
@@ -374,9 +380,10 @@ const runVehicleRegistrationTargetTests = async ({
     ));
 
   // VR-11 — a driver who registered a vehicle before can still register a
-  // different plate. The response must carry the NEW vehicle, not the old one.
+  // different plate. The new Vehicle row must NOT steal or add a driver link:
+  // the driver keeps exactly one active vehicle.
   await runCase(
-    "VR-11 new plate for driver with prior vehicle returns the new vehicle",
+    "VR-11 new plate for driver with prior vehicle keeps one driver link",
     async () => {
       if (!companyDriverFirstVehicleId) {
         throw new Error("VR-05 did not produce a baseline vehicle");
@@ -400,11 +407,11 @@ const runVehicleRegistrationTargetTests = async ({
       if (!notice.includes(plateB) || !notice.includes("another active vehicle")) {
         throw new Error(`Expected a notice about ${plateB} and the driver's other vehicle, got: ${notice}`);
       }
-      if ((await activeDriverLinks(vehicleUniqueId)) !== 1) {
-        throw new Error("New plate was not linked to the target driver");
+      if ((await activeDriverLinks(vehicleUniqueId)) !== 0) {
+        throw new Error("New plate must not be linked to the target driver");
       }
-      if ((await activeOwnerships(vehicleUniqueId)) !== 1) {
-        throw new Error("New plate has no active ownership row");
+      if ((await activeOwnerships(vehicleUniqueId)) !== 0) {
+        throw new Error("New plate must not create another ownership row for the driver");
       }
       if ((await activeFleetLinks(vehicleUniqueId, companyUniqueId)) !== 1) {
         throw new Error("New plate was not added to the company fleet");
@@ -412,8 +419,11 @@ const runVehicleRegistrationTargetTests = async ({
       if ((await activeDriverLinks(companyDriverFirstVehicleId)) !== 1) {
         throw new Error("Previously registered vehicle lost its driver link");
       }
+      if ((await activeDriverLinksForDriver(companyDriverUid)) !== 1) {
+        throw new Error("Driver now has more than one active vehicle");
+      }
       report.pass(
-        "VR-11 new plate for driver with prior vehicle returns the new vehicle",
+        "VR-11 new plate for driver with prior vehicle keeps one driver link",
       );
     },
   );
@@ -460,6 +470,12 @@ const runVehicleRegistrationTargetTests = async ({
       const notice = res.data?.data?.message || "";
       if (!notice.includes(plateC) || !notice.includes("another active vehicle")) {
         throw new Error(`Expected a notice about ${plateC} and the driver's other vehicle, got: ${notice}`);
+      }
+      if ((await activeDriverLinks(vehicleUniqueId)) !== 0) {
+        throw new Error("New plate must not be linked to the target driver");
+      }
+      if ((await activeDriverLinksForDriver(companyDriverUid)) !== 1) {
+        throw new Error("Driver now has more than one active vehicle");
       }
       if ((await activeFleetLinks(vehicleUniqueId, otherCompanyUniqueId)) !== 1) {
         throw new Error("New plate was not linked to the second company's fleet");

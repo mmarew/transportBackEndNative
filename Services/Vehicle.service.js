@@ -104,9 +104,10 @@ const createVehicle = async (data, user, driverUserUniqueId, options = {}) => {
     };
   }
 
-  // The plate being registered is new, but the driver may still have a
-  // different active vehicle. Registration proceeds either way; we only flag
-  // it in the response so the caller is not surprised by two active vehicles.
+  // One driver may actively drive only one vehicle. If this driver already
+  // has an active vehicle on a different plate, register the new plate as a
+  // Vehicle row only: do NOT create a VehicleOwnership or VehicleDriver row
+  // and do NOT move the existing relation onto the new vehicle.
   let driverHasOtherVehicle = false;
   if (driverUserUniqueId) {
     const activeAssignments = await getData({
@@ -116,6 +117,17 @@ const createVehicle = async (data, user, driverUserUniqueId, options = {}) => {
     driverHasOtherVehicle = (activeAssignments || []).some(
       (assignment) => assignment.vehicleUniqueId !== vehicleUniqueId,
     );
+  }
+
+  if (driverHasOtherVehicle) {
+    return {
+      message: "Vehicle created successfully",
+      data: {
+        vehicleUniqueId,
+        message:
+          `${licensePlate} is registered, but the driver has another active vehicle`,
+      },
+    };
   }
 
   // Create vehicle ownership record
@@ -172,13 +184,7 @@ const createVehicle = async (data, user, driverUserUniqueId, options = {}) => {
     });
   }
 
-  const responseData = { vehicleUniqueId };
-  if (driverHasOtherVehicle) {
-    responseData.message =
-      `${licensePlate} is registered, but the driver has another active vehicle`;
-  }
-
-  return { message: "Vehicle created successfully", data: responseData };
+  return { message: "Vehicle created successfully", data: { vehicleUniqueId } };
 };
 
 const updateVehicle = async (vehicleUniqueId, updateValues, user) => {

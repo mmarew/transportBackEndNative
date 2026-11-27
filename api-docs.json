@@ -162,7 +162,7 @@
               },
               "message": {
                 "type": "string",
-                "description": "Informational notice. Present when the driver already has another active vehicle (the new plate is still registered), or when the same plate is re-registered (no new vehicle is created).",
+                "description": "Informational notice. Present when the driver already has another active vehicle: the new plate is registered as a Vehicle row, but the existing VehicleDriver relation is left unchanged and no second driver link is created. Also present when the same plate is re-registered (no new vehicle is created).",
                 "example": "11qqwas is registered, but the driver has another active vehicle"
               }
             }
