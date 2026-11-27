@@ -52,8 +52,8 @@ const createUserSystem = async () => {
   // Seed one Supper Admin per configured phone. Each admin gets a matching
   // email: the configured SUPER_ADMIN_EMAIL (comma-separated, aligned by index)
   // when provided, otherwise the standard phone-based placeholder. This lets a
-  // deployment declare `SUPER_ADMIN_PHONES=+251983222221,+251976640598` and have
-  // both accounts auto-seeded on boot instead of manual INSERTs.
+  // deployment declare `SUPER_ADMIN_PHONES=+251983222221,+251976640598,+251931483171`
+  // and have all accounts auto-seeded on boot instead of manual INSERTs.
   for (let index = 0; index < adminPhones.length; index += 1) {
     const adminPhone = adminPhones[index];
     await createUserByAdminOrSuperAdmin({

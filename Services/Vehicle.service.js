@@ -10,7 +10,6 @@ const { createVehicleDriver } = require("./VehicleDriver.service");
 const { usersRoles } = require("../Utils/ListOfSeedData");
 const { pool } = require("../Middleware/Database.config");
 const AppError = require("../Utils/AppError");
-const logger = require("../Utils/logger");
 const { transactionStorage } = require("../Utils/TransactionContext");
 const { sendSocketIONotificationToAdmin } = require("../Utils/Notifications");
 const messageTypes = require("../Utils/MessageTypes");
@@ -44,14 +43,40 @@ const createVehicle = async (data, user, driverUserUniqueId, options = {}) => {
   }
 
   // Check if vehicle with the same license plate exists
-  let vehicle = await getData({
+  const existingVehicle = await getData({
     tableName: "Vehicle",
     conditions: { licensePlate },
   });
+  let vehicleUniqueId = existingVehicle?.[0]?.vehicleUniqueId;
 
-  if (!vehicle?.length) {
+  // Idempotency is per plate, not per driver. Re-posting the SAME plate for a
+  // driver who is already assigned to it is a no-op. A driver who registered a
+  // different plate earlier must still be able to register this new plate —
+  // otherwise the old vehicle is returned, fleet assignment targets that old
+  // vehicle, and the new plate is reported as "already registered".
+  if (!vehicleOnly && driverUserUniqueId && vehicleUniqueId) {
+    const activeAssignmentForPlate = await getData({
+      tableName: "VehicleDriver",
+      conditions: {
+        vehicleUniqueId,
+        driverUserUniqueId,
+        assignmentStatus: "active",
+      },
+    });
+    if (activeAssignmentForPlate?.length > 0) {
+      return {
+        message: "Vehicle created successfully",
+        data: {
+          message: "Driver already has an active vehicle",
+          vehicleUniqueId,
+        },
+      };
+    }
+  }
+
+  if (!vehicleUniqueId) {
     // Vehicle doesn't exist, create it
-    const vehicleUniqueId = uuidv4();
+    vehicleUniqueId = uuidv4();
     await insertData({
       tableName: "Vehicle",
       colAndVal: {
@@ -70,11 +95,7 @@ const createVehicle = async (data, user, driverUserUniqueId, options = {}) => {
       VehicleStatusTypeId: 1,
       vehicleStatusCreatedBy: user?.userUniqueId,
     });
-
-    vehicle = [{ vehicleUniqueId }];
   }
-
-  const vehicleUniqueId = vehicle?.[0]?.vehicleUniqueId;
 
   if (vehicleOnly) {
     return {
@@ -83,23 +104,18 @@ const createVehicle = async (data, user, driverUserUniqueId, options = {}) => {
     };
   }
 
-  // Check active assignment for this driver
-  const activeAssignments = await getData({
-    tableName: "VehicleDriver",
-    conditions: {
-      driverUserUniqueId,
-      assignmentStatus: "active",
-    },
-  });
-  logger.debug("@activeAssignments", activeAssignments);
-  if (activeAssignments?.length > 0) {
-    return {
-      message: "Vehicles list fetched",
-      data: {
-        message: "Driver already has an active vehicle",
-        vehicleUniqueId: activeAssignments[0].vehicleUniqueId,
-      },
-    };
+  // The plate being registered is new, but the driver may still have a
+  // different active vehicle. Registration proceeds either way; we only flag
+  // it in the response so the caller is not surprised by two active vehicles.
+  let driverHasOtherVehicle = false;
+  if (driverUserUniqueId) {
+    const activeAssignments = await getData({
+      tableName: "VehicleDriver",
+      conditions: { driverUserUniqueId, assignmentStatus: "active" },
+    });
+    driverHasOtherVehicle = (activeAssignments || []).some(
+      (assignment) => assignment.vehicleUniqueId !== vehicleUniqueId,
+    );
   }
 
   // Create vehicle ownership record
@@ -156,7 +172,13 @@ const createVehicle = async (data, user, driverUserUniqueId, options = {}) => {
     });
   }
 
-  return { message: "Vehicle created successfully", data: { vehicleUniqueId } };
+  const responseData = { vehicleUniqueId };
+  if (driverHasOtherVehicle) {
+    responseData.message =
+      `${licensePlate} is registered, but the driver has another active vehicle`;
+  }
+
+  return { message: "Vehicle created successfully", data: responseData };
 };
 
 const updateVehicle = async (vehicleUniqueId, updateValues, user) => {

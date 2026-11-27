@@ -159,6 +159,14 @@ const usersData = {
     roleId: usersRoles.supperAdminRoleId,
     OTP: 101010,
   },
+  // Second seeded super admin (also pre-seeded via SUPER_ADMIN_PHONES).
+  supperAdmin2: {
+    fullName: "Test Supper Admin Two",
+    email: "supperAdmin2@supperAdmin.com",
+    phoneNumber: "+251931483171", // "+251 93 148 3171" — pre-seeded in the database
+    roleId: usersRoles.supperAdminRoleId,
+    OTP: 101010,
+  },
   token: null,
   company: {
     companyName: `company-a-${runId}`,

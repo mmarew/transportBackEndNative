@@ -378,6 +378,9 @@ Driver Registration Flow
 
 ### 3. Register Vehicle
 
+> Full Postman/Swagger guide, curl examples and role rules:
+> [docs/vehicle-registration-api.md](vehicle-registration-api.md)
+
 **Endpoint**: `POST /api/user/vehicles/driverUserUniqueId/:driverUserUniqueId`
 
 `driverUserUniqueId` is the **path parameter** and accepts:

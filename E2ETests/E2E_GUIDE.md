@@ -972,6 +972,7 @@ const initiateTest = async () => {
 | User           | Phone           | OTP      | Role                    |
 | -------------- | --------------- | -------- | ----------------------- |
 | `supperAdmin`  | `+251983222221` | `101010` | SuperAdmin (roleId 6)   |
+| `supperAdmin2` | `+251931483171` | `101010` | SuperAdmin (roleId 6)   |
 | `admin`        | `+251993333333` | `101010` | Admin (roleId 3)        |
 | `driver`       | `+251991111112` | `101010` | Driver (roleId 2)       |
 | `shipper`      | `+251992222222` | `101010` | Shipper (roleId 1)      |

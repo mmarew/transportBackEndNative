@@ -31,17 +31,18 @@ This documentation is organized into modular files for better navigation and mai
 - **[Shipper Operations](shipper-operations.md)** - Ride requests, journey management, and tracking
 - **[Admin Operations](admin-operations.md)** - Administrative functions, user approval, and system management
 - **[Finance Management](finance-management.md)** - Deposits, payments, balances, and financial operations
+- **[Vehicle Registration API](vehicle-registration-api.md)** - Postman/Swagger guide for `POST /api/user/vehicles/driverUserUniqueId/:driverUserUniqueId`, including the `no-driver-is-assigned-yet` target
 
 ## 🛠️ API Tools & Resources
 
 ### Interactive Documentation
 
 - **Swagger UI**: Visit `/api-docs` when the server is running for interactive API testing
-- **OpenAPI Spec**: Available at `/api-docs.json` for import into other tools
+- **OpenAPI Spec**: `api-docs.json` at the repository root — import the local file into other tools (Swagger UI embeds the same spec; the raw `/api-docs.json` route is not currently mounted)
 
 ### Development Tools
 
-- **Postman Collection**: Import the API endpoints for testing
+- **Postman Collection**: [Vehicle Registration collection](postman/Vehicle-Registration.postman_collection.json) and [matching environment](postman/Vehicle-Registration.postman_environment.json)
 - **Environment File**: Copy `.env.sample` to `.env` and configure your settings
 
 ## 📊 API Statistics

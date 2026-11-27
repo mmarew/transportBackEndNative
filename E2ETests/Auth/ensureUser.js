@@ -31,7 +31,11 @@ const DYNAMIC_USER_PREFIXES = ["queueDriver", "vrDriver"];
 const ADMIN_CREATE_ROLES = new Set(["admin"]);
 // Pre-seeded by the backend (createTables → createUserSystem), never created
 // via an API endpoint — verify + login only.
-const SEED_ONLY_ROLES = new Set(["supperAdmin", "systemAdmin"]);
+const SEED_ONLY_ROLES = new Set([
+  "supperAdmin",
+  "supperAdmin2",
+  "systemAdmin",
+]);
 const ACCOUNT_FETCH_ROLES = new Set(["driver", "shipper", "companyAdmin"]);
 
 // Acceptance counters — lets CI assert each step fires once per role per run.

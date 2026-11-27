@@ -128,6 +128,14 @@ const vehicleUniqueIdFrom = (response) => {
   return id;
 };
 
+const plateById = async (vehicleUniqueId) => {
+  const [rows] = await pool.query(
+    "SELECT licensePlate FROM Vehicle WHERE vehicleUniqueId = ?",
+    [vehicleUniqueId],
+  );
+  return rows[0]?.licensePlate;
+};
+
 const runCase = async (label, fn) => {
   try {
     await fn();
@@ -199,6 +207,9 @@ const runVehicleRegistrationTargetTests = async ({
   const companyDriverUid = await userIdByPhone("vrDriverCompany");
   const superDriverUid = await userIdByPhone("vrDriverSuper");
 
+  // Baseline vehicle for the "driver already registered before" regressions.
+  let companyDriverFirstVehicleId = null;
+
   // VR-01 — driver /self keeps the full onboarding behavior.
   await runCase("VR-01 driver /self creates vehicle + driver + ownership", async () => {
     const res = await registerVehicle({
@@ -212,6 +223,9 @@ const runVehicleRegistrationTargetTests = async ({
     }
     if ((await activeOwnerships(vehicleUniqueId)) !== 1) {
       throw new Error("Expected one active VehicleOwnership row");
+    }
+    if (res.data?.data?.message) {
+      throw new Error("First vehicle for a driver should not report another active vehicle");
     }
     report.pass("VR-01 driver /self creates vehicle + driver + ownership");
   });
@@ -272,6 +286,7 @@ const runVehicleRegistrationTargetTests = async ({
       body: { ...baseBody(), companyUniqueId },
     });
     const vehicleUniqueId = vehicleUniqueIdFrom(res);
+    companyDriverFirstVehicleId = vehicleUniqueId;
     if ((await activeFleetLinks(vehicleUniqueId, companyUniqueId)) !== 1) {
       throw new Error("CompanyVehicle row was not created");
     }
@@ -357,6 +372,109 @@ const runVehicleRegistrationTargetTests = async ({
           body: baseBody(),
         }),
     ));
+
+  // VR-11 — a driver who registered a vehicle before can still register a
+  // different plate. The response must carry the NEW vehicle, not the old one.
+  await runCase(
+    "VR-11 new plate for driver with prior vehicle returns the new vehicle",
+    async () => {
+      if (!companyDriverFirstVehicleId) {
+        throw new Error("VR-05 did not produce a baseline vehicle");
+      }
+      const plateB = newPlate();
+      const res = await registerVehicle({
+        token: tokenFor("companyAdmin"),
+        target: companyDriverUid,
+        body: { ...baseBody(), licensePlate: plateB, companyUniqueId },
+      });
+      const vehicleUniqueId = vehicleUniqueIdFrom(res);
+      if (vehicleUniqueId === companyDriverFirstVehicleId) {
+        throw new Error(
+          "Response returned the driver's previous vehicle instead of the new plate",
+        );
+      }
+      if ((await plateById(vehicleUniqueId)) !== plateB) {
+        throw new Error(`Returned vehicle does not carry plate ${plateB}`);
+      }
+      const notice = res.data?.data?.message || "";
+      if (!notice.includes(plateB) || !notice.includes("another active vehicle")) {
+        throw new Error(`Expected a notice about ${plateB} and the driver's other vehicle, got: ${notice}`);
+      }
+      if ((await activeDriverLinks(vehicleUniqueId)) !== 1) {
+        throw new Error("New plate was not linked to the target driver");
+      }
+      if ((await activeOwnerships(vehicleUniqueId)) !== 1) {
+        throw new Error("New plate has no active ownership row");
+      }
+      if ((await activeFleetLinks(vehicleUniqueId, companyUniqueId)) !== 1) {
+        throw new Error("New plate was not added to the company fleet");
+      }
+      if ((await activeDriverLinks(companyDriverFirstVehicleId)) !== 1) {
+        throw new Error("Previously registered vehicle lost its driver link");
+      }
+      report.pass(
+        "VR-11 new plate for driver with prior vehicle returns the new vehicle",
+      );
+    },
+  );
+
+  // VR-12 — exact production regression: the driver's existing vehicle is in
+  // company A while the new plate is registered into company B. Before the fix
+  // the old vehicle was returned here and assignVehicle threw 409
+  // "Vehicle is already assigned to ...".
+  await runCase(
+    "VR-12 new plate into another company does not reuse the old fleet vehicle",
+    async () => {
+      if (!companyDriverFirstVehicleId) {
+        throw new Error("VR-05 did not produce a baseline vehicle");
+      }
+      const [companies] = await pool.query(
+        `SELECT companyUniqueId FROM TransportCompany
+         WHERE isDeleted = 0 AND companyUniqueId <> ? LIMIT 1`,
+        [companyUniqueId],
+      );
+      const otherCompanyUniqueId = companies[0]?.companyUniqueId;
+      if (!otherCompanyUniqueId) {
+        report.skip(
+          "VR-12 new plate into another company does not reuse the old fleet vehicle",
+          "no second active company available",
+        );
+        return;
+      }
+
+      const plateC = newPlate();
+      // Platform admin is not restricted to a company it belongs to.
+      const res = await registerVehicle({
+        token: tokenFor("admin"),
+        target: companyDriverUid,
+        body: {
+          ...baseBody(),
+          licensePlate: plateC,
+          companyUniqueId: otherCompanyUniqueId,
+        },
+      });
+      const vehicleUniqueId = vehicleUniqueIdFrom(res);
+      if ((await plateById(vehicleUniqueId)) !== plateC) {
+        throw new Error(`Returned vehicle does not carry plate ${plateC}`);
+      }
+      const notice = res.data?.data?.message || "";
+      if (!notice.includes(plateC) || !notice.includes("another active vehicle")) {
+        throw new Error(`Expected a notice about ${plateC} and the driver's other vehicle, got: ${notice}`);
+      }
+      if ((await activeFleetLinks(vehicleUniqueId, otherCompanyUniqueId)) !== 1) {
+        throw new Error("New plate was not linked to the second company's fleet");
+      }
+      if (
+        (await activeFleetLinks(companyDriverFirstVehicleId, companyUniqueId)) !==
+        1
+      ) {
+        throw new Error("Previously registered vehicle was moved out of its company");
+      }
+      report.pass(
+        "VR-12 new plate into another company does not reuse the old fleet vehicle",
+      );
+    },
+  );
 
   if (!silent) {
     const passed = report.summary();

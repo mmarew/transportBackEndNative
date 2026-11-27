@@ -176,6 +176,148 @@
     }
   ],
   "paths": {
+    "/api/user/vehicles/driverUserUniqueId/{driverUserUniqueId}": {
+      "post": {
+        "tags": ["Vehicles"],
+        "summary": "Register a vehicle (self / driver / unassigned company vehicle)",
+        "description": "Register a vehicle for self, for a driver UUID, or as a vehicle with no driver assigned.",
+        "operationId": "createVehicle",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "driverUserUniqueId",
+            "in": "path",
+            "required": true,
+            "description": "self, a driver UUID, or no-driver-is-assigned-yet.",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "description": "A driver's userUniqueId. Admin/super admin/company admin only."
+                },
+                {
+                  "type": "string",
+                  "enum": ["self", "no-driver-is-assigned-yet"]
+                }
+              ]
+            },
+            "examples": {
+              "Driver registers own vehicle": { "value": "self" },
+              "Admin registers for a driver": { "value": "9ad44404-7974-42b6-b2cb-b42d6808c65d" },
+              "Company vehicle with no driver": { "value": "no-driver-is-assigned-yet" }
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateVehicleRequest" },
+              "examples": {
+                "Self": {
+                  "summary": "Self",
+                  "value": {
+                    "vehicleTypeUniqueId": "fddf2911-dfa5-4363-a04f-c82e59536fa4",
+                    "licensePlate": "AA-1234",
+                    "color": "White base red sponda",
+                    "isDriverOwnerOfVehicle": false
+                  }
+                },
+                "Driver UUID": {
+                  "summary": "Driver UUID",
+                  "value": {
+                    "vehicleTypeUniqueId": "fddf2911-dfa5-4363-a04f-c82e59536fa4",
+                    "licensePlate": "AA-5678",
+                    "color": "White",
+                    "companyUniqueId": "a1f0c1e2-9c2d-4a10-a2ad-7b2c1ef0a8d4",
+                    "isDriverOwnerOfVehicle": false
+                  }
+                },
+                "No driver assigned": {
+                  "summary": "No driver assigned",
+                  "value": {
+                    "vehicleTypeUniqueId": "fddf2911-dfa5-4363-a04f-c82e59536fa4",
+                    "licensePlate": "AA-9012",
+                    "color": "White",
+                    "companyUniqueId": "a1f0c1e2-9c2d-4a10-a2ad-7b2c1ef0a8d4"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Vehicle registered.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CreateVehicleResponse" },
+                "examples": {
+                  "With driver": {
+                    "value": {
+                      "message": "Vehicle created successfully",
+                      "data": { "vehicleUniqueId": "2f3b0c9a-1f8e-4d55-9a83-9c8f0d0e1a11" }
+                    }
+                  },
+                  "Vehicle only": {
+                    "value": {
+                      "message": "Vehicle created successfully",
+                      "data": {
+                        "vehicleUniqueId": "7a9e0b21-1e56-45c9-8a25-4eb1a90b6b3d",
+                        "vehicleOnly": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": {
+                  "status": "error",
+                  "error": "companyUniqueId is required to register a company vehicle without a driver"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired Bearer token.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": { "status": "error", "error": "Invalid token. Please log in again!" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": { "status": "error", "error": "Access Denied: you are not an active member of the company that owns this resource" }
+              }
+            }
+          },
+          "404": {
+            "description": "Vehicle type or company not found.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "500": {
+            "description": "Server error during registration.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      }
+    },
     "/": {
       "get": {
         "summary": "Health Check",
