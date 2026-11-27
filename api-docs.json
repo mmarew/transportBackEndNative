@@ -162,7 +162,8 @@
               },
               "message": {
                 "type": "string",
-                "description": "Present when the target driver already has an active vehicle; no new vehicle is created in that case."
+                "description": "Informational notice. Present when the driver already has another active vehicle (the new plate is still registered), or when the same plate is re-registered (no new vehicle is created).",
+                "example": "11qqwas is registered, but the driver has another active vehicle"
               }
             }
           }

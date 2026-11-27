@@ -70,6 +70,18 @@ Response `201`:
 }
 ```
 
+If the driver already has a different active vehicle, the plate is still registered and `data.message` is added:
+
+```json
+{
+  "message": "Vehicle created successfully",
+  "data": {
+    "vehicleUniqueId": "7a9e0b21-1e56-45c9-8a25-4eb1a90b6b3d",
+    "message": "AA-5678 is registered, but the driver has another active vehicle"
+  }
+}
+```
+
 ---
 
 ## 3. No driver (`no-driver-is-assigned-yet`)
