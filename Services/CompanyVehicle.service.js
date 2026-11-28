@@ -10,7 +10,11 @@ const {
   assertCompanyAccess,
 } = require("./CompanyHelper.service");
 const { getData } = require("../CRUD/Read/ReadData");
-const { usersRoles, USER_STATUS } = require("../Utils/ListOfSeedData");
+const {
+  usersRoles,
+  USER_STATUS,
+  VEHICLE_STATUS_TYPES,
+} = require("../Utils/ListOfSeedData");
 const { insertHistoryRecord } = require("./History/History.service");
 
 /**
@@ -329,7 +333,7 @@ exports.getCompanyVehicles = async (filters = {}, user = {}) => {
   }
 
   const where = `WHERE ${clauses.join(" AND ")}`;
-  return paginatedQuery(
+  const result = await paginatedQuery(
     `SELECT cv.*,
             v.licensePlate, v.color,
             vt.vehicleTypeName, vt.carryingCapacity,
@@ -340,7 +344,18 @@ exports.getCompanyVehicles = async (filters = {}, user = {}) => {
             u.phoneNumber AS driverPhoneNumber,
             u.email AS driverEmail,
             ursc.statusId AS driverStatusId,
-            s.statusName AS driverStatusName
+            s.statusName AS driverStatusName,
+            vs.VehicleStatusTypeId,
+            vs.statusDescription,
+            vst.VehicleStatusTypeUniqueId,
+            vst.VehicleStatusTypeName,
+            vst.VehicleStatusTypeDescription,
+            cv.assignmentStatus AS fleetAssignmentStatus,
+            CASE
+              WHEN vs.VehicleStatusTypeId = ${VEHICLE_STATUS_TYPES.ACTIVE}
+                THEN cv.assignmentStatus
+              ELSE 'inactive'
+            END AS effectiveAssignmentStatus
      FROM CompanyVehicle cv
      JOIN Vehicle v ON cv.vehicleUniqueId = v.vehicleUniqueId
      JOIN VehicleTypes vt ON v.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
@@ -356,6 +371,19 @@ exports.getCompanyVehicles = async (filters = {}, user = {}) => {
            AND ur.userRoleDeletedAt IS NULL
      LEFT JOIN UserRoleStatusCurrent ursc ON ursc.userRoleId = ur.userRoleId
      LEFT JOIN Statuses s ON s.statusId = ursc.statusId
+     LEFT JOIN (
+       SELECT vs.*
+       FROM VehicleStatus vs
+       INNER JOIN (
+         SELECT vehicleUniqueId, MAX(vehicleStatusId) AS latestVehicleStatusId
+         FROM VehicleStatus
+         WHERE statusEndDate IS NULL AND vehicleStatusDeletedAt IS NULL
+         GROUP BY vehicleUniqueId
+       ) latest ON latest.latestVehicleStatusId = vs.vehicleStatusId
+     ) vs ON vs.vehicleUniqueId = cv.vehicleUniqueId
+     LEFT JOIN VehicleStatusTypes vst
+            ON vst.VehicleStatusTypeId = vs.VehicleStatusTypeId
+           AND vst.VehicleStatusTypeDeletedAt IS NULL
      ${where}
      ORDER BY cv.companyVehicleCreatedAt DESC`,
     `SELECT COUNT(DISTINCT cv.companyVehicleUniqueId) AS total FROM CompanyVehicle cv
@@ -376,6 +404,12 @@ exports.getCompanyVehicles = async (filters = {}, user = {}) => {
     limit,
     offset,
   );
+
+  result.data = (result.data || []).map(({ effectiveAssignmentStatus, ...row }) => ({
+    ...row,
+    assignmentStatus: effectiveAssignmentStatus || "inactive",
+  }));
+  return result;
 };
 
 exports.removeVehicle = async (companyVehicleUniqueId, deletedBy, user = {}) => {
