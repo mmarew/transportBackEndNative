@@ -20,7 +20,6 @@ const { insertHistoryRecord } = require("./History/History.service");
 // `options.vehicleOnly` registers the vehicle without any driver link, ownership
 // row or notification. Used by the "no-driver-is-assigned-yet" target.
 const createVehicle = async (data, user, driverUserUniqueId, options = {}) => {
-
   const vehicleOnly = options?.vehicleOnly === true;
 
   let vehicleTypeUniqueId = data?.vehicleTypeUniqueId,
@@ -124,8 +123,7 @@ const createVehicle = async (data, user, driverUserUniqueId, options = {}) => {
       message: "Vehicle created successfully",
       data: {
         vehicleUniqueId,
-        message:
-          `${licensePlate} is registered, but the driver has another active vehicle`,
+        message: `${licensePlate} is registered, but the driver has another active vehicle`,
       },
     };
   }
@@ -203,11 +201,14 @@ const updateVehicle = async (vehicleUniqueId, updateValues, user) => {
        WHERE v.vehicleUniqueId = ? 
          AND (vo.userUniqueId = ? OR vd.driverUserUniqueId = ?)
          AND v.vehicleDeletedAt IS NULL`,
-      [vehicleUniqueId, userUniqueId, userUniqueId]
+      [vehicleUniqueId, userUniqueId, userUniqueId],
     );
 
     if (!verification[0].length) {
-      throw new AppError("Unauthorized: You do not own or drive this vehicle", AppError.FORBIDDEN);
+      throw new AppError(
+        "Unauthorized: You do not own or drive this vehicle",
+        AppError.FORBIDDEN,
+      );
     }
   }
 
@@ -225,7 +226,10 @@ const updateVehicle = async (vehicleUniqueId, updateValues, user) => {
   });
 
   if (result.affectedRows === 0) {
-    throw new AppError("Failed to update vehicle or vehicle not found", AppError.NOT_FOUND);
+    throw new AppError(
+      "Failed to update vehicle or vehicle not found",
+      AppError.NOT_FOUND,
+    );
   }
 
   return { message: "Vehicle updated successfully", data: null };
@@ -247,11 +251,14 @@ const deleteVehicle = async (vehicleUniqueId, user) => {
        WHERE v.vehicleUniqueId = ? 
          AND (vo.userUniqueId = ? OR vd.driverUserUniqueId = ?)
          AND v.vehicleDeletedAt IS NULL`,
-      [vehicleUniqueId, userUniqueId, userUniqueId]
+      [vehicleUniqueId, userUniqueId, userUniqueId],
     );
 
     if (!verification[0].length) {
-      throw new AppError("Unauthorized: You do not own or drive this vehicle", AppError.FORBIDDEN);
+      throw new AppError(
+        "Unauthorized: You do not own or drive this vehicle",
+        AppError.FORBIDDEN,
+      );
     }
   }
 
@@ -265,13 +272,16 @@ const deleteVehicle = async (vehicleUniqueId, user) => {
   const result = await updateData({
     tableName: "Vehicle",
     conditions: { vehicleUniqueId },
-    updateValues: { 
-      vehicleDeletedAt: currentDate() 
+    updateValues: {
+      vehicleDeletedAt: currentDate(),
     },
   });
 
   if (result.affectedRows === 0) {
-    throw new AppError("Failed to delete vehicle or vehicle not found", AppError.NOT_FOUND);
+    throw new AppError(
+      "Failed to delete vehicle or vehicle not found",
+      AppError.NOT_FOUND,
+    );
   }
 
   return { message: "Vehicle deleted successfully", data: null };
@@ -367,7 +377,7 @@ const getVehicles = async (query) => {
   `;
   const executor = transactionStorage.getStore() || pool;
   const [[totalRows]] = await executor.query(countSql, params);
-  
+
   params.push(limitNum, offset);
   const [rows] = await executor.query(sql, params);
 
