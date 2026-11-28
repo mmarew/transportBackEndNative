@@ -91,7 +91,7 @@ const createVehicle = async (data, user, driverUserUniqueId, options = {}) => {
     });
 
     // Derive the initial status from mandatory vehicle documents. With no
-    // documents attached this is PENDING_DOCS, not ACTIVE.
+    // documents attached this is INACTIVE, not ACTIVE or PENDING_DOCS.
     await recalculateVehicleStatus(vehicleUniqueId, {
       actorUserUniqueId: user?.userUniqueId,
     });
@@ -357,12 +357,28 @@ const getVehicles = async (query) => {
       vt.vehicleTypeName,
       vt.vehicleTypeDescription,
       MAX(vo.userUniqueId) as ownerUniqueId,
-      MAX(vs.VehicleStatusTypeId) as VehicleStatusTypeId
+      MAX(vs.VehicleStatusTypeId) as VehicleStatusTypeId,
+      MAX(vs.statusDescription) as statusDescription,
+      MAX(vst.VehicleStatusTypeUniqueId) as VehicleStatusTypeUniqueId,
+      MAX(vst.VehicleStatusTypeName) as VehicleStatusTypeName,
+      MAX(vst.VehicleStatusTypeDescription) as VehicleStatusTypeDescription
     FROM Vehicle v
     LEFT JOIN VehicleTypes vt ON v.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
     LEFT JOIN VehicleOwnership vo ON v.vehicleUniqueId = vo.vehicleUniqueId AND vo.ownershipEndDate IS NULL
     LEFT JOIN VehicleDriver vd ON v.vehicleUniqueId = vd.vehicleUniqueId AND vd.assignmentStatus = 'active' AND vd.assignmentEndDate IS NULL
-    LEFT JOIN VehicleStatus vs ON v.vehicleUniqueId = vs.vehicleUniqueId AND vs.statusEndDate IS NULL
+    LEFT JOIN (
+      SELECT vs.*
+      FROM VehicleStatus vs
+      INNER JOIN (
+        SELECT vehicleUniqueId, MAX(vehicleStatusId) AS latestVehicleStatusId
+        FROM VehicleStatus
+        WHERE statusEndDate IS NULL AND vehicleStatusDeletedAt IS NULL
+        GROUP BY vehicleUniqueId
+      ) latest ON latest.latestVehicleStatusId = vs.vehicleStatusId
+    ) vs ON v.vehicleUniqueId = vs.vehicleUniqueId
+    LEFT JOIN VehicleStatusTypes vst
+      ON vs.VehicleStatusTypeId = vst.VehicleStatusTypeId
+      AND vst.VehicleStatusTypeDeletedAt IS NULL
     ${whereClause}
     GROUP BY v.vehicleId
     ORDER BY v.${sortBy} ${sortOrder}

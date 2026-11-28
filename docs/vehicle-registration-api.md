@@ -8,7 +8,7 @@ Content-Type: application/json
 
 The path value is `self`, a driver UUID, or `no-driver-is-assigned-yet`.
 
-A newly registered vehicle starts as `pending documents`. It becomes `active` only after all mandatory vehicle documents are accepted and unexpired, and no admin/maintenance hold is in place.
+A newly registered vehicle starts as `inactive` while mandatory vehicle documents are not attached. Once they are attached, it becomes `pending documents` while waiting for admin approval. It becomes `active` only after all mandatory vehicle documents are accepted and unexpired, and no admin/maintenance hold is in place.
 
 ---
 

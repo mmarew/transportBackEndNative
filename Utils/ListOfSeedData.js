@@ -238,7 +238,7 @@ const vehicleStatusTypes = [
     VehicleStatusTypeId: 2,
     VehicleStatusTypeName: "inactive",
     statusTypeDescription:
-      "Generic unavailable state with no more specific reason recorded. Not approved for dispatch until reviewed.",
+      "Vehicle is not approved for dispatch: a mandatory vehicle document is missing or expired, or an admin hold is in place.",
   },
   {
     VehicleStatusTypeId: 3,
@@ -268,7 +268,7 @@ const vehicleStatusTypes = [
     VehicleStatusTypeId: 7,
     VehicleStatusTypeName: "pending documents",
     statusTypeDescription:
-      "Vehicle is registered, but a mandatory vehicle document is missing, pending review, or expired. Not ready for dispatch.",
+      "All mandatory vehicle documents are attached and awaiting admin approval. Not ready for dispatch.",
   },
 ];
 

@@ -15,9 +15,11 @@ const {
 const { insertHistoryRecord } = require("./History/History.service");
 
 // Statuses that represent an explicit admin/system hold. Document events must
-// never silently clear them; an admin has to move the vehicle out explicitly.
+// never silently clear an admin hold; an admin has to move it out explicitly.
 // REJECTED is deliberately NOT in this set: it is the derived result of a
 // rejected mandatory document, so re-approving that document clears it.
+// INACTIVE is included, except when the row is the derived "no valid mandatory
+// document" state handled below.
 const MANUAL_HOLD_STATUS_TYPES = new Set([
   VEHICLE_STATUS_TYPES.SUSPENDED,
   VEHICLE_STATUS_TYPES.INACTIVE,
@@ -25,8 +27,29 @@ const MANUAL_HOLD_STATUS_TYPES = new Set([
   VEHICLE_STATUS_TYPES.RESERVED_BY_OTHER_DRIVER,
 ]);
 
-const isManualHoldStatus = (statusTypeId) =>
-  MANUAL_HOLD_STATUS_TYPES.has(Number(statusTypeId));
+// Derived INACTIVE rows are transitionable when documents are attached. An
+// admin-set INACTIVE hold uses any other description and stays sticky.
+const DERIVED_INACTIVE_DESCRIPTION_PREFIXES = [
+  "Mandatory vehicle documents missing:",
+  "Mandatory vehicle documents expired:",
+];
+
+const isDerivedInactiveDescription = (statusDescription) =>
+  DERIVED_INACTIVE_DESCRIPTION_PREFIXES.some((prefix) =>
+    String(statusDescription || "").startsWith(prefix),
+  );
+
+const isManualHoldStatus = (statusTypeId, statusDescription = null) => {
+  const typeId = Number(statusTypeId);
+  if (!MANUAL_HOLD_STATUS_TYPES.has(typeId)) return false;
+  if (
+    typeId === VEHICLE_STATUS_TYPES.INACTIVE &&
+    isDerivedInactiveDescription(statusDescription)
+  ) {
+    return false;
+  }
+  return true;
+};
 
 const createVehicleStatus = async (data) => {
   const {
@@ -78,8 +101,10 @@ const createVehicleStatus = async (data) => {
 /**
  * Decide which status a vehicle SHOULD have based only on its own mandatory
  * documents (roleId 9 — insurance + librea). Company documents never block a
- * vehicle. Explicit admin holds (suspended/inactive/deleted/reserved) are
- * sticky: only an explicit admin clearance (clearHold) can move them again.
+ * vehicle. Missing or expired documents mean INACTIVE; attached documents
+ * awaiting admin approval mean PENDING_DOCS. Explicit admin holds
+ * (suspended/inactive/deleted/reserved) are sticky: only an explicit admin
+ * clearance (clearHold) can move them again.
  */
 const evaluateVehicleStatus = async (vehicleUniqueId, executor) => {
   const [requirementRows] = await executor.query(
@@ -147,15 +172,21 @@ const evaluateVehicleStatus = async (vehicleUniqueId, executor) => {
     };
   }
 
-  const pendingIssues = [
+  const inactiveIssues = [
     ...missing.map((name) => `missing: ${name}`),
-    ...pending.map((name) => `pending approval: ${name}`),
     ...expired.map((name) => `expired: ${name}`),
   ];
-  if (pendingIssues.length > 0) {
+  if (inactiveIssues.length > 0) {
+    return {
+      statusType: VEHICLE_STATUS_TYPES.INACTIVE,
+      statusDescription: `Mandatory vehicle documents ${inactiveIssues.join("; ")}`,
+    };
+  }
+
+  if (pending.length > 0) {
     return {
       statusType: VEHICLE_STATUS_TYPES.PENDING_DOCS,
-      statusDescription: `Mandatory vehicle documents ${pendingIssues.join("; ")}`,
+      statusDescription: `Mandatory vehicle documents pending approval: ${pending.join(", ")}`,
     };
   }
 
@@ -195,7 +226,14 @@ const recalculateVehicleStatus = async (vehicleUniqueId, options = {}) => {
   );
   const current = currentRows[0] || null;
 
-  if (current && isManualHoldStatus(current.VehicleStatusTypeId) && !allowHoldOverride) {
+  if (
+    current &&
+    isManualHoldStatus(
+      current.VehicleStatusTypeId,
+      current.statusDescription,
+    ) &&
+    !allowHoldOverride
+  ) {
     return {
       changed: false,
       statusType: Number(current.VehicleStatusTypeId),
@@ -368,7 +406,7 @@ const updateVehicleStatus = async (
 ) => {
   const executor = transactionStorage.getStore() || pool;
   const [existingRows] = await executor.query(
-    `SELECT vehicleUniqueId, VehicleStatusTypeId
+    `SELECT vehicleUniqueId, VehicleStatusTypeId, statusDescription
      FROM VehicleStatus
      WHERE vehicleStatusUniqueId = ? AND vehicleStatusDeletedAt IS NULL
      LIMIT 1`,
@@ -420,8 +458,11 @@ const updateVehicleStatus = async (
       vehicleStatusUniqueId,
       vehicleUniqueId: previous.vehicleUniqueId,
       previousVehicleStatusTypeId: previous.VehicleStatusTypeId,
+      previousStatusDescription: previous.statusDescription,
       currentVehicleStatusTypeId:
         updateValues.VehicleStatusTypeId ?? previous.VehicleStatusTypeId,
+      currentStatusDescription:
+        updateValues.statusDescription ?? previous.statusDescription,
     },
   };
 };

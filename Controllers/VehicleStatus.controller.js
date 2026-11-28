@@ -48,8 +48,15 @@ const updateVehicleStatus = async (req, res, next) => {
     // are accepted/unexpired and no hold exists.
     const previousTypeId = result?.data?.previousVehicleStatusTypeId;
     const currentTypeId = result?.data?.currentVehicleStatusTypeId;
-    const clearedHold =
-      isManualHoldStatus(previousTypeId) && !isManualHoldStatus(currentTypeId);
+    const previousHold = isManualHoldStatus(
+      previousTypeId,
+      result?.data?.previousStatusDescription,
+    );
+    const currentHold = isManualHoldStatus(
+      currentTypeId,
+      result?.data?.currentStatusDescription,
+    );
+    const clearedHold = previousHold && !currentHold;
     const forcedActive = Number(currentTypeId) === VEHICLE_STATUS_TYPES.ACTIVE;
     if (
       (clearedHold || forcedActive) &&

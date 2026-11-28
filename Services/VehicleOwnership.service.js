@@ -2,6 +2,7 @@ const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const {
   getStatusOfVehicleByVehicleUniqueId,
+  isManualHoldStatus,
   recalculateVehicleStatus,
 } = require("./VehicleStatus.service");
 const { insertData } = require("../CRUD/Create/CreateData");
@@ -32,18 +33,26 @@ const createVehicleOwnership = async (body) => {
 
   const statusData = statusResult.data;
   // A vehicle can be linked to an owner/driver while it is still waiting for
-  // documents. Only hard blocks (suspended, rejected, deleted, reserved)
-  // prevent the link.
+  // documents, including the derived INACTIVE state used when no mandatory
+  // vehicle document is attached yet. Only hard blocks (admin-held inactive,
+  // suspended, rejected, deleted, reserved) prevent the link.
   if (!statusData) {
     await recalculateVehicleStatus(vehicleUniqueId, {
       actorUserUniqueId: userUniqueId,
       connection,
     });
-  } else if (
-    statusData.VehicleStatusTypeId !== VEHICLE_STATUS_TYPES.ACTIVE &&
-    statusData.VehicleStatusTypeId !== VEHICLE_STATUS_TYPES.PENDING_DOCS
-  ) {
-    throw new AppError("Vehicle is not active", AppError.BAD_REQUEST);
+  } else {
+    const statusTypeId = Number(statusData.VehicleStatusTypeId);
+    const derivedInactive =
+      statusTypeId === VEHICLE_STATUS_TYPES.INACTIVE &&
+      !isManualHoldStatus(statusTypeId, statusData.statusDescription);
+    if (
+      statusTypeId !== VEHICLE_STATUS_TYPES.ACTIVE &&
+      statusTypeId !== VEHICLE_STATUS_TYPES.PENDING_DOCS &&
+      !derivedInactive
+    ) {
+      throw new AppError("Vehicle is not active", AppError.BAD_REQUEST);
+    }
   }
 
   // Check if ownership already exists (using filter function)

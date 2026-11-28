@@ -1,8 +1,8 @@
 "use strict";
 
 // E2E coverage for document-driven vehicle status evaluation:
-//   registered vehicle -> PENDING_DOCS -> ACTIVE -> REJECTED -> ACTIVE
-//   -> expired doc -> PENDING_DOCS -> sticky SUSPENDED -> admin clear -> ACTIVE
+//   registered vehicle -> INACTIVE -> PENDING_DOCS -> ACTIVE -> REJECTED -> ACTIVE
+//   -> expired doc -> INACTIVE -> sticky SUSPENDED -> admin clear -> ACTIVE
 //
 // Run standalone: node E2ETests/Vehicles/VehicleStatusEvaluation.js
 // Integrated:    invoked from E2ETests/index.js after registration targets.
@@ -23,6 +23,7 @@ const { report } = require("../Reporter");
 
 const STATUS = {
   ACTIVE: 1,
+  INACTIVE: 2,
   PENDING_DOCS: 7,
   SUSPENDED: 4,
   REJECTED: 5,
@@ -217,14 +218,14 @@ const runVehicleStatusEvaluationTests = async ({ reset = true } = {}) => {
   let libreaDocId = null;
 
   await runCase(
-    "VS-01 registered vehicle with no docs is PENDING_DOCS",
+    "VS-01 registered vehicle with no docs is INACTIVE",
     async () => {
       const row = await waitForStatus(
         vehicleUniqueId,
-        STATUS.PENDING_DOCS,
+        STATUS.INACTIVE,
         "missing:",
       );
-      if (Number(row.VehicleStatusTypeId) !== STATUS.PENDING_DOCS) {
+      if (Number(row.VehicleStatusTypeId) !== STATUS.INACTIVE) {
         throw new Error(`Unexpected status row: ${JSON.stringify(row)}`);
       }
     },
@@ -307,7 +308,7 @@ const runVehicleStatusEvaluationTests = async ({ reset = true } = {}) => {
   );
 
   await runCase(
-    "VS-06 expired accepted document makes vehicle PENDING_DOCS",
+    "VS-06 expired accepted document makes vehicle INACTIVE",
     async () => {
       await pool.query(
         "UPDATE AttachedDocuments SET documentExpirationDate = ? WHERE attachedDocumentUniqueId = ?",
@@ -315,7 +316,7 @@ const runVehicleStatusEvaluationTests = async ({ reset = true } = {}) => {
       );
       await waitForStatus(
         vehicleUniqueId,
-        STATUS.PENDING_DOCS,
+        STATUS.INACTIVE,
         "expired:",
       );
     },
@@ -405,7 +406,47 @@ const runVehicleStatusEvaluationTests = async ({ reset = true } = {}) => {
       }
 
       await setStatus(secondVehicleId, STATUS.ACTIVE, "E2E forced ACTIVE");
-      await waitForStatus(secondVehicleId, STATUS.PENDING_DOCS, "missing:");
+      await waitForStatus(secondVehicleId, STATUS.INACTIVE, "missing:");
+    },
+  );
+
+  await runCase(
+    "VS-11 admin INACTIVE hold is sticky across document events",
+    async () => {
+      await setStatus(
+        vehicleUniqueId,
+        STATUS.INACTIVE,
+        "E2E admin inactive hold",
+      );
+      await decideDocument({
+        attachedDocumentUniqueId: insuranceDocId,
+        action: "ACCEPTED",
+        reason: "E2E re-approval while admin inactive",
+      });
+      const row = await waitForStatus(
+        vehicleUniqueId,
+        STATUS.INACTIVE,
+        "E2E admin inactive hold",
+      );
+      if (String(row.statusDescription) !== "E2E admin inactive hold") {
+        throw new Error(`INACTIVE hold reason was overwritten: ${row.statusDescription}`);
+      }
+    },
+  );
+
+  await runCase(
+    "VS-12 admin clears INACTIVE and status is re-evaluated to ACTIVE",
+    async () => {
+      await setStatus(
+        vehicleUniqueId,
+        STATUS.ACTIVE,
+        "E2E admin inactive cleared",
+      );
+      await waitForStatus(
+        vehicleUniqueId,
+        STATUS.ACTIVE,
+        "All mandatory vehicle documents accepted",
+      );
     },
   );
 
