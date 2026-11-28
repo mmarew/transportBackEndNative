@@ -8,10 +8,7 @@ const AppError = require("../Utils/AppError");
 const logger = require("../Utils/logger");
 const { transactionStorage } = require("../Utils/TransactionContext");
 const { PAGINATION } = require("../Utils/Constants");
-const {
-  usersRoles,
-  VEHICLE_STATUS_TYPES,
-} = require("../Utils/ListOfSeedData");
+const { usersRoles, VEHICLE_STATUS_TYPES } = require("../Utils/ListOfSeedData");
 const { insertHistoryRecord } = require("./History/History.service");
 
 // Statuses that represent an explicit admin/system hold. Document events must
@@ -95,7 +92,10 @@ const createVehicleStatus = async (data) => {
     connection,
   });
 
-  return { message: "Vehicle status created successfully", data: { vehicleStatusUniqueId } };
+  return {
+    message: "Vehicle status created successfully",
+    data: { vehicleStatusUniqueId },
+  };
 };
 
 /**
@@ -449,7 +449,10 @@ const updateVehicleStatus = async (
   });
 
   if (result.affectedRows === 0) {
-    throw new AppError("Update failed or VehicleStatus not found", AppError.NOT_FOUND);
+    throw new AppError(
+      "Update failed or VehicleStatus not found",
+      AppError.NOT_FOUND,
+    );
   }
 
   return {
@@ -484,7 +487,10 @@ const deleteVehicleStatus = async (vehicleStatusUniqueId) => {
   });
 
   if (result.affectedRows === 0) {
-    throw new AppError("Delete failed or VehicleStatus not found", AppError.NOT_FOUND);
+    throw new AppError(
+      "Delete failed or VehicleStatus not found",
+      AppError.NOT_FOUND,
+    );
   }
 
   return {
