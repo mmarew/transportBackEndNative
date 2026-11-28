@@ -232,33 +232,43 @@ const vehicleStatusTypes = [
     VehicleStatusTypeId: 1,
     VehicleStatusTypeName: "active",
     statusTypeDescription:
-      "When   Vehicle are active and ready to be used by drivers.",
+      "All mandatory vehicle documents are accepted and unexpired; no maintenance/admin hold; not deleted or reserved. Ready for dispatch.",
   },
   {
     VehicleStatusTypeId: 2,
     VehicleStatusTypeName: "inactive",
     statusTypeDescription:
-      "When   Vehicle are inactive and not ready to be used by drivers.",
+      "Generic unavailable state with no more specific reason recorded. Not approved for dispatch until reviewed.",
   },
   {
     VehicleStatusTypeId: 3,
     VehicleStatusTypeName: "deleted",
-    statusTypeDescription: "When   Vehicle are deleted by the admin.",
+    statusTypeDescription:
+      "Vehicle record was soft-deleted by an admin. The vehicle must not be used.",
   },
   {
     VehicleStatusTypeId: 4,
     VehicleStatusTypeName: "suspended",
-    statusTypeDescription: "When   Vehicle are suspended by the admin.",
+    statusTypeDescription:
+      "Temporarily blocked by an admin, including reported maintenance or safety issues. Requires explicit admin clearance before returning to active.",
   },
   {
     VehicleStatusTypeId: 5,
     VehicleStatusTypeName: "rejected",
-    statusTypeDescription: "When   Vehicle are rejected by the admin.",
+    statusTypeDescription:
+      "The vehicle or one of its mandatory documents was rejected by an admin. It must be corrected and re-approved.",
   },
   {
     VehicleStatusTypeId: 6,
     VehicleStatusTypeName: "reserved by other driver",
-    statusTypeDescription: "when other driver has reserved the vehicle",
+    statusTypeDescription:
+      "Vehicle is actively assigned or reserved by another driver. It cannot be assigned to a second driver.",
+  },
+  {
+    VehicleStatusTypeId: 7,
+    VehicleStatusTypeName: "pending documents",
+    statusTypeDescription:
+      "Vehicle is registered, but a mandatory vehicle document is missing, pending review, or expired. Not ready for dispatch.",
   },
 ];
 
@@ -299,6 +309,7 @@ const VEHICLE_STATUS_TYPES = {
   SUSPENDED: 4,
   REJECTED: 5,
   RESERVED_BY_OTHER_DRIVER: 6,
+  PENDING_DOCS: 7,
 };
 
 const listOfDocuments = [

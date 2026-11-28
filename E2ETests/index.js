@@ -92,6 +92,9 @@ const { runQueueTests } = require("./Queue");
 const {
   runVehicleRegistrationTargetTests,
 } = require("./Vehicles/RegistrationTargets");
+const {
+  runVehicleStatusEvaluationTests,
+} = require("./Vehicles/VehicleStatusEvaluation");
 
 const { runReferenceCRUD } = require("./Phases/runReferenceCRUD");
 const { runIndividualFlow } = require("./Phases/runIndividualFlow");
@@ -390,6 +393,11 @@ const initiateTest = async () => {
     // so its counts add to the grand total.
     await safe("runVehicleRegistrationTargetTests", () =>
       runVehicleRegistrationTargetTests({ reset: false, silent: true }))();
+
+    // ── Vehicle status evaluation (documents, expiry, suspension) ────────
+    // Uses its own dedicated driver and vehicle, counts add to grand total.
+    await safe("runVehicleStatusEvaluationTests", () =>
+      runVehicleStatusEvaluationTests({ reset: false }))();
 
     const passed = report.summary();
     // Negative-traffic accounting: 🛡 = a test declared the rejection up-front

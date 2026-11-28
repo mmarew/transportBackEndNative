@@ -4,7 +4,9 @@ const { getData } = require("../CRUD/Read/ReadData");
 const { insertData } = require("../CRUD/Create/CreateData");
 const { updateData } = require("../CRUD/Update/Data.update");
 const { createVehicleOwnership } = require("./VehicleOwnership.service");
-const { createVehicleStatus } = require("./VehicleStatus.service");
+const {
+  recalculateVehicleStatus,
+} = require("./VehicleStatus.service");
 const { removeWhiteSpace } = require("../Validator/Validation");
 const { createVehicleDriver } = require("./VehicleDriver.service");
 const { usersRoles } = require("../Utils/ListOfSeedData");
@@ -88,11 +90,10 @@ const createVehicle = async (data, user, driverUserUniqueId, options = {}) => {
       },
     });
 
-    // Register vehicle status as Active (VehicleStatusTypeId = 1)
-    await createVehicleStatus({
-      vehicleUniqueId,
-      VehicleStatusTypeId: 1,
-      vehicleStatusCreatedBy: user?.userUniqueId,
+    // Derive the initial status from mandatory vehicle documents. With no
+    // documents attached this is PENDING_DOCS, not ACTIVE.
+    await recalculateVehicleStatus(vehicleUniqueId, {
+      actorUserUniqueId: user?.userUniqueId,
     });
   }
 

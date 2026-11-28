@@ -34,6 +34,9 @@ const {
   accountStatus
 } = require("../Account");
 const {
+  recalculateVehicleStatus
+} = require("../VehicleStatus.service");
+const {
   transactionStorage
 } = require("../../Utils/TransactionContext");
 const messageTypes = require("../../Utils/MessageTypes");
@@ -336,6 +339,16 @@ const acceptRejectAttachedDocuments = async body => {
   if (updatedDocument.affectedRows === 0) {
     throw new AppError("Failed to update the document status", AppError.INTERNAL_SERVER_ERROR);
   }
+
+  // Recalculate synchronously on the SAME transaction connection. The old
+  // post-commit setImmediate pattern could read the pre-update snapshot before
+  // executeInTransaction() committed, leaving a stale vehicle status.
+  if (ownerType === "vehicle") {
+    await recalculateVehicleStatus(ownerUniqueId, {
+      actorUserUniqueId: userUniqueId,
+    });
+  }
+
   const message = {
     attachedDocument,
     message: `Document has been ${action.toLowerCase()}`,

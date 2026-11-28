@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS \`VehicleStatusHistory\` (
     \`VehicleStatusTypeId\` int NOT NULL,
     \`statusStartDate\` datetime NOT NULL,
     \`statusEndDate\` datetime DEFAULT NULL,
+    \`statusDescription\` varchar(255) DEFAULT NULL COMMENT 'why this vehicle entered this status',
     \`vehicleStatusCreatedBy\` varchar(36) NOT NULL,
     \`vehicleStatusUpdatedBy\` varchar(36) DEFAULT NULL,
     \`vehicleStatusDeletedBy\` varchar(36) DEFAULT NULL,

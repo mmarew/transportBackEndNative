@@ -21,7 +21,9 @@ const {
   activeJourneyStatuses,
 } = require("../../Utils/ListOfSeedData");
 
-const { createVehicleStatusType } = require("../VehicleStatusType.service");
+const {
+  ensureSeededVehicleStatusType,
+} = require("../VehicleStatusType.service");
 
 const {
   createUserSystem,
@@ -200,6 +202,32 @@ const ensureBatchCreatedByColumn = async (connection) => {
     logger.info(
       "Migration: added FK fk_ShipperRequestBatch_batchCreatedByRoleId",
     );
+  }
+};
+
+/**
+ * Idempotently add the per-status reason column to VehicleStatus and its
+ * snapshot history table. CREATE TABLE IF NOT EXISTS only helps fresh DBs, so
+ * existing deployments need this ALTER. The column explains WHY a vehicle
+ * entered a status; the meaning of the status itself lives in
+ * VehicleStatusTypes.VehicleStatusTypeDescription.
+ */
+const ensureVehicleStatusDescriptionColumn = async (connection) => {
+  const dbName = dbConfig.database;
+
+  for (const tableName of ["VehicleStatus", "VehicleStatusHistory"]) {
+    const [col] = await connection.query(
+      `SELECT COUNT(*) AS cnt FROM information_schema.columns
+       WHERE table_schema = ? AND table_name = ? AND column_name = 'statusDescription'`,
+      [dbName, tableName],
+    );
+    if (col[0].cnt === 0) {
+      await connection.query(
+        `ALTER TABLE \`${tableName}\`
+         ADD COLUMN statusDescription VARCHAR(255) NULL AFTER statusEndDate`,
+      );
+      logger.info(`Migration: added ${tableName}.statusDescription column`);
+    }
   }
 };
 
@@ -879,6 +907,10 @@ const createTable = async () => {
     // Create the audit-history tables (one snapshot table per tracked entity)
     await adminConnection.query(historyTablesDdl);
 
+    // Idempotently add the per-vehicle status reason column to both the live
+    // table and its history mirror (existing DBs don't rerun CREATE TABLE).
+    await ensureVehicleStatusDescriptionColumn(adminConnection);
+
     // Idempotently enforce the BATCH-canonical queueOrganizationUniqueId model
     // (see ensureQueueOrgReferences). Must run while this connection still has the DB selected.
     await ensureQueueOrgReferences(adminConnection);
@@ -1049,9 +1081,10 @@ const createTable = async () => {
   // Seed VehicleStatusTypes (e.g. for VehicleStatus FK)
   for (const vehicleStatusType of listOfVehicleStatusTypes) {
     try {
-      await createVehicleStatusType({
+      await ensureSeededVehicleStatusType({
         ...vehicleStatusType,
         user: adminUser,
+        userUniqueId: adminUser?.userUniqueId,
       });
     } catch (error) {
       if (!isSeedSkip(error)) {

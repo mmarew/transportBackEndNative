@@ -5,15 +5,35 @@ const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
+const logger = require("../Utils/logger");
 const { transactionStorage } = require("../Utils/TransactionContext");
 const { PAGINATION } = require("../Utils/Constants");
+const {
+  usersRoles,
+  VEHICLE_STATUS_TYPES,
+} = require("../Utils/ListOfSeedData");
 const { insertHistoryRecord } = require("./History/History.service");
+
+// Statuses that represent an explicit admin/system hold. Document events must
+// never silently clear them; an admin has to move the vehicle out explicitly.
+// REJECTED is deliberately NOT in this set: it is the derived result of a
+// rejected mandatory document, so re-approving that document clears it.
+const MANUAL_HOLD_STATUS_TYPES = new Set([
+  VEHICLE_STATUS_TYPES.SUSPENDED,
+  VEHICLE_STATUS_TYPES.INACTIVE,
+  VEHICLE_STATUS_TYPES.DELETED,
+  VEHICLE_STATUS_TYPES.RESERVED_BY_OTHER_DRIVER,
+]);
+
+const isManualHoldStatus = (statusTypeId) =>
+  MANUAL_HOLD_STATUS_TYPES.has(Number(statusTypeId));
 
 const createVehicleStatus = async (data) => {
   const {
     vehicleUniqueId,
     VehicleStatusTypeId,
     statusEndDate = null,
+    statusDescription = null,
     vehicleStatusCreatedBy,
     connection = null, // Optional connection for transaction
   } = data;
@@ -42,6 +62,7 @@ const createVehicleStatus = async (data) => {
     VehicleStatusTypeId,
     statusStartDate: currentDate(),
     statusEndDate,
+    statusDescription,
     vehicleStatusCreatedBy,
     vehicleStatusCreatedAt: currentDate(),
   };
@@ -52,6 +73,201 @@ const createVehicleStatus = async (data) => {
   });
 
   return { message: "Vehicle status created successfully", data: { vehicleStatusUniqueId } };
+};
+
+/**
+ * Decide which status a vehicle SHOULD have based only on its own mandatory
+ * documents (roleId 9 — insurance + librea). Company documents never block a
+ * vehicle. Explicit admin holds (suspended/inactive/deleted/reserved) are
+ * sticky: only an explicit admin clearance (clearHold) can move them again.
+ */
+const evaluateVehicleStatus = async (vehicleUniqueId, executor) => {
+  const [requirementRows] = await executor.query(
+    `SELECT rdr.documentTypeId, dt.documentTypeName
+     FROM RoleDocumentRequirements rdr
+     LEFT JOIN DocumentTypes dt ON dt.documentTypeId = rdr.documentTypeId
+     WHERE rdr.roleId = ?
+       AND rdr.isDocumentMandatory = 1
+       AND rdr.roleDocumentRequirementDeletedAt IS NULL
+     ORDER BY rdr.documentTypeId ASC`,
+    [usersRoles.vehicleRoleId],
+  );
+
+  const requirements = requirementRows.map((row) => ({
+    documentTypeId: Number(row.documentTypeId),
+    documentTypeName:
+      row.documentTypeName || `document type ${row.documentTypeId}`,
+  }));
+
+  if (requirements.length === 0) {
+    return {
+      statusType: VEHICLE_STATUS_TYPES.ACTIVE,
+      statusDescription: "No mandatory vehicle documents are configured",
+    };
+  }
+
+  const [documentRows] = await executor.query(
+    `SELECT documentTypeId, attachedDocumentAcceptance, documentExpirationDate
+     FROM AttachedDocuments
+     WHERE ownerType = 'vehicle' AND ownerUniqueId = ?`,
+    [vehicleUniqueId],
+  );
+
+  const docsByType = new Map(
+    documentRows.map((row) => [Number(row.documentTypeId), row]),
+  );
+
+  const missing = [];
+  const pending = [];
+  const expired = [];
+  const rejected = [];
+
+  for (const requirement of requirements) {
+    const doc = docsByType.get(requirement.documentTypeId);
+    if (!doc) {
+      missing.push(requirement.documentTypeName);
+      continue;
+    }
+    if (doc.attachedDocumentAcceptance === "REJECTED") {
+      rejected.push(requirement.documentTypeName);
+    } else if (doc.attachedDocumentAcceptance !== "ACCEPTED") {
+      pending.push(requirement.documentTypeName);
+    } else if (
+      doc.documentExpirationDate &&
+      new Date(doc.documentExpirationDate) < new Date()
+    ) {
+      expired.push(requirement.documentTypeName);
+    }
+  }
+
+  if (rejected.length > 0) {
+    return {
+      statusType: VEHICLE_STATUS_TYPES.REJECTED,
+      statusDescription: `Mandatory vehicle document rejected: ${rejected.join(", ")}`,
+    };
+  }
+
+  const pendingIssues = [
+    ...missing.map((name) => `missing: ${name}`),
+    ...pending.map((name) => `pending approval: ${name}`),
+    ...expired.map((name) => `expired: ${name}`),
+  ];
+  if (pendingIssues.length > 0) {
+    return {
+      statusType: VEHICLE_STATUS_TYPES.PENDING_DOCS,
+      statusDescription: `Mandatory vehicle documents ${pendingIssues.join("; ")}`,
+    };
+  }
+
+  return {
+    statusType: VEHICLE_STATUS_TYPES.ACTIVE,
+    statusDescription:
+      "All mandatory vehicle documents accepted and unexpired; no maintenance/admin hold",
+  };
+};
+
+/**
+ * Central vehicle-status evaluator. Writes a new VehicleStatus row only when
+ * the evaluated status actually changes, closing the previous row so history
+ * is preserved. Same-status reason changes are updated in place.
+ */
+const recalculateVehicleStatus = async (vehicleUniqueId, options = {}) => {
+  if (!vehicleUniqueId) {
+    return { changed: false, statusType: null, statusDescription: null };
+  }
+
+  const {
+    actorUserUniqueId = null,
+    clearHold = false,
+    // Backwards-compatible alias used by earlier suspension-clearance code.
+    ignoreSuspension = false,
+    connection = null,
+  } = options;
+  const allowHoldOverride = clearHold || ignoreSuspension;
+  const executor = transactionStorage.getStore() || connection || pool;
+
+  const [currentRows] = await executor.query(
+    `SELECT * FROM VehicleStatus
+     WHERE vehicleUniqueId = ? AND vehicleStatusDeletedAt IS NULL
+     ORDER BY vehicleStatusCreatedAt DESC, vehicleStatusId DESC
+     LIMIT 1`,
+    [vehicleUniqueId],
+  );
+  const current = currentRows[0] || null;
+
+  if (current && isManualHoldStatus(current.VehicleStatusTypeId) && !allowHoldOverride) {
+    return {
+      changed: false,
+      statusType: Number(current.VehicleStatusTypeId),
+      statusDescription:
+        current.statusDescription || "Vehicle is held by an admin",
+      vehicleStatusUniqueId: current.vehicleStatusUniqueId,
+    };
+  }
+
+  const evaluation = await evaluateVehicleStatus(vehicleUniqueId, executor);
+  const actor = actorUserUniqueId || current?.vehicleStatusCreatedBy || "admin";
+
+  if (current?.VehicleStatusTypeId === evaluation.statusType) {
+    if (current.statusDescription !== evaluation.statusDescription) {
+      await insertHistoryRecord({
+        sourceTable: "VehicleStatus",
+        conditions: { vehicleStatusUniqueId: current.vehicleStatusUniqueId },
+        changeType: "UPDATE",
+        changedByUserId: actorUserUniqueId,
+      });
+      await updateData({
+        tableName: "VehicleStatus",
+        conditions: { vehicleStatusUniqueId: current.vehicleStatusUniqueId },
+        updateValues: {
+          statusDescription: evaluation.statusDescription,
+          vehicleStatusUpdatedBy: actor,
+          vehicleStatusUpdatedAt: currentDate(),
+        },
+        connection,
+      });
+    }
+    return {
+      changed: false,
+      statusType: evaluation.statusType,
+      statusDescription: evaluation.statusDescription,
+      vehicleStatusUniqueId: current.vehicleStatusUniqueId,
+    };
+  }
+
+  if (current) {
+    await insertHistoryRecord({
+      sourceTable: "VehicleStatus",
+      conditions: { vehicleStatusUniqueId: current.vehicleStatusUniqueId },
+      changeType: "UPDATE",
+      changedByUserId: actorUserUniqueId,
+    });
+    await updateData({
+      tableName: "VehicleStatus",
+      conditions: { vehicleStatusUniqueId: current.vehicleStatusUniqueId },
+      updateValues: {
+        statusEndDate: currentDate(),
+        vehicleStatusUpdatedBy: actor,
+        vehicleStatusUpdatedAt: currentDate(),
+      },
+      connection,
+    });
+  }
+
+  const created = await createVehicleStatus({
+    vehicleUniqueId,
+    VehicleStatusTypeId: evaluation.statusType,
+    statusDescription: evaluation.statusDescription,
+    vehicleStatusCreatedBy: actor,
+    connection,
+  });
+
+  return {
+    changed: true,
+    statusType: evaluation.statusType,
+    statusDescription: evaluation.statusDescription,
+    vehicleStatusUniqueId: created.data.vehicleStatusUniqueId,
+  };
 };
 
 const getVehicleStatuses = async (filters = {}) => {
@@ -67,6 +283,21 @@ const getVehicleStatuses = async (filters = {}) => {
   const pageNum = Number(page) || 1;
   const limitNum = Number(limit) || PAGINATION.DEFAULT_PAGE_SIZE;
   const offset = (pageNum - 1) * limitNum;
+
+  // A status read for one vehicle is also the natural place to catch an
+  // accepted document that expired while nobody was uploading/approving.
+  if (vehicleUniqueId && !filters.skipRecalculate) {
+    try {
+      await recalculateVehicleStatus(vehicleUniqueId);
+    } catch (recalcError) {
+      // A read must never fail just because evaluation failed; the stored
+      // history remains available and the next event can retry.
+      logger.warn("Vehicle status recalculation on read failed", {
+        vehicleUniqueId,
+        error: recalcError?.message,
+      });
+    }
+  }
 
   const where = ["vs.vehicleStatusDeletedAt IS NULL"];
   const params = [];
@@ -84,9 +315,11 @@ const getVehicleStatuses = async (filters = {}) => {
     params.push(VehicleStatusTypeId);
   }
   if (search) {
-    where.push("(vst.VehicleStatusTypeName LIKE ? OR vs.remark LIKE ?)");
+    where.push(
+      "(vst.VehicleStatusTypeName LIKE ? OR vst.VehicleStatusTypeDescription LIKE ? OR vs.statusDescription LIKE ?)",
+    );
     const s = `%${search}%`;
-    params.push(s, s);
+    params.push(s, s, s);
   }
 
   const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
@@ -99,7 +332,7 @@ const getVehicleStatuses = async (filters = {}) => {
     FROM VehicleStatus vs
     LEFT JOIN VehicleStatusTypes vst ON vs.VehicleStatusTypeId = vst.VehicleStatusTypeId
     ${whereClause}
-    ORDER BY vs.vehicleStatusCreatedAt DESC
+    ORDER BY vs.vehicleStatusCreatedAt DESC, vs.vehicleStatusId DESC
     LIMIT ? OFFSET ?
   `;
 
@@ -128,25 +361,69 @@ const getVehicleStatuses = async (filters = {}) => {
   };
 };
 
-const updateVehicleStatus = async (vehicleStatusUniqueId, data) => {
+const updateVehicleStatus = async (
+  vehicleStatusUniqueId,
+  data = {},
+  actor = null,
+) => {
+  const executor = transactionStorage.getStore() || pool;
+  const [existingRows] = await executor.query(
+    `SELECT vehicleUniqueId, VehicleStatusTypeId
+     FROM VehicleStatus
+     WHERE vehicleStatusUniqueId = ? AND vehicleStatusDeletedAt IS NULL
+     LIMIT 1`,
+    [vehicleStatusUniqueId],
+  );
+  if (existingRows.length === 0) {
+    throw new AppError("VehicleStatus not found", AppError.NOT_FOUND);
+  }
+
+  const previous = existingRows[0];
+  const actorUserUniqueId =
+    (typeof actor === "string" ? actor : actor?.userUniqueId) ||
+    data?.user?.userUniqueId ||
+    null;
+
+  const allowedFields = [
+    "VehicleStatusTypeId",
+    "statusStartDate",
+    "statusEndDate",
+    "statusDescription",
+  ];
+  const updateValues = {};
+  for (const field of allowedFields) {
+    if (data[field] !== undefined) updateValues[field] = data[field];
+  }
+  updateValues.vehicleStatusUpdatedBy = actorUserUniqueId;
+  updateValues.vehicleStatusUpdatedAt = currentDate();
+
   await insertHistoryRecord({
     sourceTable: "VehicleStatus",
     conditions: { vehicleStatusUniqueId },
     changeType: "UPDATE",
-    changedByUserId: data?.user?.userUniqueId,
+    changedByUserId: actorUserUniqueId,
   });
 
   const result = await updateData({
     tableName: "VehicleStatus",
     conditions: { vehicleStatusUniqueId },
-    updateValues: data,
+    updateValues,
   });
 
   if (result.affectedRows === 0) {
     throw new AppError("Update failed or VehicleStatus not found", AppError.NOT_FOUND);
   }
 
-  return { message: "Vehicle status updated successfully", data: result };
+  return {
+    message: "Vehicle status updated successfully",
+    data: {
+      vehicleStatusUniqueId,
+      vehicleUniqueId: previous.vehicleUniqueId,
+      previousVehicleStatusTypeId: previous.VehicleStatusTypeId,
+      currentVehicleStatusTypeId:
+        updateValues.VehicleStatusTypeId ?? previous.VehicleStatusTypeId,
+    },
+  };
 };
 
 const deleteVehicleStatus = async (vehicleStatusUniqueId) => {
@@ -185,6 +462,9 @@ const getStatusOfVehicleByVehicleUniqueId = async (vehicleUniqueId) => {
 
 module.exports = {
   createVehicleStatus,
+  evaluateVehicleStatus,
+  recalculateVehicleStatus,
+  isManualHoldStatus,
   updateVehicleStatus,
   deleteVehicleStatus,
   getVehicleStatuses,

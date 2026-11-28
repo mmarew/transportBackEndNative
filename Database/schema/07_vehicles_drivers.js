@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS VehicleStatus (
     VehicleStatusTypeId INT NOT NULL,  -- Foreign key to VehicleStatusType
     statusStartDate DATETIME NOT NULL,  -- Status start date
     statusEndDate DATETIME NULL,  -- Status end date
+    statusDescription VARCHAR(255) NULL,  -- Why this vehicle entered this status
     vehicleStatusCreatedBy VARCHAR(36) NOT NULL,  -- Who created the vehicle status
     vehicleStatusUpdatedBy VARCHAR(36) NULL,  -- Who updated the vehicle status
     vehicleStatusDeletedBy VARCHAR(36) NULL,  -- Who deleted the vehicle status

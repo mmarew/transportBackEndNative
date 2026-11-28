@@ -61,6 +61,78 @@ const createVehicleStatusType = async (data) => {
   };
 };
 
+/**
+ * Seed-time upsert for canonical vehicle status types.
+ *
+ * createVehicleStatusType() intentionally no-ops when a type name already
+ * exists. That protects user-created types, but it also means improved seed
+ * descriptions never reach an existing database. This helper is used ONLY by
+ * bootstrap seeding: it keeps the canonical IDs stable and refreshes their
+ * names/descriptions in place.
+ */
+const ensureSeededVehicleStatusType = async (data) => {
+  const statusTypeId = data.VehicleStatusTypeId;
+  const statusTypeName = data.VehicleStatusTypeName || data.typeName;
+  const statusTypeDescription =
+    data.statusTypeDescription || data.description || null;
+
+  if (!statusTypeId || !statusTypeName) {
+    return createVehicleStatusType(data);
+  }
+
+  const executor = transactionStorage.getStore() || pool;
+  const [rows] = await executor.query(
+    `SELECT VehicleStatusTypeId, VehicleStatusTypeName,
+            VehicleStatusTypeDescription, VehicleStatusTypeDeletedAt
+     FROM VehicleStatusTypes
+     WHERE VehicleStatusTypeId = ? LIMIT 1`,
+    [statusTypeId],
+  );
+
+  if (rows.length === 0) {
+    return createVehicleStatusType(data);
+  }
+
+  const current = rows[0];
+  if (
+    current.VehicleStatusTypeName === statusTypeName &&
+    current.VehicleStatusTypeDescription === statusTypeDescription &&
+    !current.VehicleStatusTypeDeletedAt
+  ) {
+    return {
+      message: "Vehicle status type operation completed",
+      data: { VehicleStatusTypeId: statusTypeId },
+    };
+  }
+
+  const actorUserUniqueId =
+    data.userUniqueId || data.user?.userUniqueId || "admin";
+
+  await insertHistoryRecord({
+    sourceTable: "VehicleStatusTypes",
+    conditions: { VehicleStatusTypeId: statusTypeId },
+    changeType: "UPDATE",
+    changedByUserId: actorUserUniqueId,
+  });
+
+  await updateData({
+    tableName: "VehicleStatusTypes",
+    conditions: { VehicleStatusTypeId: statusTypeId },
+    updateValues: {
+      VehicleStatusTypeName: statusTypeName,
+      VehicleStatusTypeDescription: statusTypeDescription,
+      VehicleStatusTypeUpdatedBy: actorUserUniqueId,
+      VehicleStatusTypeUpdatedAt: currentDate(),
+      VehicleStatusTypeDeletedAt: null,
+    },
+  });
+
+  return {
+    message: "Vehicle status type operation completed",
+    data: { VehicleStatusTypeId: statusTypeId },
+  };
+};
+
 // Unified GET with filtering
 const getAllVehicleStatusTypes = async (filters = {}) => {
   const { page = 1, limit = 10, typeName, vehicleStatusTypeUniqueId } = filters;
@@ -161,6 +233,7 @@ const deleteVehicleStatusType = async (vehicleStatusTypeUniqueId) => {
 
 module.exports = {
   createVehicleStatusType,
+  ensureSeededVehicleStatusType,
   getAllVehicleStatusTypes,
   updateVehicleStatusType,
   deleteVehicleStatusType,

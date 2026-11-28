@@ -17,6 +17,10 @@ const {
   pool
 } = require("../../Middleware/Database.config");
 
+const {
+  recalculateVehicleStatus
+} = require("../VehicleStatus.service");
+
 
 
 
@@ -40,6 +44,20 @@ const deleteAttachedDocument = async attachedDocumentUniqueId => {
       attachedDocumentUniqueId
     }
   });
+  if (attachedDocument?.ownerType === "vehicle" && attachedDocument?.ownerUniqueId) {
+    try {
+      await recalculateVehicleStatus(attachedDocument.ownerUniqueId, {
+        actorUserUniqueId: attachedDocument.attachedDocumentUpdatedByUserId ||
+          attachedDocument.attachedDocumentCreatedByUserId
+      });
+    } catch (statusError) {
+      logger.error("Failed to update vehicle status after document delete", {
+        error: statusError.message,
+        vehicleUniqueId: attachedDocument.ownerUniqueId,
+        attachedDocumentUniqueId
+      });
+    }
+  }
   return {
     message: "Document deleted successfully",
     data: null

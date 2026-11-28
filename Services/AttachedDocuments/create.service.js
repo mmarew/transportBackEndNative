@@ -24,6 +24,9 @@ const {
   accountStatus
 } = require("../Account");
 const {
+  recalculateVehicleStatus
+} = require("../VehicleStatus.service");
+const {
   transactionStorage
 } = require("../../Utils/TransactionContext");
 
@@ -146,6 +149,19 @@ const createAttachedDocument = async ({
             error: statusError.message,
             ownerUniqueId,
             roleId
+          });
+        }
+      }
+      if (ownerType === "vehicle") {
+        try {
+          await recalculateVehicleStatus(ownerUniqueId, {
+            actorUserUniqueId: uploadedByUserId,
+          });
+        } catch (statusError) {
+          logger.error("Failed to update vehicle status after document attachment", {
+            error: statusError.message,
+            ownerUniqueId,
+            documentTypeId
           });
         }
       }

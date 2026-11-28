@@ -181,7 +181,7 @@
       "post": {
         "tags": ["Vehicles"],
         "summary": "Register a vehicle (self / driver / unassigned company vehicle)",
-        "description": "Register a vehicle for self, for a driver UUID, or as a vehicle with no driver assigned.",
+        "description": "Register a vehicle for self, for a driver UUID, or as a vehicle with no driver assigned. A new vehicle starts as pending documents and becomes active only once all mandatory vehicle documents are accepted and unexpired, with no admin/maintenance hold.",
         "operationId": "createVehicle",
         "security": [{ "bearerAuth": [] }],
         "parameters": [

@@ -2,7 +2,7 @@ const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const {
   getStatusOfVehicleByVehicleUniqueId,
-  createVehicleStatus,
+  recalculateVehicleStatus,
 } = require("./VehicleStatus.service");
 const { insertData } = require("../CRUD/Create/CreateData");
 const { updateData } = require("../CRUD/Update/Data.update");
@@ -31,16 +31,18 @@ const createVehicleOwnership = async (body) => {
     await getStatusOfVehicleByVehicleUniqueId(vehicleUniqueId);
 
   const statusData = statusResult.data;
-  // if there is no status of vehicle registered before create new active status
+  // A vehicle can be linked to an owner/driver while it is still waiting for
+  // documents. Only hard blocks (suspended, rejected, deleted, reserved)
+  // prevent the link.
   if (!statusData) {
-    // create new active status of vehicle
-    await createVehicleStatus({
-      vehicleUniqueId,
-      VehicleStatusTypeId: VEHICLE_STATUS_TYPES.ACTIVE,
-      vehicleStatusCreatedBy: userUniqueId,
+    await recalculateVehicleStatus(vehicleUniqueId, {
+      actorUserUniqueId: userUniqueId,
       connection,
     });
-  } else if (statusData.VehicleStatusTypeId !== VEHICLE_STATUS_TYPES.ACTIVE) {
+  } else if (
+    statusData.VehicleStatusTypeId !== VEHICLE_STATUS_TYPES.ACTIVE &&
+    statusData.VehicleStatusTypeId !== VEHICLE_STATUS_TYPES.PENDING_DOCS
+  ) {
     throw new AppError("Vehicle is not active", AppError.BAD_REQUEST);
   }
 
